@@ -1,13 +1,11 @@
 import './App.css'
+import StatusBar from './components/StatusBar.jsx'
 
 function App() {
   return (
     <main className="app">
       <section className="phone-shell">
-        <div className="status-bar">
-          <span>9:41</span>
-          <span>DOC OS</span>
-        </div>
+        <StatusBar />
 
         <div className="home-screen">
           <h1>DOC OS</h1>
