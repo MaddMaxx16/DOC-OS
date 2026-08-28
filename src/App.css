@@ -44,7 +44,13 @@
   align-items: center;
   gap: 8px;
   margin-top: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   font-size: 14px;
+  cursor: pointer;
 }
 
 .app-icon-square {
@@ -57,4 +63,32 @@
   border-radius: 18px;
   font-size: 24px;
   font-weight: 600;
+}
+
+.load-board-screen {
+  height: calc(100% - 44px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+}
+
+.load-board-screen h1 {
+  font-size: 32px;
+}
+
+.load-board-screen p {
+  margin: 16px 0 24px;
+  color: #b5b5ba;
+}
+
+.back-button {
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 10px;
+  background: #343438;
+  color: white;
+  font: inherit;
+  cursor: pointer;
 }

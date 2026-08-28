@@ -1,12 +1,12 @@
-function HomeScreen() {
+function HomeScreen({ onOpenLoadBoard }) {
   return (
     <div className="home-screen">
       <h1>DOC OS</h1>
 
-      <div className="app-icon">
+      <button type="button" className="app-icon" onClick={onOpenLoadBoard}>
         <div className="app-icon-square">LB</div>
         <span>Load Board</span>
-      </div>
+      </button>
     </div>
   )
 }
