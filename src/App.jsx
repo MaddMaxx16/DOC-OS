@@ -1,4 +1,5 @@
 import './App.css'
+import HomeScreen from './components/HomeScreen.jsx'
 import StatusBar from './components/StatusBar.jsx'
 
 function App() {
@@ -6,10 +7,7 @@ function App() {
     <main className="app">
       <section className="phone-shell">
         <StatusBar />
-
-        <div className="home-screen">
-          <h1>DOC OS</h1>
-        </div>
+        <HomeScreen />
       </section>
     </main>
   )
