@@ -296,6 +296,36 @@
   color: #b5b5ba;
 }
 
+.load-list {
+  width: min(100%, 280px);
+}
+
+.load-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #343438;
+  text-align: left;
+}
+
+.load-route,
+.load-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.load-route span:nth-child(2) {
+  color: #8d8d93;
+}
+
+.load-meta {
+  color: #b5b5ba;
+  font-size: 13px;
+}
+
 .back-button {
   padding: 10px 20px;
   border: 0;
