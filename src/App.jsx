@@ -11,9 +11,21 @@ import StartScreen from './components/StartScreen.jsx'
 function App() {
   const [stage, setStage] = useState('start')
   const [selectedMarket, setSelectedMarket] = useState(null)
+  const [gameTime, setGameTime] = useState({ gameDayIndex: 0, totalMinutesOfDay: 420 })
   const [loads, setLoads] = useState(() => seedLoads)
   const [drivers, setDrivers] = useState(() => seedDrivers)
   const [plannedRoute, setPlannedRoute] = useState(null)
+
+  useEffect(() => {
+    if (stage !== 'game') return undefined
+    const timer = setInterval(() => setGameTime((time) => {
+      const nextMinutes = time.totalMinutesOfDay + 1
+      return nextMinutes >= 1440
+        ? { gameDayIndex: time.gameDayIndex + 1, totalMinutesOfDay: 0 }
+        : { ...time, totalMinutesOfDay: nextMinutes }
+    }), 3000)
+    return () => clearInterval(timer)
+  }, [stage])
 
   useEffect(() => {
     const loadsToCalculate = seedLoads.filter((load) => load.listedMiles === null)
@@ -51,6 +63,7 @@ function App() {
         {stage === 'game' && (
           <MainGameScreen
             selectedMarket={selectedMarket}
+            gameTime={gameTime}
             loads={loads}
             setLoads={setLoads}
             drivers={drivers}

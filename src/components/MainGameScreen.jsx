@@ -3,12 +3,12 @@ import GameMap from './GameMap.jsx'
 import PhoneOverlay from './PhoneOverlay.jsx'
 import StatusBar from './StatusBar.jsx'
 
-function MainGameScreen({ selectedMarket, loads, setLoads, drivers, setDrivers, plannedRoute, setPlannedRoute, onOpenMarkets }) {
+function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, plannedRoute, setPlannedRoute, onOpenMarkets }) {
   const [isPhoneOpen, setIsPhoneOpen] = useState(false)
 
   return (
     <div className="main-game-screen">
-      <StatusBar selectedMarket={selectedMarket} />
+      <StatusBar selectedMarket={selectedMarket} gameTime={gameTime} />
       <div className="map-area">
         <GameMap drivers={drivers} plannedRoute={plannedRoute} />
         <button
