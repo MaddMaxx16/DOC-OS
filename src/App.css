@@ -141,8 +141,8 @@
 
 .phone-button {
   position: absolute;
-  right: 24px;
-  bottom: 24px;
+  right: 18px;
+  bottom: 68px;
   z-index: 2;
   padding: 12px 16px;
   border: 0;
