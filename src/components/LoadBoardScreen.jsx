@@ -1,7 +1,7 @@
 import loads from '../data/loads.js'
 import mapLocations from '../data/mapLocations.js'
 
-function LoadBoardScreen({ onBack }) {
+function LoadBoardScreen({ onBack, onSelectLoad }) {
   return (
     <div className="load-board-screen">
       <h1>Load Board</h1>
@@ -15,7 +15,7 @@ function LoadBoardScreen({ onBack }) {
           )
 
           return (
-            <div className="load-card" key={load.id}>
+            <button type="button" className="load-card" key={load.id} onClick={() => onSelectLoad(load.id)}>
               <strong>{load.id}</strong>
               <div className="load-route">
                 <span>{pickup.name}</span>
@@ -27,7 +27,7 @@ function LoadBoardScreen({ onBack }) {
                 <span>Miles: {load.miles}</span>
                 <span>Status: {load.status[0].toUpperCase() + load.status.slice(1)}</span>
               </div>
-            </div>
+            </button>
           )
         })}
       </div>

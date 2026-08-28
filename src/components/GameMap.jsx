@@ -33,9 +33,14 @@ function GameMap() {
             ? 'D'
             : 'T'
 
-        const popup = new Popup({ offset: 20 }).setHTML(
-          `<strong>${location.name}</strong><br />${location.type}`,
-        )
+        const popupContent = document.createElement('div')
+        const name = document.createElement('strong')
+        name.textContent = location.name
+        const type = document.createElement('span')
+        type.textContent = location.type[0].toUpperCase() + location.type.slice(1)
+        popupContent.append(name, type)
+
+        const popup = new Popup({ offset: 20 }).setDOMContent(popupContent)
         const marker = new Marker({ element: markerElement })
           .setLngLat([location.longitude, location.latitude])
           .setPopup(popup)
