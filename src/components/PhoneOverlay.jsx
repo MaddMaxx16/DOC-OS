@@ -37,6 +37,11 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, onClose }) {
             )))
           }}
           onAssignDriver={() => setScreen('driverSelection')}
+          onDispatch={() => {
+            setLoads((currentLoads) => currentLoads.map((load) => (
+              load.id === selectedLoadId ? { ...load, status: 'dispatched' } : load
+            )))
+          }}
           onBack={() => setScreen('loadBoard')}
         />
       ) : (

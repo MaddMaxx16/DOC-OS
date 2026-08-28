@@ -1,6 +1,6 @@
 import mapLocations from '../data/mapLocations.js'
 
-function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onAssignDriver, onBack }) {
+function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onAssignDriver, onDispatch, onBack }) {
   const load = loads.find((item) => item.id === loadId)
   const pickup = load && mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = load && mapLocations.find((location) => location.id === load.deliveryLocationId)
@@ -35,6 +35,10 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onAssignDriver, o
       ) : load.status === 'accepted' ? (
         <button type="button" className="action-button" onClick={onAssignDriver}>
           ASSIGN DRIVER
+        </button>
+      ) : load.status === 'assigned' && load.assignedDriverId ? (
+        <button type="button" className="action-button" onClick={onDispatch}>
+          DISPATCH DRIVER
         </button>
       ) : null}
       <button type="button" className="back-button" onClick={onBack}>
