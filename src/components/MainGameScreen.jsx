@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import GameMap from './GameMap.jsx'
 import PhoneOverlay from './PhoneOverlay.jsx'
 import StatusBar from './StatusBar.jsx'
 
@@ -9,7 +10,7 @@ function MainGameScreen({ selectedMarket, onOpenMarkets }) {
     <div className="main-game-screen">
       <StatusBar selectedMarket={selectedMarket} />
       <div className="map-area">
-        MAP AREA
+        <GameMap />
         <button
           type="button"
           className="markets-button"

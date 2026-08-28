@@ -105,6 +105,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   width: 100%;
   color: white;
 }
@@ -126,19 +127,23 @@
 .map-area {
   position: relative;
   flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  min-height: 0;
+  width: 100%;
   background: #252528;
-  color: #8d8d93;
-  font-size: 18px;
-  letter-spacing: 1px;
+}
+
+.game-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .phone-button {
   position: absolute;
   right: 24px;
   bottom: 24px;
+  z-index: 2;
   padding: 12px 16px;
   border: 0;
   border-radius: 50%;
@@ -153,6 +158,7 @@
   position: absolute;
   top: 16px;
   left: 16px;
+  z-index: 2;
   padding: 8px 12px;
   border: 0;
   border-radius: 8px;
