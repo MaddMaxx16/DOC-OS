@@ -139,6 +139,35 @@
   height: 100%;
 }
 
+.game-marker {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid #1c1c1e;
+  border-radius: 50%;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.game-marker.pickup {
+  background: #3f7f62;
+}
+
+.game-marker.delivery {
+  background: #8a5b3d;
+}
+
+.game-marker.driver {
+  width: 24px;
+  height: 24px;
+  background: #4f6590;
+  border-radius: 8px;
+}
+
 .phone-button {
   position: absolute;
   right: 18px;

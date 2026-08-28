@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { Map, setWorkerUrl } from 'maplibre-gl'
+import { LngLatBounds, Map, Marker, Popup, setWorkerUrl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+import mapLocations from '../data/mapLocations.js'
 
 setWorkerUrl(workerUrl)
 
@@ -18,7 +19,38 @@ function GameMap() {
     })
     map.resize()
 
-    return () => map.remove()
+    const markers = []
+    map.on('load', () => {
+      const bounds = new LngLatBounds()
+
+      mapLocations.forEach((location) => {
+        bounds.extend([location.longitude, location.latitude])
+        const markerElement = document.createElement('div')
+        markerElement.className = `game-marker ${location.type}`
+        markerElement.textContent = location.type === 'pickup'
+          ? 'P'
+          : location.type === 'delivery'
+            ? 'D'
+            : 'T'
+
+        const popup = new Popup({ offset: 20 }).setHTML(
+          `<strong>${location.name}</strong><br />${location.type}`,
+        )
+        const marker = new Marker({ element: markerElement })
+          .setLngLat([location.longitude, location.latitude])
+          .setPopup(popup)
+          .addTo(map)
+
+        markers.push(marker)
+      })
+
+      map.fitBounds(bounds, { padding: 50, maxZoom: 12 })
+    })
+
+    return () => {
+      markers.forEach((marker) => marker.remove())
+      map.remove()
+    }
   }, [])
 
   return <div ref={mapContainer} className="game-map" />
