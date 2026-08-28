@@ -3,7 +3,7 @@ import GameMap from './GameMap.jsx'
 import PhoneOverlay from './PhoneOverlay.jsx'
 import StatusBar from './StatusBar.jsx'
 
-function MainGameScreen({ selectedMarket, loads, setLoads, onOpenMarkets }) {
+function MainGameScreen({ selectedMarket, loads, setLoads, drivers, setDrivers, onOpenMarkets }) {
   const [isPhoneOpen, setIsPhoneOpen] = useState(false)
 
   return (
@@ -31,6 +31,8 @@ function MainGameScreen({ selectedMarket, loads, setLoads, onOpenMarkets }) {
           <PhoneOverlay
             loads={loads}
             setLoads={setLoads}
+            drivers={drivers}
+            setDrivers={setDrivers}
             onClose={() => setIsPhoneOpen(false)}
           />
         )}

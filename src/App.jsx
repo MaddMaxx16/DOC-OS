@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './App.css'
+import seedDrivers from './data/drivers.js'
 import seedLoads from './data/loads.js'
 import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
 import MainGameScreen from './components/MainGameScreen.jsx'
@@ -9,6 +10,7 @@ function App() {
   const [stage, setStage] = useState('start')
   const [selectedMarket, setSelectedMarket] = useState(null)
   const [loads, setLoads] = useState(() => seedLoads)
+  const [drivers, setDrivers] = useState(() => seedDrivers)
 
   return (
     <main className="app">
@@ -26,6 +28,8 @@ function App() {
             selectedMarket={selectedMarket}
             loads={loads}
             setLoads={setLoads}
+            drivers={drivers}
+            setDrivers={setDrivers}
             onOpenMarkets={() => setStage('market')}
           />
         )}

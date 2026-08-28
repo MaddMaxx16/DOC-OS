@@ -415,6 +415,43 @@
   cursor: pointer;
 }
 
+.driver-selection-screen {
+  height: calc(100% - 44px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64px 24px 0;
+  color: white;
+}
+
+.driver-selection-screen h1 {
+  margin: 0 0 28px;
+  font-size: 32px;
+}
+
+.driver-card {
+  width: min(100%, 280px);
+  display: flex;
+  justify-content: space-between;
+  padding: 16px;
+  border: 0;
+  border-radius: 14px;
+  background: #343438;
+  color: white;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.driver-card small {
+  color: #b5b5ba;
+}
+
+.driver-selection-screen .back-button {
+  margin-top: 20px;
+}
+
 .load-board-screen .back-button {
   margin-top: 20px;
 }
