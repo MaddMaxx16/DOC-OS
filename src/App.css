@@ -461,6 +461,16 @@
   margin-top: 20px;
 }
 
+.driver-fit-screen { height: 100%; box-sizing: border-box; display: flex; flex-direction: column; padding: 20px 16px 12px; color: white; }
+.driver-fit-content { flex: 1; min-height: 0; overflow-y: auto; }
+.driver-fit-screen h1 { margin: 0 0 20px; font-size: 28px; }
+.driver-fit-card { width: 100%; box-sizing: border-box; display: grid; gap: 8px; padding: 14px; border: 0; border-radius: 14px; background: #343438; color: white; font: inherit; text-align: left; cursor: pointer; }
+.driver-fit-card.selected { background: #4a4a50; box-shadow: 0 0 0 2px #6d6d76; }
+.driver-fit-card > span { color: #b5b5ba; }
+.driver-fit-card .eta-details { margin-top: 6px; }
+.driver-fit-screen > .back-button { margin-top: 12px; align-self: center; }
+.driver-fit-actions { display: flex; gap: 12px; margin-top: 12px; align-self: center; }
+
 .route-planning-screen {
   height: calc(100% - 44px);
   box-sizing: border-box;

@@ -1,7 +1,7 @@
 import mapLocations from '../data/mapLocations.js'
 import { formatAppointment } from '../utils/gameTime.js'
 
-function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onAssignDriver, onPlanRoute, onDispatch, onBack }) {
+function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit, onPlanRoute, onDispatch, onBack }) {
   const load = loads.find((item) => item.id === loadId)
   const pickup = load && mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = load && mapLocations.find((location) => location.id === load.deliveryLocationId)
@@ -32,15 +32,12 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onAssignDriver, o
         {load.plannedDriveTimeMinutes !== null && <span>Planned Drive Time: {load.plannedDriveTimeMinutes} minutes</span>}
         <span>Status: {load.status[0].toUpperCase() + load.status.slice(1)}</span>
         {load.assignedDriverId && <span>Driver: {drivers.find((driver) => driver.id === load.assignedDriverId)?.name ?? 'Unknown'}</span>}
+        {load.candidateDriverId && <span>Candidate Driver: {drivers.find((driver) => driver.id === load.candidateDriverId)?.name ?? 'Unknown'}</span>}
       </div>
       {load.status === 'available' ? (
-        <button type="button" className="action-button" onClick={onAccept}>
+        <><button type="button" className="action-button" onClick={onCheckDriverFit}>CHECK DRIVER FIT</button><button type="button" className="action-button" onClick={onAccept} disabled={!load.candidateDriverId}>
           ACCEPT LOAD
-        </button>
-      ) : load.status === 'accepted' ? (
-        <button type="button" className="action-button" onClick={onAssignDriver}>
-          ASSIGN DRIVER
-        </button>
+        </button></>
       ) : load.status === 'assigned' && load.assignedDriverId ? (
         <button type="button" className="action-button" onClick={onPlanRoute}>
           PLAN ROUTE

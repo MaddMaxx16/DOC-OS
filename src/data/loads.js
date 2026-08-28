@@ -14,6 +14,7 @@ const loads = [
     plannedMiles: null,
     plannedDriveTimeMinutes: null,
     selectedRouteId: null,
+    candidateDriverId: null,
     status: 'available',
     assignedDriverId: null,
   },

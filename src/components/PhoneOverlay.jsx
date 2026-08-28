@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import HomeScreen from './HomeScreen.jsx'
-import DriverSelectionScreen from './DriverSelectionScreen.jsx'
 import LoadDetailsScreen from './LoadDetailsScreen.jsx'
 import LoadBoardScreen from './LoadBoardScreen.jsx'
 import RoutePlanningScreen from './RoutePlanningScreen.jsx'
+import DriverFitScreen from './DriverFitScreen.jsx'
 
 function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setPlannedRoute, gameTime, onClose }) {
   const [screen, setScreen] = useState('home')
@@ -32,12 +32,13 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
           loads={loads}
           drivers={drivers}
           loadId={selectedLoadId}
+          onCheckDriverFit={() => setScreen('driverFit')}
           onAccept={() => {
             setLoads((currentLoads) => currentLoads.map((load) => (
-              load.id === selectedLoadId ? { ...load, status: 'accepted' } : load
+              load.id === selectedLoadId ? { ...load, status: 'accepted', assignedDriverId: load.candidateDriverId, candidateDriverId: null } : load
             )))
+            setDrivers((currentDrivers) => currentDrivers.map((driver) => driver.id === loads.find((load) => load.id === selectedLoadId)?.candidateDriverId ? { ...driver, status: 'unavailable' } : driver))
           }}
-          onAssignDriver={() => setScreen('driverSelection')}
           onPlanRoute={() => setScreen('routePlanning')}
           onDispatch={() => {
             setLoads((currentLoads) => currentLoads.map((load) => (
@@ -46,6 +47,8 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
           }}
           onBack={() => setScreen('loadBoard')}
         />
+      ) : screen === 'driverFit' ? (
+        <DriverFitScreen load={loads.find((load) => load.id === selectedLoadId)} drivers={drivers} gameTime={gameTime} candidateDriverId={loads.find((load) => load.id === selectedLoadId)?.candidateDriverId} onConfirm={(driverId) => { setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? { ...load, candidateDriverId: driverId } : load)); setScreen('loadDetails') }} onBack={() => setScreen('loadDetails')} />
       ) : screen === 'routePlanning' ? (
         <RoutePlanningScreen
           loads={loads}
@@ -69,21 +72,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
             setScreen('loadDetails')
           }}
         />
-      ) : (
-        <DriverSelectionScreen
-          drivers={drivers}
-          onSelectDriver={(driverId) => {
-            setLoads((currentLoads) => currentLoads.map((load) => (
-              load.id === selectedLoadId ? { ...load, assignedDriverId: driverId, status: 'assigned' } : load
-            )))
-            setDrivers((currentDrivers) => currentDrivers.map((driver) => (
-              driver.id === driverId ? { ...driver, status: 'unavailable' } : driver
-            )))
-            setScreen('loadDetails')
-          }}
-          onBack={() => setScreen('loadDetails')}
-        />
-      )}
+      ) : null}
     </aside>
   )
 }
