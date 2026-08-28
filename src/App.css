@@ -334,19 +334,31 @@
 }
 
 .load-card {
+  width: 100%;
+  box-sizing: border-box;
   display: grid;
   gap: 12px;
   padding: 16px;
+  border: 0;
   border-radius: 14px;
   background: #343438;
   color: white;
   font: inherit;
   text-align: left;
   cursor: pointer;
+  appearance: none;
 }
 
 .load-card:hover {
   background: #414146;
+}
+
+.load-card:focus {
+  outline: none;
+}
+
+.load-card:focus-visible {
+  box-shadow: 0 0 0 2px #6d6d76;
 }
 
 .load-route,
