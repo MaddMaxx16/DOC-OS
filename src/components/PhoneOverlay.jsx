@@ -12,9 +12,8 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
 
   return (
     <aside className="phone-overlay">
-      <button type="button" className="close-button" onClick={onClose}>
-        Close
-      </button>
+      <button type="button" className="phone-close-button" onClick={onClose} aria-label="Close phone">×</button>
+      <div className="phone-app-viewport">
 
       {screen === 'home' ? (
         <HomeScreen onOpenBrowser={() => setScreen('browser')} />
@@ -26,7 +25,6 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
             setScreen('loadDetails')
           }}
           onBackToPhone={() => setScreen('home')}
-          onBackFromSite={() => setScreen('browser')}
         />
       ) : screen === 'loadBoard' ? (
         <LoadBoardScreen
@@ -84,6 +82,8 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
           }}
         />
       ) : null}
+      </div>
+      <button type="button" className="phone-home-button" onClick={() => setScreen('home')} aria-label="Phone home">⌂</button>
     </aside>
   )
 }

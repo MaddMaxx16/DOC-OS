@@ -1,10 +1,10 @@
 import mapLocations from '../data/mapLocations.js'
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 
-function LoadBoardScreen({ loads, onBack, onSelectLoad }) {
+function LoadBoardScreen({ loads, embedded = false, onBack, onSelectLoad }) {
   return (
     <div className="load-board-screen">
-      <h1>Load Board</h1>
+      {!embedded && <h1>Load Board</h1>}
       <div className="load-list">
         {loads.map((load) => {
           const pickup = mapLocations.find(
@@ -35,9 +35,7 @@ function LoadBoardScreen({ loads, onBack, onSelectLoad }) {
           )
         })}
       </div>
-      <button type="button" className="back-button" onClick={onBack}>
-        Back
-      </button>
+      {!embedded && <button type="button" className="back-button" onClick={onBack}>Back</button>}
     </div>
   )
 }
