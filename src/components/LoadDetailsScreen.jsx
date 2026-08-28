@@ -24,7 +24,7 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onAssignDriver, o
       </div>
       <div className="load-meta">
         <span>Rate: ${load.rate}</span>
-        <span>Miles: {load.miles}</span>
+        <span>Listed Miles: {load.listedMiles === null ? 'Calculating...' : load.listedMiles === 'unavailable' ? 'Unavailable' : load.listedMiles.toFixed(1)}</span>
         <span>Status: {load.status[0].toUpperCase() + load.status.slice(1)}</span>
         {load.assignedDriverId && <span>Driver: {drivers.find((driver) => driver.id === load.assignedDriverId)?.name ?? 'Unknown'}</span>}
       </div>

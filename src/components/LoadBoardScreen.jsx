@@ -23,7 +23,7 @@ function LoadBoardScreen({ loads, onBack, onSelectLoad }) {
               </div>
               <div className="load-meta">
                 <span>Rate: ${load.rate}</span>
-                <span>Miles: {load.miles}</span>
+                <span>Listed Miles: {load.listedMiles === null ? 'Calculating...' : load.listedMiles === 'unavailable' ? 'Unavailable' : load.listedMiles.toFixed(1)}</span>
                 <span>Status: {load.status[0].toUpperCase() + load.status.slice(1)}</span>
               </div>
             </button>

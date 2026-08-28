@@ -4,7 +4,7 @@ const loads = [
     pickupLocationId: 'empire-freight-terminal',
     deliveryLocationId: 'harborline-logistics',
     rate: 650,
-    miles: 12,
+    listedMiles: null,
     status: 'available',
     assignedDriverId: null,
   },
