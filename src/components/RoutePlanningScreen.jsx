@@ -32,17 +32,12 @@ function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedR
 
   return (
     <div className="route-planning-screen">
-      <h1>Route Planning</h1>
-      <strong>{load.id}</strong>
-      <div className="route-plan-route"><span>{pickup.name}</span><span aria-hidden="true">→</span><span>{delivery.name}</span></div>
-      <span>Driver: {driver?.name}</span>
-      <span>Pickup Window: {formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</span>
-      <span>Delivery Window: {formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)}</span>
-      <strong className="route-options-title">Route Options</strong>
-      {status === 'loading' && <p>Calculating route...</p>}
-      {status === 'error' && <><p>Route calculation unavailable.</p><button type="button" className="action-button" onClick={calculate}>Retry</button></>}
-      {status === 'success' && <div className="route-result"><strong>Recommended Route</strong><span>Distance: {plannedRoute.distanceMiles.toFixed(1)} miles</span><span>Estimated Drive Time: {plannedRoute.durationMinutes} minutes</span></div>}
-      {status === 'success' && <button type="button" className="action-button" onClick={onSelectRoute} disabled={routeSelected}>{routeSelected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}</button>}
+      <div className="route-planning-content">
+        <h1>Route Planning</h1>
+        <div className="load-summary"><strong>{load.id}</strong><div className="route-plan-route"><span>{pickup.name}</span><span aria-hidden="true">→</span><span>{delivery.name}</span></div><span>Driver: {driver?.name}</span></div>
+        <section className="planning-section"><strong>APPOINTMENTS</strong><div className="appointment-row"><span>Pickup</span><span>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</span></div><div className="appointment-row"><span>Delivery</span><span>{formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)}</span></div></section>
+        <section className="planning-section"><strong>ROUTE OPTIONS</strong><div className="route-card">{status === 'loading' && <p>Calculating route...</p>}{status === 'error' && <><p>Route calculation unavailable.</p><button type="button" className="action-button" onClick={calculate}>Retry</button></>}{status === 'success' && <><div className="route-result"><strong>Recommended Route</strong><span>Distance: {plannedRoute.distanceMiles.toFixed(1)} miles</span><span>Estimated Drive Time: {plannedRoute.durationMinutes} minutes</span></div><button type="button" className="action-button" onClick={onSelectRoute} disabled={routeSelected}>{routeSelected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}</button></>}</div></section>
+      </div>
       <div className="route-actions">
         <button type="button" className="back-button" onClick={onBack}>Back</button>
         <button type="button" className="action-button" onClick={onContinue} disabled={status !== 'success' || !routeSelected}>Continue</button>
