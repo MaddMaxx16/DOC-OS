@@ -3,7 +3,7 @@ import GameMap from './GameMap.jsx'
 import PhoneOverlay from './PhoneOverlay.jsx'
 import StatusBar from './StatusBar.jsx'
 
-function MainGameScreen({ selectedMarket, onOpenMarkets }) {
+function MainGameScreen({ selectedMarket, loads, setLoads, onOpenMarkets }) {
   const [isPhoneOpen, setIsPhoneOpen] = useState(false)
 
   return (
@@ -27,7 +27,13 @@ function MainGameScreen({ selectedMarket, onOpenMarkets }) {
             PHONE
           </button>
         )}
-        {isPhoneOpen && <PhoneOverlay onClose={() => setIsPhoneOpen(false)} />}
+        {isPhoneOpen && (
+          <PhoneOverlay
+            loads={loads}
+            setLoads={setLoads}
+            onClose={() => setIsPhoneOpen(false)}
+          />
+        )}
       </div>
     </div>
   )

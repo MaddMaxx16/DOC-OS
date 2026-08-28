@@ -392,6 +392,17 @@
   margin-top: 20px;
 }
 
+.action-button {
+  margin-top: 24px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: #4a4a50;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
 .load-board-screen .back-button {
   margin-top: 20px;
 }

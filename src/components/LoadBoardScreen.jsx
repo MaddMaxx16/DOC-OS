@@ -1,7 +1,6 @@
-import loads from '../data/loads.js'
 import mapLocations from '../data/mapLocations.js'
 
-function LoadBoardScreen({ onBack, onSelectLoad }) {
+function LoadBoardScreen({ loads, onBack, onSelectLoad }) {
   return (
     <div className="load-board-screen">
       <h1>Load Board</h1>

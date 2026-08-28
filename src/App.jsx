@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './App.css'
+import seedLoads from './data/loads.js'
 import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
 import MainGameScreen from './components/MainGameScreen.jsx'
 import StartScreen from './components/StartScreen.jsx'
@@ -7,6 +8,7 @@ import StartScreen from './components/StartScreen.jsx'
 function App() {
   const [stage, setStage] = useState('start')
   const [selectedMarket, setSelectedMarket] = useState(null)
+  const [loads, setLoads] = useState(() => seedLoads)
 
   return (
     <main className="app">
@@ -22,6 +24,8 @@ function App() {
         {stage === 'game' && (
           <MainGameScreen
             selectedMarket={selectedMarket}
+            loads={loads}
+            setLoads={setLoads}
             onOpenMarkets={() => setStage('market')}
           />
         )}

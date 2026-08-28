@@ -1,7 +1,6 @@
-import loads from '../data/loads.js'
 import mapLocations from '../data/mapLocations.js'
 
-function LoadDetailsScreen({ loadId, onBack }) {
+function LoadDetailsScreen({ loads, loadId, onAccept, onBack }) {
   const load = loads.find((item) => item.id === loadId)
   const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
@@ -20,6 +19,15 @@ function LoadDetailsScreen({ loadId, onBack }) {
         <span>Miles: {load.miles}</span>
         <span>Status: {load.status[0].toUpperCase() + load.status.slice(1)}</span>
       </div>
+      {load.status === 'available' ? (
+        <button type="button" className="action-button" onClick={onAccept}>
+          ACCEPT LOAD
+        </button>
+      ) : (
+        <button type="button" className="action-button">
+          ASSIGN DRIVER
+        </button>
+      )}
       <button type="button" className="back-button" onClick={onBack}>
         Back
       </button>
