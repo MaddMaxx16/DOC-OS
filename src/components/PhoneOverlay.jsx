@@ -39,7 +39,6 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
           }}
           onAssignDriver={() => setScreen('driverSelection')}
           onPlanRoute={() => setScreen('routePlanning')}
-          plannedRoute={plannedRoute}
           onDispatch={() => {
             setLoads((currentLoads) => currentLoads.map((load) => (
               load.id === selectedLoadId ? { ...load, status: 'dispatched' } : load
@@ -52,6 +51,13 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
           loads={loads}
           plannedRoute={plannedRoute}
           setPlannedRoute={setPlannedRoute}
+          onSelectRoute={() => {
+            setLoads((currentLoads) => currentLoads.map((load) => (
+              load.id === selectedLoadId
+                ? { ...load, selectedRouteId: 'recommended', plannedMiles: plannedRoute.distanceMiles, plannedDriveTimeMinutes: plannedRoute.durationMinutes }
+                : load
+            )))
+          }}
           loadId={selectedLoadId}
           drivers={drivers}
           onBack={() => setScreen('loadDetails')}

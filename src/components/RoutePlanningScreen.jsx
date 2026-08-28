@@ -2,12 +2,13 @@ import mapLocations from '../data/mapLocations.js'
 import { useCallback, useEffect, useState } from 'react'
 import { calculateRoute } from '../services/routingService.js'
 
-function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedRoute, onBack, onContinue }) {
+function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedRoute, onSelectRoute, onBack, onContinue }) {
   const load = loads.find((item) => item.id === loadId)
   const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
   const driver = drivers.find((item) => item.id === load.assignedDriverId)
   const [status, setStatus] = useState(plannedRoute ? 'success' : 'loading')
+  const routeSelected = load.selectedRouteId === 'recommended'
 
   const calculate = useCallback(async () => {
     setStatus('loading')
@@ -38,9 +39,10 @@ function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedR
       {status === 'loading' && <p>Calculating route...</p>}
       {status === 'error' && <><p>Route calculation unavailable.</p><button type="button" className="action-button" onClick={calculate}>Retry</button></>}
       {status === 'success' && <div className="route-result"><strong>Recommended Route</strong><span>Distance: {plannedRoute.distanceMiles.toFixed(1)} miles</span><span>Estimated Drive Time: {plannedRoute.durationMinutes} minutes</span></div>}
+      {status === 'success' && <button type="button" className="action-button" onClick={onSelectRoute} disabled={routeSelected}>{routeSelected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}</button>}
       <div className="route-actions">
         <button type="button" className="back-button" onClick={onBack}>Back</button>
-        <button type="button" className="action-button" onClick={onContinue} disabled={status !== 'success'}>Continue</button>
+        <button type="button" className="action-button" onClick={onContinue} disabled={status !== 'success' || !routeSelected}>Continue</button>
       </div>
     </div>
   )

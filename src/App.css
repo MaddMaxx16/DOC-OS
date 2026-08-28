@@ -520,6 +520,11 @@
   margin: 0;
 }
 
+.route-planning-screen .action-button:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
 .load-board-screen .back-button {
   margin-top: 20px;
 }
