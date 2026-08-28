@@ -314,6 +314,16 @@
   font-weight: 600;
 }
 
+.browser-screen { height: 100%; display: flex; flex-direction: column; color: white; }
+.browser-bar { height: 44px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 12px; background: #29292c; }
+.browser-back, .site-link { border: 0; border-radius: 8px; background: #343438; color: white; font: inherit; cursor: pointer; }
+.browser-back { padding: 6px 10px; font-size: 12px; }
+.browser-address { flex: 1; padding: 6px 10px; border-radius: 8px; background: #1c1c1e; color: #b5b5ba; font-size: 12px; }
+.browser-home { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 32px 20px; }
+.browser-home h1 { margin: 0; font-size: 24px; }
+.site-link { width: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 14px; text-align: left; }
+.site-link small { color: #b5b5ba; }
+
 .load-board-screen {
   height: calc(100% - 44px);
   display: flex;

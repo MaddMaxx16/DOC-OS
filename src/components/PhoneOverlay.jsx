@@ -3,6 +3,7 @@ import HomeScreen from './HomeScreen.jsx'
 import LoadDetailsScreen from './LoadDetailsScreen.jsx'
 import LoadBoardScreen from './LoadBoardScreen.jsx'
 import RoutePlanningScreen from './RoutePlanningScreen.jsx'
+import BrowserScreen from './BrowserScreen.jsx'
 import DriverFitScreen from './DriverFitScreen.jsx'
 
 function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setPlannedRoute, gameTime, onClose }) {
@@ -16,7 +17,17 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
       </button>
 
       {screen === 'home' ? (
-        <HomeScreen onOpenLoadBoard={() => setScreen('loadBoard')} />
+        <HomeScreen onOpenBrowser={() => setScreen('browser')} />
+      ) : screen === 'browser' ? (
+        <BrowserScreen
+          loads={loads}
+          onSelectLoad={(loadId) => {
+            setSelectedLoadId(loadId)
+            setScreen('loadDetails')
+          }}
+          onBackToPhone={() => setScreen('home')}
+          onBackFromSite={() => setScreen('browser')}
+        />
       ) : screen === 'loadBoard' ? (
         <LoadBoardScreen
           loads={loads}

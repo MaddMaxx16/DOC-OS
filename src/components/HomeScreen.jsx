@@ -1,11 +1,11 @@
-function HomeScreen({ onOpenLoadBoard }) {
+function HomeScreen({ onOpenBrowser }) {
   return (
     <div className="home-screen">
       <h1>DOC OS</h1>
 
-      <button type="button" className="app-icon" onClick={onOpenLoadBoard}>
-        <div className="app-icon-square">LB</div>
-        <span>Load Board</span>
+      <button type="button" className="app-icon" onClick={onOpenBrowser}>
+        <div className="app-icon-square">WEB</div>
+        <span>Browser</span>
       </button>
     </div>
   )
