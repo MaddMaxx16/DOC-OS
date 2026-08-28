@@ -2,7 +2,7 @@ import { useState } from 'react'
 import PhoneOverlay from './PhoneOverlay.jsx'
 import StatusBar from './StatusBar.jsx'
 
-function MainGameScreen() {
+function MainGameScreen({ onOpenMarkets }) {
   const [isPhoneOpen, setIsPhoneOpen] = useState(false)
 
   return (
@@ -10,6 +10,13 @@ function MainGameScreen() {
       <StatusBar />
       <div className="map-area">
         MAP AREA
+        <button
+          type="button"
+          className="markets-button"
+          onClick={onOpenMarkets}
+        >
+          Markets
+        </button>
         <button
           type="button"
           className="phone-button"
