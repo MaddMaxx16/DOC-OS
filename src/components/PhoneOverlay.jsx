@@ -5,7 +5,7 @@ import LoadDetailsScreen from './LoadDetailsScreen.jsx'
 import LoadBoardScreen from './LoadBoardScreen.jsx'
 import RoutePlanningScreen from './RoutePlanningScreen.jsx'
 
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setPlannedRoute, onClose }) {
+function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setPlannedRoute, gameTime, onClose }) {
   const [screen, setScreen] = useState('home')
   const [selectedLoadId, setSelectedLoadId] = useState(null)
 
@@ -51,6 +51,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
           loads={loads}
           plannedRoute={plannedRoute}
           setPlannedRoute={setPlannedRoute}
+          gameTime={gameTime}
           onSelectRoute={() => {
             setLoads((currentLoads) => currentLoads.map((load) => (
               load.id === selectedLoadId

@@ -478,6 +478,7 @@
 .appointment-row { display: flex; justify-content: space-between; gap: 10px; padding: 10px; border-radius: 8px; background: #29292c; font-size: 13px; }
 .appointment-row span:last-child { white-space: nowrap; color: #b5b5ba; }
 .route-card { display: grid; gap: 12px; padding: 14px; border-radius: 12px; background: #29292c; }
+.eta-details { display: grid; gap: 7px; color: #b5b5ba; font-size: 13px; }
 
 .route-planning-screen h1 {
   margin: 0 0 12px;

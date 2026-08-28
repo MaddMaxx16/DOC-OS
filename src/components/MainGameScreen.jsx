@@ -35,6 +35,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             setDrivers={setDrivers}
             plannedRoute={plannedRoute}
             setPlannedRoute={setPlannedRoute}
+            gameTime={gameTime}
             onClose={() => setIsPhoneOpen(false)}
           />
         )}
