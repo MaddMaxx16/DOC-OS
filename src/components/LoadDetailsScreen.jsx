@@ -1,6 +1,6 @@
 import mapLocations from '../data/mapLocations.js'
 
-function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onAssignDriver, onDispatch, onBack }) {
+function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onAssignDriver, onPlanRoute, onDispatch, onBack }) {
   const load = loads.find((item) => item.id === loadId)
   const pickup = load && mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = load && mapLocations.find((location) => location.id === load.deliveryLocationId)
@@ -37,6 +37,10 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onAssignDriver, o
           ASSIGN DRIVER
         </button>
       ) : load.status === 'assigned' && load.assignedDriverId ? (
+        <button type="button" className="action-button" onClick={onPlanRoute}>
+          PLAN ROUTE
+        </button>
+      ) : load.status === 'route-ready' ? (
         <button type="button" className="action-button" onClick={onDispatch}>
           DISPATCH DRIVER
         </button>

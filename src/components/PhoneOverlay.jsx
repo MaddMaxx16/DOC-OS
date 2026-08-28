@@ -3,6 +3,7 @@ import HomeScreen from './HomeScreen.jsx'
 import DriverSelectionScreen from './DriverSelectionScreen.jsx'
 import LoadDetailsScreen from './LoadDetailsScreen.jsx'
 import LoadBoardScreen from './LoadBoardScreen.jsx'
+import RoutePlanningScreen from './RoutePlanningScreen.jsx'
 
 function PhoneOverlay({ loads, setLoads, drivers, setDrivers, onClose }) {
   const [screen, setScreen] = useState('home')
@@ -37,12 +38,26 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, onClose }) {
             )))
           }}
           onAssignDriver={() => setScreen('driverSelection')}
+          onPlanRoute={() => setScreen('routePlanning')}
           onDispatch={() => {
             setLoads((currentLoads) => currentLoads.map((load) => (
               load.id === selectedLoadId ? { ...load, status: 'dispatched' } : load
             )))
           }}
           onBack={() => setScreen('loadBoard')}
+        />
+      ) : screen === 'routePlanning' ? (
+        <RoutePlanningScreen
+          loads={loads}
+          loadId={selectedLoadId}
+          drivers={drivers}
+          onBack={() => setScreen('loadDetails')}
+          onContinue={() => {
+            setLoads((currentLoads) => currentLoads.map((load) => (
+              load.id === selectedLoadId ? { ...load, status: 'route-ready' } : load
+            )))
+            setScreen('loadDetails')
+          }}
         />
       ) : (
         <DriverSelectionScreen
