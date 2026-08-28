@@ -1,4 +1,5 @@
 import mapLocations from '../data/mapLocations.js'
+import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 
 function LoadBoardScreen({ loads, onBack, onSelectLoad }) {
   return (
@@ -20,6 +21,10 @@ function LoadBoardScreen({ loads, onBack, onSelectLoad }) {
                 <span>{pickup.name}</span>
                 <span aria-hidden="true">→</span>
                 <span>{delivery.name}</span>
+              </div>
+              <div className="load-appointments">
+                <span>Pickup: {formatCompactDate(load.pickupDayIndex)} • {formatTime(load.pickupWindowStartMinutes)}</span>
+                <span>Delivery: {formatCompactDate(load.deliveryDayIndex)} • {formatTime(load.deliveryWindowStartMinutes)}</span>
               </div>
               <div className="load-meta">
                 <span>Rate: ${load.rate}</span>

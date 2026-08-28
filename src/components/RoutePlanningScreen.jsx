@@ -1,6 +1,7 @@
 import mapLocations from '../data/mapLocations.js'
 import { useCallback, useEffect, useState } from 'react'
 import { calculateRoute } from '../services/routingService.js'
+import { formatAppointment } from '../utils/gameTime.js'
 
 function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedRoute, onSelectRoute, onBack, onContinue }) {
   const load = loads.find((item) => item.id === loadId)
@@ -35,6 +36,8 @@ function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedR
       <strong>{load.id}</strong>
       <div className="route-plan-route"><span>{pickup.name}</span><span aria-hidden="true">→</span><span>{delivery.name}</span></div>
       <span>Driver: {driver?.name}</span>
+      <span>Pickup Window: {formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</span>
+      <span>Delivery Window: {formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)}</span>
       <strong className="route-options-title">Route Options</strong>
       {status === 'loading' && <p>Calculating route...</p>}
       {status === 'error' && <><p>Route calculation unavailable.</p><button type="button" className="action-button" onClick={calculate}>Retry</button></>}

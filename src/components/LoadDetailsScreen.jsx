@@ -1,4 +1,5 @@
 import mapLocations from '../data/mapLocations.js'
+import { formatAppointment } from '../utils/gameTime.js'
 
 function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onAssignDriver, onPlanRoute, onDispatch, onBack }) {
   const load = loads.find((item) => item.id === loadId)
@@ -19,8 +20,10 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onAssignDriver, o
       <div className="load-detail-route">
         <strong>Pickup:</strong>
         <span>{pickup.name}</span>
+        <span>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</span>
         <strong>Delivery:</strong>
         <span>{delivery.name}</span>
+        <span>{formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)}</span>
       </div>
       <div className="load-meta">
         <span>Rate: ${load.rate}</span>
