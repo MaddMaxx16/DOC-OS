@@ -6,8 +6,11 @@ import mapLocations from '../data/mapLocations.js'
 
 setWorkerUrl(workerUrl)
 
-function GameMap() {
+function GameMap({ drivers }) {
   const mapContainer = useRef(null)
+  const markerRecords = useRef([])
+
+  const getDriver = () => drivers.find((driver) => driver.id === 'marcus')
 
   useEffect(() => {
     const map = new Map({
@@ -39,6 +42,11 @@ function GameMap() {
         const type = document.createElement('span')
         type.textContent = location.type[0].toUpperCase() + location.type.slice(1)
         popupContent.append(name, type)
+        if (location.id === 'marcus' && getDriver()?.status === 'unavailable') {
+          const status = document.createElement('span')
+          status.textContent = 'Status: Unavailable'
+          popupContent.append(status)
+        }
 
         const popup = new Popup({ offset: 20 }).setDOMContent(popupContent)
         const marker = new Marker({ element: markerElement })
@@ -47,6 +55,7 @@ function GameMap() {
           .addTo(map)
 
         markers.push(marker)
+        markerRecords.current.push({ location, marker, markerElement, popup })
       })
 
       map.fitBounds(bounds, { padding: 50, maxZoom: 12 })
@@ -54,9 +63,30 @@ function GameMap() {
 
     return () => {
       markers.forEach((marker) => marker.remove())
+      markerRecords.current = []
       map.remove()
     }
   }, [])
+
+  useEffect(() => {
+    const marcus = getDriver()
+    const record = markerRecords.current.find(({ location }) => location.id === 'marcus')
+    if (!marcus || !record) return
+
+    record.markerElement.classList.toggle('unavailable', marcus.status === 'unavailable')
+    const popupContent = document.createElement('div')
+    const name = document.createElement('strong')
+    name.textContent = record.location.name
+    const type = document.createElement('span')
+    type.textContent = 'Driver'
+    popupContent.append(name, type)
+    if (marcus.status === 'unavailable') {
+      const status = document.createElement('span')
+      status.textContent = 'Status: Unavailable'
+      popupContent.append(status)
+    }
+    record.popup.setDOMContent(popupContent)
+  }, [drivers])
 
   return <div ref={mapContainer} className="game-map" />
 }

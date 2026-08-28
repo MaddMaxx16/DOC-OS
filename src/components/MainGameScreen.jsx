@@ -10,7 +10,7 @@ function MainGameScreen({ selectedMarket, loads, setLoads, drivers, setDrivers, 
     <div className="main-game-screen">
       <StatusBar selectedMarket={selectedMarket} />
       <div className="map-area">
-        <GameMap />
+        <GameMap drivers={drivers} />
         <button
           type="button"
           className="markets-button"

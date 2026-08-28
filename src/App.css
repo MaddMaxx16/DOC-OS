@@ -168,6 +168,11 @@
   border-radius: 8px;
 }
 
+.game-marker.driver.unavailable {
+  background: #4a4a4f;
+  opacity: 0.65;
+}
+
 .maplibregl-popup-content {
   padding: 10px 12px !important;
   border-radius: 10px;
