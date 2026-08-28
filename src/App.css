@@ -12,7 +12,16 @@
   background: #1c1c1e;
   border-radius: 42px;
   overflow: hidden;
+  display: flex;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.main-game-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  color: white;
 }
 
 .status-bar {
@@ -23,6 +32,17 @@
   padding: 0 20px;
   color: white;
   font-size: 14px;
+}
+
+.map-area {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #252528;
+  color: #8d8d93;
+  font-size: 18px;
+  letter-spacing: 1px;
 }
 
 .home-screen {
