@@ -21,7 +21,7 @@ function App() {
         )}
         {stage === 'game' && (
           <MainGameScreen
-            market={selectedMarket}
+            selectedMarket={selectedMarket}
             onOpenMarkets={() => setStage('market')}
           />
         )}
