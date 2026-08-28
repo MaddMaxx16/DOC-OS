@@ -18,13 +18,15 @@ function MainGameScreen({ selectedMarket, onOpenMarkets }) {
         >
           Markets
         </button>
-        <button
-          type="button"
-          className="phone-button"
-          onClick={() => setIsPhoneOpen(true)}
-        >
-          PHONE
-        </button>
+        {!isPhoneOpen && (
+          <button
+            type="button"
+            className="phone-button"
+            onClick={() => setIsPhoneOpen(true)}
+          >
+            PHONE
+          </button>
+        )}
         {isPhoneOpen && <PhoneOverlay onClose={() => setIsPhoneOpen(false)} />}
       </div>
     </div>

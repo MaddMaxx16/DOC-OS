@@ -203,7 +203,7 @@
   z-index: 1;
   top: auto;
   right: 0;
-  bottom: 20px;
+  bottom: 36px;
   width: min(75%, 320px);
   height: 70%;
   overflow: hidden;
@@ -282,12 +282,15 @@
   height: calc(100% - 44px);
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
+  box-sizing: border-box;
+  padding-top: 64px;
   color: white;
 }
 
 .load-board-screen h1 {
+  margin: 0 0 24px;
   font-size: 32px;
 }
 
@@ -315,6 +318,10 @@
   flex-direction: column;
   gap: 6px;
   font-size: 14px;
+}
+
+.load-board-screen .back-button {
+  margin-top: 20px;
 }
 
 .load-route span:nth-child(2) {
