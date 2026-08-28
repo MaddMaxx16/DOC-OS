@@ -6,7 +6,15 @@ import mapLocations from '../data/mapLocations.js'
 
 setWorkerUrl(workerUrl)
 
-function GameMap({ drivers }) {
+function addRoute(map, route) {
+  map.addSource('planned-route', {
+    type: 'geojson',
+    data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route.routeShape } },
+  })
+  map.addLayer({ id: 'planned-route-line', type: 'line', source: 'planned-route', paint: { 'line-color': '#4f8cff', 'line-width': 4 }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
+}
+
+function GameMap({ drivers, plannedRoute }) {
   const mapContainer = useRef(null)
   const markerRecords = useRef([])
 
@@ -59,6 +67,7 @@ function GameMap({ drivers }) {
       })
 
       map.fitBounds(bounds, { padding: 50, maxZoom: 12 })
+      if (plannedRoute) addRoute(map, plannedRoute)
     })
 
     return () => {
@@ -66,7 +75,7 @@ function GameMap({ drivers }) {
       markerRecords.current = []
       map.remove()
     }
-  }, [])
+  }, [plannedRoute])
 
   useEffect(() => {
     const marcus = getDriver()

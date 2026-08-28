@@ -11,6 +11,7 @@ function App() {
   const [selectedMarket, setSelectedMarket] = useState(null)
   const [loads, setLoads] = useState(() => seedLoads)
   const [drivers, setDrivers] = useState(() => seedDrivers)
+  const [plannedRoute, setPlannedRoute] = useState(null)
 
   return (
     <main className="app">
@@ -30,6 +31,8 @@ function App() {
             setLoads={setLoads}
             drivers={drivers}
             setDrivers={setDrivers}
+            plannedRoute={plannedRoute}
+            setPlannedRoute={setPlannedRoute}
             onOpenMarkets={() => setStage('market')}
           />
         )}
