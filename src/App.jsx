@@ -15,9 +15,10 @@ function App() {
   const [loads, setLoads] = useState(() => seedLoads)
   const [drivers, setDrivers] = useState(() => seedDrivers)
   const [plannedRoute, setPlannedRoute] = useState(null)
+  const [isGameClockPaused, setIsGameClockPaused] = useState(false)
 
   useEffect(() => {
-    if (stage !== 'game') return undefined
+    if (stage !== 'game' || isGameClockPaused) return undefined
     const timer = setInterval(() => setGameTime((time) => {
       const nextMinutes = time.totalMinutesOfDay + 1
       return nextMinutes >= 1440
@@ -25,7 +26,7 @@ function App() {
         : { ...time, totalMinutesOfDay: nextMinutes }
     }), 3000)
     return () => clearInterval(timer)
-  }, [stage])
+  }, [stage, isGameClockPaused])
 
   useEffect(() => {
     const loadsToCalculate = seedLoads.filter((load) => load.listedMiles === null)
@@ -70,6 +71,7 @@ function App() {
             setDrivers={setDrivers}
             plannedRoute={plannedRoute}
             setPlannedRoute={setPlannedRoute}
+            setGameClockPaused={setIsGameClockPaused}
             onOpenMarkets={() => setStage('market')}
           />
         )}
