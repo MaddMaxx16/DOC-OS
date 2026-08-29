@@ -194,6 +194,8 @@
 .maplibregl-popup-content span {
   color: #b5b5ba;
 }
+.map-popup-action { margin-top: 8px; width: 100%; }
+.map-popup-action:disabled { opacity: .5; cursor: default; }
 
 .maplibregl-popup-close-button {
   color: #f5f5f7;

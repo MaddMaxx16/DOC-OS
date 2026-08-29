@@ -11,6 +11,23 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [phoneInitialScreen, setPhoneInitialScreen] = useState('home')
   const [driverFitEvaluation, setDriverFitEvaluation] = useState(null)
   const [phoneLoadId, setPhoneLoadId] = useState(null)
+  const [planningMode, setPlanningMode] = useState(null)
+
+  const assignedLoad = loads.find((load) => load.assignedDriverId === 'marcus')
+  const startPlanning = async (loadId, driverId) => {
+    const load = loads.find((item) => item.id === loadId)
+    const driver = mapLocations.find((location) => location.id === driverId)
+    const pickup = mapLocations.find((location) => location.id === load?.pickupLocationId)
+    setGameClockPaused(true)
+    setPlanningMode({ loadId, driverId, active: true, route: 'loading' })
+    try {
+      const route = await calculateRoute(driver, pickup)
+      setPlanningMode((current) => current ? { ...current, route } : current)
+    } catch (error) {
+      console.error('Planning route unavailable:', error)
+      setPlanningMode((current) => current ? { ...current, route: 'unavailable' } : current)
+    }
+  }
 
   const startEvaluation = async (loadId, driverId, fit) => {
     const load = loads.find((item) => item.id === loadId)
@@ -34,7 +51,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     <div className="main-game-screen">
       <StatusBar selectedMarket={selectedMarket} gameTime={gameTime} />
       <div className="map-area">
-        <GameMap drivers={drivers} plannedRoute={plannedRoute} deadheadRoute={driverFitEvaluation?.deadheadRoute} />
+        <GameMap drivers={drivers} plannedRoute={plannedRoute} deadheadRoute={driverFitEvaluation?.deadheadRoute || (planningMode?.route?.routeShape)} assignedLoad={assignedLoad} onPlanTrip={startPlanning} />
+        {planningMode && <div className="map-evaluation"><strong>TRIP PLANNING</strong><span>{planningMode.loadId}</span><span>Driver: Marcus</span><strong>NEXT STOP</strong><span>Empire Freight Terminal</span><span>Pickup Window: SEP 7 • 9:00 AM – 10:00 AM</span><strong>ROUTE OPTIONS</strong>{planningMode.route === 'loading' && <span>Calculating...</span>}{planningMode.route === 'unavailable' && <span>Route unavailable</span>}{planningMode.route?.distanceMiles && <><span>Distance: {planningMode.route.distanceMiles.toFixed(1)} miles</span><span>Drive Time: {planningMode.route.durationMinutes} minutes</span><span>Estimated Arrival: {formatCompactDate(gameTime.gameDayIndex)} • {formatTime(gameTime.totalMinutesOfDay + planningMode.route.durationMinutes)}</span><button type="button" onClick={() => setPlanningMode((current) => ({ ...current, selected: true }))}>{planningMode.selected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}</button></>}<div><button type="button" onClick={() => { setPlanningMode(null); setGameClockPaused(false) }}>BACK</button><button type="button" disabled={!planningMode.selected} onClick={() => { setLoads((current) => current.map((load) => load.id === planningMode.loadId ? { ...load, planningStatus: 'route-ready', plannedDeadheadMiles: planningMode.route.distanceMiles, plannedDeadheadDriveTimeMinutes: planningMode.route.durationMinutes, plannedDeadheadRouteGeometry: planningMode.route.routeShape, selectedDeadheadRouteId: 'recommended' } : load)); setPlanningMode(null); setGameClockPaused(false) }}>CONFIRM PLAN</button></div></div>}
         {driverFitEvaluation && <div className="map-evaluation"><strong>DRIVER FIT</strong><span>{driverFitEvaluation.loadId}</span><span>Candidate: {driverFitEvaluation.driverName}</span><strong>DEADHEAD</strong><span>Distance: {driverFitEvaluation.deadheadMiles.toFixed(1)} miles</span><span>Drive Time: {driverFitEvaluation.deadheadMinutes} minutes</span><strong>PICKUP</strong><span>Estimated Arrival: {formatCompactDate(driverFitEvaluation.arrivalDay)} • {formatTime(driverFitEvaluation.arrivalMinutes)}</span><span>Window: {formatAppointment(driverFitEvaluation.pickupDayIndex, driverFitEvaluation.pickupStart, driverFitEvaluation.pickupEnd)}</span><span>Status: {driverFitEvaluation.status}</span><strong>LOADED ESTIMATE</strong>{driverFitEvaluation.loadedEstimate === 'loading' && <span>Calculating...</span>}{driverFitEvaluation.loadedEstimate === 'unavailable' && <span>Estimate unavailable</span>}{driverFitEvaluation.loadedEstimate && typeof driverFitEvaluation.loadedEstimate === 'object' && <><span>Distance: {driverFitEvaluation.loadedEstimate.loadedEstimateMiles.toFixed(1)} miles</span><span>Drive Time: {driverFitEvaluation.loadedEstimate.loadedEstimateDriveTimeMinutes} minutes</span></>}<div><button type="button" onClick={() => { setDriverFitEvaluation(null); setGameClockPaused(false); setPhoneInitialScreen('driverFit'); setPhoneLoadId(driverFitEvaluation.loadId); setIsPhoneOpen(true) }}>BACK</button><button type="button" onClick={() => { setLoads((current) => current.map((load) => load.id === driverFitEvaluation.loadId ? { ...load, driverFitVerified: true, candidateDriverId: driverFitEvaluation.driverId } : load)); setDriverFitEvaluation(null); setGameClockPaused(false); setPhoneInitialScreen('loadDetails'); setPhoneLoadId(driverFitEvaluation.loadId); setIsPhoneOpen(true) }}>CONFIRM FIT</button></div></div>}
         <button
           type="button"

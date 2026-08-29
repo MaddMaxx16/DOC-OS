@@ -14,7 +14,7 @@ function addRoute(map, route, id, color) {
   map.addLayer({ id: `${id}-line`, type: 'line', source: id, paint: { 'line-color': color, 'line-width': 4 }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
 }
 
-function GameMap({ drivers, plannedRoute, deadheadRoute }) {
+function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoad }) {
   const mapContainer = useRef(null)
   const markerRecords = useRef([])
 
@@ -50,7 +50,19 @@ function GameMap({ drivers, plannedRoute, deadheadRoute }) {
         const type = document.createElement('span')
         type.textContent = location.type[0].toUpperCase() + location.type.slice(1)
         popupContent.append(name, type)
-        if (location.id === 'marcus' && getDriver()?.status === 'unavailable') {
+        if (location.id === 'marcus' && getDriver()?.status === 'unavailable' && assignedLoad?.assignedDriverId === 'marcus') {
+          const status = document.createElement('span')
+          status.textContent = `Status: ${assignedLoad.planningStatus === 'route-ready' ? 'Assigned • DOC001' : 'Assigned'}`
+          popupContent.append(status)
+          const action = document.createElement('button')
+          action.textContent = assignedLoad.planningStatus === 'route-ready' ? 'ROUTE READY' : 'PLAN TRIP'
+          action.type = 'button'
+          action.className = 'action-button map-popup-action'
+          action.disabled = assignedLoad.planningStatus === 'route-ready'
+          action.onclick = () => { if (!action.disabled) { popup.remove(); onPlanTrip?.(assignedLoad.id, 'marcus') } }
+          popupContent.append(action)
+        }
+        if (location.id === 'marcus' && getDriver()?.status === 'unavailable' && !assignedLoad?.assignedDriverId) {
           const status = document.createElement('span')
           status.textContent = 'Status: Unavailable'
           popupContent.append(status)
@@ -92,11 +104,22 @@ function GameMap({ drivers, plannedRoute, deadheadRoute }) {
     popupContent.append(name, type)
     if (marcus.status === 'unavailable') {
       const status = document.createElement('span')
-      status.textContent = 'Status: Unavailable'
+      status.textContent = assignedLoad?.assignedDriverId === 'marcus'
+        ? `Status: ${assignedLoad.planningStatus === 'route-ready' ? 'Assigned • DOC001' : 'Assigned'}`
+        : 'Status: Unavailable'
       popupContent.append(status)
+      if (assignedLoad?.assignedDriverId === 'marcus') {
+        const action = document.createElement('button')
+        action.textContent = assignedLoad.planningStatus === 'route-ready' ? 'ROUTE READY' : 'PLAN TRIP'
+        action.type = 'button'
+        action.className = 'action-button map-popup-action'
+        action.disabled = assignedLoad.planningStatus === 'route-ready'
+        action.onclick = () => { if (!action.disabled) { record.popup.remove(); onPlanTrip?.(assignedLoad.id, 'marcus') } }
+        popupContent.append(action)
+      }
     }
     record.popup.setDOMContent(popupContent)
-  }, [drivers])
+  }, [drivers, assignedLoad, onPlanTrip])
 
   return <div ref={mapContainer} className="game-map" />
 }
