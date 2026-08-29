@@ -90,6 +90,8 @@ function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoa
           .setLngLat([position.longitude, position.latitude])
           .setPopup(popup)
           .addTo(map)
+        popup.on('open', () => markerElement.classList.add('popup-open'))
+        popup.on('close', () => markerElement.classList.remove('popup-open'))
 
         markers.push(marker)
         markerRecords.current.push({ location, marker, markerElement, popup })

@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+ios/App/App/public
+ios/**/public/
 *.local
 
 # Editor directories and files
