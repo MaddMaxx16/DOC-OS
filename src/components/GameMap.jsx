@@ -4,6 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import mapLocations from '../data/mapLocations.js'
 import { PICKUP_LOADING_MINUTES, PICKUP_WAIT_MINUTES } from '../data/pickupConfig.js'
+import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 
 setWorkerUrl(workerUrl)
 
@@ -27,7 +28,7 @@ function addRoute(map, route, id, color) {
   map.addLayer({ id: `${id}-line`, type: 'line', source: id, paint: { 'line-color': color, 'line-width': 4 }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
 }
 
-function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute, gameTime }) {
+function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute, gameTime, suppressAttention }) {
   const mapContainer = useRef(null)
   const markerRecords = useRef([])
   const animationFrame = useRef(null)
@@ -66,16 +67,17 @@ function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoa
         type.textContent = location.type[0].toUpperCase() + location.type.slice(1)
         popupContent.append(name, type)
         if (location.id === 'marcus' && getDriver()?.status === 'unavailable' && assignedLoad?.assignedDriverId === 'marcus') {
+          const loaded = assignedLoad.tripStatus === 'loaded'
           const canSendToPickup = assignedLoad.planningStatus === 'route-ready' && Boolean(assignedLoad.plannedDeadheadRouteGeometry) && Number.isFinite(assignedLoad.plannedDeadheadDriveTimeMinutes) && !['en-route-pickup', 'at-pickup'].includes(assignedLoad.tripStatus)
           const status = document.createElement('span')
           status.textContent = assignedLoad.tripStatus === 'en-route-pickup' ? 'Status: En Route to Pickup' : assignedLoad.tripStatus === 'at-pickup' ? 'Status: At Pickup' : 'Status: Assigned • DOC001'
           popupContent.append(status)
           const action = document.createElement('button')
-          action.textContent = assignedLoad.tripStatus === 'en-route-pickup' ? 'EN ROUTE' : assignedLoad.tripStatus === 'at-pickup' ? 'AT PICKUP' : assignedLoad.planningStatus === 'route-ready' ? 'SEND TO PICKUP' : 'PLAN TRIP'
+          action.textContent = loaded ? 'PLAN DELIVERY TRIP' : assignedLoad.tripStatus === 'en-route-pickup' ? 'EN ROUTE' : assignedLoad.tripStatus === 'at-pickup' ? 'AT PICKUP' : assignedLoad.planningStatus === 'route-ready' ? 'SEND TO PICKUP' : 'PLAN TRIP'
           action.type = 'button'
           action.className = 'action-button map-popup-action'
           action.disabled = ['en-route-pickup', 'at-pickup'].includes(assignedLoad.tripStatus) || (assignedLoad.planningStatus === 'route-ready' && !canSendToPickup)
-          action.onclick = () => { if (!action.disabled && (canSendToPickup || assignedLoad.planningStatus !== 'route-ready')) { popup.remove(); onPlanTrip?.(assignedLoad.id, 'marcus') } }
+          action.onclick = () => { if (!action.disabled && (loaded || canSendToPickup || assignedLoad.planningStatus !== 'route-ready')) { popup.remove(); onPlanTrip?.(assignedLoad.id, 'marcus') } }
           popupContent.append(action)
         }
         if (location.id === 'marcus' && getDriver()?.status === 'unavailable' && !assignedLoad?.assignedDriverId) {
@@ -115,12 +117,27 @@ function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoa
     if (!marcus || !record) return
 
     record.markerElement.classList.toggle('unavailable', marcus.status === 'unavailable')
+    record.markerElement.classList.toggle('attention', !suppressAttention && assignedLoad?.tripStatus === 'loaded' && assignedLoad?.deliveryPlanningStatus !== 'route-ready')
     const popupContent = document.createElement('div')
     const name = document.createElement('strong')
     name.textContent = record.location.name
     const type = document.createElement('span')
     type.textContent = 'Driver'
     popupContent.append(name, type)
+    if (assignedLoad?.tripStatus === 'en-route-pickup' || assignedLoad?.tripStatus === 'en-route-delivery') {
+      const status = document.createElement('span')
+      status.textContent = 'Status: En Route'
+      const nextStop = document.createElement('span')
+      nextStop.textContent = `Next Stop: ${assignedLoad.tripStatus === 'en-route-pickup' ? 'Pickup' : 'Delivery'}`
+      const duration = assignedLoad.tripStatus === 'en-route-pickup' ? assignedLoad.plannedDeadheadDriveTimeMinutes : assignedLoad.plannedLoadedDriveTimeMinutes
+      const departure = assignedLoad.tripStatus === 'en-route-pickup' ? assignedLoad.departureGameMinute : assignedLoad.deliveryDepartureGameMinute
+      if (Number.isFinite(duration) && Number.isFinite(departure)) {
+        const eta = departure + duration
+        const etaSpan = document.createElement('span')
+        etaSpan.textContent = `ETA: ${formatCompactDate(Math.floor(eta / 1440))} • ${formatTime(eta % 1440)}`
+        popupContent.append(status, nextStop, etaSpan)
+      }
+    }
     if (marcus.status === 'unavailable') {
       const status = document.createElement('span')
       status.textContent = assignedLoad?.assignedDriverId === 'marcus'
@@ -128,22 +145,42 @@ function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoa
         : 'Status: Unavailable'
       popupContent.append(status)
       if (assignedLoad?.assignedDriverId === 'marcus') {
+        const loaded = assignedLoad.tripStatus === 'loaded'
         const canSendToPickup = assignedLoad.planningStatus === 'route-ready' && Boolean(assignedLoad.plannedDeadheadRouteGeometry) && Number.isFinite(assignedLoad.plannedDeadheadDriveTimeMinutes) && !['en-route-pickup', 'at-pickup'].includes(assignedLoad.tripStatus)
         const action = document.createElement('button')
-        action.textContent = assignedLoad.tripStatus === 'en-route-pickup' ? 'EN ROUTE' : assignedLoad.tripStatus === 'at-pickup' ? 'AT PICKUP' : assignedLoad.planningStatus === 'route-ready' ? 'SEND TO PICKUP' : 'PLAN TRIP'
+        action.textContent = loaded ? 'PLAN DELIVERY TRIP' : assignedLoad.tripStatus === 'en-route-pickup' ? 'EN ROUTE' : assignedLoad.tripStatus === 'at-pickup' ? 'AT PICKUP' : assignedLoad.planningStatus === 'route-ready' ? 'SEND TO PICKUP' : 'PLAN TRIP'
         action.type = 'button'
         action.className = 'action-button map-popup-action'
         action.disabled = ['en-route-pickup', 'at-pickup'].includes(assignedLoad.tripStatus) || (assignedLoad.planningStatus === 'route-ready' && !canSendToPickup)
-        action.onclick = () => { if (!action.disabled && (canSendToPickup || assignedLoad.planningStatus !== 'route-ready')) { record.popup.remove(); onPlanTrip?.(assignedLoad.id, 'marcus') } }
+        action.onclick = () => { if (!action.disabled && (loaded || canSendToPickup || assignedLoad.planningStatus !== 'route-ready')) { record.popup.remove(); onPlanTrip?.(assignedLoad.id, 'marcus') } }
         popupContent.append(action)
       }
     }
+    if (assignedLoad?.tripStatus === 'en-route-pickup' || assignedLoad?.tripStatus === 'en-route-delivery') {
+      const status = document.createElement('span')
+      status.textContent = 'Status: En Route'
+      const nextStop = document.createElement('span')
+      nextStop.textContent = `Next Stop: ${assignedLoad.tripStatus === 'en-route-pickup' ? 'Pickup' : 'Delivery'}`
+      const duration = assignedLoad.tripStatus === 'en-route-pickup' ? assignedLoad.plannedDeadheadDriveTimeMinutes : assignedLoad.plannedLoadedDriveTimeMinutes
+      const departure = assignedLoad.tripStatus === 'en-route-pickup' ? assignedLoad.departureGameMinute : assignedLoad.deliveryDepartureGameMinute
+      if (Number.isFinite(duration) && Number.isFinite(departure)) {
+        const eta = departure + duration
+        const etaSpan = document.createElement('span')
+        etaSpan.textContent = `ETA: ${formatCompactDate(Math.floor(eta / 1440))} • ${formatTime(eta % 1440)}`
+        popupContent.append(status, nextStop, etaSpan)
+      }
+    }
     record.popup.setDOMContent(popupContent)
-  }, [drivers, assignedLoad, onPlanTrip])
+  }, [drivers, assignedLoad, onPlanTrip, suppressAttention])
 
   useEffect(() => {
     const record = markerRecords.current.find(({ location }) => location.id === 'marcus')
     if (!record || runtimeProgress === null || !runtimeRoute?.length) return undefined
+    if (runtimeProgress >= 1 && runtimePositions?.marcus) {
+      record.marker.setLngLat([runtimePositions.marcus.longitude, runtimePositions.marcus.latitude])
+      visualProgress.current = 1
+      return undefined
+    }
     if (animationFrame.current) cancelAnimationFrame(animationFrame.current)
     const start = visualProgress.current ?? runtimeProgress
     const begin = performance.now()
@@ -168,9 +205,10 @@ function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoa
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     if (assignedLoad.tripStatus === 'waiting-at-pickup') pill.textContent = `WAITING • ${Math.max(0, PICKUP_WAIT_MINUTES - (now - assignedLoad.pickupArrivalGameMinute))} MIN`
     else if (assignedLoad.tripStatus === 'loading-at-pickup') pill.textContent = `LOADING • ${Math.max(0, PICKUP_LOADING_MINUTES - (now - assignedLoad.loadingStartGameMinute))} MIN`
-    else if (assignedLoad.tripStatus === 'loaded') pill.textContent = 'LOADED'
+    else if (assignedLoad.tripStatus === 'loaded' && !suppressAttention) pill.textContent = assignedLoad.deliveryPlanningStatus === 'route-ready' ? 'LOADED' : '! LOADED'
+    else if (assignedLoad.tripStatus === 'loaded') pill.textContent = ''
     else pill.textContent = ''
-  }, [assignedLoad, gameTime])
+  }, [assignedLoad, gameTime, suppressAttention])
 
   return <div ref={mapContainer} className="game-map" />
 }

@@ -17,6 +17,7 @@ function App() {
   const [drivers, setDrivers] = useState(() => seedDrivers)
   const [plannedRoute, setPlannedRoute] = useState(null)
   const [isGameClockPaused, setIsGameClockPaused] = useState(false)
+  const [simulationSpeed, setSimulationSpeed] = useState(1)
   const [runtimePositions, setRuntimePositions] = useState({ marcus: { longitude: -73.9819, latitude: 40.7282 } })
   const [runtimeProgress, setRuntimeProgress] = useState(null)
 
@@ -32,7 +33,8 @@ function App() {
     // The position is derived from the central clock tick.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRuntimeProgress(progress)
-    setRuntimePositions({ marcus: { longitude: a[0] + (b[0] - a[0]) * local, latitude: a[1] + (b[1] - a[1]) * local } })
+    const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
+    setRuntimePositions({ marcus: progress >= 1 && pickup ? { longitude: pickup.longitude, latitude: pickup.latitude } : { longitude: a[0] + (b[0] - a[0]) * local, latitude: a[1] + (b[1] - a[1]) * local } })
     if (progress >= 1 && load.tripStatus !== 'at-pickup') setLoads((current) => current.map((item) => item.id === load.id ? { ...item, tripStatus: 'at-pickup' } : item))
   }, [gameTime, loads])
 
@@ -55,9 +57,9 @@ function App() {
       return nextMinutes >= 1440
         ? { gameDayIndex: time.gameDayIndex + 1, totalMinutesOfDay: 0 }
         : { ...time, totalMinutesOfDay: nextMinutes }
-    }), 3000)
+    }), 3000 / simulationSpeed)
     return () => clearInterval(timer)
-  }, [stage, isGameClockPaused])
+  }, [stage, isGameClockPaused, simulationSpeed])
 
   useEffect(() => {
     const loadsToCalculate = seedLoads.filter((load) => load.listedMiles === null)
@@ -105,6 +107,8 @@ function App() {
             setGameClockPaused={setIsGameClockPaused}
             runtimePositions={runtimePositions}
             runtimeProgress={runtimeProgress}
+            simulationSpeed={simulationSpeed}
+            setSimulationSpeed={setSimulationSpeed}
             onOpenMarkets={() => setStage('market')}
           />
         )}
