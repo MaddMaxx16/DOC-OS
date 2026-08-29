@@ -4,6 +4,7 @@ import seedDrivers from './data/drivers.js'
 import seedLoads from './data/loads.js'
 import mapLocations from './data/mapLocations.js'
 import { calculateRoute } from './services/routingService.js'
+import { PICKUP_LOADING_MINUTES, PICKUP_WAIT_MINUTES } from './data/pickupConfig.js'
 import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
 import MainGameScreen from './components/MainGameScreen.jsx'
 import StartScreen from './components/StartScreen.jsx'
@@ -34,6 +35,18 @@ function App() {
     setRuntimePositions({ marcus: { longitude: a[0] + (b[0] - a[0]) * local, latitude: a[1] + (b[1] - a[1]) * local } })
     if (progress >= 1 && load.tripStatus !== 'at-pickup') setLoads((current) => current.map((item) => item.id === load.id ? { ...item, tripStatus: 'at-pickup' } : item))
   }, [gameTime, loads])
+
+  useEffect(() => {
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    // Advance operational pickup phases from the authoritative game clock.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoads((current) => current.map((load) => {
+      if (load.tripStatus === 'at-pickup') return { ...load, tripStatus: 'waiting-at-pickup', pickupArrivalGameMinute: now }
+      if (load.tripStatus === 'waiting-at-pickup' && now - load.pickupArrivalGameMinute >= PICKUP_WAIT_MINUTES) return { ...load, tripStatus: 'loading-at-pickup', loadingStartGameMinute: now }
+      if (load.tripStatus === 'loading-at-pickup' && now - load.loadingStartGameMinute >= PICKUP_LOADING_MINUTES) return { ...load, tripStatus: 'loaded' }
+      return load
+    }))
+  }, [gameTime])
 
   useEffect(() => {
     if (stage !== 'game' || isGameClockPaused) return undefined

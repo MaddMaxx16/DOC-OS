@@ -1,0 +1,2 @@
+export const PICKUP_WAIT_MINUTES = 5
+export const PICKUP_LOADING_MINUTES = 10

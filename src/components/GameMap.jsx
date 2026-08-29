@@ -3,6 +3,7 @@ import { LngLatBounds, Map, Marker, Popup, setWorkerUrl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import mapLocations from '../data/mapLocations.js'
+import { PICKUP_LOADING_MINUTES, PICKUP_WAIT_MINUTES } from '../data/pickupConfig.js'
 
 setWorkerUrl(workerUrl)
 
@@ -26,7 +27,7 @@ function addRoute(map, route, id, color) {
   map.addLayer({ id: `${id}-line`, type: 'line', source: id, paint: { 'line-color': color, 'line-width': 4 }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
 }
 
-function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute }) {
+function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute, gameTime }) {
   const mapContainer = useRef(null)
   const markerRecords = useRef([])
   const animationFrame = useRef(null)
@@ -121,7 +122,7 @@ function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoa
     if (marcus.status === 'unavailable') {
       const status = document.createElement('span')
       status.textContent = assignedLoad?.assignedDriverId === 'marcus'
-        ? (assignedLoad.tripStatus === 'en-route-pickup' ? 'Status: En Route to Pickup' : assignedLoad.tripStatus === 'at-pickup' ? 'Status: At Pickup' : 'Status: Assigned • DOC001')
+        ? (assignedLoad.tripStatus === 'en-route-pickup' ? 'Status: En Route to Pickup' : assignedLoad.tripStatus === 'waiting-at-pickup' ? 'Status: Waiting at Pickup' : assignedLoad.tripStatus === 'loading-at-pickup' ? 'Status: Loading' : assignedLoad.tripStatus === 'loaded' ? 'Status: Loaded' : assignedLoad.tripStatus === 'at-pickup' ? 'Status: At Pickup' : 'Status: Assigned • DOC001')
         : 'Status: Unavailable'
       popupContent.append(status)
       if (assignedLoad?.assignedDriverId === 'marcus') {
@@ -156,6 +157,18 @@ function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoa
     animationFrame.current = requestAnimationFrame(animate)
     return () => { if (animationFrame.current) cancelAnimationFrame(animationFrame.current) }
   }, [runtimeProgress, runtimeRoute])
+
+  useEffect(() => {
+    const record = markerRecords.current.find(({ location }) => location.id === 'marcus')
+    if (!record || !assignedLoad) return
+    let pill = record.markerElement.querySelector('.driver-status-pill')
+    if (!pill) { pill = document.createElement('span'); pill.className = 'driver-status-pill'; record.markerElement.append(pill) }
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    if (assignedLoad.tripStatus === 'waiting-at-pickup') pill.textContent = `WAITING • ${Math.max(0, PICKUP_WAIT_MINUTES - (now - assignedLoad.pickupArrivalGameMinute))} MIN`
+    else if (assignedLoad.tripStatus === 'loading-at-pickup') pill.textContent = `LOADING • ${Math.max(0, PICKUP_LOADING_MINUTES - (now - assignedLoad.loadingStartGameMinute))} MIN`
+    else if (assignedLoad.tripStatus === 'loaded') pill.textContent = 'LOADED'
+    else pill.textContent = ''
+  }, [assignedLoad, gameTime])
 
   return <div ref={mapContainer} className="game-map" />
 }

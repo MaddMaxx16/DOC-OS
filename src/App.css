@@ -1,5 +1,7 @@
 .app {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -7,8 +9,10 @@
 }
 
 .phone-shell {
-  width: 390px;
-  height: 844px;
+  width: min(390px, 100vw, calc(100dvh * 390 / 844));
+  aspect-ratio: 390 / 844;
+  height: auto;
+  max-height: 100dvh;
   background: #1c1c1e;
   border-radius: 42px;
   overflow: hidden;
@@ -195,6 +199,7 @@
   color: #b5b5ba;
 }
 .map-popup-action { margin-top: 8px; width: 100%; }
+.driver-status-pill { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); white-space: nowrap; padding: 3px 6px; border-radius: 8px; background: #1a1d24; color: #fff; font-size: 9px; }
 .map-popup-action:disabled { opacity: .5; cursor: default; }
 
 .maplibregl-popup-close-button {
