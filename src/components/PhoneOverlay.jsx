@@ -6,9 +6,9 @@ import RoutePlanningScreen from './RoutePlanningScreen.jsx'
 import BrowserScreen from './BrowserScreen.jsx'
 import DriverFitScreen from './DriverFitScreen.jsx'
 
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setPlannedRoute, gameTime, onClose }) {
-  const [screen, setScreen] = useState('home')
-  const [selectedLoadId, setSelectedLoadId] = useState(null)
+function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, initialScreen = 'home', initialLoadId = null, onClose }) {
+  const [screen, setScreen] = useState(initialScreen)
+  const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
 
   return (
     <aside className="phone-overlay">
@@ -26,7 +26,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
         >
           {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} onSelectLoad={(loadId) => { setSelectedLoadId(loadId); setScreen('loadDetails') }} />}
           {screen === 'loadDetails' && <LoadDetailsScreen loads={loads} drivers={drivers} loadId={selectedLoadId} onCheckDriverFit={() => setScreen('driverFit')} onAccept={() => { const candidate = loads.find((load) => load.id === selectedLoadId)?.candidateDriverId; setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? { ...load, status: 'accepted', assignedDriverId: candidate, candidateDriverId: null } : load)); setDrivers((currentDrivers) => currentDrivers.map((driver) => driver.id === candidate ? { ...driver, status: 'unavailable' } : driver)) }} onPlanRoute={() => setScreen('routePlanning')} onDispatch={() => setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? { ...load, status: 'dispatched' } : load))} onBack={() => setScreen('loadBoard')} />}
-          {screen === 'driverFit' && <DriverFitScreen load={loads.find((load) => load.id === selectedLoadId)} drivers={drivers} gameTime={gameTime} candidateDriverId={loads.find((load) => load.id === selectedLoadId)?.candidateDriverId} onConfirm={(driverId) => { setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? { ...load, candidateDriverId: driverId } : load)); setScreen('loadDetails') }} onBack={() => setScreen('loadDetails')} />}
+          {screen === 'driverFit' && <DriverFitScreen load={loads.find((load) => load.id === selectedLoadId)} drivers={drivers} gameTime={gameTime} candidateDriverId={loads.find((load) => load.id === selectedLoadId)?.candidateDriverId} onEvaluate={(driverId, fit) => onEvaluateFit(selectedLoadId, driverId, fit)} onBack={() => setScreen('loadDetails')} />}
           {screen === 'routePlanning' && <RoutePlanningScreen loads={loads} plannedRoute={plannedRoute} setPlannedRoute={setPlannedRoute} loadId={selectedLoadId} drivers={drivers} onSelectRoute={() => setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? { ...load, selectedRouteId: 'recommended', plannedMiles: plannedRoute.distanceMiles, plannedDriveTimeMinutes: plannedRoute.durationMinutes } : load))} onBack={() => setScreen('loadDetails')} onContinue={() => { setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? { ...load, status: 'route-ready' } : load)); setScreen('loadDetails') }} />}
         </BrowserScreen>
       ) : screen === 'loadDetails' ? (
@@ -50,7 +50,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
           onBack={() => setScreen('loadBoard')}
         />
       ) : screen === 'driverFit' ? (
-        <DriverFitScreen load={loads.find((load) => load.id === selectedLoadId)} drivers={drivers} gameTime={gameTime} candidateDriverId={loads.find((load) => load.id === selectedLoadId)?.candidateDriverId} onConfirm={(driverId) => { setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? { ...load, candidateDriverId: driverId } : load)); setScreen('loadDetails') }} onBack={() => setScreen('loadDetails')} />
+        <DriverFitScreen load={loads.find((load) => load.id === selectedLoadId)} drivers={drivers} gameTime={gameTime} candidateDriverId={loads.find((load) => load.id === selectedLoadId)?.candidateDriverId} onEvaluate={(driverId, fit) => onEvaluateFit(selectedLoadId, driverId, fit)} onBack={() => setScreen('loadDetails')} />
       ) : screen === 'routePlanning' ? (
         <RoutePlanningScreen
           loads={loads}

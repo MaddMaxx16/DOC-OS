@@ -3,7 +3,7 @@ import mapLocations from '../data/mapLocations.js'
 import { calculateRoute } from '../services/routingService.js'
 import { formatAppointment, formatCompactDate, formatTime } from '../utils/gameTime.js'
 
-function DriverFitScreen({ load, drivers, gameTime, candidateDriverId, onConfirm, onBack }) {
+function DriverFitScreen({ load, drivers, gameTime, candidateDriverId, onEvaluate, onBack }) {
   const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
   const available = drivers.filter((driver) => driver.status === 'available')
   const [fits, setFits] = useState({})
@@ -19,7 +19,7 @@ function DriverFitScreen({ load, drivers, gameTime, candidateDriverId, onConfirm
         const arrivalDay = Math.floor(arrival / 1440)
         const arrivalMinutes = arrival % 1440
         const status = arrivalDay < load.pickupDayIndex || (arrivalDay === load.pickupDayIndex && arrivalMinutes < load.pickupWindowStartMinutes) ? 'EARLY' : arrivalDay > load.pickupDayIndex || (arrivalDay === load.pickupDayIndex && arrivalMinutes > load.pickupWindowEndMinutes) ? 'LATE' : 'ON TIME'
-        if (active) setFits((currentFits) => ({ ...currentFits, [driver.id]: { miles: route.distanceMiles, minutes: route.durationMinutes, arrivalDay, arrivalMinutes, status } }))
+        if (active) setFits((currentFits) => ({ ...currentFits, [driver.id]: { miles: route.distanceMiles, minutes: route.durationMinutes, routeShape: route.routeShape, arrivalDay, arrivalMinutes, status } }))
       } catch (error) {
         console.error(error)
         if (active) setFits((currentFits) => ({ ...currentFits, [driver.id]: null }))
@@ -37,7 +37,7 @@ function DriverFitScreen({ load, drivers, gameTime, candidateDriverId, onConfirm
           return <button type="button" className={`driver-fit-card ${selectedDriverId === driver.id ? 'selected' : ''}`} key={driver.id} onClick={() => setSelectedDriverId(driver.id)}><strong>{driver.name}</strong><span>{selectedDriverId === driver.id ? 'SELECTED' : 'Available'}</span>{fit ? <div className="eta-details"><span>Deadhead Distance: {fit.miles.toFixed(1)} miles</span><span>Deadhead Drive Time: {fit.minutes} minutes</span><span>Estimated Pickup Arrival: {formatCompactDate(fit.arrivalDay)} • {formatTime(fit.arrivalMinutes)}</span><span>Pickup Window: {formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</span><span>Fit Status: {fit.status}</span></div> : <span>Calculating...</span>}</button>
         })}
       </div>
-      <div className="driver-fit-actions"><button type="button" className="back-button" onClick={onBack}>Back</button><button type="button" className="action-button" onClick={() => onConfirm(selectedDriverId)} disabled={!selectedDriverId}>Confirm</button></div>
+      <div className="driver-fit-actions"><button type="button" className="back-button" onClick={onBack}>Back</button><button type="button" className="action-button" onClick={() => onEvaluate(selectedDriverId, fits[selectedDriverId])} disabled={!selectedDriverId || !fits[selectedDriverId]}>Evaluate on Map</button></div>
     </div>
   )
 }

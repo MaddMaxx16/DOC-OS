@@ -33,9 +33,10 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
         <span>Status: {load.status[0].toUpperCase() + load.status.slice(1)}</span>
         {load.assignedDriverId && <span>Driver: {drivers.find((driver) => driver.id === load.assignedDriverId)?.name ?? 'Unknown'}</span>}
         {load.candidateDriverId && <span>Candidate Driver: {drivers.find((driver) => driver.id === load.candidateDriverId)?.name ?? 'Unknown'}</span>}
+        {load.driverFitVerified && <span>Verified Driver Fit: {drivers.find((driver) => driver.id === load.candidateDriverId)?.name ?? 'Marcus'}</span>}
       </div>
       {load.status === 'available' ? (
-        <><button type="button" className="action-button" onClick={onCheckDriverFit}>CHECK DRIVER FIT</button><button type="button" className="action-button" onClick={onAccept} disabled={!load.candidateDriverId}>
+        <><button type="button" className="action-button" onClick={onCheckDriverFit} disabled={load.driverFitVerified}>{load.driverFitVerified ? 'DRIVER FIT VERIFIED' : 'CHECK DRIVER FIT'}</button><button type="button" className="action-button" onClick={onAccept} disabled={!load.candidateDriverId}>
           ACCEPT LOAD
         </button></>
       ) : load.status === 'assigned' && load.assignedDriverId ? (
