@@ -6,6 +6,18 @@ import mapLocations from '../data/mapLocations.js'
 
 setWorkerUrl(workerUrl)
 
+function routePosition(route, progress) {
+  if (!route?.length) return null
+  const distances = route.slice(1).map((point, i) => Math.hypot(point[0] - route[i][0], point[1] - route[i][1]))
+  const total = distances.reduce((sum, value) => sum + value, 0)
+  let remaining = total * Math.max(0, Math.min(1, progress))
+  let index = 0
+  while (index < distances.length - 1 && remaining > distances[index]) { remaining -= distances[index]; index += 1 }
+  const amount = distances[index] ? remaining / distances[index] : 0
+  const a = route[index]; const b = route[index + 1]
+  return [a[0] + (b[0] - a[0]) * amount, a[1] + (b[1] - a[1]) * amount]
+}
+
 function addRoute(map, route, id, color) {
   map.addSource(id, {
     type: 'geojson',
@@ -14,9 +26,11 @@ function addRoute(map, route, id, color) {
   map.addLayer({ id: `${id}-line`, type: 'line', source: id, paint: { 'line-color': color, 'line-width': 4 }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
 }
 
-function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoad, runtimePositions }) {
+function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute }) {
   const mapContainer = useRef(null)
   const markerRecords = useRef([])
+  const animationFrame = useRef(null)
+  const visualProgress = useRef(null)
 
   const getDriver = () => drivers.find((driver) => driver.id === 'marcus')
 
@@ -126,9 +140,22 @@ function GameMap({ drivers, plannedRoute, deadheadRoute, onPlanTrip, assignedLoa
 
   useEffect(() => {
     const record = markerRecords.current.find(({ location }) => location.id === 'marcus')
-    const position = runtimePositions?.marcus
-    if (record && position) record.marker.setLngLat([position.longitude, position.latitude])
-  }, [runtimePositions])
+    if (!record || runtimeProgress === null || !runtimeRoute?.length) return undefined
+    if (animationFrame.current) cancelAnimationFrame(animationFrame.current)
+    const start = visualProgress.current ?? runtimeProgress
+    const begin = performance.now()
+    const duration = 2800
+    const animate = (now) => {
+      const t = Math.min(1, (now - begin) / duration)
+      const progress = start + (runtimeProgress - start) * t
+      const position = routePosition(runtimeRoute, progress)
+      if (position) record.marker.setLngLat(position)
+      visualProgress.current = progress
+      if (t < 1) animationFrame.current = requestAnimationFrame(animate)
+    }
+    animationFrame.current = requestAnimationFrame(animate)
+    return () => { if (animationFrame.current) cancelAnimationFrame(animationFrame.current) }
+  }, [runtimeProgress, runtimeRoute])
 
   return <div ref={mapContainer} className="game-map" />
 }

@@ -17,6 +17,7 @@ function App() {
   const [plannedRoute, setPlannedRoute] = useState(null)
   const [isGameClockPaused, setIsGameClockPaused] = useState(false)
   const [runtimePositions, setRuntimePositions] = useState({ marcus: { longitude: -73.9819, latitude: 40.7282 } })
+  const [runtimeProgress, setRuntimeProgress] = useState(null)
 
   useEffect(() => {
     const load = loads.find((item) => item.id === 'DOC001')
@@ -29,6 +30,7 @@ function App() {
     const a = coords[index]; const b = coords[index + 1]
     // The position is derived from the central clock tick.
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRuntimeProgress(progress)
     setRuntimePositions({ marcus: { longitude: a[0] + (b[0] - a[0]) * local, latitude: a[1] + (b[1] - a[1]) * local } })
     if (progress >= 1 && load.tripStatus !== 'at-pickup') setLoads((current) => current.map((item) => item.id === load.id ? { ...item, tripStatus: 'at-pickup' } : item))
   }, [gameTime, loads])
@@ -89,6 +91,7 @@ function App() {
             setPlannedRoute={setPlannedRoute}
             setGameClockPaused={setIsGameClockPaused}
             runtimePositions={runtimePositions}
+            runtimeProgress={runtimeProgress}
             onOpenMarkets={() => setStage('market')}
           />
         )}
