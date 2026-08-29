@@ -3,7 +3,7 @@ import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 
 function LoadBoardScreen({ loads, embedded = false, onBack, onSelectLoad }) {
   return (
-    <div className="load-board-screen">
+    <div className={`phone-page load-board-screen ${embedded ? 'embedded' : ''}`}>
       {!embedded && <h1>Load Board</h1>}
       <div className="load-list">
         {loads.map((load) => {

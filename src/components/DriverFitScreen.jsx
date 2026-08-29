@@ -29,7 +29,7 @@ function DriverFitScreen({ load, drivers, gameTime, candidateDriverId, onConfirm
   }, [available, gameTime, load, pickup])
 
   return (
-    <div className="driver-fit-screen">
+    <div className="phone-page driver-fit-screen">
       <div className="driver-fit-content">
         <h1>Check Driver Fit</h1>
         {available.map((driver) => {

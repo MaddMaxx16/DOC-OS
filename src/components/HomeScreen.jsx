@@ -1,6 +1,6 @@
 function HomeScreen({ onOpenBrowser }) {
   return (
-    <div className="home-screen">
+    <div className="phone-page home-screen">
       <h1>DOC OS</h1>
 
       <button type="button" className="app-icon" onClick={onOpenBrowser}>

@@ -32,7 +32,7 @@ function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedR
 
 
   return (
-    <div className="route-planning-screen">
+    <div className="phone-page route-planning-screen">
       <div className="route-planning-content">
         <h1>Route Planning</h1>
         <div className="load-summary"><strong>{load.id}</strong><div className="route-plan-route"><span>{pickup.name}</span><span aria-hidden="true">→</span><span>{delivery.name}</span></div><span>Driver: {driver?.name}</span></div>

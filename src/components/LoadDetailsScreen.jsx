@@ -8,14 +8,14 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
 
   if (!load || !pickup || !delivery) {
     return (
-      <div className="load-details-screen">
+      <div className="phone-page load-details-screen">
         <button type="button" className="back-button" onClick={onBack}>Back</button>
       </div>
     )
   }
 
   return (
-    <div className="load-details-screen">
+    <div className="phone-page load-details-screen">
       <h1>{load.id}</h1>
       <div className="load-detail-route">
         <strong>Pickup:</strong>
