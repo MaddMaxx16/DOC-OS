@@ -1,47 +1,42 @@
-const ROUTE_URL = 'https://valhalla1.openstreetmap.de/route'
+const ROUTE_URL = 'https://api.heigit.org/openrouteservice/v2/directions/driving-hgv/geojson'
+const TIMEOUT_MS = 8000
+const inFlightRoutes = new Map()
+const routeCache = new Map()
 
-export function decodePolyline6(encoded) {
-  const coordinates = []
-  let index = 0
-  let latitude = 0
-  let longitude = 0
-
-  while (index < encoded.length) {
-    let result = 0
-    let shift = 0
-    let byte
-    do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5 } while (byte >= 0x20)
-    latitude += (result & 1) ? ~(result >> 1) : result >> 1
-    result = 0; shift = 0
-    do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5 } while (byte >= 0x20)
-    longitude += (result & 1) ? ~(result >> 1) : result >> 1
-    coordinates.push([longitude / 1e6, latitude / 1e6])
-  }
-  return coordinates
+export async function calculateRoute(origin, destination) {
+  const key = `ors-driving-hgv:${origin.latitude},${origin.longitude}:${destination.latitude},${destination.longitude}`
+  if (!import.meta.env.VITE_ORS_API_KEY) throw new Error('Missing VITE_ORS_API_KEY. Add it to .env.local and restart Vite.')
+  if (routeCache.has(key)) return routeCache.get(key)
+  if (inFlightRoutes.has(key)) { console.debug('DOC OS ORS ROUTE DEDUPED', key); return inFlightRoutes.get(key) }
+  const request = requestRoute(origin, destination, key)
+  inFlightRoutes.set(key, request)
+  return request.finally(() => inFlightRoutes.delete(key))
 }
 
-export async function calculateRoute(pickup, delivery) {
-  const response = await fetch(ROUTE_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      locations: [
-        { lat: pickup.latitude, lon: pickup.longitude },
-        { lat: delivery.latitude, lon: delivery.longitude },
-      ],
-      costing: 'truck',
-      units: 'miles',
-    }),
-  })
-  if (!response.ok) throw new Error(`Valhalla request failed: ${response.status}`)
-  const data = await response.json()
-  const summary = data.trip?.summary
-  const shape = data.trip?.legs?.[0]?.shape
-  if (!summary || !shape) throw new Error('Valhalla response missing route data')
-  return {
-    distanceMiles: summary.length,
-    durationSeconds: summary.time,
-    durationMinutes: Math.round(summary.time / 60),
-    routeShape: decodePolyline6(shape),
+async function requestRoute(origin, destination, key) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
+    console.debug('DOC OS ORS ROUTE HTTP ATTEMPT', { key, attempt, origin, destination, profile: 'driving-hgv' })
+    try {
+      const response = await fetch(ROUTE_URL, { method: 'POST', headers: { Authorization: import.meta.env.VITE_ORS_API_KEY, 'Content-Type': 'application/json', Accept: 'application/geo+json' }, body: JSON.stringify({ coordinates: [[origin.longitude, origin.latitude], [destination.longitude, destination.latitude]] }), signal: controller.signal })
+      if (!response.ok) {
+        const body = await response.text().catch(() => '')
+        console.error('DOC OS ORS ROUTE FAILURE', { status: response.status, statusText: response.statusText, responseBody: body })
+        if (![429, 502, 503, 504].includes(response.status) || attempt === 3) throw new Error(`ORS route failed (${response.status} ${response.statusText})`)
+      } else {
+        const data = await response.json(); const feature = data.features?.[0]; const summary = feature?.properties?.summary; const coordinates = feature?.geometry?.coordinates
+        if (!summary || !coordinates?.length) throw new Error('ORS response missing route data')
+        const route = { distanceMiles: summary.distance / 1609.344, durationSeconds: summary.duration, durationMinutes: Math.round(summary.duration / 60), routeShape: coordinates }
+        routeCache.set(key, route)
+        console.debug('DOC OS ORS ROUTE SUCCESS', { distanceMiles: route.distanceMiles, durationMinutes: route.durationMinutes, coordinateCount: coordinates.length })
+        return route
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') console.error('DOC OS ORS ROUTE TIMEOUT', { key, attempt, origin, destination })
+      if (attempt === 3) throw error
+    } finally { clearTimeout(timeout) }
+    await new Promise((resolve) => setTimeout(resolve, attempt === 1 ? 1500 : 3000))
   }
+  throw new Error('ORS route unavailable')
 }

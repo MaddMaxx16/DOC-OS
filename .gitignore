@@ -13,6 +13,10 @@ dist-ssr
 ios/App/App/public
 ios/**/public/
 *.local
+.env
+.env.local
+.env
+.env.local
 
 # Editor directories and files
 .vscode/*
