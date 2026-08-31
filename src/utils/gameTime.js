@@ -10,8 +10,9 @@ export function formatCompactDate(dayIndex) {
 }
 
 export function formatTime(totalMinutes) {
-  const hour = Math.floor(totalMinutes / 60)
-  const minute = totalMinutes % 60
+  const normalizedMinutes = Math.round(totalMinutes)
+  const hour = Math.floor(normalizedMinutes / 60)
+  const minute = normalizedMinutes % 60
   return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`
 }
 

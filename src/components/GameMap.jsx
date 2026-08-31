@@ -29,6 +29,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
   const animationFrame = useRef(null)
   const visualProgress = useRef(null)
   const cameraInitialized = useRef(false)
+  const activeTravelKey = useRef(null)
   const pickupMarkerRef = useRef(null)
   const deliveryMarkerRef = useRef(null)
   const [mapReady, setMapReady] = useState(false)
@@ -41,6 +42,26 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
     marker.remove()
     ref.current = null
   }
+
+  useEffect(() => {
+    const traveling = ['en-route-pickup', 'en-route-delivery'].includes(tripStatus)
+    const key = traveling && assignedLoad ? `${tripStatus}:${assignedLoad.id}:${tripStatus === 'en-route-pickup' ? assignedLoad.departureGameMinute : assignedLoad.deliveryDepartureGameMinute}` : null
+    if (!key) { activeTravelKey.current = null; visualProgress.current = null; return }
+    if (activeTravelKey.current === key) return
+    const record = markerRecords.current.find(({ location }) => location.id === 'marcus')
+    if (!record) return
+    const position = runtimePositions?.marcus
+    if (position) record.marker.setLngLat([position.longitude, position.latitude])
+    visualProgress.current = runtimeProgress
+    activeTravelKey.current = key
+  }, [tripStatus, assignedLoad?.id, assignedLoad?.departureGameMinute, assignedLoad?.deliveryDepartureGameMinute, mapReady])
+
+  useEffect(() => {
+    if (['en-route-pickup', 'en-route-delivery'].includes(tripStatus)) return
+    const record = markerRecords.current.find(({ location }) => location.id === 'marcus')
+    const position = runtimePositions?.marcus
+    if (record && position) record.marker.setLngLat([position.longitude, position.latitude])
+  }, [runtimePositions, tripStatus])
 
   useEffect(() => {
     const map = mapRef.current

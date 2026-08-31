@@ -1,0 +1,22 @@
+import seedDrivers from '../data/drivers.js'
+import seedLoads from '../data/loads.js'
+import mapLocations from '../data/mapLocations.js'
+import { calculateRoute } from '../services/routingService.js'
+
+const pointAlong = (route, progress) => { const i = Math.min(route.length - 2, Math.floor(progress * (route.length - 1))); const t = progress * (route.length - 1) - i; return [route[i][0] + (route[i + 1][0] - route[i][0]) * t, route[i][1] + (route[i + 1][1] - route[i][1]) * t] }
+
+export async function createDevPreset(name, { gameTime, currentLoads = seedLoads, currentDrivers = seedDrivers } = {}) {
+  const load = { ...(currentLoads.find((item) => item.id === 'DOC001') || seedLoads[0]) }; const driver = { ...(currentDrivers.find((item) => item.id === 'marcus') || seedDrivers[0]) }
+  const pickup = mapLocations.find((item) => item.id === load.pickupLocationId); const delivery = mapLocations.find((item) => item.id === load.deliveryLocationId); const now = (gameTime?.gameDayIndex ?? 0) * 1440 + (gameTime?.totalMinutesOfDay ?? 420)
+  const base = { selectedMarket: 'new-york', gameTime: gameTime || { gameDayIndex: 0, totalMinutesOfDay: 420 }, loads: [load], drivers: [driver], runtimePositions: { marcus: { longitude: -73.9819, latitude: 40.7282 } }, runtimeProgress: null, stage: 'game' }
+  if (name === 'driver-fit') return base
+  load.status = 'accepted'; load.tripStatus = 'assigned'; load.assignedDriverId = 'marcus'; load.candidateDriverId = null; driver.status = 'unavailable'
+  const at = (point) => ({ ...base, loads: [load], drivers: [driver], runtimePositions: { marcus: { longitude: point[0], latitude: point[1] } } })
+  if (name === 'accepted') return { ...base, loads: [load], drivers: [driver] }
+  if (name === 'waiting-at-pickup' || name === 'loading') { load.tripStatus = name === 'loading' ? 'loading-at-pickup' : 'waiting-at-pickup'; load.pickupArrivalGameMinute = now; if (name === 'loading') load.loadingStartGameMinute = now - 2; return at([pickup.longitude, pickup.latitude]) }
+  if (name === 'loaded') { load.tripStatus = 'loaded'; return at([pickup.longitude, pickup.latitude]) }
+  if (name === 'waiting-at-delivery' || name === 'unloading') { load.tripStatus = name === 'unloading' ? 'unloading-delivery' : 'at-delivery'; if (name === 'unloading') load.deliveryUnloadStartGameMinute = now - 2; return at([delivery.longitude, delivery.latitude]) }
+  if (['ready-for-pickup-dispatch', 'en-route-pickup'].includes(name)) { const route = load.plannedDeadheadRouteGeometry?.length ? { routeShape: load.plannedDeadheadRouteGeometry, distanceMiles: load.plannedDeadheadMiles, durationMinutes: load.plannedDeadheadDriveTimeMinutes } : await calculateRoute(mapLocations.find((item) => item.id === 'marcus'), pickup); load.planningStatus = 'route-ready'; load.plannedDeadheadRouteGeometry = route.routeShape; load.plannedDeadheadMiles = route.distanceMiles; load.plannedDeadheadDriveTimeMinutes = route.durationMinutes; load.selectedDeadheadRouteId = 'recommended'; if (name === 'en-route-pickup') { load.tripStatus = 'en-route-pickup'; const progress = .45; load.departureGameMinute = now - route.durationMinutes * progress; return { ...at(pointAlong(route.routeShape, progress)), runtimeProgress: progress } } return { ...base, loads: [load], drivers: [driver] } }
+  if (['ready-for-delivery-dispatch', 'en-route-delivery'].includes(name)) { load.tripStatus = 'loaded'; const route = load.plannedLoadedRouteGeometry?.length ? { routeShape: load.plannedLoadedRouteGeometry, distanceMiles: load.plannedLoadedMiles, durationMinutes: load.plannedLoadedDriveTimeMinutes } : await calculateRoute(pickup, delivery); load.deliveryPlanningStatus = 'route-ready'; load.plannedLoadedRouteGeometry = route.routeShape; load.plannedLoadedMiles = route.distanceMiles; load.plannedLoadedDriveTimeMinutes = route.durationMinutes; load.selectedLoadedRouteId = 'recommended'; if (name === 'en-route-delivery') { load.tripStatus = 'en-route-delivery'; const progress = .45; load.deliveryDepartureGameMinute = now - route.durationMinutes * progress; return { ...at(pointAlong(route.routeShape, progress)), runtimeProgress: progress } } return at([pickup.longitude, pickup.latitude]) }
+  return { ...base, loads: [load], drivers: [driver] }
+}
