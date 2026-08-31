@@ -82,7 +82,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
     const trip = assignedLoad?.tripStatus
     const activeLoad = assignedLoad || evaluationLoad
     const active = Boolean(activeLoad?.assignedDriverId) && !['delivered', 'completed'].includes(trip)
-    const showPickup = isDriverFitEvaluation || (active && !['loaded', 'en-route-delivery', 'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'delivered', 'completed'].includes(trip))
+    const showPickup = isDriverFitEvaluation || (active && !['loaded', 'en-route-delivery', 'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'].includes(trip))
     const showDelivery = active && !['delivered', 'completed'].includes(trip)
     const pickup = mapLocations.find((location) => location.id === activeLoad?.pickupLocationId)
     const delivery = mapLocations.find((location) => location.id === activeLoad?.deliveryLocationId)
@@ -91,7 +91,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
     if (!showPickup) removeLocationMarker(pickupMarkerRef)
     if (!showDelivery) removeLocationMarker(deliveryMarkerRef)
     const deliveryRecord = markerRecords.current.find(({ marker }) => marker === deliveryMarkerRef.current)
-    if (deliveryRecord) deliveryRecord.markerElement.style.pointerEvents = ['at-delivery', 'checked-in-delivery', 'unloading-delivery'].includes(trip) ? 'none' : ''
+    if (deliveryRecord) deliveryRecord.markerElement.style.pointerEvents = ['at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'].includes(trip) ? 'none' : ''
     logDocOsState({ isDriverFitEvaluation, hasActiveAcceptedLoad: active, showPickupMarker: showPickup, showDeliveryMarker: showDelivery, pickupMarkerExists: Boolean(pickupMarkerRef.current), deliveryMarkerExists: Boolean(deliveryMarkerRef.current) })
   }, [mapReady, assignedLoad?.id, assignedLoad?.assignedDriverId, assignedLoad?.tripStatus, isDriverFitEvaluation, evaluationLoad?.id])
 
@@ -199,7 +199,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
     if (!marcus || !record) return
 
     record.markerElement.classList.toggle('unavailable', marcus.status === 'unavailable')
-    record.markerElement.classList.toggle('attention', !suppressAttention && ['loaded', 'at-delivery', 'waiting-at-pickup', 'waiting-at-delivery'].includes(assignedLoad?.tripStatus))
+    record.markerElement.classList.toggle('attention', !suppressAttention && ['loaded', 'at-delivery', 'waiting-at-pickup', 'waiting-at-delivery', 'awaiting-pod'].includes(assignedLoad?.tripStatus))
     const popupContent = document.createElement('div')
     const name = document.createElement('strong')
     name.textContent = record.location.name
@@ -226,7 +226,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
         action.className = 'action-button map-popup-action'
         action.disabled = model.actionDisabled
         action.onclick = () => { if (!action.disabled) { record.popup.remove(); onDriverAction?.(model.actionType, model.loadId, 'marcus') } }
-        popupContent.append(action)
+        if (model.actionType && model.actionLabel) popupContent.append(action)
       } else {
         const status = document.createElement('span'); status.textContent = 'Status: Unavailable'; popupContent.append(status)
       }
@@ -272,6 +272,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
     else if (assignedLoad.tripStatus === 'loading-at-pickup') pill.textContent = `LOADING • ${Math.max(0, PICKUP_LOADING_MINUTES - (now - assignedLoad.loadingStartGameMinute))} MIN`
     else if (assignedLoad.tripStatus === 'at-delivery' && !suppressAttention) pill.textContent = 'WAITING AT DELIVERY'
     else if (assignedLoad.tripStatus === 'unloading-delivery' && !suppressAttention) pill.textContent = `UNLOADING • ${Math.max(0, DELIVERY_UNLOAD_DURATION_MINUTES - (now - assignedLoad.deliveryUnloadStartGameMinute))} MIN`
+    else if (assignedLoad.tripStatus === 'awaiting-pod' && !suppressAttention) pill.textContent = 'POD READY'
     else if (assignedLoad.tripStatus === 'loaded' && !suppressAttention) pill.textContent = assignedLoad.deliveryPlanningStatus === 'route-ready' ? 'READY FOR DISPATCH' : 'LOADED'
     else if (assignedLoad.tripStatus === 'loaded') pill.textContent = ''
     else pill.textContent = ''

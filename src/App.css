@@ -229,6 +229,7 @@
 .dev-presets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .dev-menu button { min-height: 34px; border-radius: 6px; border: 1px solid #414653; background: #2a2e38; color: #f5f5f7; font-size: 10px; }
 .dev-reset { width: 100%; margin-top: 14px; background: #3a2730 !important; }
+.phone-notification-badge { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: #d68b45; color: #111; font-size: 10px; font-weight: 700; line-height: 1; }
 
 .phone-button {
   position: absolute;
