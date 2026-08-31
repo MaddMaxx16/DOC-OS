@@ -3,7 +3,7 @@ import { LngLatBounds, Map, Marker, Popup, setWorkerUrl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import mapLocations from '../data/mapLocations.js'
-import { DELIVERY_UNLOAD_DURATION_MINUTES, PICKUP_LOADING_MINUTES, PICKUP_WAIT_MINUTES } from '../data/pickupConfig.js'
+import { DELIVERY_UNLOAD_DURATION_MINUTES, PICKUP_LOADING_MINUTES } from '../data/pickupConfig.js'
 import { getMarcusPanelModel } from '../utils/driverOperationalState.js'
 import { formatAppointment } from '../utils/gameTime.js'
 import { logDocOsState } from '../utils/debugLogger.js'
@@ -34,6 +34,13 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
   const [mapReady, setMapReady] = useState(false)
 
   const getDriver = () => drivers.find((driver) => driver.id === 'marcus')
+  const removeLocationMarker = (ref) => {
+    const marker = ref.current
+    if (!marker) return
+    markerRecords.current = markerRecords.current.filter((record) => record.marker !== marker)
+    marker.remove()
+    ref.current = null
+  }
 
   useEffect(() => {
     const map = mapRef.current
@@ -60,9 +67,9 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
     const delivery = mapLocations.find((location) => location.id === activeLoad?.deliveryLocationId)
     if (showPickup && pickup) createLocationMarker(pickup, pickupMarkerRef)
     if (showDelivery && delivery) createLocationMarker(delivery, deliveryMarkerRef)
-    if (!showPickup && pickupMarkerRef.current) { pickupMarkerRef.current.remove(); pickupMarkerRef.current = null }
-    if (!showDelivery && deliveryMarkerRef.current) { deliveryMarkerRef.current.remove(); deliveryMarkerRef.current = null }
-    const deliveryRecord = markerRecords.current.find(({ location }) => location.type === 'delivery')
+    if (!showPickup) removeLocationMarker(pickupMarkerRef)
+    if (!showDelivery) removeLocationMarker(deliveryMarkerRef)
+    const deliveryRecord = markerRecords.current.find(({ marker }) => marker === deliveryMarkerRef.current)
     if (deliveryRecord) deliveryRecord.markerElement.style.pointerEvents = ['at-delivery', 'checked-in-delivery', 'unloading-delivery'].includes(trip) ? 'none' : ''
     logDocOsState({ isDriverFitEvaluation, hasActiveAcceptedLoad: active, showPickupMarker: showPickup, showDeliveryMarker: showDelivery, pickupMarkerExists: Boolean(pickupMarkerRef.current), deliveryMarkerExists: Boolean(deliveryMarkerRef.current) })
   }, [mapReady, assignedLoad?.id, assignedLoad?.assignedDriverId, assignedLoad?.tripStatus, isDriverFitEvaluation, evaluationLoad?.id])
@@ -145,7 +152,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
   }, [activeRouteGeometry, tripStatus])
 
   useEffect(() => {
-    const pickupRecord = markerRecords.current.find(({ location }) => location.type === 'pickup')
+    const pickupRecord = markerRecords.current.find(({ marker }) => marker === pickupMarkerRef.current)
     const popupLoad = assignedLoad || evaluationLoad
     if (pickupRecord && popupLoad) {
       const content = document.createElement('div')
@@ -156,7 +163,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
       content.append(heading, name, load, window)
       pickupRecord.popup.setDOMContent(content)
     }
-    const deliveryRecord = markerRecords.current.find(({ location }) => location.type === 'delivery')
+    const deliveryRecord = markerRecords.current.find(({ marker }) => marker === deliveryMarkerRef.current)
     if (deliveryRecord && popupLoad) {
       const content = document.createElement('div')
       const heading = document.createElement('strong'); heading.textContent = 'DELIVERY'
@@ -171,7 +178,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
     if (!marcus || !record) return
 
     record.markerElement.classList.toggle('unavailable', marcus.status === 'unavailable')
-    record.markerElement.classList.toggle('attention', !suppressAttention && ['loaded', 'at-delivery'].includes(assignedLoad?.tripStatus))
+    record.markerElement.classList.toggle('attention', !suppressAttention && ['loaded', 'at-delivery', 'waiting-at-pickup', 'waiting-at-delivery'].includes(assignedLoad?.tripStatus))
     const popupContent = document.createElement('div')
     const name = document.createElement('strong')
     name.textContent = record.location.name
@@ -240,7 +247,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
     let pill = record.markerElement.querySelector('.driver-status-pill')
     if (!pill) { pill = document.createElement('span'); pill.className = 'driver-status-pill'; record.markerElement.append(pill) }
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    if (assignedLoad.tripStatus === 'waiting-at-pickup') pill.textContent = `WAITING • ${Math.max(0, PICKUP_WAIT_MINUTES - (now - assignedLoad.pickupArrivalGameMinute))} MIN`
+    if (assignedLoad.tripStatus === 'waiting-at-pickup') pill.textContent = 'WAITING AT PICKUP'
     else if (assignedLoad.tripStatus === 'loading-at-pickup') pill.textContent = `LOADING • ${Math.max(0, PICKUP_LOADING_MINUTES - (now - assignedLoad.loadingStartGameMinute))} MIN`
     else if (assignedLoad.tripStatus === 'at-delivery' && !suppressAttention) pill.textContent = 'WAITING AT DELIVERY'
     else if (assignedLoad.tripStatus === 'unloading-delivery' && !suppressAttention) pill.textContent = `UNLOADING • ${Math.max(0, DELIVERY_UNLOAD_DURATION_MINUTES - (now - assignedLoad.deliveryUnloadStartGameMinute))} MIN`

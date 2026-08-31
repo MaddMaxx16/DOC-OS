@@ -4,7 +4,7 @@ import seedDrivers from './data/drivers.js'
 import seedLoads from './data/loads.js'
 import mapLocations from './data/mapLocations.js'
 import { calculateRoute } from './services/routingService.js'
-import { DELIVERY_UNLOAD_DURATION_MINUTES, PICKUP_LOADING_MINUTES, PICKUP_WAIT_MINUTES } from './data/pickupConfig.js'
+import { DELIVERY_UNLOAD_DURATION_MINUTES, PICKUP_LOADING_MINUTES } from './data/pickupConfig.js'
 import { logDocOsState } from './utils/debugLogger.js'
 import { getMarcusPanelModel } from './utils/driverOperationalState.js'
 import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
@@ -62,7 +62,7 @@ function App() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoads((current) => current.map((load) => {
       if (load.tripStatus === 'at-pickup') return { ...load, tripStatus: 'waiting-at-pickup', pickupArrivalGameMinute: now }
-      if (load.tripStatus === 'waiting-at-pickup' && now - load.pickupArrivalGameMinute >= PICKUP_WAIT_MINUTES) return { ...load, tripStatus: 'loading-at-pickup', loadingStartGameMinute: now }
+      if (load.tripStatus === 'checked-in-pickup') return { ...load, tripStatus: 'loading-at-pickup', loadingStartGameMinute: now }
       if (load.tripStatus === 'loading-at-pickup' && now - load.loadingStartGameMinute >= PICKUP_LOADING_MINUTES) return { ...load, tripStatus: 'loaded' }
       if (load.tripStatus === 'checked-in-delivery') return { ...load, tripStatus: 'unloading-delivery', deliveryUnloadStartGameMinute: now }
       if (load.tripStatus === 'unloading-delivery' && now - load.deliveryUnloadStartGameMinute >= DELIVERY_UNLOAD_DURATION_MINUTES) return { ...load, tripStatus: 'delivered', status: 'delivered' }
