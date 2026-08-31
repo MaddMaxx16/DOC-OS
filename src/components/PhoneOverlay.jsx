@@ -5,8 +5,11 @@ import LoadBoardScreen from './LoadBoardScreen.jsx'
 import RoutePlanningScreen from './RoutePlanningScreen.jsx'
 import BrowserScreen from './BrowserScreen.jsx'
 import DriverFitScreen from './DriverFitScreen.jsx'
+import DocumentsScreen from './DocumentsScreen.jsx'
+import PodDetailScreen from './PodDetailScreen.jsx'
+import mapLocations from '../data/mapLocations.js'
 
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, initialScreen = 'home', initialLoadId = null, onClose }) {
+function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, initialScreen = 'home', initialLoadId = null, documentsBadgeCount = 0, onClose }) {
   const [screen, setScreen] = useState(initialScreen)
   const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
 
@@ -16,7 +19,11 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
       <div className="phone-app-viewport">
 
       {screen === 'home' ? (
-        <HomeScreen onOpenBrowser={() => setScreen('browser')} />
+        <HomeScreen onOpenBrowser={() => setScreen('browser')} onOpenDocuments={() => setScreen('documents')} documentsBadgeCount={documentsBadgeCount} />
+      ) : screen === 'documents' ? (
+        <DocumentsScreen loads={loads} onBack={() => setScreen('home')} onOpenPod={(id) => { setSelectedLoadId(id); setScreen('podDetail') }} />
+      ) : screen === 'podDetail' ? (
+        <PodDetailScreen load={loads.find((load) => load.id === selectedLoadId)} driver={drivers.find((driver) => driver.id === loads.find((load) => load.id === selectedLoadId)?.assignedDriverId)} delivery={mapLocations.find((location) => location.id === loads.find((load) => load.id === selectedLoadId)?.deliveryLocationId)} onBack={() => setScreen('documents')} />
       ) : screen === 'browser' || screen === 'loadBoard' || screen === 'loadDetails' || screen === 'driverFit' || screen === 'routePlanning' ? (
         <BrowserScreen
           page={screen === 'browser' ? 'home' : screen === 'loadBoard' ? 'freightlink.local' : screen === 'loadDetails' ? 'freightlink.local/load/DOC001' : screen === 'driverFit' ? 'freightlink.local/load/DOC001/driver-fit' : 'freightlink.local/load/DOC001/route'}

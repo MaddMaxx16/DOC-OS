@@ -84,7 +84,7 @@ function App() {
       if (load.tripStatus === 'checked-in-pickup') return { ...load, tripStatus: 'loading-at-pickup', loadingStartGameMinute: now }
       if (load.tripStatus === 'loading-at-pickup' && now - load.loadingStartGameMinute >= PICKUP_LOADING_MINUTES) return { ...load, tripStatus: 'loaded' }
       if (load.tripStatus === 'checked-in-delivery') return { ...load, tripStatus: 'unloading-delivery', deliveryUnloadStartGameMinute: now }
-      if (load.tripStatus === 'unloading-delivery' && now - load.deliveryUnloadStartGameMinute >= DELIVERY_UNLOAD_DURATION_MINUTES) return { ...load, tripStatus: 'awaiting-pod' }
+      if (load.tripStatus === 'unloading-delivery' && now - load.deliveryUnloadStartGameMinute >= DELIVERY_UNLOAD_DURATION_MINUTES) return { ...load, tripStatus: 'awaiting-pod', pod: { status: 'complete', receivedGameMinute: now, signedBy: 'Jordan Rivera', piecesExpected: 12, piecesReceived: 12, damage: 'None' } }
       return load
     }))
   }, [gameTime])

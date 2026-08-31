@@ -124,6 +124,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             gameTime={gameTime}
             initialScreen={phoneInitialScreen}
             initialLoadId={phoneLoadId}
+            documentsBadgeCount={podNotificationCount}
             onEvaluateFit={startEvaluation}
             onClose={() => setIsPhoneOpen(false)}
           />
