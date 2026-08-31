@@ -62,6 +62,8 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
     if (showDelivery && delivery) createLocationMarker(delivery, deliveryMarkerRef)
     if (!showPickup && pickupMarkerRef.current) { pickupMarkerRef.current.remove(); pickupMarkerRef.current = null }
     if (!showDelivery && deliveryMarkerRef.current) { deliveryMarkerRef.current.remove(); deliveryMarkerRef.current = null }
+    const deliveryRecord = markerRecords.current.find(({ location }) => location.type === 'delivery')
+    if (deliveryRecord) deliveryRecord.markerElement.style.pointerEvents = ['at-delivery', 'checked-in-delivery', 'unloading-delivery'].includes(trip) ? 'none' : ''
     logDocOsState({ isDriverFitEvaluation, hasActiveAcceptedLoad: active, showPickupMarker: showPickup, showDeliveryMarker: showDelivery, pickupMarkerExists: Boolean(pickupMarkerRef.current), deliveryMarkerExists: Boolean(deliveryMarkerRef.current) })
   }, [mapReady, assignedLoad?.id, assignedLoad?.assignedDriverId, assignedLoad?.tripStatus, isDriverFitEvaluation, evaluationLoad?.id])
 
@@ -169,7 +171,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
     if (!marcus || !record) return
 
     record.markerElement.classList.toggle('unavailable', marcus.status === 'unavailable')
-    record.markerElement.classList.toggle('attention', !suppressAttention && assignedLoad?.tripStatus === 'loaded')
+    record.markerElement.classList.toggle('attention', !suppressAttention && ['loaded', 'at-delivery'].includes(assignedLoad?.tripStatus))
     const popupContent = document.createElement('div')
     const name = document.createElement('strong')
     name.textContent = record.location.name
@@ -240,6 +242,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     if (assignedLoad.tripStatus === 'waiting-at-pickup') pill.textContent = `WAITING • ${Math.max(0, PICKUP_WAIT_MINUTES - (now - assignedLoad.pickupArrivalGameMinute))} MIN`
     else if (assignedLoad.tripStatus === 'loading-at-pickup') pill.textContent = `LOADING • ${Math.max(0, PICKUP_LOADING_MINUTES - (now - assignedLoad.loadingStartGameMinute))} MIN`
+    else if (assignedLoad.tripStatus === 'at-delivery' && !suppressAttention) pill.textContent = 'WAITING AT DELIVERY'
     else if (assignedLoad.tripStatus === 'unloading-delivery' && !suppressAttention) pill.textContent = `UNLOADING • ${Math.max(0, DELIVERY_UNLOAD_DURATION_MINUTES - (now - assignedLoad.deliveryUnloadStartGameMinute))} MIN`
     else if (assignedLoad.tripStatus === 'loaded' && !suppressAttention) pill.textContent = assignedLoad.deliveryPlanningStatus === 'route-ready' ? 'READY FOR DISPATCH' : 'LOADED'
     else if (assignedLoad.tripStatus === 'loaded') pill.textContent = ''
