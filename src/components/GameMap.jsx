@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LngLatBounds, Map, Marker, Popup, setWorkerUrl } from 'maplibre-gl'
+import { Map as MapLibreMap, Marker, Popup, setWorkerUrl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import mapLocations from '../data/mapLocations.js'
@@ -22,7 +22,7 @@ function routePosition(route, progress) {
   return [a[0] + (b[0] - a[0]) * amount, a[1] + (b[1] - a[1]) * amount]
 }
 
-function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad }) {
+function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad }) {
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const markerRecords = useRef([])
@@ -32,6 +32,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
   const activeTravelKey = useRef(null)
   const pickupMarkerRef = useRef(null)
   const deliveryMarkerRef = useRef(null)
+  const driverMarkerRefs = useRef(new Map())
   const [mapReady, setMapReady] = useState(false)
 
   const getDriver = () => drivers.find((driver) => driver.id === 'marcus')
@@ -86,6 +87,19 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
     const showDelivery = active && !['delivered', 'completed'].includes(trip)
     const pickup = mapLocations.find((location) => location.id === activeLoad?.pickupLocationId)
     const delivery = mapLocations.find((location) => location.id === activeLoad?.deliveryLocationId)
+    const activeDriverIds = new Set(drivers.map((driver) => driver.id))
+    driverMarkerRefs.current.forEach((marker, id) => { if (!activeDriverIds.has(id)) { marker.remove(); driverMarkerRefs.current.delete(id); markerRecords.current = markerRecords.current.filter((record) => record.marker !== marker) } })
+    drivers.forEach((driver) => {
+      if (driverMarkerRefs.current.has(driver.id)) return
+      const home = mapLocations.find((location) => location.id === driver.homeBaseLocationId)
+      const position = runtimePositions[driver.id] || home
+      if (!position) return
+      const element = document.createElement('div'); element.className = 'game-marker driver'; element.textContent = 'T'
+      const popup = new Popup({ offset: 20 }).setDOMContent(document.createElement('div'))
+      const marker = new Marker({ element }).setLngLat([position.longitude, position.latitude]).setPopup(popup).addTo(map)
+      popup.on('open', () => element.classList.add('popup-open')); popup.on('close', () => element.classList.remove('popup-open'))
+      driverMarkerRefs.current.set(driver.id, marker); markerRecords.current.push({ location: { id: driver.id, name: driver.name, type: 'driver' }, marker, markerElement: element, popup })
+    })
     if (showPickup && pickup) createLocationMarker(pickup, pickupMarkerRef)
     if (showDelivery && delivery) createLocationMarker(delivery, deliveryMarkerRef)
     if (!showPickup) removeLocationMarker(pickupMarkerRef)
@@ -93,10 +107,10 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
     const deliveryRecord = markerRecords.current.find(({ marker }) => marker === deliveryMarkerRef.current)
     if (deliveryRecord) deliveryRecord.markerElement.style.pointerEvents = ['at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'].includes(trip) ? 'none' : ''
     logDocOsState({ isDriverFitEvaluation, hasActiveAcceptedLoad: active, showPickupMarker: showPickup, showDeliveryMarker: showDelivery, pickupMarkerExists: Boolean(pickupMarkerRef.current), deliveryMarkerExists: Boolean(deliveryMarkerRef.current) })
-  }, [mapReady, assignedLoad?.id, assignedLoad?.assignedDriverId, assignedLoad?.tripStatus, isDriverFitEvaluation, evaluationLoad?.id])
+  }, [mapReady, drivers, runtimePositions, assignedLoad?.id, assignedLoad?.assignedDriverId, assignedLoad?.tripStatus, isDriverFitEvaluation, evaluationLoad?.id])
 
   useEffect(() => {
-    const map = new Map({
+    const map = new MapLibreMap({
       container: mapContainer.current,
       style: 'https://tiles.openfreemap.org/styles/positron',
       center: [-73.9857, 40.7484],
@@ -108,35 +122,7 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
 
     const markers = []
     map.on('load', () => {
-      const bounds = new LngLatBounds()
-
-      mapLocations.forEach((location) => {
-        bounds.extend([location.longitude, location.latitude])
-        if (location.type !== 'driver') return
-        const markerElement = document.createElement('div')
-        markerElement.className = `game-marker ${location.type}`
-        markerElement.textContent = location.type === 'pickup'
-          ? 'P'
-          : location.type === 'delivery'
-            ? 'D'
-            : 'T'
-
-        const popupContent = document.createElement('div')
-        const popup = new Popup({ offset: 20 }).setDOMContent(popupContent)
-        const position = runtimePositions?.[location.id] || { longitude: location.longitude, latitude: location.latitude }
-        const marker = new Marker({ element: markerElement })
-          .setLngLat([position.longitude, position.latitude])
-          .setPopup(popup)
-          .addTo(map)
-        popup.on('open', () => markerElement.classList.add('popup-open'))
-        popup.on('close', () => markerElement.classList.remove('popup-open'))
-
-        markers.push(marker)
-        markerRecords.current.push({ location, marker, markerElement, popup })
-      })
-
       if (!cameraInitialized.current) {
-      map.fitBounds(bounds, { padding: 50, maxZoom: 12 })
       const initialRoute = activeRouteGeometry?.length ? { routeShape: activeRouteGeometry } : null
       if (initialRoute) {
         map.addSource('active-route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: initialRoute.routeShape } } })
@@ -149,6 +135,8 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
 
     return () => {
       markers.forEach((marker) => marker.remove())
+      driverMarkerRefs.current.forEach((marker) => marker.remove())
+      driverMarkerRefs.current.clear()
       pickupMarkerRef.current?.remove()
       deliveryMarkerRef.current?.remove()
       pickupMarkerRef.current = null
@@ -232,10 +220,17 @@ function GameMap({ drivers, activeRouteGeometry, tripStatus, onDriverAction, ass
       }
     } else {
       const status = document.createElement('span'); status.textContent = 'Status: Available'; popupContent.append(status)
-      const location = document.createElement('span'); location.textContent = `Location: ${record.location.name === 'Marcus' && runtimePositions?.marcus ? 'Current position' : record.location.name}`; popupContent.append(location)
+      const carrier = carriers.find((item) => item.id === marcus.carrierId)
+      const home = mapLocations.find((item) => item.id === marcus.homeBaseLocationId)
+      const position = runtimePositions?.marcus
+      const atHome = home && position && home.longitude === position.longitude && home.latitude === position.latitude
+      if (carrier) { const carrierText = document.createElement('span'); carrierText.textContent = `Carrier: ${carrier.name}`; popupContent.append(carrierText) }
+      const location = document.createElement('span'); location.textContent = `Location: ${atHome ? home.name : 'Current position'}`; popupContent.append(location)
+      if (marcus.equipment?.label) { const equipment = document.createElement('span'); equipment.textContent = `Equipment: ${marcus.equipment.label}`; popupContent.append(equipment) }
+      if (marcus.hours?.status) { const hours = document.createElement('span'); hours.textContent = `Hours: ${marcus.hours.status === 'full' ? 'Full' : marcus.hours.status}`; popupContent.append(hours) }
     }
     record.popup.setDOMContent(popupContent)
-  }, [drivers, assignedLoad, evaluationLoad, isDriverFitEvaluation, onDriverAction, suppressAttention, gameTime, runtimeProgress])
+  }, [drivers, carriers, assignedLoad, evaluationLoad, isDriverFitEvaluation, onDriverAction, suppressAttention, gameTime, runtimeProgress, runtimePositions])
 
   useEffect(() => {
     const record = markerRecords.current.find(({ location }) => location.id === 'marcus')

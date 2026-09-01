@@ -1,4 +1,4 @@
-function BrowserScreen({ page, children, onOpenFreightLink, onBack, onHome }) {
+function BrowserScreen({ page, children, onOpenFreightLink, onOpenCarrierSource, onBack, onHome, siteTitle = 'FREIGHTLINK', siteSubtitle = 'Load Board' }) {
 
   return (
     <div className="phone-page browser-screen">
@@ -12,13 +12,11 @@ function BrowserScreen({ page, children, onOpenFreightLink, onBack, onHome }) {
         <div className="browser-home">
           <div className="browser-search">Search or enter address</div>
           <strong>Bookmarks</strong>
-          <button type="button" className="site-link" onClick={onOpenFreightLink}>
-            <span className="site-icon">FL</span>
-            <span>FreightLink</span>
-          </button>
+          <button type="button" className="site-link" onClick={onOpenCarrierSource}><span className="site-icon">CS</span><span>CarrierSource</span></button>
+          <button type="button" className="site-link" onClick={onOpenFreightLink}><span className="site-icon">FL</span><span>FreightLink</span></button>
         </div>
       ) : (
-        <div className="browser-site-content"><div className="freightlink-branding"><strong>FREIGHTLINK</strong><span>Load Board</span></div>{children}</div>
+        <div className="browser-site-content"><div className="freightlink-branding"><strong>{siteTitle}</strong><span>{siteSubtitle}</span></div>{children}</div>
       )}
     </div>
   )

@@ -1,5 +1,8 @@
 const mapLocations = [
   {
+    id: 'metroline-yard', name: 'Metroline Yard', type: 'yard', longitude: -74.0129, latitude: 40.6535,
+  },
+  {
     id: 'empire-freight-terminal',
     name: 'Empire Freight Terminal',
     type: 'pickup',
@@ -12,13 +15,6 @@ const mapLocations = [
     type: 'delivery',
     longitude: -73.9442,
     latitude: 40.7447,
-  },
-  {
-    id: 'marcus',
-    name: 'Marcus',
-    type: 'driver',
-    longitude: -73.9819,
-    latitude: 40.7282,
   },
 ]
 

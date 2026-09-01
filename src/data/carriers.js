@@ -1,0 +1,1 @@
+export default [{ id: 'metroline', name: 'Metroline Transport', status: 'prospect', marketId: 'new-york', serviceArea: 'Northeast', fleetSize: 1, driverIds: ['marcus'], equipment: ["53' Dry Van"], homeBaseLocationId: 'metroline-yard', experienceRequirement: 'Entry Level', dispatchAgreement: { type: 'percentage', percentage: 8 } }]
