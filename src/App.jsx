@@ -29,19 +29,32 @@ function App() {
   const [runtimeProgress, setRuntimeProgress] = useState(null)
   const [hydrated, setHydrated] = useState(false)
   const [seenLedgerReceivableIds, setSeenLedgerReceivableIds] = useState([])
+  const [seenLedgerPaymentReadyIds, setSeenLedgerPaymentReadyIds] = useState([])
+  const [seenLedgerPaymentReceivedIds, setSeenLedgerPaymentReceivedIds] = useState([])
+  const [ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId] = useState({})
 
   useEffect(() => {
     const saved = loadGame()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (saved) { if (saved.stage) setStage(saved.stage); if (saved.selectedMarket) setSelectedMarket(saved.selectedMarket); if (saved.gameTime) setGameTime(saved.gameTime); if (saved.loads) setLoads(saved.loads); if (saved.drivers) setDrivers(saved.drivers); if (saved.carriers) setCarriers(saved.carriers); if (saved.runtimePositions) setRuntimePositions(saved.runtimePositions); if (saved.runtimeProgress !== undefined) setRuntimeProgress(saved.runtimeProgress); if (Array.isArray(saved.seenLedgerReceivableIds)) setSeenLedgerReceivableIds(saved.seenLedgerReceivableIds) }
+    if (saved) { if (saved.stage) setStage(saved.stage); if (saved.selectedMarket) setSelectedMarket(saved.selectedMarket); if (saved.gameTime) setGameTime(saved.gameTime); if (saved.loads) setLoads(saved.loads); if (saved.drivers) setDrivers(saved.drivers); if (saved.carriers) setCarriers(saved.carriers); if (saved.runtimePositions) setRuntimePositions(saved.runtimePositions); if (saved.runtimeProgress !== undefined) setRuntimeProgress(saved.runtimeProgress); if (Array.isArray(saved.seenLedgerReceivableIds)) setSeenLedgerReceivableIds(saved.seenLedgerReceivableIds); if (Array.isArray(saved.seenLedgerPaymentReceivedIds)) setSeenLedgerPaymentReceivedIds(saved.seenLedgerPaymentReceivedIds); if (saved.ledgerWorkflowByLoadId) setLedgerWorkflowByLoadId(saved.ledgerWorkflowByLoadId) }
     setHydrated(true)
   }, [])
 
   useEffect(() => {
     if (!hydrated) return
-    const timer = setTimeout(() => saveGame({ stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds }), 700)
+    const timer = setTimeout(() => saveGame({ stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId }), 700)
     return () => clearTimeout(timer)
-  }, [hydrated, stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds])
+  }, [hydrated, stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId])
+
+  useEffect(() => {
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    setLedgerWorkflowByLoadId((current) => {
+      let changed = false
+      const next = { ...current }
+      Object.entries(current).forEach(([id, workflow]) => { if (workflow.financialStatus === 'AWAITING_PAYMENT' && Number.isFinite(workflow.paymentAvailableGameMinute) && now >= workflow.paymentAvailableGameMinute) { next[id] = { ...workflow, financialStatus: 'PAID', paymentReceivedGameMinute: workflow.paymentAvailableGameMinute }; changed = true } })
+      return changed ? next : current
+    })
+  }, [gameTime])
 
   const applyDevPreset = async (name) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads(preset.loads); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgress(preset.runtimeProgress) } catch (error) { console.error('DEV preset route unavailable:', error) } }
   const resetGame = () => { clearSave(); window.location.reload() }
@@ -152,6 +165,7 @@ function App() {
           <MainGameScreen
             selectedMarket={selectedMarket}
             gameTime={gameTime}
+            setGameTime={setGameTime}
             loads={loads}
             setLoads={setLoads}
             drivers={drivers}
@@ -170,7 +184,10 @@ function App() {
             onApplyDevPreset={applyDevPreset}
             onResetGame={resetGame}
             seenLedgerReceivableIds={seenLedgerReceivableIds}
-            onOpenLedger={() => { setSeenLedgerReceivableIds((current) => Array.from(new Set([...current, ...getReceivables(loads, carriers).map((item) => item.loadId)]))) }}
+            onOpenLedger={() => { const records = getReceivables(loads, carriers, ledgerWorkflowByLoadId); setSeenLedgerReceivableIds((current) => Array.from(new Set([...current, ...records.map((item) => item.loadId)]))); setSeenLedgerPaymentReceivedIds((current) => Array.from(new Set([...current, ...records.filter((item) => item.financialStatus === 'PAID').map((item) => item.loadId)]))) }}
+            ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}
+            setLedgerWorkflowByLoadId={setLedgerWorkflowByLoadId}
+            seenLedgerPaymentReadyIds={seenLedgerPaymentReceivedIds}
           />
         )}
       </section>

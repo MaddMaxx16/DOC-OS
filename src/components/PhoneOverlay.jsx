@@ -10,9 +10,13 @@ import PodDetailScreen from './PodDetailScreen.jsx'
 import CarrierSourceScreen from './CarrierSourceScreen.jsx'
 import CarrierOpportunityScreen from './CarrierOpportunityScreen.jsx'
 import LedgerDeskScreen from './LedgerDeskScreen.jsx'
+import LedgerReceivableScreen from './LedgerReceivableScreen.jsx'
 import mapLocations from '../data/mapLocations.js'
+import { getReceivables } from '../utils/ledger.js'
 
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], onActivateCarrier, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, initialScreen = 'home', initialLoadId = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, onOpenLedger, onClose }) {
+function getReceivable(loads, carriers, workflows, id) { return getReceivables(loads, carriers, workflows).find((item) => item.loadId === id) }
+
+function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], onActivateCarrier, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, initialScreen = 'home', initialLoadId = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, setLedgerWorkflowByLoadId, onClose }) {
   const [screen, setScreen] = useState(initialScreen)
   const [documentsTab, setDocumentsTab] = useState('pending')
   const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
@@ -27,7 +31,9 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], onA
       {screen === 'home' ? (
         <HomeScreen onOpenBrowser={() => setScreen('browser')} onOpenDocuments={() => setScreen('documents')} onOpenLedger={() => { onOpenLedger?.(); setScreen('ledger') }} documentsBadgeCount={documentsBadgeCount} ledgerUnreadCount={ledgerUnreadCount} />
       ) : screen === 'ledger' ? (
-        <LedgerDeskScreen loads={loads} carriers={carriers} onBack={() => setScreen('home')} />
+        <LedgerDeskScreen loads={loads} carriers={carriers} ledgerWorkflowByLoadId={ledgerWorkflowByLoadId} onBack={() => setScreen('home')} onOpenReceivable={(item) => { setSelectedLoadId(item.loadId); setScreen('ledgerReceivable') }} />
+      ) : screen === 'ledgerReceivable' ? (
+        <LedgerReceivableScreen receivable={getReceivable(loads, carriers, ledgerWorkflowByLoadId, selectedLoadId)} currentGameMinute={gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay} onBack={() => setScreen('ledger')} onAction={(action) => { const current = ledgerWorkflowByLoadId[selectedLoadId] || {}; if (action === 'create') { const numbers = Object.values(ledgerWorkflowByLoadId).map((item) => Number(String(item.invoiceNumber || '').replace('INV-', ''))).filter(Number.isFinite); const next = Math.max(0, ...numbers) + 1; setLedgerWorkflowByLoadId({ ...ledgerWorkflowByLoadId, [selectedLoadId]: { ...current, financialStatus: 'DRAFT', invoiceNumber: `INV-${String(next).padStart(4, '0')}`, invoiceCreatedGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay, invoiceSentGameMinute: null, paymentReceivedGameMinute: null } }) } if (action === 'send') setLedgerWorkflowByLoadId({ ...ledgerWorkflowByLoadId, [selectedLoadId]: { ...current, financialStatus: 'AWAITING_PAYMENT', invoiceSentGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay, paymentAvailableGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay + 1440 } }); if (action === 'pay') setLedgerWorkflowByLoadId({ ...ledgerWorkflowByLoadId, [selectedLoadId]: { ...current, financialStatus: 'PAID', paymentReceivedGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay } }) }} />
       ) : screen === 'documents' ? (
         <DocumentsScreen loads={loads} activeTab={documentsTab} onChangeTab={setDocumentsTab} onBack={() => setScreen('home')} onOpenPod={(id) => { const load = loads.find((item) => item.id === id); if (load?.pod && !load.pod.approved && !Number.isFinite(load.pod.viewedGameMinute)) { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setLoads((current) => current.map((item) => item.id === id ? { ...item, pod: { ...item.pod, viewedGameMinute: now } } : item)) } setSelectedLoadId(id); setScreen('podDetail') }} />
       ) : screen === 'podDetail' ? (

@@ -247,9 +247,13 @@
 .ledger-summary div, .ledger-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; box-sizing: border-box; padding: 10px; border: 1px solid #2a303b; border-radius: 9px; background: #1b202a; }
 .ledger-summary span { min-width: 0; color: #a7afbc; font-size: 9px; line-height: 1.2; overflow-wrap: anywhere; }
 .ledger-summary strong { color: #4fd18b; font-variant-numeric: tabular-nums; font-size: 13px; }
+.ledger-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; width: 100%; min-width: 0; margin: 16px 0; }
+.ledger-tab { min-width: 0; min-height: 38px; padding: 5px 3px; border: 1px solid #3b414d; border-radius: 8px; background: #222630; color: #cfd5df; font-size: 9px; overflow-wrap: anywhere; }
+.ledger-tab.active { background: #3a4352; color: #fff; border-color: #71809a; }
 .ledger-screen h3 { font-size: 12px; letter-spacing: .08em; }
 .ledger-list { display: flex; flex-direction: column; gap: 10px; }
 .ledger-card span { color: #a7afbc; font-size: 12px; }
+.ledger-card .document-card-header strong { color: #f2f4f7; }
 .ledger-fee { color: #4fd18b; font-variant-numeric: tabular-nums; }
 .ledger-empty { color: #a7afbc; font-size: 13px; line-height: 1.5; }
 .ledger-screen { padding: 20px; overflow-y: auto; color: #f5f5f7; }
