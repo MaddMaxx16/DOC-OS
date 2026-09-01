@@ -7,7 +7,7 @@ import mapLocations from '../data/mapLocations.js'
 import { calculateRoute } from '../services/routingService.js'
 import { logDocOsEvent } from '../utils/debugLogger.js'
 
-function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, onActivateCarrier, plannedRoute, setPlannedRoute, setGameClockPaused, runtimePositions, runtimeProgress, setRuntimeProgress, simulationSpeed, setSimulationSpeed, onOpenMarkets, onApplyDevPreset, onResetGame }) {
+function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, onActivateCarrier, plannedRoute, setPlannedRoute, setGameClockPaused, runtimePositions, runtimeProgress, setRuntimeProgress, simulationSpeed, setSimulationSpeed, onOpenMarkets, onApplyDevPreset, onResetGame, seenLedgerReceivableIds, onOpenLedger }) {
   const [devOpen, setDevOpen] = useState(false)
   const [isPhoneOpen, setIsPhoneOpen] = useState(false)
   const [phoneInitialScreen, setPhoneInitialScreen] = useState('home')
@@ -129,6 +129,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             initialScreen={phoneInitialScreen}
             initialLoadId={phoneLoadId}
             documentsBadgeCount={podNotificationCount}
+            ledgerUnreadCount={loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved && !seenLedgerReceivableIds.includes(load.id)).length}
+            onOpenLedger={onOpenLedger}
             onEvaluateFit={startEvaluation}
             onClose={() => setIsPhoneOpen(false)}
           />

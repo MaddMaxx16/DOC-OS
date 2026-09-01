@@ -230,18 +230,29 @@
 .dev-menu button { min-height: 34px; border-radius: 6px; border: 1px solid #414653; background: #2a2e38; color: #f5f5f7; font-size: 10px; }
 .dev-reset { width: 100%; margin-top: 14px; background: #3a2730 !important; }
 .phone-notification-badge { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: #d68b45; color: #111; font-size: 10px; font-weight: 700; line-height: 1; }
-.phone-app-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 28px; }
+.phone-app-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 28px; }
 .app-icon-badge, .app-icon-badge { background: #d68b45; color: #111; border-radius: 999px; font-size: 10px; padding: 2px 6px; }
-.documents-screen, .pod-detail-screen { padding: 20px; overflow-y: auto; color: #f5f5f7; }
-.documents-screen header, .pod-detail-screen header { display: flex; gap: 12px; align-items: center; }
+.ledger-badge { background: #4c8dff; color: #fff; }
+.documents-screen, .pod-detail-screen { padding: 20px; overflow-y: auto; color: #f5f5f7; box-sizing: border-box; min-width: 0; }
+.documents-screen header, .pod-detail-screen header, .ledger-screen header { display: flex; gap: 12px; align-items: center; }
 .documents-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 16px 0; }
 .documents-tab { min-height: 38px; border: 1px solid #3b414d; border-radius: 8px; background: #222630; color: #cfd5df; }
 .documents-tab.active { background: #3a4352; color: #fff; border-color: #71809a; }
-.documents-screen header button, .pod-detail-screen header button { background: transparent; border: 0; color: #fff; font-size: 24px; }
+.documents-screen header button, .pod-detail-screen header button, .ledger-screen header button { background: transparent; border: 0; color: #fff; font-size: 24px; padding: 0; }
 .document-card { position: relative; display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 20px; padding: 14px; text-align: left; border: 1px solid #414653; border-radius: 10px; background: #2a2e38; color: #f5f5f7; }
 .document-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; width: 100%; }
 .document-card-status { flex: 0 0 auto; color: #d68b45; font-size: 10px; font-weight: 700; }
 .document-card-meta { margin-top: 6px; padding-top: 8px; border-top: 1px solid #414653; color: #a7afbc; font-size: 11px; }
+.ledger-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; gap: 6px; margin: 16px 0 22px; box-sizing: border-box; min-width: 0; }
+.ledger-summary div, .ledger-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; box-sizing: border-box; padding: 10px; border: 1px solid #2a303b; border-radius: 9px; background: #1b202a; }
+.ledger-summary span { min-width: 0; color: #a7afbc; font-size: 9px; line-height: 1.2; overflow-wrap: anywhere; }
+.ledger-summary strong { color: #4fd18b; font-variant-numeric: tabular-nums; font-size: 13px; }
+.ledger-screen h3 { font-size: 12px; letter-spacing: .08em; }
+.ledger-list { display: flex; flex-direction: column; gap: 10px; }
+.ledger-card span { color: #a7afbc; font-size: 12px; }
+.ledger-fee { color: #4fd18b; font-variant-numeric: tabular-nums; }
+.ledger-empty { color: #a7afbc; font-size: 13px; line-height: 1.5; }
+.ledger-screen { padding: 20px; overflow-y: auto; color: #f5f5f7; }
 .pod-detail-screen p { margin: 14px 0; color: #b5b5ba; }
 .pod-detail-screen strong { color: #f5f5f7; }
 .pod-status { margin-top: 20px; padding: 12px; border-radius: 8px; background: #343844; }
@@ -362,7 +373,7 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  margin-top: 32px;
+  margin-top: 0;
   padding: 0;
   border: 0;
   background: transparent;
@@ -384,7 +395,7 @@
   font-weight: 600;
 }
 
-.browser-screen { height: 100%; display: flex; flex-direction: column; color: #f5f5f7; background: #22252D; }
+.browser-screen { height: 100%; min-width: 0; display: flex; flex-direction: column; color: #f5f5f7; background: #22252D; box-sizing: border-box; }
 .browser-header { height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; background: #29292c; font-size: 13px; }
 .browser-header .close-button { position: static; }
 .browser-bar { height: 44px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 12px; background: #232326; }
@@ -392,7 +403,7 @@
 .browser-back { padding: 6px 10px; font-size: 12px; }
 .browser-address { flex: 1; padding: 6px 10px; border-radius: 8px; background: #1c1c1e; color: #b5b5ba; font-size: 12px; }
 .browser-home-control { border: 0; background: transparent; color: #b5b5ba; font-size: 20px; cursor: pointer; }
-.browser-site-content { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; }
+.browser-site-content { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; }
 .freightlink-branding { display: flex; flex-direction: column; gap: 4px; padding: 20px; border-bottom: 1px solid #343438; }
 .freightlink-branding span { color: #b5b5ba; font-size: 14px; }
 .browser-home { display: flex; flex-direction: column; align-items: stretch; gap: 16px; padding: 32px 20px; background: #22252D; }

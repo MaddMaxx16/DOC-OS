@@ -9,9 +9,10 @@ import DocumentsScreen from './DocumentsScreen.jsx'
 import PodDetailScreen from './PodDetailScreen.jsx'
 import CarrierSourceScreen from './CarrierSourceScreen.jsx'
 import CarrierOpportunityScreen from './CarrierOpportunityScreen.jsx'
+import LedgerDeskScreen from './LedgerDeskScreen.jsx'
 import mapLocations from '../data/mapLocations.js'
 
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], onActivateCarrier, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, initialScreen = 'home', initialLoadId = null, documentsBadgeCount = 0, onClose }) {
+function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], onActivateCarrier, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, initialScreen = 'home', initialLoadId = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, onOpenLedger, onClose }) {
   const [screen, setScreen] = useState(initialScreen)
   const [documentsTab, setDocumentsTab] = useState('pending')
   const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
@@ -24,7 +25,9 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], onA
       <div className="phone-app-viewport">
 
       {screen === 'home' ? (
-        <HomeScreen onOpenBrowser={() => setScreen('browser')} onOpenDocuments={() => setScreen('documents')} documentsBadgeCount={documentsBadgeCount} />
+        <HomeScreen onOpenBrowser={() => setScreen('browser')} onOpenDocuments={() => setScreen('documents')} onOpenLedger={() => { onOpenLedger?.(); setScreen('ledger') }} documentsBadgeCount={documentsBadgeCount} ledgerUnreadCount={ledgerUnreadCount} />
+      ) : screen === 'ledger' ? (
+        <LedgerDeskScreen loads={loads} carriers={carriers} onBack={() => setScreen('home')} />
       ) : screen === 'documents' ? (
         <DocumentsScreen loads={loads} activeTab={documentsTab} onChangeTab={setDocumentsTab} onBack={() => setScreen('home')} onOpenPod={(id) => { const load = loads.find((item) => item.id === id); if (load?.pod && !load.pod.approved && !Number.isFinite(load.pod.viewedGameMinute)) { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setLoads((current) => current.map((item) => item.id === id ? { ...item, pod: { ...item.pod, viewedGameMinute: now } } : item)) } setSelectedLoadId(id); setScreen('podDetail') }} />
       ) : screen === 'podDetail' ? (
