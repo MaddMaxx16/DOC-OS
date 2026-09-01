@@ -12,6 +12,8 @@ import mapLocations from '../data/mapLocations.js'
 function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, initialScreen = 'home', initialLoadId = null, documentsBadgeCount = 0, onClose }) {
   const [screen, setScreen] = useState(initialScreen)
   const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
+  const updatePodVerification = (field, checked) => setLoads((current) => current.map((load) => { if (load.id !== selectedLoadId || !load.pod) return load; const verification = { signature: false, pieceCount: false, damage: false, deliveryInfo: false, ...(load.pod.verification || {}), [field]: checked }; const verified = Object.values(verification).every(Boolean); return { ...load, pod: { ...load.pod, verification, verified, verifiedGameMinute: verified ? gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay : null } } }))
+  const approvePod = () => setLoads((current) => current.map((load) => load.id === selectedLoadId && load.tripStatus === 'awaiting-pod' && load.pod?.verified ? { ...load, tripStatus: 'delivered', status: 'delivered', pod: { ...load.pod, approved: true, approvedGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay } } : load))
 
   return (
     <aside className="phone-overlay">
@@ -23,7 +25,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, plannedRoute, setP
       ) : screen === 'documents' ? (
         <DocumentsScreen loads={loads} onBack={() => setScreen('home')} onOpenPod={(id) => { setSelectedLoadId(id); setScreen('podDetail') }} />
       ) : screen === 'podDetail' ? (
-        <PodDetailScreen load={loads.find((load) => load.id === selectedLoadId)} driver={drivers.find((driver) => driver.id === loads.find((load) => load.id === selectedLoadId)?.assignedDriverId)} delivery={mapLocations.find((location) => location.id === loads.find((load) => load.id === selectedLoadId)?.deliveryLocationId)} onBack={() => setScreen('documents')} />
+        <PodDetailScreen load={loads.find((load) => load.id === selectedLoadId)} driver={drivers.find((driver) => driver.id === loads.find((load) => load.id === selectedLoadId)?.assignedDriverId)} delivery={mapLocations.find((location) => location.id === loads.find((load) => load.id === selectedLoadId)?.deliveryLocationId)} onUpdateVerification={updatePodVerification} onApprovePod={() => { approvePod(); setScreen('documents') }} onBack={() => setScreen('documents')} />
       ) : screen === 'browser' || screen === 'loadBoard' || screen === 'loadDetails' || screen === 'driverFit' || screen === 'routePlanning' ? (
         <BrowserScreen
           page={screen === 'browser' ? 'home' : screen === 'loadBoard' ? 'freightlink.local' : screen === 'loadDetails' ? 'freightlink.local/load/DOC001' : screen === 'driverFit' ? 'freightlink.local/load/DOC001/driver-fit' : 'freightlink.local/load/DOC001/route'}
