@@ -234,9 +234,14 @@
 .app-icon-badge, .app-icon-badge { background: #d68b45; color: #111; border-radius: 999px; font-size: 10px; padding: 2px 6px; }
 .documents-screen, .pod-detail-screen { padding: 20px; overflow-y: auto; color: #f5f5f7; }
 .documents-screen header, .pod-detail-screen header { display: flex; gap: 12px; align-items: center; }
+.documents-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 16px 0; }
+.documents-tab { min-height: 38px; border: 1px solid #3b414d; border-radius: 8px; background: #222630; color: #cfd5df; }
+.documents-tab.active { background: #3a4352; color: #fff; border-color: #71809a; }
 .documents-screen header button, .pod-detail-screen header button { background: transparent; border: 0; color: #fff; font-size: 24px; }
 .document-card { position: relative; display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 20px; padding: 14px; text-align: left; border: 1px solid #414653; border-radius: 10px; background: #2a2e38; color: #f5f5f7; }
-.document-card em { position: absolute; top: 10px; right: 10px; color: #d68b45; font-size: 10px; font-style: normal; }
+.document-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; width: 100%; }
+.document-card-status { flex: 0 0 auto; color: #d68b45; font-size: 10px; font-weight: 700; }
+.document-card-meta { margin-top: 6px; padding-top: 8px; border-top: 1px solid #414653; color: #a7afbc; font-size: 11px; }
 .pod-detail-screen p { margin: 14px 0; color: #b5b5ba; }
 .pod-detail-screen strong { color: #f5f5f7; }
 .pod-status { margin-top: 20px; padding: 12px; border-radius: 8px; background: #343844; }
