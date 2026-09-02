@@ -1,12 +1,14 @@
 import mapLocations from '../data/mapLocations.js'
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 
-function LoadBoardScreen({ loads, embedded = false, onBack, onSelectLoad }) {
+function LoadBoardScreen({ loads, gameTime, embedded = false, onBack, onSelectLoad }) {
+  const now = (gameTime?.gameDayIndex ?? 0) * 1440 + (gameTime?.totalMinutesOfDay ?? 420)
+  const visibleLoads = loads.filter((load) => (load.postedGameMinute === undefined || now >= load.postedGameMinute) && !['completed', 'delivered'].includes(load.status))
   return (
     <div className={`phone-page load-board-screen ${embedded ? 'embedded' : ''}`}>
       {!embedded && <h1>Load Board</h1>}
       <div className="load-list">
-        {loads.map((load) => {
+        {visibleLoads.map((load) => {
           const pickup = mapLocations.find(
             (location) => location.id === load.pickupLocationId,
           )

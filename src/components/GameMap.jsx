@@ -199,15 +199,20 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDr
       const delivery = mapLocations.find((location) => location.id === assignedLoad?.deliveryLocationId)
       const model = getMarcusPanelModel({ assignedLoad, gameTime, runtimeProgress, pickup, delivery })
       if (model) {
-      const status = document.createElement('span')
-      status.textContent = `Status: ${model.statusLabel}`
-      popupContent.append(status)
-      const load = document.createElement('span'); load.textContent = `Load: ${model.loadId}`; popupContent.append(load)
-      if (model.nextStopLabel) { const next = document.createElement('span'); next.textContent = `Next Stop: ${model.nextStopLabel}`; popupContent.append(next) }
-      if (model.locationLabel) { const location = document.createElement('span'); location.textContent = `Location: ${model.locationLabel}`; popupContent.append(location) }
-      if (model.eta) { const eta = document.createElement('span'); eta.textContent = `ETA: ${model.eta}`; popupContent.append(eta) }
-      if (model.remainingMinutes !== null) { const remaining = document.createElement('span'); remaining.textContent = `Remaining: ${model.remainingMinutes} min`; popupContent.append(remaining) }
-      if (model.operationalState === 'EN_ROUTE_PICKUP' || model.operationalState === 'EN_ROUTE_DELIVERY') { const progress = document.createElement('span'); progress.textContent = `Progress: ${Math.round(model.progress * 100)}%`; popupContent.append(progress) }
+      const compactTravel = model.operationalState === 'EN_ROUTE_PICKUP' || model.operationalState === 'EN_ROUTE_DELIVERY'
+      if (compactTravel) {
+        const travel = document.createElement('strong'); travel.textContent = model.statusLabel.toUpperCase(); popupContent.append(travel)
+        const stop = document.createElement('span'); stop.textContent = model.nextStopLabel || ''; popupContent.append(stop)
+        if (model.eta) { const eta = document.createElement('span'); eta.textContent = `ETA ${model.eta} · ${Math.round(model.progress * 100)}%`; popupContent.append(eta) }
+      } else {
+        const status = document.createElement('span')
+        status.textContent = model.operationalState === 'WAITING_DELIVERY' ? 'AT DELIVERY' : `Status: ${model.statusLabel}`
+        popupContent.append(status)
+        if (model.operationalState !== 'WAITING_DELIVERY') { const load = document.createElement('span'); load.textContent = `Load: ${model.loadId}`; popupContent.append(load) }
+        if (model.nextStopLabel) { const next = document.createElement('span'); next.textContent = `Next Stop: ${model.nextStopLabel}`; popupContent.append(next) }
+        if (model.locationLabel) { const location = document.createElement('span'); location.textContent = model.operationalState === 'WAITING_DELIVERY' ? model.locationLabel : `Location: ${model.locationLabel}`; popupContent.append(location) }
+        if (model.remainingMinutes !== null) { const remaining = document.createElement('span'); remaining.textContent = `Remaining: ${model.remainingMinutes} min`; popupContent.append(remaining) }
+      }
         const action = document.createElement('button')
         action.textContent = model.actionLabel
         action.type = 'button'

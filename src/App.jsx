@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import seedLoads from './data/loads.js'
-import seedDrivers from './data/drivers.js'
 import seedCarriers from './data/carriers.js'
 import mapLocations from './data/mapLocations.js'
 import { calculateRoute } from './services/routingService.js'
@@ -14,6 +13,7 @@ import StartScreen from './components/StartScreen.jsx'
 import { clearSave, loadGame, saveGame } from './utils/saveGame.js'
 import { createDevPreset } from './dev/devPresets.js'
 import { getReceivables } from './utils/ledger.js'
+import { reconcileActiveCarrierDrivers } from './utils/driverRoster.js'
 
 function App() {
   const [stage, setStage] = useState('start')
@@ -29,25 +29,27 @@ function App() {
   const [runtimeProgress, setRuntimeProgress] = useState(null)
   const [hydrated, setHydrated] = useState(false)
   const [seenLedgerReceivableIds, setSeenLedgerReceivableIds] = useState([])
-  const [seenLedgerPaymentReadyIds, setSeenLedgerPaymentReadyIds] = useState([])
   const [seenLedgerPaymentReceivedIds, setSeenLedgerPaymentReceivedIds] = useState([])
   const [ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId] = useState({})
+  const [carrierApplicationsById, setCarrierApplicationsById] = useState({})
+  const [emailMessages, setEmailMessages] = useState([])
 
   useEffect(() => {
     const saved = loadGame()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (saved) { if (saved.stage) setStage(saved.stage); if (saved.selectedMarket) setSelectedMarket(saved.selectedMarket); if (saved.gameTime) setGameTime(saved.gameTime); if (saved.loads) setLoads(saved.loads); if (saved.drivers) setDrivers(saved.drivers); if (saved.carriers) setCarriers(saved.carriers); if (saved.runtimePositions) setRuntimePositions(saved.runtimePositions); if (saved.runtimeProgress !== undefined) setRuntimeProgress(saved.runtimeProgress); if (Array.isArray(saved.seenLedgerReceivableIds)) setSeenLedgerReceivableIds(saved.seenLedgerReceivableIds); if (Array.isArray(saved.seenLedgerPaymentReceivedIds)) setSeenLedgerPaymentReceivedIds(saved.seenLedgerPaymentReceivedIds); if (saved.ledgerWorkflowByLoadId) setLedgerWorkflowByLoadId(saved.ledgerWorkflowByLoadId) }
+    if (saved) { const hydratedCarriers = saved.carriers ?? seedCarriers.map((carrier) => ({ ...carrier })); if (saved.stage) setStage(saved.stage); if (saved.selectedMarket) setSelectedMarket(saved.selectedMarket); if (saved.gameTime) setGameTime(saved.gameTime); if (saved.loads) setLoads([...saved.loads, ...seedLoads.filter((seed) => !saved.loads.some((load) => load.id === seed.id))]); if (saved.drivers) setDrivers(reconcileActiveCarrierDrivers(saved.drivers, hydratedCarriers)); if (saved.carriers) setCarriers(hydratedCarriers); if (saved.runtimePositions) setRuntimePositions(saved.runtimePositions); if (saved.runtimeProgress !== undefined) setRuntimeProgress(saved.runtimeProgress); if (Array.isArray(saved.seenLedgerReceivableIds)) setSeenLedgerReceivableIds(saved.seenLedgerReceivableIds); if (Array.isArray(saved.seenLedgerPaymentReceivedIds)) setSeenLedgerPaymentReceivedIds(saved.seenLedgerPaymentReceivedIds); if (saved.ledgerWorkflowByLoadId) setLedgerWorkflowByLoadId(saved.ledgerWorkflowByLoadId); if (saved.carrierApplicationsById) setCarrierApplicationsById(saved.carrierApplicationsById); if (Array.isArray(saved.emailMessages)) setEmailMessages(saved.emailMessages) }
     setHydrated(true)
   }, [])
 
   useEffect(() => {
     if (!hydrated) return
-    const timer = setTimeout(() => saveGame({ stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId }), 700)
+    const timer = setTimeout(() => saveGame({ stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages }), 700)
     return () => clearTimeout(timer)
-  }, [hydrated, stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId])
+  }, [hydrated, stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages])
 
   useEffect(() => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLedgerWorkflowByLoadId((current) => {
       let changed = false
       const next = { ...current }
@@ -56,12 +58,26 @@ function App() {
     })
   }, [gameTime])
 
-  const applyDevPreset = async (name) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads(preset.loads); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgress(preset.runtimeProgress) } catch (error) { console.error('DEV preset route unavailable:', error) } }
+  const applyDevPreset = async (name) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads([...preset.loads, ...loads.filter((load) => !preset.loads.some((item) => item.id === load.id)), ...seedLoads.filter((seed) => !preset.loads.some((item) => item.id === seed.id) && !loads.some((item) => item.id === seed.id))]); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgress(preset.runtimeProgress) } catch (error) { console.error('DEV preset route unavailable:', error) } }
+  const applySelectedDevPreset = async (name, selectedLoadId) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers, currentRuntimePositions: runtimePositions, currentCarriers: carriers, selectedLoadId }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads([...preset.loads, ...loads.filter((load) => !preset.loads.some((item) => item.id === load.id)), ...seedLoads.filter((seed) => !preset.loads.some((item) => item.id === seed.id) && !loads.some((item) => item.id === seed.id))]); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgress(preset.runtimeProgress) } catch (error) { console.error('DEV preset route unavailable:', error) } }
+  void applyDevPreset
   const resetGame = () => { clearSave(); window.location.reload() }
-  const activateCarrier = () => { setCarriers((current) => current.map((carrier) => carrier.id === 'metroline' ? { ...carrier, status: 'active' } : carrier)); const yard = mapLocations.find((location) => location.id === 'metroline-yard'); if (!drivers.some((driver) => driver.id === 'marcus')) setDrivers(seedDrivers.map((driver) => ({ ...driver }))); if (yard) setRuntimePositions((current) => ({ ...current, marcus: { longitude: yard.longitude, latitude: yard.latitude } })) }
+  const activateCarrier = () => { const nextCarriers = carriers.map((carrier) => carrier.id === 'metroline' ? { ...carrier, status: 'active' } : carrier); setCarriers(nextCarriers); setDrivers((current) => reconcileActiveCarrierDrivers(current, nextCarriers)); const yard = mapLocations.find((location) => location.id === 'metroline-yard'); if (yard) setRuntimePositions((current) => ({ ...current, marcus: current.marcus || { longitude: yard.longitude, latitude: yard.latitude } })) }
+  const applyCarrier = () => { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setCarrierApplicationsById((current) => current.metroline ? current : { ...current, metroline: { status: 'PENDING', submittedGameMinute: now, responseGameMinute: now + 60 } }) }
+  const acceptCarrierAgreement = () => { setCarrierApplicationsById((current) => ({ ...current, metroline: { ...current.metroline, status: 'ACCEPTED' } })); activateCarrier() }
 
   useEffect(() => {
-    const load = loads.find((item) => item.id === 'DOC001') || {}
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    Object.entries(carrierApplicationsById).forEach(([carrierId, application]) => {
+      if (application.status === 'PENDING' && now >= application.responseGameMinute) {
+        setCarrierApplicationsById((current) => ({ ...current, [carrierId]: { ...current[carrierId], status: 'OFFER_RECEIVED' } }))
+        setEmailMessages((current) => current.some((message) => message.id === `${carrierId}-application-approved`) ? current : [...current, { id: `${carrierId}-application-approved`, type: 'carrier-application-offer', carrierId, subject: 'Dispatch Service Application — Approved', receivedGameMinute: application.responseGameMinute, read: false }])
+      }
+    })
+  }, [gameTime, carrierApplicationsById])
+
+  useEffect(() => {
+    const load = loads.find((item) => item.assignedDriverId && ['en-route-pickup', 'en-route-delivery'].includes(item.tripStatus)) || loads.find((item) => item.assignedDriverId) || {}
     const route = load.tripStatus === 'en-route-delivery' ? load.plannedLoadedRouteGeometry : load.tripStatus === 'en-route-pickup' ? load.plannedDeadheadRouteGeometry : load.plannedLoadedRouteGeometry || load.plannedDeadheadRouteGeometry
     const activeTravelLeg = load.tripStatus === 'en-route-delivery' ? 'loaded' : load.tripStatus === 'en-route-pickup' ? 'deadhead' : null
     const panel = getMarcusPanelModel({ assignedLoad: load, gameTime, runtimeProgress, pickup: mapLocations.find((item) => item.id === load.pickupLocationId), delivery: mapLocations.find((item) => item.id === load.deliveryLocationId) })
@@ -72,7 +88,7 @@ function App() {
   }, [loads, runtimePositions])
 
   useEffect(() => {
-    const load = loads.find((item) => item.id === 'DOC001')
+    const load = loads.find((item) => item.assignedDriverId && ['en-route-pickup', 'en-route-delivery'].includes(item.tripStatus))
     const delivery = load?.tripStatus === 'en-route-delivery'
     if (!load || !['en-route-pickup', 'en-route-delivery'].includes(load.tripStatus)) return
     const route = delivery ? load.plannedLoadedRouteGeometry : load.plannedDeadheadRouteGeometry
@@ -89,7 +105,7 @@ function App() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRuntimeProgress(progress)
     const destination = mapLocations.find((location) => location.id === (delivery ? load.deliveryLocationId : load.pickupLocationId))
-    setRuntimePositions({ marcus: progress >= 1 && destination ? { longitude: destination.longitude, latitude: destination.latitude } : { longitude: a[0] + (b[0] - a[0]) * local, latitude: a[1] + (b[1] - a[1]) * local } })
+    setRuntimePositions((current) => ({ ...current, [load.assignedDriverId]: progress >= 1 && destination ? { longitude: destination.longitude, latitude: destination.latitude } : { longitude: a[0] + (b[0] - a[0]) * local, latitude: a[1] + (b[1] - a[1]) * local } }))
     if (progress >= 1) setLoads((current) => current.map((item) => item.id === load.id ? { ...item, tripStatus: delivery ? 'at-delivery' : 'at-pickup' } : item))
   }, [gameTime, loads])
 
@@ -108,7 +124,7 @@ function App() {
   }, [gameTime])
 
   useEffect(() => {
-    const completed = loads.find((load) => load.id === 'DOC001' && load.tripStatus === 'delivered')
+    const completed = loads.find((load) => load.tripStatus === 'delivered' && load.assignedDriverId)
     if (!completed) return
     const delivery = mapLocations.find((location) => location.id === completed.deliveryLocationId)
     if (!delivery) return
@@ -171,6 +187,11 @@ function App() {
             drivers={drivers}
             carriers={carriers}
             onActivateCarrier={activateCarrier}
+            carrierApplicationsById={carrierApplicationsById}
+            onApplyCarrier={applyCarrier}
+            onAcceptAgreement={acceptCarrierAgreement}
+            emailMessages={emailMessages}
+            setEmailMessages={setEmailMessages}
             setDrivers={setDrivers}
             plannedRoute={plannedRoute}
             setPlannedRoute={setPlannedRoute}
@@ -181,7 +202,7 @@ function App() {
             simulationSpeed={simulationSpeed}
             setSimulationSpeed={setSimulationSpeed}
             onOpenMarkets={() => setStage('market')}
-            onApplyDevPreset={applyDevPreset}
+            onApplyDevPreset={applySelectedDevPreset}
             onResetGame={resetGame}
             seenLedgerReceivableIds={seenLedgerReceivableIds}
             onOpenLedger={() => { const records = getReceivables(loads, carriers, ledgerWorkflowByLoadId); setSeenLedgerReceivableIds((current) => Array.from(new Set([...current, ...records.map((item) => item.loadId)]))); setSeenLedgerPaymentReceivedIds((current) => Array.from(new Set([...current, ...records.filter((item) => item.financialStatus === 'PAID').map((item) => item.loadId)]))) }}

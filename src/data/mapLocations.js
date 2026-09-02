@@ -16,6 +16,8 @@ const mapLocations = [
     longitude: -73.9442,
     latitude: 40.7447,
   },
+  { id: 'liberty-distribution-center', name: 'Liberty Distribution Center', type: 'pickup', longitude: -74.18, latitude: 40.66 },
+  { id: 'bronx-commerce-terminal', name: 'Bronx Commerce Terminal', type: 'delivery', longitude: -73.91, latitude: 40.82 },
 ]
 
 export default mapLocations
