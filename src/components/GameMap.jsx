@@ -236,7 +236,7 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDr
       if (marcus.hours?.status) { const hours = document.createElement('span'); hours.textContent = `Hours: ${marcus.hours.status === 'full' ? 'Full' : marcus.hours.status}`; popupContent.append(hours) }
     }
     record.popup.setDOMContent(popupContent)
-  }, [drivers, carriers, assignedLoad, evaluationLoad, isDriverFitEvaluation, onDriverAction, suppressAttention, gameTime, runtimeProgress, runtimePositions])
+  }, [drivers, carriers, assignedLoad, evaluationLoad, isDriverFitEvaluation, onDriverAction, suppressAttention, gameTime, runtimeProgress, runtimePositions, tutorialEnabled, tutorialDriverAction])
 
   useEffect(() => {
     const record = markerRecords.current.find(({ location }) => location.id === 'marcus')
