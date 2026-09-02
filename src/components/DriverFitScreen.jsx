@@ -3,7 +3,7 @@ import mapLocations from '../data/mapLocations.js'
 import { calculateRoute } from '../services/routingService.js'
 import { formatAppointment, formatCompactDate, formatTime } from '../utils/gameTime.js'
 
-function DriverFitScreen({ load, drivers, runtimePositions = {}, gameTime, candidateDriverId, onEvaluate, onBack, tutorialEnabled = false, tutorialTarget = null }) {
+function DriverFitScreen({ load, drivers, runtimePositions = {}, gameTime, candidateDriverId, onEvaluate, onBack, tutorialEnabled = false }) {
   const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
   const available = useMemo(() => drivers.filter((driver) => driver.status === 'available'), [drivers])
   const [fits, setFits] = useState({})

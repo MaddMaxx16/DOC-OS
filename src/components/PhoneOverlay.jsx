@@ -23,6 +23,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], car
   const [documentsTab, setDocumentsTab] = useState('pending')
   const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
   const [selectedEmailId, setSelectedEmailId] = useState(null)
+  const selectedLoad = loads.find((load) => load.id === selectedLoadId)
   let tutorialTarget = null
   if (tutorialEnabled) {
     const welcome = emailMessages.find((message) => message.id === 'mentor-welcome')
@@ -33,6 +34,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], car
     else if (screen === 'carrierOpportunity' && application?.status === 'PENDING') tutorialTarget = 'phone-home'
     else if (screen === 'carrierOpportunity' && application?.status === 'OFFER_RECEIVED') tutorialTarget = 'accept-agreement'
     else if (screen === 'carrierOpportunity' && application?.status === 'ACCEPTED') tutorialTarget = 'phone-home'
+    else if (screen === 'loadDetails' && selectedLoadId === 'DOC001' && selectedLoad?.tripStatus === 'assigned' && selectedLoad?.planningStatus !== 'route-ready') tutorialTarget = 'phone-close'
     else if (screen === 'home' && ((approval && !approval.read) || (firstCarrier && !firstCarrier.read) || (welcome && !welcome.read))) tutorialTarget = 'email-app'
     else if (screen === 'email' && approval && !approval.read) tutorialTarget = 'email:metroline-application-approved'
     else if (screen === 'email' && firstCarrier && !firstCarrier.read) tutorialTarget = 'email:mentor-first-carrier'
@@ -47,7 +49,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], car
 
   return (
     <aside className="phone-overlay">
-      <button type="button" className="phone-close-button" onClick={onClose} aria-label="Close phone">×</button>
+      <button type="button" className={`phone-close-button ${tutorialTarget === 'phone-close' ? 'tutorial-target' : ''}`} onClick={onClose} aria-label="Close phone">×</button>
       <div className="phone-app-viewport">
 
       {screen === 'home' ? (

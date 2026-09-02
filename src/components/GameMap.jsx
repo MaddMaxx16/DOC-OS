@@ -22,7 +22,7 @@ function routePosition(route, progress) {
   return [a[0] + (b[0] - a[0]) * amount, a[1] + (b[1] - a[1]) * amount]
 }
 
-function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad }) {
+function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, tutorialEnabled = false, tutorialDriverAction = null }) {
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const markerRecords = useRef([])
@@ -187,6 +187,7 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDr
     if (!marcus || !record) return
 
     record.markerElement.classList.toggle('unavailable', marcus.status === 'unavailable')
+    record.markerElement.classList.toggle('tutorial-target', tutorialEnabled && tutorialDriverAction && !record.popup.isOpen())
     record.markerElement.classList.toggle('attention', !suppressAttention && ['loaded', 'at-delivery', 'waiting-at-pickup', 'waiting-at-delivery', 'awaiting-pod'].includes(assignedLoad?.tripStatus))
     const popupContent = document.createElement('div')
     const name = document.createElement('strong')
@@ -216,7 +217,7 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDr
         const action = document.createElement('button')
         action.textContent = model.actionLabel
         action.type = 'button'
-        action.className = 'action-button map-popup-action'
+        action.className = `action-button map-popup-action ${tutorialEnabled && tutorialDriverAction === model.actionType ? 'tutorial-target' : ''}`
         action.disabled = model.actionDisabled
         action.onclick = () => { if (!action.disabled) { record.popup.remove(); onDriverAction?.(model.actionType, model.loadId, 'marcus') } }
         if (model.actionType && model.actionLabel) popupContent.append(action)
