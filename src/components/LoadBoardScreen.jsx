@@ -1,13 +1,13 @@
 import mapLocations from '../data/mapLocations.js'
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 
-function LoadBoardScreen({ loads, gameTime, embedded = false, onBack, onSelectLoad, tutorialEnabled = false }) {
+function LoadBoardScreen({ loads, gameTime, embedded = false, onBack, onSelectLoad, tutorialEnabled = false, tutorialLoadId = 'DOC001' }) {
   const now = (gameTime?.gameDayIndex ?? 0) * 1440 + (gameTime?.totalMinutesOfDay ?? 420)
   const visibleLoads = loads.filter((load) => (load.postedGameMinute === undefined || now >= load.postedGameMinute) && !['completed', 'delivered'].includes(load.status))
   return (
     <div className={`phone-page load-board-screen ${embedded ? 'embedded' : ''}`}>
       {!embedded && <h1>Load Board</h1>}
-      {tutorialEnabled && <div className="tutorial-note"><strong>DISPATCH NOTE</strong><span>A load shows where freight starts, where it goes, appointment times, and carrier pay. Review DOC001 before committing Marcus.</span></div>}<div className="load-list">
+      {tutorialEnabled && tutorialLoadId === 'DOC001' && <div className="tutorial-note"><strong>DISPATCH NOTE</strong><span>A load shows where freight starts, where it goes, appointment times, and carrier pay. Review DOC001 before committing Marcus.</span></div>}<div className="load-list">
         {visibleLoads.map((load) => {
           const pickup = mapLocations.find(
             (location) => location.id === load.pickupLocationId,
@@ -17,7 +17,7 @@ function LoadBoardScreen({ loads, gameTime, embedded = false, onBack, onSelectLo
           )
 
           return (
-            <button type="button" className={`load-card ${tutorialEnabled && load.id === 'DOC001' ? 'tutorial-target' : ''}`} key={load.id} onClick={() => onSelectLoad(load.id)}>
+            <button type="button" className={`load-card ${tutorialEnabled && load.id === tutorialLoadId ? 'tutorial-target' : ''}`} key={load.id} onClick={() => onSelectLoad(load.id)}>
               <strong>{load.id}</strong>
               <div className="load-route">
                 <span>{pickup.name}</span>

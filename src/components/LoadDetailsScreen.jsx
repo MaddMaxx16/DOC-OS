@@ -1,7 +1,7 @@
 import mapLocations from '../data/mapLocations.js'
 import { formatAppointment } from '../utils/gameTime.js'
 
-function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit, onPlanRoute, onDispatch, onBack, tutorialEnabled = false }) {
+function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit, onPlanRoute, onDispatch, onBack, tutorialEnabled = false, showTutorialNote = false }) {
   const load = loads.find((item) => item.id === loadId)
   const pickup = load && mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = load && mapLocations.find((location) => location.id === load.deliveryLocationId)
@@ -17,7 +17,7 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
   return (
     <div className="phone-page load-details-screen">
       <h1>{load.id}</h1>
-      {tutorialEnabled && <div className="tutorial-note"><strong>DISPATCH NOTE</strong><span>Before taking a load, check the route, appointment times, equipment, and rate. Next, check whether Marcus can handle it.</span></div>}<div className="load-detail-route">
+      {showTutorialNote && <div className="tutorial-note"><strong>DISPATCH NOTE</strong><span>Before taking a load, check the route, appointment times, equipment, and rate. Next, check whether Marcus can handle it.</span></div>}<div className="load-detail-route">
         <strong>Pickup:</strong>
         <span>{pickup.name}</span>
         <span>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</span>

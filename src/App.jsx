@@ -14,6 +14,7 @@ import { clearSave, loadGame, saveGame } from './utils/saveGame.js'
 import { createDevPreset } from './dev/devPresets.js'
 import { getReceivables } from './utils/ledger.js'
 import { reconcileActiveCarrierDrivers } from './utils/driverRoster.js'
+import { formatCompactDate, formatTime } from './utils/gameTime.js'
 
 function App() {
   const [stage, setStage] = useState('start')
@@ -82,21 +83,39 @@ function App() {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     const metrolineAccepted = carrierApplicationsById.metroline?.status === 'ACCEPTED' && carriers.some((carrier) => carrier.id === 'metroline' && carrier.status === 'active')
     const doc001 = loads.find((load) => load.id === 'DOC001')
+    const doc002 = loads.find((load) => load.id === 'DOC002')
     const doc002Paid = getReceivables(loads, carriers, ledgerWorkflowByLoadId).some((item) => item.loadId === 'DOC002' && item.financialStatus === 'PAID')
+    const doc002PaymentReviewed = seenLedgerPaymentReceivedIds.includes('DOC002')
     const triggers = [
       ['mentor-welcome', stage === 'game' && !carrierApplicationsById.metroline],
       ['mentor-first-carrier', metrolineAccepted],
       ['mentor-round-two', ledgerWorkflowByLoadId.DOC001?.financialStatus === 'AWAITING_PAYMENT'],
-      ['mentor-tutorial-complete', doc002Paid]
+      ['mentor-tutorial-complete', doc002Paid && doc002PaymentReviewed]
     ]
     const missing = triggers.find(([id, condition]) => condition && !emailMessages.some((message) => message.id === id))
     if (!missing) return
     const [id] = missing
+    let bodyOverride
+    if (id === 'mentor-round-two' && Number.isFinite(doc002?.postedGameMinute)) {
+      const postDay = Math.floor(doc002.postedGameMinute / 1440)
+      const postMinutes = doc002.postedGameMinute % 1440
+      bodyOverride = now >= doc002.postedGameMinute
+        ? 'Nice work. DOC001 is delivered, the paperwork is closed, and your invoice is out. DOC002 is now posted on FreightLink.'
+        : `Nice work. DOC001 is delivered, the paperwork is closed, and your invoice is out. DOC002 will post on ${formatCompactDate(postDay)} at ${formatTime(postMinutes)}.`
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEmailMessages((current) => current.some((message) => message.id === id) ? current : [...current, { id, type: 'mentor', templateId: id, receivedGameMinute: now, read: false }])
-    if (id === 'mentor-tutorial-complete') setTutorialState((current) => ({ ...current, completed: true }))
+    setEmailMessages((current) => current.some((message) => message.id === id) ? current : [...current, { id, type: 'mentor', templateId: id, receivedGameMinute: now, read: false, ...(bodyOverride ? { bodyOverride } : {}) }])
     void doc001
-  }, [hydrated, tutorialState, stage, gameTime, carrierApplicationsById, carriers, loads, ledgerWorkflowByLoadId, emailMessages])
+  }, [hydrated, tutorialState, stage, gameTime, carrierApplicationsById, carriers, loads, ledgerWorkflowByLoadId, emailMessages, seenLedgerPaymentReceivedIds])
+
+  useEffect(() => {
+    if (!tutorialState.enabled || tutorialState.completed) return
+    const completionEmail = emailMessages.find((message) => message.id === 'mentor-tutorial-complete')
+    if (completionEmail?.read) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTutorialState((current) => ({ ...current, completed: true }))
+    }
+  }, [tutorialState, emailMessages])
 
   useEffect(() => {
     const load = loads.find((item) => item.assignedDriverId && ['en-route-pickup', 'en-route-delivery'].includes(item.tripStatus)) || loads.find((item) => item.assignedDriverId) || {}
