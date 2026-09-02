@@ -1,6 +1,6 @@
 export const mentorMessages = {
   'mentor-welcome': { sender: 'Jordan Hayes', subject: 'Your first dispatch opportunity', body: "Morning.\n\nGlad you decided to give independent dispatching a shot.\n\nI referred a small carrier your way that's looking for help — Metroline Transport. They're a good first account to learn on.\n\nStart in CarrierSource and review their operation before you apply.", action: 'OPEN CARRIERSOURCE' },
   'mentor-first-carrier': { sender: 'Jordan Hayes', subject: "You've got your first carrier", body: 'Metroline let me know you’re set up.\n\nMarcus is now on your board with a 53\' dry van. Open FreightLink and find your first load.', action: 'OPEN FREIGHTLINK' },
-  'mentor-round-two': { sender: 'Jordan Hayes', subject: 'Round two', body: "Nice work. DOC001 is delivered, the paperwork is closed, and your invoice is out. Your next load is DOC002. Check FreightLink for the posting details.", action: 'OPEN FREIGHTLINK' },
+  'mentor-round-two': { sender: 'Jordan Hayes', subject: 'Round two', body: "Nice work. DOC001 is delivered, the paperwork is closed, and your invoice is out. DOC002 is now posted on FreightLink. This one is yours.", action: 'OPEN FREIGHTLINK' },
   'mentor-tutorial-complete': { sender: 'Jordan Hayes', subject: "You're officially running", body: "Two loads delivered. Paperwork closed. Invoices handled. Cash collected. That's the loop.\n\nTUTORIAL COMPLETE" }
 }

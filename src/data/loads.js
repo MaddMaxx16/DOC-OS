@@ -19,7 +19,7 @@ const loads = [
     assignedDriverId: null,
   },
   {
-    id: 'DOC002', pickupLocationId: 'liberty-distribution-center', deliveryLocationId: 'bronx-commerce-terminal', postedGameMinute: 1860,
+    id: 'DOC002', pickupLocationId: 'liberty-distribution-center', deliveryLocationId: 'bronx-commerce-terminal', unlockAfterLoadId: 'DOC001',
     pickupDayIndex: 1, pickupWindowStartMinutes: 540, pickupWindowEndMinutes: 600, deliveryDayIndex: 1, deliveryWindowStartMinutes: 750, deliveryWindowEndMinutes: 840,
     rate: 825, listedMiles: null, plannedMiles: null, plannedDriveTimeMinutes: null, selectedRouteId: null, candidateDriverId: null, status: 'available', assignedDriverId: null,
   },

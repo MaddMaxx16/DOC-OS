@@ -3,7 +3,11 @@ import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 
 function LoadBoardScreen({ loads, gameTime, embedded = false, onBack, onSelectLoad, tutorialEnabled = false, tutorialLoadId = 'DOC001' }) {
   const now = (gameTime?.gameDayIndex ?? 0) * 1440 + (gameTime?.totalMinutesOfDay ?? 420)
-  const visibleLoads = loads.filter((load) => (load.postedGameMinute === undefined || now >= load.postedGameMinute) && !['completed', 'delivered'].includes(load.status))
+  const visibleLoads = loads.filter((load) => {
+    const timeUnlocked = load.postedGameMinute === undefined || now >= load.postedGameMinute
+    const progressionUnlocked = !load.unlockAfterLoadId || loads.some((candidate) => candidate.id === load.unlockAfterLoadId && candidate.status === 'completed')
+    return timeUnlocked && progressionUnlocked && !['completed', 'delivered'].includes(load.status)
+  })
   return (
     <div className={`phone-page load-board-screen ${embedded ? 'embedded' : ''}`}>
       {!embedded && <h1>Load Board</h1>}

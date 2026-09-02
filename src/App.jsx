@@ -14,7 +14,6 @@ import { clearSave, loadGame, saveGame } from './utils/saveGame.js'
 import { createDevPreset } from './dev/devPresets.js'
 import { getReceivables } from './utils/ledger.js'
 import { reconcileActiveCarrierDrivers } from './utils/driverRoster.js'
-import { formatCompactDate, formatTime } from './utils/gameTime.js'
 
 function App() {
   const [stage, setStage] = useState('start')
@@ -39,7 +38,7 @@ function App() {
   useEffect(() => {
     const saved = loadGame()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (saved) { const hydratedCarriers = saved.carriers ?? seedCarriers.map((carrier) => ({ ...carrier })); if (saved.stage) setStage(saved.stage); if (saved.selectedMarket) setSelectedMarket(saved.selectedMarket); if (saved.gameTime) setGameTime(saved.gameTime); if (saved.loads) setLoads([...saved.loads, ...seedLoads.filter((seed) => !saved.loads.some((load) => load.id === seed.id))]); if (saved.drivers) setDrivers(reconcileActiveCarrierDrivers(saved.drivers, hydratedCarriers)); if (saved.carriers) setCarriers(hydratedCarriers); if (saved.runtimePositions) setRuntimePositions(saved.runtimePositions); if (saved.runtimeProgress !== undefined) setRuntimeProgress(saved.runtimeProgress); if (Array.isArray(saved.seenLedgerReceivableIds)) setSeenLedgerReceivableIds(saved.seenLedgerReceivableIds); if (Array.isArray(saved.seenLedgerPaymentReceivedIds)) setSeenLedgerPaymentReceivedIds(saved.seenLedgerPaymentReceivedIds); if (saved.ledgerWorkflowByLoadId) setLedgerWorkflowByLoadId(saved.ledgerWorkflowByLoadId); if (saved.carrierApplicationsById) setCarrierApplicationsById(saved.carrierApplicationsById); if (Array.isArray(saved.emailMessages)) setEmailMessages(saved.emailMessages); setTutorialState(saved.tutorialState ?? { enabled: false, completed: false }) }
+    if (saved) { const hydratedCarriers = saved.carriers ?? seedCarriers.map((carrier) => ({ ...carrier })); if (saved.stage) setStage(saved.stage); if (saved.selectedMarket) setSelectedMarket(saved.selectedMarket); if (saved.gameTime) setGameTime(saved.gameTime); if (saved.loads) setLoads([...saved.loads.map((load) => { const seed = seedLoads.find((item) => item.id === load.id); if (!seed) return load; const merged = { ...seed, ...load }; if (seed.unlockAfterLoadId) delete merged.postedGameMinute; return merged }), ...seedLoads.filter((seed) => !saved.loads.some((load) => load.id === seed.id))]); if (saved.drivers) setDrivers(reconcileActiveCarrierDrivers(saved.drivers, hydratedCarriers)); if (saved.carriers) setCarriers(hydratedCarriers); if (saved.runtimePositions) setRuntimePositions(saved.runtimePositions); if (saved.runtimeProgress !== undefined) setRuntimeProgress(saved.runtimeProgress); if (Array.isArray(saved.seenLedgerReceivableIds)) setSeenLedgerReceivableIds(saved.seenLedgerReceivableIds); if (Array.isArray(saved.seenLedgerPaymentReceivedIds)) setSeenLedgerPaymentReceivedIds(saved.seenLedgerPaymentReceivedIds); if (saved.ledgerWorkflowByLoadId) setLedgerWorkflowByLoadId(saved.ledgerWorkflowByLoadId); if (saved.carrierApplicationsById) setCarrierApplicationsById(saved.carrierApplicationsById); if (Array.isArray(saved.emailMessages)) setEmailMessages(saved.emailMessages); setTutorialState(saved.tutorialState ?? { enabled: false, completed: false }) }
     setHydrated(true)
   }, [])
 
@@ -48,6 +47,26 @@ function App() {
     const timer = setTimeout(() => saveGame({ stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, tutorialState }), 700)
     return () => clearTimeout(timer)
   }, [hydrated, stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, tutorialState])
+
+  useEffect(() => {
+    if (!hydrated || !tutorialState.enabled || tutorialState.completed) return
+    // Tutorial pacing: DOC001/DOC002 payments arrive 30 game minutes after invoice send.
+    // This also migrates tutorial saves created before the shorter payment window.
+    setLedgerWorkflowByLoadId((current) => {
+      let changed = false
+      const next = { ...current }
+      ;['DOC001', 'DOC002'].forEach((id) => {
+        const workflow = current[id]
+        if (workflow?.financialStatus !== 'AWAITING_PAYMENT' || !Number.isFinite(workflow.invoiceSentGameMinute)) return
+        const tutorialPaymentMinute = workflow.invoiceSentGameMinute + 30
+        if (!Number.isFinite(workflow.paymentAvailableGameMinute) || workflow.paymentAvailableGameMinute > tutorialPaymentMinute) {
+          next[id] = { ...workflow, paymentAvailableGameMinute: tutorialPaymentMinute }
+          changed = true
+        }
+      })
+      return changed ? next : current
+    })
+  }, [hydrated, tutorialState.enabled, tutorialState.completed])
 
   useEffect(() => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
@@ -83,7 +102,6 @@ function App() {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     const metrolineAccepted = carrierApplicationsById.metroline?.status === 'ACCEPTED' && carriers.some((carrier) => carrier.id === 'metroline' && carrier.status === 'active')
     const doc001 = loads.find((load) => load.id === 'DOC001')
-    const doc002 = loads.find((load) => load.id === 'DOC002')
     const doc002Paid = getReceivables(loads, carriers, ledgerWorkflowByLoadId).some((item) => item.loadId === 'DOC002' && item.financialStatus === 'PAID')
     const doc002PaymentReviewed = seenLedgerPaymentReceivedIds.includes('DOC002')
     const triggers = [
@@ -95,16 +113,8 @@ function App() {
     const missing = triggers.find(([id, condition]) => condition && !emailMessages.some((message) => message.id === id))
     if (!missing) return
     const [id] = missing
-    let bodyOverride
-    if (id === 'mentor-round-two' && Number.isFinite(doc002?.postedGameMinute)) {
-      const postDay = Math.floor(doc002.postedGameMinute / 1440)
-      const postMinutes = doc002.postedGameMinute % 1440
-      bodyOverride = now >= doc002.postedGameMinute
-        ? 'Nice work. DOC001 is delivered, the paperwork is closed, and your invoice is out. DOC002 is now posted on FreightLink.'
-        : `Nice work. DOC001 is delivered, the paperwork is closed, and your invoice is out. DOC002 will post on ${formatCompactDate(postDay)} at ${formatTime(postMinutes)}.`
-    }
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEmailMessages((current) => current.some((message) => message.id === id) ? current : [...current, { id, type: 'mentor', templateId: id, receivedGameMinute: now, read: false, ...(bodyOverride ? { bodyOverride } : {}) }])
+    setEmailMessages((current) => current.some((message) => message.id === id) ? current : [...current, { id, type: 'mentor', templateId: id, receivedGameMinute: now, read: false }])
     void doc001
   }, [hydrated, tutorialState, stage, gameTime, carrierApplicationsById, carriers, loads, ledgerWorkflowByLoadId, emailMessages, seenLedgerPaymentReceivedIds])
 
