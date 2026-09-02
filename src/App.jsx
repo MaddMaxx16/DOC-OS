@@ -33,19 +33,20 @@ function App() {
   const [ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId] = useState({})
   const [carrierApplicationsById, setCarrierApplicationsById] = useState({})
   const [emailMessages, setEmailMessages] = useState([])
+  const [tutorialState, setTutorialState] = useState({ enabled: true, completed: false })
 
   useEffect(() => {
     const saved = loadGame()
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (saved) { const hydratedCarriers = saved.carriers ?? seedCarriers.map((carrier) => ({ ...carrier })); if (saved.stage) setStage(saved.stage); if (saved.selectedMarket) setSelectedMarket(saved.selectedMarket); if (saved.gameTime) setGameTime(saved.gameTime); if (saved.loads) setLoads([...saved.loads, ...seedLoads.filter((seed) => !saved.loads.some((load) => load.id === seed.id))]); if (saved.drivers) setDrivers(reconcileActiveCarrierDrivers(saved.drivers, hydratedCarriers)); if (saved.carriers) setCarriers(hydratedCarriers); if (saved.runtimePositions) setRuntimePositions(saved.runtimePositions); if (saved.runtimeProgress !== undefined) setRuntimeProgress(saved.runtimeProgress); if (Array.isArray(saved.seenLedgerReceivableIds)) setSeenLedgerReceivableIds(saved.seenLedgerReceivableIds); if (Array.isArray(saved.seenLedgerPaymentReceivedIds)) setSeenLedgerPaymentReceivedIds(saved.seenLedgerPaymentReceivedIds); if (saved.ledgerWorkflowByLoadId) setLedgerWorkflowByLoadId(saved.ledgerWorkflowByLoadId); if (saved.carrierApplicationsById) setCarrierApplicationsById(saved.carrierApplicationsById); if (Array.isArray(saved.emailMessages)) setEmailMessages(saved.emailMessages) }
+    if (saved) { const hydratedCarriers = saved.carriers ?? seedCarriers.map((carrier) => ({ ...carrier })); if (saved.stage) setStage(saved.stage); if (saved.selectedMarket) setSelectedMarket(saved.selectedMarket); if (saved.gameTime) setGameTime(saved.gameTime); if (saved.loads) setLoads([...saved.loads, ...seedLoads.filter((seed) => !saved.loads.some((load) => load.id === seed.id))]); if (saved.drivers) setDrivers(reconcileActiveCarrierDrivers(saved.drivers, hydratedCarriers)); if (saved.carriers) setCarriers(hydratedCarriers); if (saved.runtimePositions) setRuntimePositions(saved.runtimePositions); if (saved.runtimeProgress !== undefined) setRuntimeProgress(saved.runtimeProgress); if (Array.isArray(saved.seenLedgerReceivableIds)) setSeenLedgerReceivableIds(saved.seenLedgerReceivableIds); if (Array.isArray(saved.seenLedgerPaymentReceivedIds)) setSeenLedgerPaymentReceivedIds(saved.seenLedgerPaymentReceivedIds); if (saved.ledgerWorkflowByLoadId) setLedgerWorkflowByLoadId(saved.ledgerWorkflowByLoadId); if (saved.carrierApplicationsById) setCarrierApplicationsById(saved.carrierApplicationsById); if (Array.isArray(saved.emailMessages)) setEmailMessages(saved.emailMessages); setTutorialState(saved.tutorialState ?? { enabled: false, completed: false }) }
     setHydrated(true)
   }, [])
 
   useEffect(() => {
     if (!hydrated) return
-    const timer = setTimeout(() => saveGame({ stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages }), 700)
+    const timer = setTimeout(() => saveGame({ stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, tutorialState }), 700)
     return () => clearTimeout(timer)
-  }, [hydrated, stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages])
+  }, [hydrated, stage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, tutorialState])
 
   useEffect(() => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
@@ -63,7 +64,7 @@ function App() {
   void applyDevPreset
   const resetGame = () => { clearSave(); window.location.reload() }
   const activateCarrier = () => { const nextCarriers = carriers.map((carrier) => carrier.id === 'metroline' ? { ...carrier, status: 'active' } : carrier); setCarriers(nextCarriers); setDrivers((current) => reconcileActiveCarrierDrivers(current, nextCarriers)); const yard = mapLocations.find((location) => location.id === 'metroline-yard'); if (yard) setRuntimePositions((current) => ({ ...current, marcus: current.marcus || { longitude: yard.longitude, latitude: yard.latitude } })) }
-  const applyCarrier = () => { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setCarrierApplicationsById((current) => current.metroline ? current : { ...current, metroline: { status: 'PENDING', submittedGameMinute: now, responseGameMinute: now + 60 } }) }
+  const applyCarrier = () => { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setCarrierApplicationsById((current) => current.metroline ? current : { ...current, metroline: { status: 'PENDING', submittedGameMinute: now, responseGameMinute: now + 10 } }) }
   const acceptCarrierAgreement = () => { setCarrierApplicationsById((current) => ({ ...current, metroline: { ...current.metroline, status: 'ACCEPTED' } })); activateCarrier() }
 
   useEffect(() => {
@@ -75,6 +76,27 @@ function App() {
       }
     })
   }, [gameTime, carrierApplicationsById])
+
+  useEffect(() => {
+    if (!hydrated || !tutorialState.enabled || tutorialState.completed) return
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const metrolineAccepted = carrierApplicationsById.metroline?.status === 'ACCEPTED' && carriers.some((carrier) => carrier.id === 'metroline' && carrier.status === 'active')
+    const doc001 = loads.find((load) => load.id === 'DOC001')
+    const doc002Paid = getReceivables(loads, carriers, ledgerWorkflowByLoadId).some((item) => item.loadId === 'DOC002' && item.financialStatus === 'PAID')
+    const triggers = [
+      ['mentor-welcome', stage === 'game' && !carrierApplicationsById.metroline],
+      ['mentor-first-carrier', metrolineAccepted],
+      ['mentor-round-two', ledgerWorkflowByLoadId.DOC001?.financialStatus === 'AWAITING_PAYMENT'],
+      ['mentor-tutorial-complete', doc002Paid]
+    ]
+    const missing = triggers.find(([id, condition]) => condition && !emailMessages.some((message) => message.id === id))
+    if (!missing) return
+    const [id] = missing
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEmailMessages((current) => current.some((message) => message.id === id) ? current : [...current, { id, type: 'mentor', templateId: id, receivedGameMinute: now, read: false }])
+    if (id === 'mentor-tutorial-complete') setTutorialState((current) => ({ ...current, completed: true }))
+    void doc001
+  }, [hydrated, tutorialState, stage, gameTime, carrierApplicationsById, carriers, loads, ledgerWorkflowByLoadId, emailMessages])
 
   useEffect(() => {
     const load = loads.find((item) => item.assignedDriverId && ['en-route-pickup', 'en-route-delivery'].includes(item.tripStatus)) || loads.find((item) => item.assignedDriverId) || {}
@@ -191,6 +213,7 @@ function App() {
             onApplyCarrier={applyCarrier}
             onAcceptAgreement={acceptCarrierAgreement}
             emailMessages={emailMessages}
+            tutorialEnabled={tutorialState.enabled && !tutorialState.completed}
             setEmailMessages={setEmailMessages}
             setDrivers={setDrivers}
             plannedRoute={plannedRoute}

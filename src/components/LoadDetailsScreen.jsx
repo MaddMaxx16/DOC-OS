@@ -1,7 +1,7 @@
 import mapLocations from '../data/mapLocations.js'
 import { formatAppointment } from '../utils/gameTime.js'
 
-function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit, onPlanRoute, onDispatch, onBack }) {
+function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit, onPlanRoute, onDispatch, onBack, tutorialEnabled = false }) {
   const load = loads.find((item) => item.id === loadId)
   const pickup = load && mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = load && mapLocations.find((location) => location.id === load.deliveryLocationId)
@@ -17,7 +17,7 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
   return (
     <div className="phone-page load-details-screen">
       <h1>{load.id}</h1>
-      <div className="load-detail-route">
+      {tutorialEnabled && <div className="tutorial-note"><strong>DISPATCH NOTE</strong><span>Before taking a load, check the route, appointment times, equipment, and rate. Next, check whether Marcus can handle it.</span></div>}<div className="load-detail-route">
         <strong>Pickup:</strong>
         <span>{pickup.name}</span>
         <span>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</span>
@@ -36,8 +36,8 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
         {load.driverFitVerified && <span>Verified Driver Fit: {drivers.find((driver) => driver.id === load.candidateDriverId)?.name ?? 'Marcus'}</span>}
       </div>
       {load.status === 'available' ? (
-        <><button type="button" className="action-button" onClick={onCheckDriverFit} disabled={load.driverFitVerified}>{load.driverFitVerified ? 'DRIVER FIT VERIFIED' : 'CHECK DRIVER FIT'}</button><button type="button" className="action-button" onClick={onAccept} disabled={!load.candidateDriverId}>
-          ACCEPT LOAD
+        <><button type="button" className={`action-button ${tutorialEnabled && !load.driverFitVerified ? 'tutorial-target' : ''}`} onClick={onCheckDriverFit} disabled={load.driverFitVerified}>{load.driverFitVerified ? 'DRIVER FIT VERIFIED' : 'CHECK DRIVER FIT'}</button><button type="button" className={`action-button ${tutorialEnabled && load.driverFitVerified && load.candidateDriverId ? 'tutorial-target' : ''}`} onClick={onAccept} disabled={!load.candidateDriverId}>
+        ACCEPT LOAD
         </button></>
       ) : load.status === 'assigned' && load.assignedDriverId ? (
         <button type="button" className="action-button" onClick={onPlanRoute}>

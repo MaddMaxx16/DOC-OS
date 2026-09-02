@@ -3,7 +3,7 @@ import mapLocations from '../data/mapLocations.js'
 import { calculateRoute } from '../services/routingService.js'
 import { formatAppointment, formatCompactDate, formatTime } from '../utils/gameTime.js'
 
-function DriverFitScreen({ load, drivers, runtimePositions = {}, gameTime, candidateDriverId, onEvaluate, onBack }) {
+function DriverFitScreen({ load, drivers, runtimePositions = {}, gameTime, candidateDriverId, onEvaluate, onBack, tutorialEnabled = false, tutorialTarget = null }) {
   const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
   const available = useMemo(() => drivers.filter((driver) => driver.status === 'available'), [drivers])
   const [fits, setFits] = useState({})
@@ -27,7 +27,7 @@ function DriverFitScreen({ load, drivers, runtimePositions = {}, gameTime, candi
   return (
     <div className="phone-page driver-fit-screen">
       <div className="driver-fit-content">
-        <h1>Check Driver Fit</h1>
+        <h1>Check Driver Fit</h1>{tutorialEnabled && <div className="tutorial-note"><strong>DISPATCH NOTE</strong><span>Driver Fit checks deadhead distance, arrival time, and appointment fit so you know whether Marcus can run the load.</span></div>}
         {available.map((driver) => {
           const fit = fits[driver.id]
           const evaluated = fit && (() => { const arrival = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay + fit.minutes; const arrivalDay = Math.floor(arrival / 1440); const arrivalMinutes = arrival % 1440; const status = arrivalDay < load.pickupDayIndex || (arrivalDay === load.pickupDayIndex && arrivalMinutes < load.pickupWindowStartMinutes) ? 'EARLY' : arrivalDay > load.pickupDayIndex || (arrivalDay === load.pickupDayIndex && arrivalMinutes > load.pickupWindowEndMinutes) ? 'LATE' : 'ON TIME'; return { ...fit, arrivalDay, arrivalMinutes, status } })()

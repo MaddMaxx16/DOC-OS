@@ -8,8 +8,9 @@ import { calculateRoute } from '../services/routingService.js'
 import { logDocOsEvent } from '../utils/debugLogger.js'
 import { getLedgerSummary, getReceivables } from '../utils/ledger.js'
 import { PICKUP_WAIT_MINUTES } from '../data/pickupConfig.js'
+import { getCurrentTutorialObjective } from '../utils/tutorialObjective.js'
 
-function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, onActivateCarrier, carrierApplicationsById, onApplyCarrier, onAcceptAgreement, emailMessages, setEmailMessages, plannedRoute, setPlannedRoute, setGameClockPaused, runtimePositions, runtimeProgress, setRuntimeProgress, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId, setGameTime }) {
+function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, onActivateCarrier, carrierApplicationsById, onApplyCarrier, onAcceptAgreement, emailMessages, setEmailMessages, tutorialEnabled = false, plannedRoute, setPlannedRoute, setGameClockPaused, runtimePositions, runtimeProgress, setRuntimeProgress, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId, setGameTime }) {
   const [devOpen, setDevOpen] = useState(false)
   const [isPhoneOpen, setIsPhoneOpen] = useState(false)
   const [phoneInitialScreen, setPhoneInitialScreen] = useState('home')
@@ -20,6 +21,11 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
 
   const assignedLoad = loads.find((load) => load.assignedDriverId === 'marcus')
   const podNotificationCount = loads.filter((load) => load.tripStatus === 'awaiting-pod').length
+  const emailUnreadCount = emailMessages?.filter((message) => !message.read).length || 0
+  const ledgerNotificationCount = loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved && !seenLedgerReceivableIds.includes(load.id)).length + getReceivables(loads, carriers, ledgerWorkflowByLoadId).filter((item) => item.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(item.loadId)).length
+  const phoneNotificationCount = podNotificationCount + ledgerNotificationCount + emailUnreadCount
+  const tutorialObjective = getCurrentTutorialObjective({ tutorialEnabled, stage: 'game', applications: carrierApplicationsById, emails: emailMessages, loads, ledger: ledgerWorkflowByLoadId })
+  const hasUnreadTutorialEmail = tutorialEnabled && emailMessages.some((message) => ['mentor-welcome', 'metroline-application-approved', 'mentor-first-carrier'].includes(message.id) && !message.read)
   const activeRouteGeometry = deliveryPlanning?.route?.routeShape
     || driverFitEvaluation?.deadheadRoute
     || planningMode?.route?.routeShape
@@ -115,10 +121,10 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         {!isPhoneOpen && (
           <button
             type="button"
-            className="phone-button"
+            className={`phone-button ${!isPhoneOpen && hasUnreadTutorialEmail && !driverFitEvaluation ? 'tutorial-target' : ''}`}
             onClick={() => { setPhoneInitialScreen('home'); setIsPhoneOpen(true) }}
           >
-            PHONE{podNotificationCount > 0 && <span className="phone-notification-badge">{podNotificationCount}</span>}
+            PHONE{phoneNotificationCount > 0 && <span className="phone-notification-badge">{phoneNotificationCount > 9 ? '9+' : phoneNotificationCount}</span>}
           </button>
         )}
         {isPhoneOpen && (
@@ -133,6 +139,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             onAcceptAgreement={onAcceptAgreement}
             emailMessages={emailMessages}
             setEmailMessages={setEmailMessages}
+            tutorialEnabled={tutorialEnabled}
+            tutorialObjective={tutorialObjective}
             runtimePositions={runtimePositions}
             setDrivers={setDrivers}
             plannedRoute={plannedRoute}
@@ -142,7 +150,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             initialLoadId={phoneLoadId}
             documentsBadgeCount={podNotificationCount}
             ledgerUnreadCount={loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved && !seenLedgerReceivableIds.includes(load.id)).length + getReceivables(loads, carriers, ledgerWorkflowByLoadId).filter((item) => item.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(item.loadId)).length}
-            emailUnreadCount={emailMessages?.filter((message) => !message.read).length || 0}
+            emailUnreadCount={emailUnreadCount}
             onOpenLedger={onOpenLedger}
             ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}
             setLedgerWorkflowByLoadId={setLedgerWorkflowByLoadId}

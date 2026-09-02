@@ -234,7 +234,8 @@
 .dev-reset { width: 100%; margin-top: 14px; background: #3a2730 !important; }
 .phone-notification-badge { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: #d68b45; color: #111; font-size: 10px; font-weight: 700; line-height: 1; }
 .phone-app-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 28px; }
-.app-icon-badge, .app-icon-badge { background: #d68b45; color: #111; border-radius: 999px; font-size: 10px; padding: 2px 6px; }
+.app-icon { position: relative; }
+.app-icon-badge, .app-icon-badge { position: absolute; top: -6px; right: calc(50% - 42px); z-index: 2; background: #d68b45; color: #111; border-radius: 999px; font-size: 10px; padding: 2px 6px; }
 .ledger-badge { background: #4c8dff; color: #fff; }
 .documents-screen, .pod-detail-screen { padding: 20px; overflow-y: auto; color: #f5f5f7; box-sizing: border-box; min-width: 0; }
 .documents-screen header, .pod-detail-screen header, .ledger-screen header { display: flex; gap: 12px; align-items: center; }
@@ -338,6 +339,15 @@
 .phone-page { width: 100%; height: 100%; box-sizing: border-box; }
 .phone-close-button { position: absolute; z-index: 3; top: 4px; right: 8px; border: 0; background: transparent; color: #b5b5ba; font-size: 24px; line-height: 1; cursor: pointer; }
 .phone-home-button { position: absolute; z-index: 3; bottom: 22px; left: 50%; width: 46px; height: 30px; padding: 0; border: 0; border-radius: 15px; background: #2A2E38; color: #f5f5f7; font-size: 20px; line-height: 1; transform: translateX(-50%); cursor: pointer; }
+.tutorial-target { border-color: #4C8DFF !important; outline: 3px solid #4C8DFF; outline-offset: 3px; box-shadow: 0 0 0 5px rgba(76,141,255,.20), 0 0 18px rgba(76,141,255,.45); animation: tutorial-breathe 1.8s ease-in-out infinite; }
+.phone-button .phone-notification-badge { animation: tutorial-badge-bounce 1.8s ease-in-out infinite; }
+.phone-home-button.tutorial-target { background: #31466a; color: #fff; }
+@keyframes tutorial-breathe { 0%, 100% { box-shadow: 0 0 0 5px rgba(76,141,255,.20), 0 0 18px rgba(76,141,255,.45); } 50% { box-shadow: 0 0 0 6px rgba(76,141,255,.28), 0 0 24px rgba(76,141,255,.58); } }
+@media (prefers-reduced-motion: reduce) { .tutorial-target { animation: none; } }
+@keyframes tutorial-badge-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .phone-button .phone-notification-badge { animation: none; } }
+.tutorial-note { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; margin: 8px 0; border-left: 2px solid #4f9cff; background: rgba(79,156,255,.08); color: #cbd5e1; font-size: 11px; text-align: left; }
+.tutorial-note strong { color: #8bbcff; font-size: 10px; letter-spacing: .08em; }
 
 .close-button {
   position: absolute;
