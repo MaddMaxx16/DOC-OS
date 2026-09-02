@@ -10,7 +10,7 @@ import { getLedgerSummary, getReceivables } from '../utils/ledger.js'
 import { PICKUP_WAIT_MINUTES } from '../data/pickupConfig.js'
 import { getCurrentTutorialObjective } from '../utils/tutorialObjective.js'
 
-function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, onActivateCarrier, carrierApplicationsById, onApplyCarrier, onAcceptAgreement, emailMessages, setEmailMessages, tutorialEnabled = false, plannedRoute, setPlannedRoute, setGameClockPaused, runtimePositions, runtimeProgress, setRuntimeProgress, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId, setGameTime }) {
+function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, onActivateCarrier, carrierApplicationsById, onApplyCarrier, onAcceptAgreement, emailMessages, setEmailMessages, tutorialEnabled = false, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, runtimeProgress, setRuntimeProgress, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId, setGameTime }) {
   const [devOpen, setDevOpen] = useState(false)
   const [isPhoneOpen, setIsPhoneOpen] = useState(false)
   const [phoneInitialScreen, setPhoneInitialScreen] = useState('home')
@@ -18,6 +18,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [phoneLoadId, setPhoneLoadId] = useState(null)
   const [planningMode, setPlanningMode] = useState(null)
   const [deliveryPlanning, setDeliveryPlanning] = useState(null)
+  const [pauseStateBeforeModal, setPauseStateBeforeModal] = useState(false)
 
   const assignedLoad = loads.find((load) => load.assignedDriverId === 'marcus')
   const podNotificationCount = loads.filter((load) => load.tripStatus === 'awaiting-pod').length
@@ -50,6 +51,13 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     || (tutorialReceivable?.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(tutorialLoadId))
   )
   const shouldHighlightPhoneForLedger = tutorialLedgerNeedsAttention && !isPhoneOpen
+  const pauseClockForModal = () => {
+    setPauseStateBeforeModal(isGameClockPaused)
+    setGameClockPaused(true)
+  }
+  const restoreClockAfterModal = () => {
+    setGameClockPaused(pauseStateBeforeModal)
+  }
   const activeRouteGeometry = deliveryPlanning?.route?.routeShape
     || driverFitEvaluation?.deadheadRoute
     || planningMode?.route?.routeShape
@@ -61,7 +69,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     const load = loads.find((item) => item.id === loadId)
     const pickup = mapLocations.find((location) => location.id === load?.pickupLocationId)
     const delivery = mapLocations.find((location) => location.id === load?.deliveryLocationId)
-    setGameClockPaused(true)
+    pauseClockForModal()
     logDocOsEvent('OPEN DELIVERY PLANNING')
     setDeliveryPlanning({ loadId, route: 'loading' })
     try {
@@ -78,7 +86,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     const driverRecord = drivers.find((driver) => driver.id === driverId)
     const driver = runtimePositions[driverId] || mapLocations.find((location) => location.id === driverRecord?.homeBaseLocationId)
     const pickup = mapLocations.find((location) => location.id === load?.pickupLocationId)
-    setGameClockPaused(true)
+    pauseClockForModal()
     setPlanningMode({ loadId, driverId, active: true, route: 'loading' })
     try {
       const route = await calculateRoute(driver, pickup)
@@ -96,7 +104,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     setLoads((current) => current.map((item) => item.id === loadId ? { ...item, candidateDriverId: driverId } : item))
     setPhoneLoadId(loadId)
     setDriverFitEvaluation({ loadId, driverId, driverName: drivers.find((driver) => driver.id === driverId)?.name, deadheadMiles: fit.miles, deadheadMinutes: fit.minutes, deadheadRoute: fit.routeShape, arrivalDay: fit.arrivalDay, arrivalMinutes: fit.arrivalMinutes, pickupDayIndex: load.pickupDayIndex, pickupStart: load.pickupWindowStartMinutes, pickupEnd: load.pickupWindowEndMinutes, status: fit.status, loadedEstimate: 'loading' })
-    setGameClockPaused(true)
+    pauseClockForModal()
     setIsPhoneOpen(false)
     try {
       const route = await calculateRoute(pickup, delivery)
@@ -130,31 +138,71 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const deliveryPlanningLoad = deliveryPlanning ? loads.find((load) => load.id === deliveryPlanning.loadId) : null
   const deliveryPlanningPickup = deliveryPlanningLoad ? mapLocations.find((location) => location.id === deliveryPlanningLoad.pickupLocationId) : null
   const deliveryPlanningDelivery = deliveryPlanningLoad ? mapLocations.find((location) => location.id === deliveryPlanningLoad.deliveryLocationId) : null
+  const timeControlsLocked = Boolean(driverFitEvaluation || planningMode || deliveryPlanning)
+  const fastForwardActive = simulationSpeed === 5 && !isGameClockPaused
+  const togglePause = () => {
+    if (timeControlsLocked) return
+    setGameClockPaused(!isGameClockPaused)
+  }
+  const toggleFastForward = () => {
+    if (timeControlsLocked) return
+    if (fastForwardActive) {
+      setSimulationSpeed(1)
+      return
+    }
+    setSimulationSpeed(5)
+    if (isGameClockPaused) setGameClockPaused(false)
+  }
 
   return (
     <div className="main-game-screen">
       <StatusBar selectedMarket={selectedMarket} gameTime={gameTime} cash={getLedgerSummary(getReceivables(loads, carriers, ledgerWorkflowByLoadId)).collected} />
       <div className="map-area">
         {import.meta.env.DEV && <><button type="button" className="dev-button" onClick={() => setDevOpen((open) => !open)}>DEV</button>{devOpen && <div className="dev-menu"><div className="dev-menu-header"><strong>DEV TOOLS</strong><button type="button" onClick={() => setDevOpen(false)} aria-label="Close developer tools">×</button></div><div className="dev-presets"><strong>TIME</strong><span>DAY {gameTime.gameDayIndex + 1}<br />{formatCompactDate(gameTime.gameDayIndex)} • {formatTime(gameTime.totalMinutesOfDay)}</span>{[60, 360].map((minutes) => <button type="button" key={minutes} onClick={() => setGameTime((time) => { const total = time.gameDayIndex * 1440 + time.totalMinutesOfDay + minutes; return { gameDayIndex: Math.floor(total / 1440), totalMinutesOfDay: total % 1440 } })}>+{minutes === 60 ? '1 HR' : '6 HR'}</button>)}{[1, 3, 7].map((days) => <button type="button" key={days} onClick={() => setGameTime((time) => ({ ...time, gameDayIndex: time.gameDayIndex + days }))}>+{days} DAY{days > 1 ? 'S' : ''}</button>)}</div><button type="button" className="dev-reset" onClick={() => { onResetGame(); setDevOpen(false) }}>RESET GAME</button></div>}</>}
-        <div className="simulation-speed">{[1, 2, 4, 5].map((speed) => <button key={speed} type="button" className={speed === simulationSpeed ? 'active' : ''} onClick={() => setSimulationSpeed(speed)}>{speed}×</button>)}</div>
+        <div className="time-controls" aria-label="Simulation time controls">
+          <button
+            type="button"
+            className={isGameClockPaused ? 'active' : ''}
+            onClick={togglePause}
+            aria-label={isGameClockPaused ? 'Resume simulation' : 'Pause simulation'}
+            aria-pressed={isGameClockPaused}
+            disabled={timeControlsLocked}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          </button>
+          <button
+            type="button"
+            className={fastForwardActive ? 'active' : ''}
+            onClick={toggleFastForward}
+            aria-label={fastForwardActive ? 'Return to normal speed' : 'Fast forward simulation'}
+            aria-pressed={fastForwardActive}
+            disabled={timeControlsLocked}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5.5 12 12l-7.5 6.5V5.5Z"/><path d="M11.5 5.5 19 12l-7.5 6.5V5.5Z"/></svg>
+          </button>
+        </div>
         <GameMap activeRouteGeometry={activeRouteGeometry} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgress={runtimeProgress} runtimeRoute={assignedLoad?.tripStatus === 'en-route-delivery' ? assignedLoad.plannedLoadedRouteGeometry : assignedLoad?.plannedDeadheadRouteGeometry} assignedLoad={assignedLoad} evaluationLoad={driverFitEvaluation ? loads.find((load) => load.id === driverFitEvaluation.loadId) : null} isDriverFitEvaluation={Boolean(driverFitEvaluation)} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} tutorialEnabled={tutorialEnabled} tutorialDriverAction={tutorialDriverAction} />
-        {deliveryPlanning && <div className="map-evaluation"><strong>DELIVERY PLANNING</strong><span>{deliveryPlanning.loadId}</span><span>Driver: Marcus</span><strong>FROM</strong><span>{deliveryPlanningPickup?.name || 'Pickup'}</span><strong>NEXT STOP</strong><span>{deliveryPlanningDelivery?.name || 'Delivery'}</span><strong>ROUTE OPTIONS</strong>{deliveryPlanning.route === 'loading' && <span>Calculating...</span>}{deliveryPlanning.route === 'unavailable' && <span>Route unavailable</span>}{deliveryPlanning.route?.distanceMiles && <><span>Distance: {deliveryPlanning.route.distanceMiles.toFixed(1)} miles</span><span>Drive Time: {deliveryPlanning.route.durationMinutes} minutes</span><button type="button" className={tutorialEnabled && deliveryPlanning.loadId === tutorialLoadId && !deliveryPlanning.selected ? 'tutorial-target' : ''} onClick={() => setDeliveryPlanning((current) => ({ ...current, selected: true }))}>{deliveryPlanning.selected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}</button></>}<div><button type="button" onClick={() => { setDeliveryPlanning(null); setGameClockPaused(false) }}>BACK</button><button type="button" className={tutorialEnabled && deliveryPlanning.loadId === tutorialLoadId && deliveryPlanning.selected ? 'tutorial-target' : ''} disabled={!deliveryPlanning.selected} onClick={() => { setLoads((current) => current.map((load) => load.id === deliveryPlanning.loadId ? { ...load, deliveryPlanningStatus: 'route-ready', plannedLoadedMiles: deliveryPlanning.route.distanceMiles, plannedLoadedDriveTimeMinutes: deliveryPlanning.route.durationMinutes, plannedLoadedRouteGeometry: deliveryPlanning.route.routeShape, selectedLoadedRouteId: 'recommended' } : load)); setDeliveryPlanning(null); setGameClockPaused(false) }}>CONFIRM PLAN</button></div></div>}
-        {planningMode && <div className="map-evaluation"><strong>TRIP PLANNING</strong><span>{planningMode.loadId}</span><span>Driver: Marcus</span><strong>NEXT STOP</strong><span>{planningPickup?.name || 'Pickup'}</span><span>Pickup Window: {planningLoad ? formatAppointment(planningLoad.pickupDayIndex, planningLoad.pickupWindowStartMinutes, planningLoad.pickupWindowEndMinutes) : '—'}</span><strong>ROUTE OPTIONS</strong>{planningMode.route === 'loading' && <span>Calculating...</span>}{planningMode.route === 'unavailable' && <span>Route unavailable</span>}{planningMode.route?.distanceMiles && <><span>Distance: {planningMode.route.distanceMiles.toFixed(1)} miles</span><span>Drive Time: {planningMode.route.durationMinutes} minutes</span><span>Estimated Arrival: {formatCompactDate(gameTime.gameDayIndex)} • {formatTime(gameTime.totalMinutesOfDay + planningMode.route.durationMinutes)}</span><button type="button" className={tutorialEnabled && planningMode.loadId === tutorialLoadId && !planningMode.selected ? 'tutorial-target' : ''} onClick={() => setPlanningMode((current) => ({ ...current, selected: true }))}>{planningMode.selected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}</button></>}<div><button type="button" onClick={() => { setPlanningMode(null); setGameClockPaused(false) }}>BACK</button><button type="button" className={tutorialEnabled && planningMode.loadId === tutorialLoadId && planningMode.selected ? 'tutorial-target' : ''} disabled={!planningMode.selected} onClick={() => { setLoads((current) => current.map((load) => load.id === planningMode.loadId ? { ...load, planningStatus: 'route-ready', plannedDeadheadMiles: planningMode.route.distanceMiles, plannedDeadheadDriveTimeMinutes: planningMode.route.durationMinutes, plannedDeadheadRouteGeometry: planningMode.route.routeShape, selectedDeadheadRouteId: 'recommended' } : load)); setPlanningMode(null); setGameClockPaused(false) }}>CONFIRM PLAN</button></div></div>}
-        {driverFitEvaluation && <div className="map-evaluation"><strong>DRIVER FIT</strong><span>{driverFitEvaluation.loadId}</span><span>Candidate: {driverFitEvaluation.driverName}</span><strong>DEADHEAD</strong><span>Distance: {driverFitEvaluation.deadheadMiles.toFixed(1)} miles</span><span>Drive Time: {driverFitEvaluation.deadheadMinutes} minutes</span><strong>PICKUP</strong><span>Estimated Arrival: {formatCompactDate(driverFitEvaluation.arrivalDay)} • {formatTime(driverFitEvaluation.arrivalMinutes)}</span><span>Window: {formatAppointment(driverFitEvaluation.pickupDayIndex, driverFitEvaluation.pickupStart, driverFitEvaluation.pickupEnd)}</span><span>Status: {driverFitEvaluation.status}</span><strong>LOADED ESTIMATE</strong>{driverFitEvaluation.loadedEstimate === 'loading' && <span>Calculating...</span>}{driverFitEvaluation.loadedEstimate === 'unavailable' && <span>Estimate unavailable</span>}{driverFitEvaluation.loadedEstimate && typeof driverFitEvaluation.loadedEstimate === 'object' && <><span>Distance: {driverFitEvaluation.loadedEstimate.loadedEstimateMiles.toFixed(1)} miles</span><span>Drive Time: {driverFitEvaluation.loadedEstimate.loadedEstimateDriveTimeMinutes} minutes</span></>}<div><button type="button" onClick={() => { setDriverFitEvaluation(null); setGameClockPaused(false); setPhoneInitialScreen('driverFit'); setPhoneLoadId(driverFitEvaluation.loadId); setIsPhoneOpen(true) }}>BACK</button><button type="button" className={tutorialEnabled && driverFitEvaluation.loadId === tutorialLoadId ? 'tutorial-target' : ''} onClick={() => { setLoads((current) => current.map((load) => load.id === driverFitEvaluation.loadId ? { ...load, driverFitVerified: true, candidateDriverId: driverFitEvaluation.driverId } : load)); setDriverFitEvaluation(null); setGameClockPaused(false); setPhoneInitialScreen('loadDetails'); setPhoneLoadId(driverFitEvaluation.loadId); setIsPhoneOpen(true) }}>CONFIRM FIT</button></div></div>}
+        {deliveryPlanning && <div className="map-evaluation"><strong>DELIVERY PLANNING</strong><span>{deliveryPlanning.loadId}</span><span>Driver: Marcus</span><strong>FROM</strong><span>{deliveryPlanningPickup?.name || 'Pickup'}</span><strong>NEXT STOP</strong><span>{deliveryPlanningDelivery?.name || 'Delivery'}</span><strong>ROUTE OPTIONS</strong>{deliveryPlanning.route === 'loading' && <span>Calculating...</span>}{deliveryPlanning.route === 'unavailable' && <span>Route unavailable</span>}{deliveryPlanning.route?.distanceMiles && <><span>Distance: {deliveryPlanning.route.distanceMiles.toFixed(1)} miles</span><span>Drive Time: {deliveryPlanning.route.durationMinutes} minutes</span><button type="button" className={tutorialEnabled && deliveryPlanning.loadId === tutorialLoadId && !deliveryPlanning.selected ? 'tutorial-target' : ''} onClick={() => setDeliveryPlanning((current) => ({ ...current, selected: true }))}>{deliveryPlanning.selected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}</button></>}<div><button type="button" onClick={() => { setDeliveryPlanning(null); restoreClockAfterModal() }}>BACK</button><button type="button" className={tutorialEnabled && deliveryPlanning.loadId === tutorialLoadId && deliveryPlanning.selected ? 'tutorial-target' : ''} disabled={!deliveryPlanning.selected} onClick={() => { setLoads((current) => current.map((load) => load.id === deliveryPlanning.loadId ? { ...load, deliveryPlanningStatus: 'route-ready', plannedLoadedMiles: deliveryPlanning.route.distanceMiles, plannedLoadedDriveTimeMinutes: deliveryPlanning.route.durationMinutes, plannedLoadedRouteGeometry: deliveryPlanning.route.routeShape, selectedLoadedRouteId: 'recommended' } : load)); setDeliveryPlanning(null); restoreClockAfterModal() }}>CONFIRM PLAN</button></div></div>}
+        {planningMode && <div className="map-evaluation"><strong>TRIP PLANNING</strong><span>{planningMode.loadId}</span><span>Driver: Marcus</span><strong>NEXT STOP</strong><span>{planningPickup?.name || 'Pickup'}</span><span>Pickup Window: {planningLoad ? formatAppointment(planningLoad.pickupDayIndex, planningLoad.pickupWindowStartMinutes, planningLoad.pickupWindowEndMinutes) : '—'}</span><strong>ROUTE OPTIONS</strong>{planningMode.route === 'loading' && <span>Calculating...</span>}{planningMode.route === 'unavailable' && <span>Route unavailable</span>}{planningMode.route?.distanceMiles && <><span>Distance: {planningMode.route.distanceMiles.toFixed(1)} miles</span><span>Drive Time: {planningMode.route.durationMinutes} minutes</span><span>Estimated Arrival: {formatCompactDate(gameTime.gameDayIndex)} • {formatTime(gameTime.totalMinutesOfDay + planningMode.route.durationMinutes)}</span><button type="button" className={tutorialEnabled && planningMode.loadId === tutorialLoadId && !planningMode.selected ? 'tutorial-target' : ''} onClick={() => setPlanningMode((current) => ({ ...current, selected: true }))}>{planningMode.selected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}</button></>}<div><button type="button" onClick={() => { setPlanningMode(null); restoreClockAfterModal() }}>BACK</button><button type="button" className={tutorialEnabled && planningMode.loadId === tutorialLoadId && planningMode.selected ? 'tutorial-target' : ''} disabled={!planningMode.selected} onClick={() => { setLoads((current) => current.map((load) => load.id === planningMode.loadId ? { ...load, planningStatus: 'route-ready', plannedDeadheadMiles: planningMode.route.distanceMiles, plannedDeadheadDriveTimeMinutes: planningMode.route.durationMinutes, plannedDeadheadRouteGeometry: planningMode.route.routeShape, selectedDeadheadRouteId: 'recommended' } : load)); setPlanningMode(null); restoreClockAfterModal() }}>CONFIRM PLAN</button></div></div>}
+        {driverFitEvaluation && <div className="map-evaluation"><strong>DRIVER FIT</strong><span>{driverFitEvaluation.loadId}</span><span>Candidate: {driverFitEvaluation.driverName}</span><strong>DEADHEAD</strong><span>Distance: {driverFitEvaluation.deadheadMiles.toFixed(1)} miles</span><span>Drive Time: {driverFitEvaluation.deadheadMinutes} minutes</span><strong>PICKUP</strong><span>Estimated Arrival: {formatCompactDate(driverFitEvaluation.arrivalDay)} • {formatTime(driverFitEvaluation.arrivalMinutes)}</span><span>Window: {formatAppointment(driverFitEvaluation.pickupDayIndex, driverFitEvaluation.pickupStart, driverFitEvaluation.pickupEnd)}</span><span>Status: {driverFitEvaluation.status}</span><strong>LOADED ESTIMATE</strong>{driverFitEvaluation.loadedEstimate === 'loading' && <span>Calculating...</span>}{driverFitEvaluation.loadedEstimate === 'unavailable' && <span>Estimate unavailable</span>}{driverFitEvaluation.loadedEstimate && typeof driverFitEvaluation.loadedEstimate === 'object' && <><span>Distance: {driverFitEvaluation.loadedEstimate.loadedEstimateMiles.toFixed(1)} miles</span><span>Drive Time: {driverFitEvaluation.loadedEstimate.loadedEstimateDriveTimeMinutes} minutes</span></>}<div><button type="button" onClick={() => { setDriverFitEvaluation(null); restoreClockAfterModal(); setPhoneInitialScreen('driverFit'); setPhoneLoadId(driverFitEvaluation.loadId); setIsPhoneOpen(true) }}>BACK</button><button type="button" className={tutorialEnabled && driverFitEvaluation.loadId === tutorialLoadId ? 'tutorial-target' : ''} onClick={() => { setLoads((current) => current.map((load) => load.id === driverFitEvaluation.loadId ? { ...load, driverFitVerified: true, candidateDriverId: driverFitEvaluation.driverId } : load)); setDriverFitEvaluation(null); restoreClockAfterModal(); setPhoneInitialScreen('loadDetails'); setPhoneLoadId(driverFitEvaluation.loadId); setIsPhoneOpen(true) }}>CONFIRM FIT</button></div></div>}
         <button
           type="button"
           className="markets-button"
           onClick={onOpenMarkets}
+          aria-label="Open market selection"
         >
-          Markets
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18V11M10 18V7M15 18v-5M20 18V4"/></svg>
+          <span>MARKET</span>
         </button>
         {!isPhoneOpen && (
           <button
             type="button"
             className={`phone-button ${!isPhoneOpen && (hasUnreadTutorialEmail || shouldHighlightPhoneForPod || shouldHighlightPhoneForLedger) && !driverFitEvaluation ? 'tutorial-target' : ''}`}
             onClick={() => { setPhoneInitialScreen('home'); setIsPhoneOpen(true) }}
+            aria-label="Open phone"
           >
-            PHONE{phoneNotificationCount > 0 && <span className="phone-notification-badge">{phoneNotificationCount > 9 ? '9+' : phoneNotificationCount}</span>}
+            <svg className="phone-button-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10 5h4"/><circle cx="12" cy="18.5" r=".8"/></svg>
+            {phoneNotificationCount > 0 && <span className="phone-notification-badge">{phoneNotificationCount > 9 ? '9+' : phoneNotificationCount}</span>}
           </button>
         )}
         {isPhoneOpen && (

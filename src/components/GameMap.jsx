@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Map as MapLibreMap, Marker, Popup, setWorkerUrl } from 'maplibre-gl'
+import { AttributionControl, Map as MapLibreMap, Marker, Popup, setWorkerUrl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import mapLocations from '../data/mapLocations.js'
@@ -112,12 +112,44 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDr
   useEffect(() => {
     const map = new MapLibreMap({
       container: mapContainer.current,
-      style: 'https://tiles.openfreemap.org/styles/positron',
+      style: 'https://tiles.openfreemap.org/styles/dark',
       center: [-73.9857, 40.7484],
       zoom: 10,
-      attributionControl: { compact: true, position: 'bottom-left' },
+      attributionControl: false,
     })
     mapRef.current = map
+    map.addControl(new AttributionControl({ compact: true }), 'bottom-left')
+
+    // DOC OS attribution treatment. MapLibre's compact attribution control ships
+    // with its own white circular info artwork. iOS/WebKit can keep rendering
+    // that native artwork even when ordinary stylesheet overrides are present,
+    // so normalize the generated control directly after MapLibre mounts it.
+    requestAnimationFrame(() => {
+      const attribution = map.getContainer().querySelector('.maplibregl-ctrl-attrib')
+      const attributionButton = attribution?.querySelector('.maplibregl-ctrl-attrib-button')
+
+      attribution?.classList.remove('maplibregl-compact-show')
+      attribution?.classList.add('docos-map-attribution')
+
+      if (attributionButton) {
+        attributionButton.classList.add('docos-map-attribution-button')
+        attributionButton.style.setProperty('background', 'rgba(15, 17, 21, 0.94)', 'important')
+        attributionButton.style.setProperty('background-image', 'none', 'important')
+        attributionButton.style.setProperty('border', '1px solid #2A303B', 'important')
+        attributionButton.style.setProperty('border-radius', '999px', 'important')
+        attributionButton.style.setProperty('box-shadow', '0 5px 18px rgba(0, 0, 0, 0.34)', 'important')
+        attributionButton.style.setProperty('appearance', 'none', 'important')
+        attributionButton.style.setProperty('-webkit-appearance', 'none', 'important')
+        attributionButton.style.setProperty('outline', 'none', 'important')
+        attributionButton.replaceChildren()
+
+        const infoGlyph = document.createElement('span')
+        infoGlyph.className = 'docos-map-attribution-glyph'
+        infoGlyph.textContent = 'i'
+        infoGlyph.setAttribute('aria-hidden', 'true')
+        attributionButton.appendChild(infoGlyph)
+      }
+    })
     map.resize()
 
     const markers = []

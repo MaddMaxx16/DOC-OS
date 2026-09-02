@@ -247,6 +247,7 @@ function App() {
             setDrivers={setDrivers}
             plannedRoute={plannedRoute}
             setPlannedRoute={setPlannedRoute}
+            isGameClockPaused={isGameClockPaused}
             setGameClockPaused={setIsGameClockPaused}
             runtimePositions={runtimePositions}
             runtimeProgress={runtimeProgress}
