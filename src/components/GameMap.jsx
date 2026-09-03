@@ -94,7 +94,7 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDr
       const home = mapLocations.find((location) => location.id === driver.homeBaseLocationId)
       const position = runtimePositions[driver.id] || home
       if (!position) return
-      const element = document.createElement('div'); element.className = 'game-marker driver'; element.textContent = 'T'
+      const element = document.createElement('div'); element.className = 'game-marker driver'; element.textContent = driver.name?.charAt(0)?.toUpperCase() || 'D'
       const popup = new Popup({ offset: 20 }).setDOMContent(document.createElement('div'))
       const marker = new Marker({ element }).setLngLat([position.longitude, position.latitude]).setPopup(popup).addTo(map)
       popup.on('open', () => element.classList.add('popup-open')); popup.on('close', () => element.classList.remove('popup-open'))
@@ -189,8 +189,14 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDr
       map.addLayer({ id: 'active-route-line', type: 'line', source: 'active-route', paint: { 'line-color': '#e0a458', 'line-width': 4 }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
     } else if (route) source.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route.routeShape } })
     else if (!['en-route-pickup', 'en-route-delivery'].includes(tripStatus)) source.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } })
+
+    if (map.getLayer('active-route-line')) {
+      map.setPaintProperty('active-route-line', 'line-color', isDriverFitEvaluation ? '#4c8dff' : '#e0a458')
+      map.setPaintProperty('active-route-line', 'line-width', isDriverFitEvaluation ? 5 : 4)
+    }
+
     console.debug('ROUTE SOURCE UPDATE', { tripStatus, geometryType: route ? 'active' : 'null', coordinateCount: route?.routeShape?.length || 0 })
-  }, [activeRouteGeometry, tripStatus])
+  }, [activeRouteGeometry, tripStatus, isDriverFitEvaluation])
 
   useEffect(() => {
     const pickupRecord = markerRecords.current.find(({ marker }) => marker === pickupMarkerRef.current)

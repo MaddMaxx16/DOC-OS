@@ -149,9 +149,15 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], car
           page={screen === 'browser' ? 'home' : screen === 'loadBoard' ? 'freightlink.local' : screen === 'loadDetails' ? `freightlink.local/load/${selectedLoadId}` : screen === 'driverFit' ? `freightlink.local/load/${selectedLoadId}/driver-fit` : `freightlink.local/load/${selectedLoadId}/route`}
           onOpenFreightLink={() => setScreen('loadBoard')}
           onOpenCarrierSource={() => setScreen('carrierSource')}
-          onBack={() => setScreen(screen === 'browser' ? 'home' : screen === 'loadBoard' ? 'browser' : 'loadDetails')}
+          onBack={() => {
+            if (screen === 'browser') setScreen('home')
+            else if (screen === 'loadBoard') setScreen('browser')
+            else if (screen === 'loadDetails') setScreen('loadBoard')
+            else if (screen === 'driverFit') setScreen('loadDetails')
+            else if (screen === 'routePlanning') setScreen('loadDetails')
+          }}
           onHome={() => setScreen('browser')}
-          showSiteBranding={screen !== 'loadBoard'}
+          showSiteBranding={false}
         >
           {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} gameTime={gameTime} tutorialEnabled={tutorialEnabled} tutorialLoadId={tutorialLoadId} onSelectLoad={(loadId) => { setSelectedLoadId(loadId); setScreen('loadDetails') }} />}
           {screen === 'loadDetails' && <LoadDetailsScreen loads={loads} drivers={drivers} loadId={selectedLoadId} tutorialEnabled={tutorialEnabled && selectedLoadId === tutorialLoadId} showTutorialNote={selectedLoadId === 'DOC001'} onCheckDriverFit={() => setScreen('driverFit')} onAccept={() => { const currentLoad = loads.find((load) => load.id === selectedLoadId); const candidate = currentLoad?.candidateDriverId; const candidateDriver = drivers.find((driver) => driver.id === candidate); setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? { ...load, status: 'accepted', tripStatus: 'assigned', planningStatus: null, deliveryPlanningStatus: null, assignedDriverId: candidate, candidateDriverId: null, carrierId: candidateDriver?.carrierId ?? null } : load)); setDrivers((currentDrivers) => currentDrivers.map((driver) => driver.id === candidate ? { ...driver, status: 'unavailable', assignedLoadId: selectedLoadId } : driver)) }} onPlanRoute={() => setScreen('routePlanning')} onDispatch={() => setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? { ...load, status: 'dispatched' } : load))} onBack={() => setScreen('loadBoard')} />}

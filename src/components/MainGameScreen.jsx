@@ -10,6 +10,25 @@ import { getLedgerSummary, getReceivables } from '../utils/ledger.js'
 import { PICKUP_WAIT_MINUTES } from '../data/pickupConfig.js'
 import { getCurrentTutorialObjective } from '../utils/tutorialObjective.js'
 
+
+function getEvaluationBufferMinutes(evaluation) {
+  if (!evaluation) return null
+
+  const arrival = evaluation.arrivalDay * 1440 + evaluation.arrivalMinutes
+  const windowStart = evaluation.pickupDayIndex * 1440 + evaluation.pickupStart
+  const windowEnd = evaluation.pickupDayIndex * 1440 + evaluation.pickupEnd
+
+  if (arrival < windowStart) return windowStart - arrival
+  if (arrival <= windowEnd) return windowEnd - arrival
+  return windowEnd - arrival
+}
+
+function formatEvaluationBuffer(minutes) {
+  if (!Number.isFinite(minutes)) return '—'
+  if (minutes < 0) return `${Math.abs(minutes)} min late`
+  return `${minutes} min`
+}
+
 function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, onActivateCarrier, carrierApplicationsById, onApplyCarrier, onAcceptAgreement, emailMessages, setEmailMessages, tutorialEnabled = false, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, runtimeProgress, setRuntimeProgress, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId, setGameTime }) {
   const [devOpen, setDevOpen] = useState(false)
   const [isPhoneOpen, setIsPhoneOpen] = useState(false)
@@ -165,7 +184,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     const delivery = mapLocations.find((location) => location.id === load?.deliveryLocationId)
     setLoads((current) => current.map((item) => item.id === loadId ? { ...item, candidateDriverId: driverId } : item))
     setPhoneLoadId(loadId)
-    setDriverFitEvaluation({ loadId, driverId, driverName: drivers.find((driver) => driver.id === driverId)?.name, deadheadMiles: fit.miles, deadheadMinutes: fit.minutes, deadheadRoute: fit.routeShape, arrivalDay: fit.arrivalDay, arrivalMinutes: fit.arrivalMinutes, pickupDayIndex: load.pickupDayIndex, pickupStart: load.pickupWindowStartMinutes, pickupEnd: load.pickupWindowEndMinutes, status: fit.status, loadedEstimate: 'loading' })
+    setDriverFitEvaluation({ loadId, driverId, driverName: drivers.find((driver) => driver.id === driverId)?.fullName || drivers.find((driver) => driver.id === driverId)?.name, deadheadMiles: fit.miles, deadheadMinutes: fit.minutes, deadheadRoute: fit.routeShape, arrivalDay: fit.arrivalDay, arrivalMinutes: fit.arrivalMinutes, pickupDayIndex: load.pickupDayIndex, pickupStart: load.pickupWindowStartMinutes, pickupEnd: load.pickupWindowEndMinutes, status: fit.status, loadedEstimate: 'loading' })
     pauseClockForModal()
     setIsPhoneOpen(false)
     try {
@@ -254,7 +273,103 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         <GameMap activeRouteGeometry={activeRouteGeometry} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgress={runtimeProgress} runtimeRoute={assignedLoad?.tripStatus === 'en-route-delivery' ? assignedLoad.plannedLoadedRouteGeometry : assignedLoad?.plannedDeadheadRouteGeometry} assignedLoad={assignedLoad} evaluationLoad={driverFitEvaluation ? loads.find((load) => load.id === driverFitEvaluation.loadId) : null} isDriverFitEvaluation={Boolean(driverFitEvaluation)} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} tutorialEnabled={tutorialEnabled} tutorialDriverAction={tutorialDriverAction} />
         {deliveryPlanning && <div className="map-evaluation"><strong>DELIVERY PLANNING</strong><span>{deliveryPlanning.loadId}</span><span>Driver: Marcus</span><strong>FROM</strong><span>{deliveryPlanningPickup?.name || 'Pickup'}</span><strong>NEXT STOP</strong><span>{deliveryPlanningDelivery?.name || 'Delivery'}</span><strong>ROUTE OPTIONS</strong>{deliveryPlanning.route === 'loading' && <span>Calculating...</span>}{deliveryPlanning.route === 'unavailable' && <span>Route unavailable</span>}{deliveryPlanning.route?.distanceMiles && <><span>Distance: {deliveryPlanning.route.distanceMiles.toFixed(1)} miles</span><span>Drive Time: {deliveryPlanning.route.durationMinutes} minutes</span><button type="button" className={tutorialEnabled && deliveryPlanning.loadId === tutorialLoadId && !deliveryPlanning.selected ? 'tutorial-target' : ''} onClick={() => setDeliveryPlanning((current) => ({ ...current, selected: true }))}>{deliveryPlanning.selected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}</button></>}<div><button type="button" onClick={() => { setDeliveryPlanning(null); restoreClockAfterModal() }}>BACK</button><button type="button" className={tutorialEnabled && deliveryPlanning.loadId === tutorialLoadId && deliveryPlanning.selected ? 'tutorial-target' : ''} disabled={!deliveryPlanning.selected} onClick={() => { setLoads((current) => current.map((load) => load.id === deliveryPlanning.loadId ? { ...load, deliveryPlanningStatus: 'route-ready', plannedLoadedMiles: deliveryPlanning.route.distanceMiles, plannedLoadedDriveTimeMinutes: deliveryPlanning.route.durationMinutes, plannedLoadedRouteGeometry: deliveryPlanning.route.routeShape, selectedLoadedRouteId: 'recommended' } : load)); setDeliveryPlanning(null); restoreClockAfterModal() }}>CONFIRM PLAN</button></div></div>}
         {planningMode && <div className="map-evaluation"><strong>TRIP PLANNING</strong><span>{planningMode.loadId}</span><span>Driver: Marcus</span><strong>NEXT STOP</strong><span>{planningPickup?.name || 'Pickup'}</span><span>Pickup Window: {planningLoad ? formatAppointment(planningLoad.pickupDayIndex, planningLoad.pickupWindowStartMinutes, planningLoad.pickupWindowEndMinutes) : '—'}</span><strong>ROUTE OPTIONS</strong>{planningMode.route === 'loading' && <span>Calculating...</span>}{planningMode.route === 'unavailable' && <span>Route unavailable</span>}{planningMode.route?.distanceMiles && <><span>Distance: {planningMode.route.distanceMiles.toFixed(1)} miles</span><span>Drive Time: {planningMode.route.durationMinutes} minutes</span><span>Estimated Arrival: {formatCompactDate(gameTime.gameDayIndex)} • {formatTime(gameTime.totalMinutesOfDay + planningMode.route.durationMinutes)}</span><button type="button" className={tutorialEnabled && planningMode.loadId === tutorialLoadId && !planningMode.selected ? 'tutorial-target' : ''} onClick={() => setPlanningMode((current) => ({ ...current, selected: true }))}>{planningMode.selected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}</button></>}<div><button type="button" onClick={() => { setPlanningMode(null); restoreClockAfterModal() }}>BACK</button><button type="button" className={tutorialEnabled && planningMode.loadId === tutorialLoadId && planningMode.selected ? 'tutorial-target' : ''} disabled={!planningMode.selected} onClick={() => { setLoads((current) => current.map((load) => load.id === planningMode.loadId ? { ...load, planningStatus: 'route-ready', plannedDeadheadMiles: planningMode.route.distanceMiles, plannedDeadheadDriveTimeMinutes: planningMode.route.durationMinutes, plannedDeadheadRouteGeometry: planningMode.route.routeShape, selectedDeadheadRouteId: 'recommended' } : load)); setPlanningMode(null); restoreClockAfterModal() }}>CONFIRM PLAN</button></div></div>}
-        {driverFitEvaluation && <div className="map-evaluation"><strong>DRIVER FIT</strong><span>{driverFitEvaluation.loadId}</span><span>Candidate: {driverFitEvaluation.driverName}</span><strong>DEADHEAD</strong><span>Distance: {driverFitEvaluation.deadheadMiles.toFixed(1)} miles</span><span>Drive Time: {driverFitEvaluation.deadheadMinutes} minutes</span><strong>PICKUP</strong><span>Estimated Arrival: {formatCompactDate(driverFitEvaluation.arrivalDay)} • {formatTime(driverFitEvaluation.arrivalMinutes)}</span><span>Window: {formatAppointment(driverFitEvaluation.pickupDayIndex, driverFitEvaluation.pickupStart, driverFitEvaluation.pickupEnd)}</span><span>Status: {driverFitEvaluation.status}</span><strong>LOADED ESTIMATE</strong>{driverFitEvaluation.loadedEstimate === 'loading' && <span>Calculating...</span>}{driverFitEvaluation.loadedEstimate === 'unavailable' && <span>Estimate unavailable</span>}{driverFitEvaluation.loadedEstimate && typeof driverFitEvaluation.loadedEstimate === 'object' && <><span>Distance: {driverFitEvaluation.loadedEstimate.loadedEstimateMiles.toFixed(1)} miles</span><span>Drive Time: {driverFitEvaluation.loadedEstimate.loadedEstimateDriveTimeMinutes} minutes</span></>}<div><button type="button" onClick={() => { setDriverFitEvaluation(null); restoreClockAfterModal(); setPhoneInitialScreen('driverFit'); setPhoneLoadId(driverFitEvaluation.loadId); setIsPhoneOpen(true) }}>BACK</button><button type="button" className={tutorialEnabled && driverFitEvaluation.loadId === tutorialLoadId ? 'tutorial-target' : ''} onClick={() => { setLoads((current) => current.map((load) => load.id === driverFitEvaluation.loadId ? { ...load, driverFitVerified: true, candidateDriverId: driverFitEvaluation.driverId } : load)); setDriverFitEvaluation(null); restoreClockAfterModal(); setPhoneInitialScreen('loadDetails'); setPhoneLoadId(driverFitEvaluation.loadId); setIsPhoneOpen(true) }}>CONFIRM FIT</button></div></div>}
+        {driverFitEvaluation && (
+          <div className="map-evaluation route-evaluation-v2">
+            <div className="route-eval-v2-heading">
+              <div>
+                <span className="route-eval-v2-kicker">ROUTE EVALUATION</span>
+                <strong>{driverFitEvaluation.loadId}</strong>
+              </div>
+              <span className={`route-eval-v2-fit ${driverFitEvaluation.status === 'LATE' ? 'late' : driverFitEvaluation.status === 'ON TIME' ? 'on-time' : 'early'}`}>
+                {driverFitEvaluation.status}
+              </span>
+            </div>
+
+            <div className="route-eval-v2-driver-row">
+              <div className="route-eval-v2-driver-badge" aria-hidden="true">M</div>
+              <div>
+                <span>CANDIDATE</span>
+                <strong>{driverFitEvaluation.driverName || 'Marcus Reed'}</strong>
+              </div>
+              <div className="route-eval-v2-map-key">
+                <span><i className="driver-dot">M</i> Driver</span>
+                <span><i className="pickup-dot">P</i> Pickup</span>
+              </div>
+            </div>
+
+            <div className="route-eval-v2-route-label">
+              <span>RECOMMENDED ROUTE</span>
+              <small>Deadhead to pickup</small>
+            </div>
+
+            <div className="route-eval-v2-metrics">
+              <div>
+                <span>DEADHEAD</span>
+                <strong>{driverFitEvaluation.deadheadMiles.toFixed(1)} mi</strong>
+              </div>
+              <div>
+                <span>DRIVE TIME</span>
+                <strong>{driverFitEvaluation.deadheadMinutes} min</strong>
+              </div>
+              <div>
+                <span>ARRIVAL</span>
+                <strong>{formatTime(driverFitEvaluation.arrivalMinutes)}</strong>
+              </div>
+              <div>
+                <span>BUFFER</span>
+                <strong>{formatEvaluationBuffer(getEvaluationBufferMinutes(driverFitEvaluation))}</strong>
+              </div>
+            </div>
+
+            <div className="route-eval-v2-window-row">
+              <span>PICKUP WINDOW</span>
+              <strong>{formatAppointment(driverFitEvaluation.pickupDayIndex, driverFitEvaluation.pickupStart, driverFitEvaluation.pickupEnd)}</strong>
+            </div>
+
+            <div className="route-eval-v2-loaded-row">
+              <span>LOADED ESTIMATE</span>
+              {driverFitEvaluation.loadedEstimate === 'loading' && <strong>Calculating…</strong>}
+              {driverFitEvaluation.loadedEstimate === 'unavailable' && <strong>Unavailable</strong>}
+              {driverFitEvaluation.loadedEstimate && typeof driverFitEvaluation.loadedEstimate === 'object' && (
+                <strong>
+                  {driverFitEvaluation.loadedEstimate.loadedEstimateMiles.toFixed(1)} mi · {driverFitEvaluation.loadedEstimate.loadedEstimateDriveTimeMinutes} min
+                </strong>
+              )}
+            </div>
+
+            <div className="route-eval-v2-actions">
+              <button
+                type="button"
+                className="route-eval-v2-back"
+                onClick={() => {
+                  const loadId = driverFitEvaluation.loadId
+                  setDriverFitEvaluation(null)
+                  restoreClockAfterModal()
+                  setPhoneInitialScreen('driverFit')
+                  setPhoneLoadId(loadId)
+                  setIsPhoneOpen(true)
+                }}
+              >
+                BACK
+              </button>
+              <button
+                type="button"
+                className={`route-eval-v2-confirm ${tutorialEnabled && driverFitEvaluation.loadId === tutorialLoadId ? 'tutorial-target' : ''}`}
+                onClick={() => {
+                  const evaluation = driverFitEvaluation
+                  setLoads((current) => current.map((load) => load.id === evaluation.loadId ? { ...load, driverFitVerified: true, candidateDriverId: evaluation.driverId } : load))
+                  setDriverFitEvaluation(null)
+                  restoreClockAfterModal()
+                  setPhoneInitialScreen('loadDetails')
+                  setPhoneLoadId(evaluation.loadId)
+                  setIsPhoneOpen(true)
+                }}
+              >
+                CONFIRM FIT
+              </button>
+            </div>
+          </div>
+        )}
         <button
           type="button"
           className="markets-button"
