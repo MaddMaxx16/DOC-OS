@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import GameMap from './GameMap.jsx'
 import PhoneOverlay from './PhoneOverlay.jsx'
 import StatusBar from './StatusBar.jsx'
@@ -19,6 +19,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [planningMode, setPlanningMode] = useState(null)
   const [deliveryPlanning, setDeliveryPlanning] = useState(null)
   const [pauseStateBeforeModal, setPauseStateBeforeModal] = useState(false)
+  const phonePauseStateBeforeOpenRef = useRef(null)
 
   const assignedLoad = loads.find((load) => load.assignedDriverId === 'marcus')
   const podNotificationCount = loads.filter((load) => load.tripStatus === 'awaiting-pod').length
@@ -51,6 +52,67 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     || (tutorialReceivable?.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(tutorialLoadId))
   )
   const shouldHighlightPhoneForLedger = tutorialLedgerNeedsAttention && !isPhoneOpen
+
+  // Simulation safety rules:
+  // - The DOC OS phone is decision space, so opening it pauses the world.
+  // - Leaving the app/backgrounding it always pauses and never auto-resumes.
+  // - Thirty seconds without interaction on the live map auto-pauses the clock.
+  // The phone restores the player's prior pause state when it closes unless a
+  // safety pause occurred while the phone was open.
+  useEffect(() => {
+    if (isPhoneOpen) {
+      if (phonePauseStateBeforeOpenRef.current === null) {
+        phonePauseStateBeforeOpenRef.current = isGameClockPaused
+      }
+      if (!isGameClockPaused) setGameClockPaused(true)
+      return
+    }
+
+    if (phonePauseStateBeforeOpenRef.current !== null) {
+      const wasPausedBeforePhone = phonePauseStateBeforeOpenRef.current
+      phonePauseStateBeforeOpenRef.current = null
+      setGameClockPaused(wasPausedBeforePhone)
+    }
+  }, [isPhoneOpen, isGameClockPaused, setGameClockPaused])
+
+  useEffect(() => {
+    const safetyPause = () => {
+      if (isPhoneOpen) phonePauseStateBeforeOpenRef.current = true
+      setGameClockPaused(true)
+    }
+    const handleVisibilityChange = () => {
+      if (document.hidden) safetyPause()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('pagehide', safetyPause)
+    window.addEventListener('blur', safetyPause)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('pagehide', safetyPause)
+      window.removeEventListener('blur', safetyPause)
+    }
+  }, [isPhoneOpen, setGameClockPaused])
+
+  useEffect(() => {
+    if (isPhoneOpen || isGameClockPaused) return undefined
+
+    let inactivityTimer = null
+    const armInactivityPause = () => {
+      window.clearTimeout(inactivityTimer)
+      inactivityTimer = window.setTimeout(() => setGameClockPaused(true), 30000)
+    }
+
+    const activityEvents = ['pointerdown', 'touchstart', 'keydown']
+    activityEvents.forEach((eventName) => window.addEventListener(eventName, armInactivityPause, { passive: true }))
+    armInactivityPause()
+
+    return () => {
+      window.clearTimeout(inactivityTimer)
+      activityEvents.forEach((eventName) => window.removeEventListener(eventName, armInactivityPause))
+    }
+  }, [isPhoneOpen, isGameClockPaused, setGameClockPaused])
   const pauseClockForModal = () => {
     setPauseStateBeforeModal(isGameClockPaused)
     setGameClockPaused(true)
@@ -138,20 +200,24 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const deliveryPlanningLoad = deliveryPlanning ? loads.find((load) => load.id === deliveryPlanning.loadId) : null
   const deliveryPlanningPickup = deliveryPlanningLoad ? mapLocations.find((location) => location.id === deliveryPlanningLoad.pickupLocationId) : null
   const deliveryPlanningDelivery = deliveryPlanningLoad ? mapLocations.find((location) => location.id === deliveryPlanningLoad.deliveryLocationId) : null
-  const timeControlsLocked = Boolean(driverFitEvaluation || planningMode || deliveryPlanning)
+  const timeControlsLocked = Boolean(isPhoneOpen || driverFitEvaluation || planningMode || deliveryPlanning)
   const fastForwardActive = simulationSpeed === 5 && !isGameClockPaused
   const togglePause = () => {
     if (timeControlsLocked) return
     setGameClockPaused(!isGameClockPaused)
   }
-  const toggleFastForward = () => {
+  const handlePlayFastForward = () => {
     if (timeControlsLocked) return
-    if (fastForwardActive) {
+
+    // Paused → Play always resumes at normal speed.
+    if (isGameClockPaused) {
       setSimulationSpeed(1)
+      setGameClockPaused(false)
       return
     }
-    setSimulationSpeed(5)
-    if (isGameClockPaused) setGameClockPaused(false)
+
+    // Normal → Fast Forward. Fast Forward → Normal.
+    setSimulationSpeed(fastForwardActive ? 1 : 5)
   }
 
   return (
@@ -173,12 +239,16 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
           <button
             type="button"
             className={fastForwardActive ? 'active' : ''}
-            onClick={toggleFastForward}
-            aria-label={fastForwardActive ? 'Return to normal speed' : 'Fast forward simulation'}
+            onClick={handlePlayFastForward}
+            aria-label={isGameClockPaused ? 'Play simulation' : fastForwardActive ? 'Return to normal speed' : 'Fast forward simulation'}
             aria-pressed={fastForwardActive}
             disabled={timeControlsLocked}
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5.5 12 12l-7.5 6.5V5.5Z"/><path d="M11.5 5.5 19 12l-7.5 6.5V5.5Z"/></svg>
+            {isGameClockPaused ? (
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5.5 18 12 7 18.5V5.5Z"/></svg>
+            ) : (
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5.5 12 12l-7.5 6.5V5.5Z"/><path d="M11.5 5.5 19 12l-7.5 6.5V5.5Z"/></svg>
+            )}
           </button>
         </div>
         <GameMap activeRouteGeometry={activeRouteGeometry} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgress={runtimeProgress} runtimeRoute={assignedLoad?.tripStatus === 'en-route-delivery' ? assignedLoad.plannedLoadedRouteGeometry : assignedLoad?.plannedDeadheadRouteGeometry} assignedLoad={assignedLoad} evaluationLoad={driverFitEvaluation ? loads.find((load) => load.id === driverFitEvaluation.loadId) : null} isDriverFitEvaluation={Boolean(driverFitEvaluation)} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} tutorialEnabled={tutorialEnabled} tutorialDriverAction={tutorialDriverAction} />

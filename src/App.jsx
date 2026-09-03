@@ -23,7 +23,7 @@ function App() {
   const [drivers, setDrivers] = useState([])
   const [carriers, setCarriers] = useState(() => seedCarriers.map((carrier) => ({ ...carrier })))
   const [plannedRoute, setPlannedRoute] = useState(null)
-  const [isGameClockPaused, setIsGameClockPaused] = useState(false)
+  const [isGameClockPaused, setIsGameClockPaused] = useState(true)
   const [simulationSpeed, setSimulationSpeed] = useState(1)
   const [runtimePositions, setRuntimePositions] = useState({})
   const [runtimeProgress, setRuntimeProgress] = useState(null)
@@ -225,7 +225,7 @@ function App() {
           <MarketSelectionScreen
             selectedMarket={selectedMarket}
             onSelectMarket={() => setSelectedMarket('new-york')}
-            onConfirm={() => setStage('game')}
+            onConfirm={() => { setIsGameClockPaused(false); setStage('game') }}
           />
         )}
         {stage === 'game' && (
