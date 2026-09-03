@@ -82,6 +82,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const ledgerNotificationCount = loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved && !seenLedgerReceivableIds.includes(load.id)).length + getReceivables(loads, carriers, ledgerWorkflowByLoadId).filter((item) => item.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(item.loadId)).length
   const phoneNotificationCount = podNotificationCount + ledgerNotificationCount + emailUnreadCount
   const tutorialObjective = getCurrentTutorialObjective({ tutorialEnabled, stage: 'game', applications: carrierApplicationsById, emails: emailMessages, loads, ledger: ledgerWorkflowByLoadId })
+  const shouldGuideCarrierResponseWait = tutorialEnabled && tutorialObjective === 'fast-forward-carrier-response' && !isPhoneOpen
   const tutorialLoadId = emailMessages.some((message) => message.id === 'mentor-round-two') ? 'DOC002' : 'DOC001'
   const tutorialLoad = loads.find((load) => load.id === tutorialLoadId)
   const tutorialReceivable = getReceivables(loads, carriers, ledgerWorkflowByLoadId).find((item) => item.loadId === tutorialLoadId)
@@ -288,6 +289,13 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       <StatusBar selectedMarket={selectedMarket} gameTime={gameTime} cash={getLedgerSummary(getReceivables(loads, carriers, ledgerWorkflowByLoadId)).collected} />
       <div className="map-area">
         {import.meta.env.DEV && <><button type="button" className="dev-button" onClick={() => setDevOpen((open) => !open)}>DEV</button>{devOpen && <div className="dev-menu"><div className="dev-menu-header"><strong>DEV TOOLS</strong><button type="button" onClick={() => setDevOpen(false)} aria-label="Close developer tools">×</button></div><div className="dev-presets"><strong>TIME</strong><span>DAY {gameTime.gameDayIndex + 1}<br />{formatCompactDate(gameTime.gameDayIndex)} • {formatTime(gameTime.totalMinutesOfDay)}</span>{[60, 360].map((minutes) => <button type="button" key={minutes} onClick={() => setGameTime((time) => { const total = time.gameDayIndex * 1440 + time.totalMinutesOfDay + minutes; return { gameDayIndex: Math.floor(total / 1440), totalMinutesOfDay: total % 1440 } })}>+{minutes === 60 ? '1 HR' : '6 HR'}</button>)}{[1, 3, 7].map((days) => <button type="button" key={days} onClick={() => setGameTime((time) => ({ ...time, gameDayIndex: time.gameDayIndex + days }))}>+{days} DAY{days > 1 ? 'S' : ''}</button>)}</div><button type="button" className="dev-reset" onClick={() => { onResetGame(); setDevOpen(false) }}>RESET GAME</button></div>}</>}
+        {shouldGuideCarrierResponseWait && (
+          <div className="carrier-review-wait" role="status" aria-live="polite">
+            <span className="carrier-review-wait-dot" aria-hidden="true" />
+            <span>METROLINE REVIEW</span>
+            <strong>10 MIN</strong>
+          </div>
+        )}
         <div className="time-controls" aria-label="Simulation time controls">
           <button
             type="button"
@@ -301,7 +309,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
           </button>
           <button
             type="button"
-            className={fastForwardActive ? 'active' : ''}
+            className={`${fastForwardActive ? 'active' : ''} ${shouldGuideCarrierResponseWait ? 'tutorial-target tutorial-time-control' : ''}`.trim()}
             onClick={handlePlayFastForward}
             aria-label={isGameClockPaused ? 'Play simulation' : fastForwardActive ? 'Return to normal speed' : 'Fast forward simulation'}
             aria-pressed={fastForwardActive}
@@ -649,6 +657,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             onActivateCarrier={onActivateCarrier}
             carrierApplicationsById={carrierApplicationsById}
             onApplyCarrier={onApplyCarrier}
+            onBeginCarrierWait={() => { phonePauseStateBeforeOpenRef.current = true; setSimulationSpeed(1); setGameClockPaused(true); setIsPhoneOpen(false) }}
             onAcceptAgreement={onAcceptAgreement}
             emailMessages={emailMessages}
             setEmailMessages={setEmailMessages}

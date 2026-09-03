@@ -334,10 +334,13 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDr
       const home = mapLocations.find((item) => item.id === marcus.homeBaseLocationId)
       const position = runtimePositions?.marcus
       const atHome = home && position && home.longitude === position.longitude && home.latitude === position.latitude
+      const savedLastLocation = mapLocations.find((item) => item.id === marcus.lastKnownLocationId)
+      const exactCurrentLocation = position ? mapLocations.find((item) => item.longitude === position.longitude && item.latitude === position.latitude) : null
+      const availableLocationLabel = atHome ? home?.name : savedLastLocation?.name || exactCurrentLocation?.name || 'Current position'
 
       popupContent.append(buildHeader(marcus.fullName || record.location.name, 'Driver', 'AVAILABLE', 'ready'))
       if (carrier) popupContent.append(buildMetaRow('CARRIER', carrier.name))
-      const locationRow = buildMetaRow('LOCATION', atHome ? home?.name : 'Current position')
+      const locationRow = buildMetaRow('LOCATION', availableLocationLabel)
       if (locationRow) popupContent.append(locationRow)
       if (marcus.equipment?.label) popupContent.append(buildMetaRow('EQUIPMENT', marcus.equipment.label))
       if (marcus.hours?.status) popupContent.append(buildMetaRow('HOURS', marcus.hours.status === 'full' ? 'Full' : marcus.hours.status))

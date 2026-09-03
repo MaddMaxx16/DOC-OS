@@ -10,11 +10,39 @@ function BrowserScreen({ page, children, onOpenFreightLink, onOpenCarrierSource,
         </button>
       </div>
       {page === 'home' ? (
-        <div className="browser-home">
-          <div className="browser-search">Search or enter address</div>
-          <strong>Bookmarks</strong>
-          <button type="button" className="site-link" onClick={onOpenCarrierSource}><span className="site-icon">CS</span><span>CarrierSource</span></button>
-          <button type="button" className="site-link" onClick={onOpenFreightLink}><span className="site-icon">FL</span><span>FreightLink</span></button>
+        <div className="browser-home browser-home-v2">
+          <section className="browser-home-heading">
+            <span className="browser-home-kicker">Dispatch browser</span>
+            <h2>Workspace</h2>
+            <p>Open a saved dispatch site or enter an address.</p>
+          </section>
+
+          <div className="browser-search browser-search-v2" aria-label="Search or enter address">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.75" cy="10.75" r="5.75"/><path d="m15.2 15.2 4.3 4.3"/></svg>
+            <span>Search or enter address</span>
+          </div>
+
+          <section className="browser-bookmarks-v2" aria-label="Bookmarks">
+            <span className="browser-bookmarks-label">Bookmarks</span>
+            <div className="browser-bookmark-list">
+              <button type="button" className="site-link browser-bookmark-card" onClick={onOpenCarrierSource}>
+                <span className="browser-bookmark-icon carrier" aria-hidden="true">CS</span>
+                <span className="browser-bookmark-copy">
+                  <strong>CarrierSource</strong>
+                  <small>Carrier network</small>
+                </span>
+                <span className="browser-bookmark-open" aria-hidden="true">›</span>
+              </button>
+              <button type="button" className="site-link browser-bookmark-card" onClick={onOpenFreightLink}>
+                <span className="browser-bookmark-icon freight" aria-hidden="true">FL</span>
+                <span className="browser-bookmark-copy">
+                  <strong>FreightLink</strong>
+                  <small>Freight market</small>
+                </span>
+                <span className="browser-bookmark-open" aria-hidden="true">›</span>
+              </button>
+            </div>
+          </section>
         </div>
       ) : (
         <div className="browser-site-content">

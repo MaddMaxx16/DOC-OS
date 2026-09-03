@@ -5,7 +5,7 @@ export function getCurrentTutorialObjective({ tutorialEnabled, stage, applicatio
   const doc002 = loads.find((load) => load.id === 'DOC002')
   if (stage === 'game' && !emails.some((message) => message.id === 'mentor-welcome')) return 'open-welcome-email'
   if (!app) return 'open-metroline-email'
-  if (app.status === 'PENDING') return 'go-home-after-application'
+  if (app.status === 'PENDING') return 'fast-forward-carrier-response'
   if (app.status === 'OFFER_RECEIVED' && !app.accepted) return 'open-metroline-email'
   if (app.status === 'ACCEPTED' && !loads.some((load) => load.assignedDriverId === 'marcus')) return 'open-first-carrier-email'
   if (doc001?.status === 'available' && !doc001.driverFitVerified) return doc001.candidateDriverId ? 'accept-doc001' : 'check-driver-fit'

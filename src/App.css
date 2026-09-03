@@ -4917,3 +4917,1618 @@
   font-size: 7px;
   line-height: 1.4;
 }
+
+/* LedgerDesk + Receivable v2 */
+.ledger-screen.ledger-v2 {
+  padding: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #101318;
+  color: #f2f4f7;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ledger-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 9px 12px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #252c35;
+  background: rgba(16, 19, 24, .97);
+  backdrop-filter: blur(10px);
+}
+
+.ledger-back {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #303946 !important;
+  border-radius: 10px;
+  background: #171c23 !important;
+  color: #c8d0db !important;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 24px !important;
+  line-height: 1;
+}
+
+.ledger-toolbar > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.ledger-toolbar-kicker,
+.ledger-kicker,
+.ledger-section-label,
+.ledger-card-eyebrow {
+  color: #778294;
+  font-size: 6.5px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: .17em;
+  text-transform: uppercase;
+}
+
+.ledger-toolbar strong {
+  color: #f2f4f7;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.ledger-heading {
+  display: grid;
+  gap: 7px;
+  padding: 16px 13px 12px;
+}
+
+.ledger-heading h2 {
+  margin: 0;
+  color: #f4f6f9;
+  font-size: 20px;
+  font-weight: 720;
+  line-height: 1.08;
+  letter-spacing: -.035em;
+}
+
+.ledger-heading p {
+  margin: 0;
+  color: #89929f;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.ledger-summary-v2 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 13px 14px;
+}
+
+.ledger-summary-card {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  padding: 10px 9px;
+  box-sizing: border-box;
+  border: 1px solid #303843;
+  border-radius: 11px;
+  background: #1a2027;
+}
+
+.ledger-summary-card span {
+  min-width: 0;
+  color: #747f8f;
+  font-size: 5.8px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.ledger-summary-card strong {
+  color: #e8ecf1;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-summary-card.collected strong {
+  color: #79c39d;
+}
+
+.ledger-tabs-v2 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0 13px 15px;
+  padding: 3px;
+  border: 1px solid #282f39;
+  border-radius: 11px;
+  background: #151a20;
+}
+
+.ledger-tab-v2 {
+  min-width: 0;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #7f8997;
+  font: inherit;
+}
+
+.ledger-tab-v2 span {
+  min-width: 0;
+  font-size: 6.5px;
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+.ledger-tab-v2 strong {
+  min-width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  padding: 0 3px;
+  box-sizing: border-box;
+  border: 1px solid #323b47;
+  border-radius: 999px;
+  color: #9da6b4;
+  font-size: 6.5px;
+  font-weight: 800;
+}
+
+.ledger-tab-v2.active {
+  background: #202731;
+  color: #f2f4f7;
+  box-shadow: inset 0 0 0 1px #364252;
+}
+
+.ledger-tab-v2.active strong {
+  border-color: #45638d;
+  background: rgba(76, 141, 255, .09);
+  color: #8fb7ff;
+}
+
+.ledger-list-v2 {
+  display: grid;
+  gap: 10px;
+  padding: 0 13px 24px;
+}
+
+.ledger-section-label {
+  padding: 0 2px;
+}
+
+.ledger-receivable-card {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 13px;
+  box-sizing: border-box;
+  overflow: visible;
+  border: 1px solid #303843;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(31, 37, 45, .98), rgba(25, 30, 37, .98));
+  color: #f2f4f7;
+  font: inherit;
+  text-align: left;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .2);
+  appearance: none;
+}
+
+.ledger-receivable-card.tutorial-target {
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+
+.ledger-card-topline {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 9px;
+}
+
+.ledger-card-topline > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.ledger-card-id {
+  color: #f4f6f9;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: -.02em;
+}
+
+.ledger-card-status,
+.receivable-status-pill,
+.invoice-number-pill {
+  flex: 0 0 auto;
+  max-width: 52%;
+  padding: 5px 7px;
+  box-sizing: border-box;
+  border: 1px solid #5b482f;
+  border-radius: 999px;
+  background: rgba(214, 139, 69, .07);
+  color: #d99a5d;
+  font-size: 5.2px;
+  font-weight: 850;
+  line-height: 1.15;
+  letter-spacing: .09em;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.ledger-receivable-card.status-draft .ledger-card-status,
+.receivable-status-pill.status-draft,
+.invoice-number-pill {
+  border-color: #3d5680;
+  background: rgba(76, 141, 255, .08);
+  color: #8fb7ff;
+}
+
+.ledger-receivable-card.status-awaiting-payment .ledger-card-status,
+.receivable-status-pill.status-awaiting-payment {
+  border-color: #3b4654;
+  background: #171c23;
+  color: #a4aebb;
+}
+
+.ledger-receivable-card.status-paid .ledger-card-status,
+.receivable-status-pill.status-paid {
+  border-color: #315547;
+  background: rgba(91, 178, 137, .08);
+  color: #79c39d;
+}
+
+.ledger-card-carrier {
+  display: grid;
+  gap: 4px;
+  padding: 10px 0;
+  border-top: 1px solid #303843;
+  border-bottom: 1px solid #303843;
+}
+
+.ledger-card-carrier span,
+.ledger-card-financials span,
+.ledger-card-detail-row span,
+.ledger-card-footer span:first-child,
+.receivable-summary-row span,
+.invoice-detail-card span,
+.invoice-status-card span,
+.payment-status-card span:first-child {
+  color: #747f8f;
+  font-size: 6.2px;
+  font-weight: 780;
+  line-height: 1.2;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ledger-card-carrier strong {
+  color: #e8ecf1;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.ledger-card-financials {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.ledger-card-financials > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 9px 10px;
+  border: 1px solid #303843;
+  border-radius: 10px;
+  background: #171c23;
+}
+
+.ledger-card-financials strong {
+  color: #e7ebf0;
+  font-size: 10px;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-card-financials > div:last-child strong {
+  color: #79c39d;
+}
+
+.ledger-card-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 1px;
+}
+
+.ledger-card-detail-row strong {
+  min-width: 0;
+  color: #d9dee5;
+  font-size: 7px;
+  font-weight: 650;
+  text-align: right;
+}
+
+.ledger-card-detail-row.paid strong {
+  color: #79c39d;
+}
+
+.ledger-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #303843;
+}
+
+.ledger-card-footer span:first-child {
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 500;
+}
+
+.ledger-card-open {
+  color: #70a4ff;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.ledger-empty-v2 {
+  display: grid;
+  gap: 6px;
+  padding: 18px 14px;
+  border: 1px dashed #303843;
+  border-radius: 12px;
+  background: rgba(24, 29, 36, .6);
+}
+
+.ledger-empty-v2 strong {
+  color: #d8dde4;
+  font-size: 10px;
+}
+
+.ledger-empty-v2 span {
+  color: #7f8997;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.receivable-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 15px 13px 13px;
+  border-bottom: 1px solid #252c35;
+}
+
+.receivable-hero > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.receivable-hero h2 {
+  margin: 0;
+  color: #f4f6f9;
+  font-size: 21px;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: -.035em;
+}
+
+.receivable-hero p {
+  margin: 0;
+  color: #89929f;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.receivable-summary-card {
+  display: grid;
+  margin: 12px 13px 0;
+  overflow: hidden;
+  border: 1px solid #303843;
+  border-radius: 13px;
+  background: #1a2027;
+}
+
+.receivable-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 11px;
+  border-bottom: 1px solid #2b333e;
+}
+
+.receivable-summary-row:last-child {
+  border-bottom: 0;
+}
+
+.receivable-summary-row strong {
+  color: #e7ebf0;
+  font-size: 9px;
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
+}
+
+.receivable-summary-row.total {
+  background: rgba(91, 178, 137, .045);
+}
+
+.receivable-summary-row.total strong {
+  color: #79c39d;
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.invoice-workflow {
+  display: grid;
+  gap: 10px;
+  margin: 15px 13px 0;
+  padding-bottom: 24px;
+}
+
+.invoice-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.invoice-section-heading > div {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.invoice-section-heading h3 {
+  margin: 0;
+  color: #f1f4f7;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+}
+
+.invoice-status-card,
+.invoice-detail-card,
+.payment-status-card {
+  display: grid;
+  gap: 8px;
+  padding: 11px;
+  border: 1px solid #303843;
+  border-radius: 11px;
+  background: #1a2027;
+}
+
+.invoice-status-card.action-needed {
+  border-color: #5b482f;
+  background: rgba(214, 139, 69, .05);
+}
+
+.invoice-status-card strong {
+  color: #e5e9ee;
+  font-size: 9px;
+  font-weight: 680;
+  line-height: 1.35;
+}
+
+.invoice-status-card small {
+  color: #858f9d;
+  font-size: 7px;
+  line-height: 1.45;
+}
+
+.invoice-detail-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #2b333e;
+}
+
+.invoice-detail-card > div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.invoice-detail-card strong {
+  min-width: 0;
+  color: #e3e7ec;
+  font-size: 8px;
+  font-weight: 650;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-detail-card.paid {
+  border-color: #315547;
+  background: rgba(91, 178, 137, .045);
+}
+
+.invoice-detail-card.paid > div:last-child strong {
+  color: #79c39d;
+}
+
+.payment-status-card {
+  grid-template-columns: minmax(0, 1fr) 26px;
+  align-items: center;
+  border-color: #3a4451;
+  background: #171c23;
+}
+
+.payment-status-card > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.payment-status-card strong {
+  color: #dfe4ea;
+  font-size: 9px;
+  font-weight: 680;
+}
+
+.payment-status-card.ready,
+.payment-status-card.paid {
+  border-color: #315547;
+  background: rgba(91, 178, 137, .055);
+}
+
+.payment-status-card.ready strong,
+.payment-status-card.paid strong {
+  color: #79c39d;
+}
+
+.payment-status-indicator {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #3b4654;
+  border-radius: 999px;
+  color: #a4aebb;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.payment-status-card.ready .payment-status-indicator,
+.payment-status-card.paid .payment-status-indicator {
+  border-color: #315547;
+  background: rgba(91, 178, 137, .08);
+  color: #79c39d;
+  font-size: 11px;
+}
+
+.ledger-primary-action {
+  width: calc(100% - 8px);
+  min-height: 46px;
+  margin: 2px 4px 0;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 1px solid #3e4856;
+  border-radius: 11px;
+  background: #28313e;
+  color: #f2f4f7;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.ledger-primary-action.tutorial-target {
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+
+.ledger-wait-note {
+  margin: 0 !important;
+  padding: 0 3px;
+  color: #818b98 !important;
+  font-size: 7px !important;
+  line-height: 1.45;
+}
+
+@media (max-width: 360px) {
+  .ledger-summary-v2 {
+    gap: 4px;
+  }
+
+  .ledger-summary-card {
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+
+  .ledger-tab-v2 {
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Browser Home v2 + LedgerDesk v2 final polish
+   -------------------------------------------------------------------------- */
+
+.browser-home.browser-home-v2 {
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+  display: block;
+  overflow-y: auto;
+  padding: 16px 13px 22px;
+  background:
+    radial-gradient(circle at 50% -8%, rgba(76, 141, 255, .055), transparent 34%),
+    #15191f;
+  color: #edf1f6;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+
+.browser-home-heading {
+  display: grid;
+  gap: 6px;
+  padding: 0 2px 14px;
+}
+
+.browser-home-kicker,
+.browser-bookmarks-label {
+  color: #697383;
+  font-size: 6.5px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.browser-home-heading h2 {
+  margin: 0;
+  color: #f4f6f9;
+  font-size: 20px;
+  font-weight: 720;
+  line-height: 1.08;
+  letter-spacing: -.035em;
+}
+
+.browser-home-heading p {
+  margin: 0;
+  color: #89929f;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.browser-search.browser-search-v2 {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 18px;
+  padding: 0 11px;
+  box-sizing: border-box;
+  border: 1px solid #303843;
+  border-radius: 11px;
+  background: #171c23;
+  color: #8d97a5;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 8px;
+  font-weight: 550;
+  text-align: left;
+  box-shadow: none;
+}
+
+.browser-search-v2 svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  fill: none;
+  stroke: #738093;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+
+.browser-bookmarks-v2 {
+  display: grid;
+  gap: 9px;
+}
+
+.browser-bookmarks-label {
+  padding: 0 2px;
+}
+
+.browser-bookmark-list {
+  display: grid;
+  gap: 8px;
+}
+
+.site-link.browser-bookmark-card {
+  width: 100%;
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 11px;
+  box-sizing: border-box;
+  border: 1px solid #303843;
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(31, 37, 45, .98), rgba(25, 30, 37, .98));
+  color: #edf1f6;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  text-align: left;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .18);
+}
+
+.site-link.browser-bookmark-card:active {
+  transform: scale(.985);
+  border-color: #42638f;
+  background: #202731;
+}
+
+.browser-bookmark-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #3b4654;
+  border-radius: 10px;
+  background: #202731;
+  color: #a8b2c0;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .04em;
+}
+
+.browser-bookmark-icon.carrier {
+  border-color: #5b482f;
+  background: rgba(214, 139, 69, .06);
+  color: #d99a5d;
+}
+
+.browser-bookmark-icon.freight {
+  border-color: #3d5680;
+  background: rgba(76, 141, 255, .08);
+  color: #8fb7ff;
+}
+
+.browser-bookmark-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.browser-bookmark-copy strong {
+  color: #eef2f6;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.browser-bookmark-copy small {
+  color: #7f8997;
+  font-size: 7px;
+  font-weight: 520;
+  line-height: 1.2;
+}
+
+.browser-bookmark-open {
+  color: #70a4ff;
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* Keep the single-word Outstanding label intact without changing the
+   intentional two-line treatment used by Revenue earned. */
+.ledger-summary-card:nth-child(2) span {
+  font-size: 5.2px;
+  letter-spacing: .045em;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+/* Keep the final waiting/payment note clear of the fixed phone navigation. */
+.ledger-receivable-v2 .invoice-workflow {
+  padding-bottom: 64px;
+}
+
+/* =========================================================
+   Opening Experience v2 — Start + Market Selection
+   ========================================================= */
+.entry-screen.start-screen-v2,
+.entry-screen.market-selection-v2 {
+  position: relative;
+  justify-content: center;
+  align-items: stretch;
+  overflow: hidden;
+  padding: 22px;
+  background:
+    radial-gradient(circle at 78% 20%, rgba(76, 141, 255, .12), transparent 34%),
+    radial-gradient(circle at 20% 82%, rgba(92, 194, 151, .08), transparent 30%),
+    #0F1115;
+  color: #F2F4F7;
+  text-align: left;
+}
+
+.entry-map-grid {
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+  opacity: .7;
+  background-image:
+    linear-gradient(rgba(84, 94, 111, .08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(84, 94, 111, .08) 1px, transparent 1px),
+    radial-gradient(circle at 62% 34%, transparent 0 8px, rgba(76, 141, 255, .18) 9px 10px, transparent 11px),
+    radial-gradient(circle at 30% 67%, transparent 0 6px, rgba(92, 194, 151, .13) 7px 8px, transparent 9px);
+  background-size: 42px 42px, 42px 42px, 100% 100%, 100% 100%;
+  transform: rotate(-7deg) scale(1.08);
+  animation: entry-grid-drift 18s ease-in-out infinite alternate;
+}
+
+.entry-map-grid::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  top: 12%;
+  width: 62%;
+  height: 70%;
+  border-left: 2px solid rgba(76, 141, 255, .13);
+  border-bottom: 2px solid rgba(76, 141, 255, .08);
+  border-radius: 45% 12% 42% 20%;
+  transform: rotate(22deg);
+}
+
+.start-terminal-card,
+.market-terminal-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #303846;
+  border-radius: 20px;
+  background: rgba(16, 20, 26, .94);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .36);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.start-terminal-card {
+  padding: 24px;
+}
+
+.start-network-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #91A0B5;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+
+.start-network-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #5CC297;
+  box-shadow: 0 0 0 4px rgba(92, 194, 151, .10), 0 0 14px rgba(92, 194, 151, .35);
+}
+
+.start-brand-lockup {
+  padding: 52px 0 32px;
+}
+
+.start-kicker,
+.market-kicker {
+  display: block;
+  color: #7E8CA1;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .20em;
+}
+
+.entry-screen.start-screen-v2 h1 {
+  margin: 8px 0 8px;
+  font-size: 50px;
+  line-height: .98;
+  letter-spacing: -.045em;
+}
+
+.start-brand-lockup p {
+  max-width: 270px;
+  margin: 0;
+  color: #A6B0BE;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.start-system-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.start-system-grid > div {
+  min-width: 0;
+  padding: 12px 10px;
+  border: 1px solid #2B3441;
+  border-radius: 11px;
+  background: #171C23;
+}
+
+.start-system-grid span,
+.start-system-grid strong {
+  display: block;
+}
+
+.start-system-grid span {
+  color: #758399;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .11em;
+  white-space: nowrap;
+}
+
+.start-system-grid strong {
+  margin-top: 6px;
+  overflow: hidden;
+  color: #DCE2EA;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-overflow: ellipsis;
+}
+
+.entry-button.start-primary-action,
+.confirm-button.market-confirm-action {
+  width: 100%;
+  min-height: 58px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 18px;
+  border: 1px solid #4C8DFF;
+  border-radius: 13px;
+  background: #223148;
+  color: #F5F7FA;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .16em;
+  box-shadow: 0 0 0 3px rgba(76, 141, 255, .14);
+}
+
+.entry-button.start-primary-action span:last-child,
+.confirm-button.market-confirm-action span:last-child,
+.market-arrow {
+  color: #72A4FF;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.start-terminal-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  color: #596678;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.market-terminal-card {
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.market-selection-header {
+  flex: 0 0 auto;
+  padding: 2px 2px 16px;
+}
+
+.market-heading-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  margin-top: 7px;
+}
+
+.market-selection-v2 .market-heading-row h1 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.05;
+  letter-spacing: -.035em;
+}
+
+.market-heading-row p {
+  margin: 8px 0 0;
+  color: #8F9BAC;
+  font-size: 12px;
+  line-height: 1.42;
+}
+
+.market-count {
+  margin-top: 3px;
+  padding: 6px 8px;
+  border: 1px solid #354052;
+  border-radius: 999px;
+  color: #7F8CA0;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  white-space: nowrap;
+}
+
+.market-list.market-list-v2 {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  gap: 10px;
+  overflow-y: auto;
+  padding: 2px 4px 2px 2px;
+  scrollbar-width: none;
+}
+.market-list.market-list-v2::-webkit-scrollbar { display: none; }
+
+.market-selection-v2 .market-card {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #303946;
+  border-radius: 14px;
+  background: #181E26;
+  color: #F2F4F7;
+  box-shadow: none;
+}
+
+.market-selection-v2 .market-card.selected {
+  border-color: #4C8DFF;
+  background: #1D2633;
+  box-shadow: 0 0 0 3px rgba(76, 141, 255, .14);
+}
+
+.market-card-featured {
+  display: block;
+  padding: 16px;
+}
+
+.market-card-topline,
+.market-card-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.market-card-title-row {
+  margin-top: 14px;
+  align-items: flex-start;
+}
+
+.market-card-title-row > div,
+.market-card-locked > div {
+  min-width: 0;
+}
+
+.market-card-title-row strong,
+.market-card-title-row small,
+.market-card-locked strong,
+.market-card-locked small,
+.market-region {
+  display: block;
+}
+
+.market-card-title-row strong {
+  font-size: 23px;
+  line-height: 1.05;
+  letter-spacing: -.02em;
+}
+
+.market-card-title-row small {
+  margin-top: 4px;
+  color: #8D99AA;
+  font-size: 11px;
+}
+
+.market-region {
+  color: #7E8CA1;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .16em;
+}
+
+.market-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 9px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .13em;
+  white-space: nowrap;
+}
+
+.market-status.available {
+  border-color: #2F6A53;
+  background: rgba(34, 91, 69, .18);
+  color: #69C89C;
+}
+
+.market-status.locked {
+  border-color: #3B4452;
+  background: #171C23;
+  color: #758196;
+}
+
+.market-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 15px;
+}
+
+.market-feature-grid span {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid #2C3542;
+  border-radius: 10px;
+  background: #151A21;
+}
+
+.market-feature-grid small,
+.market-feature-grid strong {
+  display: block;
+}
+
+.market-feature-grid small {
+  color: #6F7D90;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.market-feature-grid strong {
+  margin-top: 4px;
+  color: #D8DEE7;
+  font-size: 10px;
+}
+
+.market-card-locked {
+  min-height: 88px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  opacity: .76;
+}
+
+.market-card-locked strong {
+  margin-top: 6px;
+  font-size: 16px;
+}
+
+.market-card-locked small {
+  margin-top: 5px;
+  overflow: hidden;
+  color: #788496;
+  font-size: 10px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+}
+
+.confirm-button.market-confirm-action {
+  flex: 0 0 auto;
+  margin-top: 14px;
+}
+
+.confirm-button.market-confirm-action:disabled {
+  border-color: #343C49;
+  background: #181D24;
+  color: #6F7989;
+  box-shadow: none;
+  opacity: 1;
+}
+
+.time-controls button.tutorial-time-control {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes entry-grid-drift {
+  from { transform: rotate(-7deg) scale(1.08) translate3d(-4px, -3px, 0); }
+  to { transform: rotate(-7deg) scale(1.08) translate3d(8px, 6px, 0); }
+}
+
+@media (max-height: 700px) {
+  .entry-screen.start-screen-v2,
+  .entry-screen.market-selection-v2 { padding: 14px; }
+  .start-terminal-card,
+  .market-terminal-card { padding: 16px; }
+  .start-brand-lockup { padding: 30px 0 22px; }
+  .entry-screen.start-screen-v2 h1 { font-size: 42px; }
+  .market-card-featured { padding: 13px; }
+  .market-card-locked { min-height: 74px; padding: 11px 13px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry-map-grid { animation: none; }
+}
+
+.carrier-review-wait {
+  position: absolute;
+  z-index: 4;
+  top: 66px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid #343E4D;
+  border-radius: 999px;
+  background: rgba(15, 18, 24, .94);
+  color: #8D9AAF;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .20);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .12em;
+  white-space: nowrap;
+}
+
+.carrier-review-wait strong {
+  color: #DCE3ED;
+  font-size: 8px;
+}
+
+.carrier-review-wait-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #D68B45;
+  box-shadow: 0 0 0 3px rgba(214, 139, 69, .10);
+}
+
+/* =========================================================
+   Opening Experience v2.1 — Live operational map background
+   ========================================================= */
+.phone-shell {
+  position: relative;
+}
+
+.entry-live-map {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: #0F1115;
+  pointer-events: none;
+}
+
+.entry-live-map-canvas {
+  position: absolute;
+  inset: -2%;
+  width: 104%;
+  height: 104%;
+  filter: saturate(.78) brightness(.72) contrast(1.04);
+}
+
+.entry-live-map-tone {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 77% 17%, rgba(76, 141, 255, .16), transparent 34%),
+    radial-gradient(circle at 18% 82%, rgba(92, 194, 151, .09), transparent 31%),
+    linear-gradient(180deg, rgba(8, 11, 15, .12), rgba(8, 11, 15, .42));
+  box-shadow: inset 0 0 90px rgba(0, 0, 0, .42);
+}
+
+.entry-screen.start-screen-v2,
+.entry-screen.market-selection-v2 {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+.entry-screen.start-screen-v2::before,
+.entry-screen.market-selection-v2::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(8, 11, 15, .12), rgba(8, 11, 15, .22));
+}
+
+.start-terminal-card,
+.market-terminal-card {
+  background: rgba(16, 20, 26, .91);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .42);
+}
+
+.entry-map-attribution {
+  opacity: .62;
+}
+
+.entry-map-attribution.maplibregl-ctrl-attrib.maplibregl-compact {
+  margin: 0 0 8px 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry-live-map-canvas {
+    filter: saturate(.78) brightness(.72) contrast(1.04);
+  }
+}
+
+
+/* =========================================================
+   Opening Experience v2.2.3 — Full Recovery / Stable Continuity
+   Restores the approved v2 entry components and keeps one live
+   entry map across Start -> Market. Gameplay uses the same map
+   style/tone without overlapping MapLibre instances on iOS.
+   ========================================================= */
+:root {
+  --docos-map-softness: saturate(.86) brightness(.88) contrast(.98);
+  --docos-entry-panel: rgba(15, 18, 24, .88);
+  --docos-entry-border: rgba(69, 80, 96, .72);
+}
+
+.phone-shell {
+  position: relative;
+  isolation: isolate;
+  background: #11161d;
+}
+
+.entry-live-map {
+  z-index: 0;
+  transform: none;
+  -webkit-transform: none;
+}
+
+.entry-live-map-canvas,
+.game-map .maplibregl-canvas {
+  filter: var(--docos-map-softness);
+  -webkit-filter: var(--docos-map-softness);
+}
+
+.entry-live-map-tone {
+  background:
+    radial-gradient(circle at 78% 18%, rgba(76, 141, 255, .055), transparent 31%),
+    radial-gradient(circle at 18% 82%, rgba(92, 194, 151, .025), transparent 28%),
+    linear-gradient(180deg, rgba(10, 13, 18, .045), rgba(10, 13, 18, .10));
+  box-shadow: inset 0 0 64px rgba(0, 0, 0, .20);
+}
+
+/* UI is always above the entry map. This generic selector is intentional:
+   even a future entry screen cannot accidentally fall behind MapLibre. */
+.entry-screen {
+  position: relative;
+  z-index: 2;
+}
+
+.entry-screen.start-screen-v2,
+.entry-screen.market-selection-v2 {
+  padding: 16px;
+  background: transparent;
+  animation: docos-entry-panel-in .30s cubic-bezier(.22, .8, .28, 1) both;
+}
+
+.entry-screen.start-screen-v2::before,
+.entry-screen.market-selection-v2::before {
+  background: linear-gradient(180deg, rgba(8, 11, 15, .04), rgba(8, 11, 15, .09));
+}
+
+.start-terminal-card,
+.market-terminal-card {
+  width: min(100%, 346px);
+  margin-inline: auto;
+  border-color: var(--docos-entry-border);
+  border-radius: 15px;
+  background: var(--docos-entry-panel);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, .32);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.start-terminal-card {
+  padding: 18px;
+}
+
+.start-brand-lockup {
+  padding: 30px 0 18px;
+}
+
+.entry-screen.start-screen-v2 h1 {
+  font-size: 44px;
+}
+
+.start-brand-lockup p {
+  max-width: 258px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.start-system-grid {
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.start-system-grid > div {
+  padding: 8px 7px;
+  border-radius: 8px;
+  background: rgba(22, 27, 34, .88);
+}
+
+.start-system-grid strong {
+  margin-top: 3px;
+}
+
+.entry-button.start-primary-action,
+.confirm-button.market-confirm-action {
+  min-height: 50px;
+  padding-inline: 15px;
+  border-radius: 10px;
+}
+
+.start-terminal-footer {
+  margin-top: 10px;
+}
+
+.market-terminal-card {
+  padding: 14px;
+}
+
+.market-selection-header {
+  padding: 0 2px 9px;
+}
+
+.market-heading-row {
+  margin-top: 4px;
+}
+
+.market-selection-v2 .market-heading-row h1 {
+  font-size: 25px;
+}
+
+.market-heading-row p {
+  margin-top: 5px;
+  font-size: 10px;
+  line-height: 1.34;
+}
+
+.market-list.market-list-v2 {
+  gap: 7px;
+}
+
+.market-selection-v2 .market-card {
+  border-radius: 11px;
+  background: rgba(24, 30, 38, .90);
+}
+
+.market-card-featured {
+  padding: 12px;
+}
+
+.market-card-title-row {
+  margin-top: 8px;
+}
+
+.market-card-title-row strong {
+  font-size: 20px;
+}
+
+.market-feature-grid {
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.market-feature-grid span {
+  padding: 6px 7px;
+  border-radius: 7px;
+  background: rgba(20, 25, 32, .90);
+}
+
+.market-card-locked {
+  min-height: 60px;
+  padding: 9px 11px;
+}
+
+.market-card-locked strong {
+  margin-top: 3px;
+  font-size: 15px;
+}
+
+.market-card-locked small {
+  margin-top: 2px;
+  font-size: 9px;
+}
+
+.confirm-button.market-confirm-action {
+  margin-top: 8px;
+}
+
+/* Gameplay deliberately becomes its own map instance after market confirm.
+   The matching map style, canvas filter and shell color eliminate the harsh
+   light/dark jump without stacking two MapLibre canvases on iOS. */
+.main-game-screen {
+  position: relative;
+  z-index: 2;
+  background: #11161d;
+  animation: docos-game-stage-in .28s ease-out both;
+}
+
+.main-game-screen .map-area {
+  background: #11161d;
+}
+
+@keyframes docos-entry-panel-in {
+  from { opacity: 0; transform: translate3d(0, 4px, 0) scale(.997); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes docos-game-stage-in {
+  from { opacity: .92; }
+  to { opacity: 1; }
+}
+
+@media (max-height: 700px) {
+  .entry-screen.start-screen-v2,
+  .entry-screen.market-selection-v2 { padding: 11px; }
+  .start-terminal-card { padding: 14px; }
+  .market-terminal-card { padding: 12px; }
+  .start-brand-lockup { padding: 22px 0 14px; }
+  .entry-screen.start-screen-v2 h1 { font-size: 39px; }
+  .market-card-featured { padding: 10px; }
+  .market-card-locked { min-height: 56px; padding: 7px 9px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry-screen.start-screen-v2,
+  .entry-screen.market-selection-v2,
+  .main-game-screen {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -10,6 +10,7 @@ import { getMarcusPanelModel } from './utils/driverOperationalState.js'
 import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
 import MainGameScreen from './components/MainGameScreen.jsx'
 import StartScreen from './components/StartScreen.jsx'
+import EntryLiveMap from './components/EntryLiveMap.jsx'
 import { clearSave, loadGame, saveGame } from './utils/saveGame.js'
 import { createDevPreset } from './dev/devPresets.js'
 import { getReceivables } from './utils/ledger.js'
@@ -93,9 +94,13 @@ function App() {
       if (application.status === 'PENDING' && now >= application.responseGameMinute) {
         setCarrierApplicationsById((current) => ({ ...current, [carrierId]: { ...current[carrierId], status: 'OFFER_RECEIVED' } }))
         setEmailMessages((current) => current.some((message) => message.id === `${carrierId}-application-approved`) ? current : [...current, { id: `${carrierId}-application-approved`, type: 'carrier-application-offer', carrierId, subject: 'Dispatch Service Application — Approved', receivedGameMinute: application.responseGameMinute, read: false }])
+        if (tutorialState.enabled && !tutorialState.completed && carrierId === 'metroline') {
+          setIsGameClockPaused(true)
+          setSimulationSpeed(1)
+        }
       }
     })
-  }, [gameTime, carrierApplicationsById])
+  }, [gameTime, carrierApplicationsById, tutorialState.enabled, tutorialState.completed])
 
   useEffect(() => {
     if (!hydrated || !tutorialState.enabled || tutorialState.completed) return
@@ -180,7 +185,7 @@ function App() {
     const delivery = mapLocations.find((location) => location.id === completed.deliveryLocationId)
     if (!delivery) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDrivers((current) => current.map((driver) => driver.id === completed.assignedDriverId ? { ...driver, status: 'available', assignedLoadId: null, longitude: delivery.longitude, latitude: delivery.latitude } : driver))
+    setDrivers((current) => current.map((driver) => driver.id === completed.assignedDriverId ? { ...driver, status: 'available', assignedLoadId: null, longitude: delivery.longitude, latitude: delivery.latitude, lastKnownLocationId: completed.deliveryLocationId } : driver))
     setLoads((current) => current.map((load) => load.id === completed.id && load.tripStatus === 'delivered' ? { ...load, tripStatus: 'completed', status: 'completed', completedDriverId: completed.assignedDriverId, assignedDriverId: null } : load))
   }, [loads])
 
@@ -220,6 +225,7 @@ function App() {
   return (
     <main className="app">
       <section className="phone-shell">
+        {stage !== 'game' && <EntryLiveMap stage={stage} selectedMarket={selectedMarket} />}
         {stage === 'start' && <StartScreen onStart={() => setStage('market')} />}
         {stage === 'market' && (
           <MarketSelectionScreen
