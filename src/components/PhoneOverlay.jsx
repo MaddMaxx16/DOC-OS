@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import HomeScreen from './HomeScreen.jsx'
 import LoadDetailsScreen from './LoadDetailsScreen.jsx'
 import LoadBoardScreen from './LoadBoardScreen.jsx'
@@ -18,12 +18,31 @@ import { getReceivables } from '../utils/ledger.js'
 
 function getReceivable(loads, carriers, workflows, id) { return getReceivables(loads, carriers, workflows).find((item) => item.loadId === id) }
 
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], carrierApplicationsById = {}, onApplyCarrier, onAcceptAgreement, emailMessages = [], setEmailMessages, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, tutorialEnabled = false, initialScreen = 'home', initialLoadId = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, setLedgerWorkflowByLoadId, onClose }) {
+function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], carrierApplicationsById = {}, onApplyCarrier, onAcceptAgreement, emailMessages = [], setEmailMessages, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, tutorialEnabled = false, initialScreen = 'home', initialLoadId = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, setLedgerWorkflowByLoadId, onResetGame, onClose }) {
   const [screen, setScreen] = useState(initialScreen)
   const [documentsTab, setDocumentsTab] = useState('pending')
   const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
   const [selectedEmailId, setSelectedEmailId] = useState(null)
   const [activeTutorialEmailId, setActiveTutorialEmailId] = useState(null)
+  const [resetPromptOpen, setResetPromptOpen] = useState(false)
+  const resetHoldTimer = useRef(null)
+
+  const cancelResetHold = () => {
+    if (resetHoldTimer.current) {
+      window.clearTimeout(resetHoldTimer.current)
+      resetHoldTimer.current = null
+    }
+  }
+
+  const beginResetHold = () => {
+    cancelResetHold()
+    resetHoldTimer.current = window.setTimeout(() => {
+      resetHoldTimer.current = null
+      setResetPromptOpen(true)
+      if (navigator.vibrate) navigator.vibrate(25)
+    }, 900)
+  }
+
   const selectedLoad = loads.find((load) => load.id === selectedLoadId)
   const roundTwo = emailMessages.find((message) => message.id === 'mentor-round-two')
   const tutorialLoadId = roundTwo ? 'DOC002' : 'DOC001'
@@ -75,20 +94,44 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], car
       <span className="phone-hardware-speaker" aria-hidden="true" />
       <button type="button" className={`phone-close-button ${tutorialTarget === 'phone-close' ? 'tutorial-target' : ''}`} onClick={onClose} aria-label="Close phone">×</button>
       <div className="phone-device-screen">
-        <div className="phone-status-bar" aria-hidden="true">
-          <span className="phone-status-brand">DOC OS</span>
-          <span className="phone-status-icons">
+        <div className="phone-status-bar">
+          <button
+            type="button"
+            className="phone-status-brand phone-reset-trigger"
+            aria-label="Hold DOC OS to reset game"
+            onPointerDown={beginResetHold}
+            onPointerUp={cancelResetHold}
+            onPointerCancel={cancelResetHold}
+            onPointerLeave={cancelResetHold}
+            onContextMenu={(event) => event.preventDefault()}
+          >
+            DOC OS
+          </button>
+          <span className="phone-status-icons" aria-hidden="true">
             <svg className="phone-status-signal" viewBox="0 0 18 12"><rect x="1" y="8" width="2" height="3" rx=".6"/><rect x="5" y="6" width="2" height="5" rx=".6"/><rect x="9" y="3.5" width="2" height="7.5" rx=".6"/><rect x="13" y="1" width="2" height="10" rx=".6"/></svg>
             <svg className="phone-status-wifi" viewBox="0 0 18 12"><path d="M2 4.5c4.4-3.3 9.6-3.3 14 0M4.8 7.1c2.7-2 5.7-2 8.4 0M7.4 9.4c1-.7 2.2-.7 3.2 0"/></svg>
             <span className="phone-status-battery"><span /></span>
           </span>
         </div>
+        {resetPromptOpen && (
+          <div className="phone-reset-overlay" role="dialog" aria-modal="true" aria-labelledby="phone-reset-title">
+            <div className="phone-reset-dialog">
+              <span className="phone-reset-kicker">DEVELOPER RESET</span>
+              <strong id="phone-reset-title">Start a fresh game?</strong>
+              <p>This clears the current DOC OS save and returns you to the beginning.</p>
+              <div className="phone-reset-actions">
+                <button type="button" onClick={() => setResetPromptOpen(false)}>CANCEL</button>
+                <button type="button" className="danger" onClick={() => onResetGame?.()}>RESET GAME</button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="phone-app-viewport">
 
       {screen === 'home' ? (
         <HomeScreen tutorialTarget={tutorialTarget} onOpenBrowser={() => setScreen('browser')} onOpenDocuments={() => setScreen('documents')} onOpenLedger={() => { onOpenLedger?.(); setScreen('ledger') }} onOpenEmail={() => setScreen('email')} emailBadgeCount={emailUnreadCount} documentsBadgeCount={documentsBadgeCount} ledgerUnreadCount={ledgerUnreadCount} />
       ) : screen === 'email' ? (
-        <EmailScreen messages={emailMessages} carriers={carriers} tutorialTarget={tutorialTarget} onBack={() => setScreen('home')} onOpenMessage={(message) => { const isCurrentTutorialEmail = tutorialTarget === `email:${message.id}`; setActiveTutorialEmailId(isCurrentTutorialEmail ? message.id : null); setEmailMessages?.((current) => current.map((item) => item.id === message.id ? { ...item, read: true } : item)); setSelectedEmailId(message.id); setScreen('emailDetail') }} />
+        <EmailScreen messages={emailMessages} carriers={carriers} tutorialTarget={tutorialTarget} currentGameMinute={gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay} onBack={() => setScreen('home')} onOpenMessage={(message) => { const isCurrentTutorialEmail = tutorialTarget === `email:${message.id}`; setActiveTutorialEmailId(isCurrentTutorialEmail ? message.id : null); setEmailMessages?.((current) => current.map((item) => item.id === message.id ? { ...item, read: true } : item)); setSelectedEmailId(message.id); setScreen('emailDetail') }} />
       ) : screen === 'emailDetail' ? (
         <EmailDetailScreen message={emailMessages.find((item) => item.id === selectedEmailId)} carrier={carriers.find((item) => item.id === emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId)} tutorialTarget={tutorialTarget} onBack={() => { setActiveTutorialEmailId(null); setScreen('email') }} onReview={(destination) => { setActiveTutorialEmailId(null); setScreen(destination === 'freightlink' ? 'loadBoard' : destination === 'agreement' ? 'carrierOpportunity' : 'carrierSource') }} />
       ) : screen === 'ledger' ? (

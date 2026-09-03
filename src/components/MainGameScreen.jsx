@@ -233,6 +233,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}
             setLedgerWorkflowByLoadId={setLedgerWorkflowByLoadId}
             onEvaluateFit={startEvaluation}
+            onResetGame={onResetGame}
             onClose={() => setIsPhoneOpen(false)}
           />
         )}

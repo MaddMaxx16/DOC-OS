@@ -1295,3 +1295,577 @@
     min-height: 288px;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Email Inbox v2
+   Compact, modern inbox rows that preserve DOC OS notification/tutorial logic.
+   -------------------------------------------------------------------------- */
+.email-inbox-screen {
+  min-height: 100%;
+  padding: 12px 10px 10px;
+  overflow-y: auto;
+  color: #eef1f5;
+  background:
+    radial-gradient(circle at 50% -20%, rgba(76, 141, 255, .05), transparent 32%),
+    var(--phone-screen);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+
+.email-inbox-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 0 2px 9px;
+  border-bottom: 1px solid rgba(76, 84, 99, .24);
+}
+
+.email-inbox-back {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0 0 2px;
+  border: 1px solid #2c333e;
+  border-radius: 10px;
+  background: #171b22;
+  color: #b7bec9;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+  font: 400 24px/1 Inter, system-ui, sans-serif;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.email-inbox-back:active {
+  transform: scale(.96);
+  background: #1d222b;
+}
+
+.email-inbox-heading {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.email-inbox-heading h2 {
+  margin: 0;
+  color: #f2f4f7;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.025em;
+}
+
+.email-inbox-heading > span {
+  flex: 0 0 auto;
+  color: #8f98a5;
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: .02em;
+}
+
+.email-inbox-list {
+  width: 100%;
+}
+
+.email-inbox-row {
+  position: relative;
+  width: 100%;
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 7px;
+  margin: 0;
+  padding: 11px 4px 10px 1px;
+  border: 0;
+  border-bottom: 1px solid rgba(76, 84, 99, .22);
+  border-radius: 0;
+  background: transparent;
+  color: #e9edf2;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.email-inbox-row:active {
+  background: rgba(255,255,255,.025);
+}
+
+.email-unread-column {
+  min-height: 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.email-unread-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #d68b45;
+  box-shadow: 0 0 8px rgba(214, 139, 69, .24);
+}
+
+.email-row-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.email-row-topline {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 7px;
+}
+
+.email-row-sender {
+  min-width: 0;
+  overflow: hidden;
+  color: #e8ecf1;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-inbox-row.unread .email-row-sender {
+  color: #f4f6f8;
+  font-weight: 760;
+}
+
+.email-row-time {
+  flex: 0 0 auto;
+  color: #7f8895;
+  font-size: 7px;
+  font-weight: 550;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.email-row-subject {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: #b8c0cb;
+  font-size: 9px;
+  font-weight: 540;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-inbox-row.unread .email-row-subject {
+  color: #dce1e7;
+  font-weight: 650;
+}
+
+.email-row-preview {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: #707986;
+  font-size: 8px;
+  font-weight: 450;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-inbox-row.read .email-row-sender,
+.email-inbox-row.read .email-row-subject {
+  opacity: .82;
+}
+
+.email-inbox-row.tutorial-target {
+  z-index: 1;
+  border-bottom-color: transparent;
+  border-radius: 9px;
+  outline-width: 2px;
+  outline-offset: -2px;
+  background: rgba(76, 141, 255, .055);
+  box-shadow: 0 0 0 3px rgba(76,141,255,.13), 0 0 14px rgba(76,141,255,.26);
+}
+
+.email-inbox-empty {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  color: #65707d;
+  font-size: 9px;
+}
+
+/* --------------------------------------------------------------------------
+   Email Message v2
+   Modern message view that inherits the locked Phone Home + Inbox v2 shell.
+   -------------------------------------------------------------------------- */
+.email-detail-screen {
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  color: #e9edf2;
+  background:
+    radial-gradient(circle at 50% -20%, rgba(76, 141, 255, .045), transparent 30%),
+    var(--phone-screen);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+
+.email-detail-toolbar {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 6px 12px 4px;
+}
+
+.email-detail-back {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0 0 2px;
+  border: 1px solid #2c333e;
+  border-radius: 10px;
+  background: #171b22;
+  color: #b7bec9;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+  font: 400 24px/1 Inter, system-ui, sans-serif;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.email-detail-back:active {
+  transform: scale(.96);
+  background: #1d222b;
+}
+
+.email-detail-scroll {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 3px 15px 18px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.email-message {
+  width: 100%;
+}
+
+.email-message-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.email-message-sender {
+  color: #f2f4f7;
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.25;
+  letter-spacing: -.015em;
+}
+
+.email-message-subject {
+  margin: 0;
+  color: #cbd1d9;
+  font-size: 11px;
+  font-weight: 590;
+  line-height: 1.35;
+  letter-spacing: -.012em;
+}
+
+.email-message-time {
+  margin-top: 1px;
+  color: #737d8a;
+  font-size: 7.5px;
+  font-weight: 550;
+  line-height: 1.2;
+  letter-spacing: .015em;
+}
+
+.email-message-divider {
+  width: 100%;
+  height: 1px;
+  margin: 12px 0 14px;
+  background: rgba(76, 84, 99, .24);
+}
+
+.email-message-body {
+  color: #b7bec8;
+  font-size: 10px;
+  font-weight: 430;
+  line-height: 1.58;
+  letter-spacing: -.006em;
+}
+
+.email-message-body p {
+  margin: 0 0 11px;
+}
+
+.email-message-body p:last-child {
+  margin-bottom: 0;
+}
+
+.email-agreement-summary {
+  margin-top: 18px;
+  padding: 12px;
+  border: 1px solid #2a313b;
+  border-radius: 12px;
+  background: #151920;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
+}
+
+.email-agreement-eyebrow {
+  display: block;
+  margin-bottom: 10px;
+  color: #7f8996;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.email-agreement-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.email-agreement-grid > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.email-agreement-grid span {
+  color: #747e8a;
+  font-size: 7px;
+  font-weight: 520;
+  line-height: 1.25;
+}
+
+.email-agreement-grid strong {
+  color: #e3e7ec;
+  font-size: 10px;
+  font-weight: 680;
+  line-height: 1.25;
+}
+
+.email-detail-action-bar {
+  padding: 9px 12px 10px;
+  border-top: 1px solid rgba(76, 84, 99, .22);
+  background: linear-gradient(180deg, rgba(15,17,21,.92), rgba(15,17,21,.99));
+  box-shadow: 0 -8px 18px rgba(0,0,0,.16);
+}
+
+.email-detail-action {
+  width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid #394351;
+  border-radius: 10px;
+  background: #1b2028;
+  color: #e8ecf1;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025),
+    0 6px 14px rgba(0,0,0,.18);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 8px;
+  font-weight: 720;
+  line-height: 1;
+  letter-spacing: .075em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.email-detail-action:active {
+  transform: scale(.985);
+  background: #222934;
+}
+
+.email-detail-action.tutorial-target {
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+
+.email-detail-missing .email-detail-scroll {
+  display: grid;
+  place-items: center;
+  color: #747e8a;
+  font-size: 9px;
+}
+
+/* --------------------------------------------------------------------------
+   Email v2 tutorial highlight reinforcement
+   Keep the modern compact email UI while making the current tutorial target
+   unmistakably blue. These selectors intentionally live after the Email v2
+   styles so the generic tutorial glow cannot be visually muted by later rules.
+   -------------------------------------------------------------------------- */
+.email-inbox-row.tutorial-target {
+  position: relative;
+  z-index: 2;
+  border-radius: 9px;
+  outline: 2px solid #4C8DFF !important;
+  outline-offset: -2px !important;
+  background: rgba(76, 141, 255, .08) !important;
+  box-shadow:
+    0 0 0 3px rgba(76, 141, 255, .24),
+    0 0 18px rgba(76, 141, 255, .52) !important;
+  animation: email-tutorial-glow 1.8s ease-in-out infinite !important;
+}
+
+.email-detail-action.tutorial-target {
+  position: relative;
+  z-index: 2;
+  border-color: #4C8DFF !important;
+  outline: 2px solid #4C8DFF !important;
+  outline-offset: 2px !important;
+  background: #1d2634 !important;
+  box-shadow:
+    0 0 0 3px rgba(76, 141, 255, .22),
+    0 0 20px rgba(76, 141, 255, .52),
+    inset 0 1px 0 rgba(255, 255, 255, .035) !important;
+  animation: email-tutorial-glow 1.8s ease-in-out infinite !important;
+}
+
+@keyframes email-tutorial-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px rgba(76, 141, 255, .20),
+      0 0 15px rgba(76, 141, 255, .42);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(76, 141, 255, .30),
+      0 0 24px rgba(76, 141, 255, .66);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .email-inbox-row.tutorial-target,
+  .email-detail-action.tutorial-target {
+    animation: none !important;
+  }
+}
+
+
+/* --------------------------------------------------------------------------
+   iPhone development reset shortcut
+   Hold the DOC OS brand in the phone status bar for ~0.9s to open reset.
+   This keeps the locked Phone Home v2 layout visually unchanged.
+   -------------------------------------------------------------------------- */
+.phone-reset-trigger {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: #d9dde4;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: .18em;
+  cursor: default;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+.phone-reset-trigger:focus-visible {
+  outline: 1px solid rgba(82, 145, 255, .7);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.phone-reset-overlay {
+  position: absolute;
+  z-index: 40;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(5, 7, 10, .72);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.phone-reset-dialog {
+  width: min(100%, 230px);
+  box-sizing: border-box;
+  padding: 18px;
+  border: 1px solid #353e4a;
+  border-radius: 16px;
+  background: #151a21;
+  box-shadow: 0 22px 55px rgba(0, 0, 0, .55);
+  color: #e7eaf0;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+
+.phone-reset-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: #d68b45;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+
+.phone-reset-dialog strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.phone-reset-dialog p {
+  margin: 0;
+  color: #9da5b1;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.phone-reset-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.phone-reset-actions button {
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid #353e4a;
+  border-radius: 10px;
+  background: #1d232c;
+  color: #cbd1da;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.phone-reset-actions button.danger {
+  border-color: rgba(214, 139, 69, .65);
+  background: #30231d;
+  color: #f0c39a;
+}

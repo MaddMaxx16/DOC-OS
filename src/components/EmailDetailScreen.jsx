@@ -1,4 +1,102 @@
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 import { mentorMessages } from '../data/tutorialContent.js'
-function EmailDetailScreen({ message, carrier, onReview, onBack, tutorialTarget = null }) { if (!message) return <div className="phone-page"><p>Message unavailable.</p><button type="button" className="back-button email-back-button" onClick={onBack}>BACK</button></div>; const template = mentorMessages[message.templateId]; const isMentor = message.type === 'mentor'; return <div className="phone-page"><div className="screen-header"><button type="button" className="back-button email-back-button" onClick={onBack}>‹</button><h2>EMAIL</h2></div><p>FROM<br />{template?.sender || carrier?.name}</p><p>SUBJECT<br />{template?.subject || message.subject}</p><p>RECEIVED<br />{formatCompactDate(Math.floor(message.receivedGameMinute / 1440))} • {formatTime(message.receivedGameMinute % 1440)}</p><p>{message.bodyOverride || template?.body || 'We reviewed your application and would like to move forward with dispatch services.'}</p>{!isMentor && <><h3>PROPOSED AGREEMENT</h3><p>Dispatch Fee<br />8%</p><p>Payment Terms<br />1 Day</p></>}{template?.action === 'OPEN CARRIERSOURCE' && <button type="button" className={`action-button ${tutorialTarget === 'open-carriersource' ? 'tutorial-target' : ''}`} onClick={() => onReview('carrierSource')}>OPEN CARRIERSOURCE</button>}{template?.action === 'OPEN FREIGHTLINK' && <button type="button" className={`action-button ${tutorialTarget === 'open-freightlink' ? 'tutorial-target' : ''}`} onClick={() => onReview('freightlink')}>OPEN FREIGHTLINK</button>}{!isMentor && !template && <button type="button" className={`action-button ${tutorialTarget === 'review-agreement' ? 'tutorial-target' : ''}`} onClick={() => onReview('agreement')}>REVIEW AGREEMENT</button>}</div> }
+
+function EmailDetailScreen({ message, carrier, onReview, onBack, tutorialTarget = null }) {
+  if (!message) {
+    return (
+      <div className="phone-page email-detail-screen email-detail-missing">
+        <header className="email-detail-toolbar">
+          <button type="button" className="email-detail-back" onClick={onBack} aria-label="Back to inbox">‹</button>
+        </header>
+        <div className="email-detail-scroll">
+          <p>Message unavailable.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const template = mentorMessages[message.templateId]
+  const isMentor = message.type === 'mentor'
+  const sender = template?.sender || carrier?.name || 'DOC OS'
+  const subject = template?.subject || message.subject || 'Message'
+  const receivedDate = formatCompactDate(Math.floor(message.receivedGameMinute / 1440))
+  const receivedTime = formatTime(message.receivedGameMinute % 1440)
+  const body = message.bodyOverride || template?.body || 'We reviewed your application and would like to move forward with dispatch services.'
+
+  let action = null
+  if (template?.action === 'OPEN CARRIERSOURCE') {
+    action = {
+      label: 'OPEN CARRIERSOURCE',
+      target: 'open-carriersource',
+      destination: 'carrierSource',
+    }
+  } else if (template?.action === 'OPEN FREIGHTLINK') {
+    action = {
+      label: 'OPEN FREIGHTLINK',
+      target: 'open-freightlink',
+      destination: 'freightlink',
+    }
+  } else if (!isMentor && !template) {
+    action = {
+      label: 'REVIEW AGREEMENT',
+      target: 'review-agreement',
+      destination: 'agreement',
+    }
+  }
+
+  return (
+    <div className="phone-page email-detail-screen">
+      <header className="email-detail-toolbar">
+        <button type="button" className="email-detail-back" onClick={onBack} aria-label="Back to inbox">‹</button>
+      </header>
+
+      <div className="email-detail-scroll">
+        <article className="email-message">
+          <header className="email-message-header">
+            <strong className="email-message-sender">{sender}</strong>
+            <h2 className="email-message-subject">{subject}</h2>
+            <time className="email-message-time">{receivedDate} · {receivedTime}</time>
+          </header>
+
+          <div className="email-message-divider" aria-hidden="true" />
+
+          <div className="email-message-body">
+            {String(body).split(/\n\s*\n/).map((paragraph, index) => (
+              <p key={`${index}-${paragraph.slice(0, 16)}`}>{paragraph}</p>
+            ))}
+          </div>
+
+          {!isMentor && (
+            <section className="email-agreement-summary" aria-label="Proposed agreement summary">
+              <span className="email-agreement-eyebrow">Proposed agreement</span>
+              <div className="email-agreement-grid">
+                <div>
+                  <span>Dispatch fee</span>
+                  <strong>8%</strong>
+                </div>
+                <div>
+                  <span>Payment terms</span>
+                  <strong>1 Day</strong>
+                </div>
+              </div>
+            </section>
+          )}
+        </article>
+      </div>
+
+      {action && (
+        <div className="email-detail-action-bar">
+          <button
+            type="button"
+            className={`email-detail-action ${tutorialTarget === action.target ? 'tutorial-target' : ''}`}
+            onClick={() => onReview(action.destination)}
+          >
+            {action.label}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default EmailDetailScreen
