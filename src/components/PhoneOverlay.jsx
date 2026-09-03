@@ -72,8 +72,18 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], car
 
   return (
     <aside className="phone-overlay">
+      <span className="phone-hardware-speaker" aria-hidden="true" />
       <button type="button" className={`phone-close-button ${tutorialTarget === 'phone-close' ? 'tutorial-target' : ''}`} onClick={onClose} aria-label="Close phone">×</button>
-      <div className="phone-app-viewport">
+      <div className="phone-device-screen">
+        <div className="phone-status-bar" aria-hidden="true">
+          <span className="phone-status-brand">DOC OS</span>
+          <span className="phone-status-icons">
+            <svg className="phone-status-signal" viewBox="0 0 18 12"><rect x="1" y="8" width="2" height="3" rx=".6"/><rect x="5" y="6" width="2" height="5" rx=".6"/><rect x="9" y="3.5" width="2" height="7.5" rx=".6"/><rect x="13" y="1" width="2" height="10" rx=".6"/></svg>
+            <svg className="phone-status-wifi" viewBox="0 0 18 12"><path d="M2 4.5c4.4-3.3 9.6-3.3 14 0M4.8 7.1c2.7-2 5.7-2 8.4 0M7.4 9.4c1-.7 2.2-.7 3.2 0"/></svg>
+            <span className="phone-status-battery"><span /></span>
+          </span>
+        </div>
+        <div className="phone-app-viewport">
 
       {screen === 'home' ? (
         <HomeScreen tutorialTarget={tutorialTarget} onOpenBrowser={() => setScreen('browser')} onOpenDocuments={() => setScreen('documents')} onOpenLedger={() => { onOpenLedger?.(); setScreen('ledger') }} onOpenEmail={() => setScreen('email')} emailBadgeCount={emailUnreadCount} documentsBadgeCount={documentsBadgeCount} ledgerUnreadCount={ledgerUnreadCount} />
@@ -105,8 +115,13 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], car
           {screen === 'routePlanning' && <RoutePlanningScreen loads={loads} plannedRoute={plannedRoute} setPlannedRoute={setPlannedRoute} loadId={selectedLoadId} drivers={drivers} tutorialEnabled={tutorialEnabled && selectedLoadId === tutorialLoadId} onSelectRoute={() => setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? { ...load, selectedRouteId: 'recommended', plannedMiles: plannedRoute.distanceMiles, plannedDriveTimeMinutes: plannedRoute.durationMinutes } : load))} onBack={() => setScreen('loadDetails')} onContinue={() => { setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? { ...load, status: 'route-ready' } : load)); setScreen('loadDetails') }} />}
         </BrowserScreen>
       ) : null}
+        </div>
+        <div className="phone-navigation-bar">
+          <button type="button" className={`phone-home-button ${tutorialTarget === 'phone-home' ? 'tutorial-target' : ''}`} onClick={() => setScreen('home')} aria-label="Phone home">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 10.5 12 4l7.5 6.5v8.75H14v-5.5h-4v5.5H4.5V10.5Z"/></svg>
+          </button>
+        </div>
       </div>
-      <button type="button" className={`phone-home-button ${tutorialTarget === 'phone-home' ? 'tutorial-target' : ''}`} onClick={() => setScreen('home')} aria-label="Phone home">⌂</button>
     </aside>
   )
 }
