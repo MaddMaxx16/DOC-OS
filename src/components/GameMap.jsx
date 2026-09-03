@@ -228,51 +228,121 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDr
     record.markerElement.classList.toggle('tutorial-target', tutorialEnabled && tutorialDriverAction && !record.popup.isOpen())
     record.markerElement.classList.toggle('attention', !suppressAttention && ['loaded', 'at-delivery', 'waiting-at-pickup', 'waiting-at-delivery', 'awaiting-pod'].includes(assignedLoad?.tripStatus))
     const popupContent = document.createElement('div')
-    const name = document.createElement('strong')
-    name.textContent = record.location.name
-    const type = document.createElement('span')
-    type.textContent = 'Driver'
-    popupContent.append(name, type)
+    popupContent.className = 'docos-driver-popup'
+
+    const buildMetaRow = (labelText, valueText) => {
+      if (!valueText) return null
+      const row = document.createElement('div')
+      row.className = 'docos-driver-popup-row'
+
+      const label = document.createElement('span')
+      label.className = 'docos-driver-popup-label'
+      label.textContent = labelText
+
+      const value = document.createElement('strong')
+      value.className = 'docos-driver-popup-value'
+      value.textContent = valueText
+
+      row.append(label, value)
+      return row
+    }
+
+    const buildActionButton = (label, actionType, disabled = false) => {
+      if (!label || !actionType) return null
+      const action = document.createElement('button')
+      action.type = 'button'
+      action.textContent = label
+      action.className = `docos-driver-popup-action ${tutorialEnabled && tutorialDriverAction === actionType ? 'tutorial-target' : ''}`
+      action.disabled = disabled
+      action.onclick = () => {
+        if (action.disabled) return
+        record.popup.remove()
+        onDriverAction?.(actionType, assignedLoad?.id, 'marcus')
+      }
+      return action
+    }
+
+    const buildHeader = (titleText, subtitleText, pillText, pillTone = 'neutral') => {
+      const header = document.createElement('div')
+      header.className = 'docos-driver-popup-header'
+
+      const identity = document.createElement('div')
+      identity.className = 'docos-driver-popup-identity'
+
+      const title = document.createElement('strong')
+      title.className = 'docos-driver-popup-title'
+      title.textContent = titleText
+
+      const subtitle = document.createElement('span')
+      subtitle.className = 'docos-driver-popup-subtitle'
+      subtitle.textContent = subtitleText
+
+      identity.append(title, subtitle)
+      header.append(identity)
+
+      if (pillText) {
+        const pill = document.createElement('span')
+        pill.className = `docos-driver-popup-pill ${pillTone}`
+        pill.textContent = pillText
+        header.append(pill)
+      }
+
+      return header
+    }
+
     if (marcus.status === 'unavailable') {
       const pickup = mapLocations.find((location) => location.id === assignedLoad?.pickupLocationId)
       const delivery = mapLocations.find((location) => location.id === assignedLoad?.deliveryLocationId)
       const model = getMarcusPanelModel({ assignedLoad, gameTime, runtimeProgress, pickup, delivery })
+
       if (model) {
-      const compactTravel = model.operationalState === 'EN_ROUTE_PICKUP' || model.operationalState === 'EN_ROUTE_DELIVERY'
-      if (compactTravel) {
-        const travel = document.createElement('strong'); travel.textContent = model.statusLabel.toUpperCase(); popupContent.append(travel)
-        const stop = document.createElement('span'); stop.textContent = model.nextStopLabel || ''; popupContent.append(stop)
-        if (model.eta) { const eta = document.createElement('span'); eta.textContent = `ETA ${model.eta} · ${Math.round(model.progress * 100)}%`; popupContent.append(eta) }
+        const pillTone = model.operationalState === 'TRIP_PLANNED' ? 'ready' : model.operationalState === 'WAITING_DELIVERY' ? 'attention' : 'neutral'
+        popupContent.append(buildHeader(model.driverName || marcus.fullName || record.location.name, model.roleLabel || 'Driver', model.statusLabel?.toUpperCase(), pillTone))
+
+        if (model.operationalState === 'EN_ROUTE_PICKUP' || model.operationalState === 'EN_ROUTE_DELIVERY') {
+          const statusRow = buildMetaRow('CURRENT STATUS', model.statusLabel)
+          const stopRow = buildMetaRow('NEXT STOP', model.nextStopLabel)
+          const etaRow = buildMetaRow('ETA', model.eta)
+          const progressRow = buildMetaRow('PROGRESS', `${Math.round((model.progress || 0) * 100)}%`)
+          if (statusRow) popupContent.append(statusRow)
+          if (stopRow) popupContent.append(stopRow)
+          if (etaRow) popupContent.append(etaRow)
+          if (progressRow) popupContent.append(progressRow)
+        } else {
+          const loadRow = buildMetaRow('CURRENT LOAD', model.loadId)
+          const stopRow = buildMetaRow('NEXT STOP', model.nextStopLabel)
+          const locationRow = buildMetaRow('CURRENT LOCATION', model.locationLabel)
+          const showPickupWindow = ['ASSIGNED', 'TRIP_PLANNED'].includes(model.operationalState)
+          const windowRow = showPickupWindow ? buildMetaRow('PICKUP WINDOW', model.pickupWindow) : null
+          const remainingLabel = model.operationalState === 'WAITING_PICKUP' ? 'WAIT TIME' : 'REMAINING'
+          const remainingRow = model.remainingMinutes !== null ? buildMetaRow(remainingLabel, `${model.remainingMinutes} min`) : null
+
+          if (loadRow) popupContent.append(loadRow)
+          if (stopRow) popupContent.append(stopRow)
+          if (locationRow) popupContent.append(locationRow)
+          if (windowRow) popupContent.append(windowRow)
+          if (remainingRow) popupContent.append(remainingRow)
+        }
+
+        const action = buildActionButton(model.actionLabel, model.actionType, model.actionDisabled)
+        if (action) popupContent.append(action)
       } else {
-        const status = document.createElement('span')
-        status.textContent = model.operationalState === 'WAITING_DELIVERY' ? 'AT DELIVERY' : `Status: ${model.statusLabel}`
-        popupContent.append(status)
-        if (model.operationalState !== 'WAITING_DELIVERY') { const load = document.createElement('span'); load.textContent = `Load: ${model.loadId}`; popupContent.append(load) }
-        if (model.nextStopLabel) { const next = document.createElement('span'); next.textContent = `Next Stop: ${model.nextStopLabel}`; popupContent.append(next) }
-        if (model.locationLabel) { const location = document.createElement('span'); location.textContent = model.operationalState === 'WAITING_DELIVERY' ? model.locationLabel : `Location: ${model.locationLabel}`; popupContent.append(location) }
-        if (model.remainingMinutes !== null) { const remaining = document.createElement('span'); remaining.textContent = `Remaining: ${model.remainingMinutes} min`; popupContent.append(remaining) }
-      }
-        const action = document.createElement('button')
-        action.textContent = model.actionLabel
-        action.type = 'button'
-        action.className = `action-button map-popup-action ${tutorialEnabled && tutorialDriverAction === model.actionType ? 'tutorial-target' : ''}`
-        action.disabled = model.actionDisabled
-        action.onclick = () => { if (!action.disabled) { record.popup.remove(); onDriverAction?.(model.actionType, model.loadId, 'marcus') } }
-        if (model.actionType && model.actionLabel) popupContent.append(action)
-      } else {
-        const status = document.createElement('span'); status.textContent = 'Status: Unavailable'; popupContent.append(status)
+        popupContent.append(buildHeader(marcus.fullName || record.location.name, 'Driver', 'UNAVAILABLE', 'attention'))
       }
     } else {
-      const status = document.createElement('span'); status.textContent = 'Status: Available'; popupContent.append(status)
       const carrier = carriers.find((item) => item.id === marcus.carrierId)
       const home = mapLocations.find((item) => item.id === marcus.homeBaseLocationId)
       const position = runtimePositions?.marcus
       const atHome = home && position && home.longitude === position.longitude && home.latitude === position.latitude
-      if (carrier) { const carrierText = document.createElement('span'); carrierText.textContent = `Carrier: ${carrier.name}`; popupContent.append(carrierText) }
-      const location = document.createElement('span'); location.textContent = `Location: ${atHome ? home.name : 'Current position'}`; popupContent.append(location)
-      if (marcus.equipment?.label) { const equipment = document.createElement('span'); equipment.textContent = `Equipment: ${marcus.equipment.label}`; popupContent.append(equipment) }
-      if (marcus.hours?.status) { const hours = document.createElement('span'); hours.textContent = `Hours: ${marcus.hours.status === 'full' ? 'Full' : marcus.hours.status}`; popupContent.append(hours) }
+
+      popupContent.append(buildHeader(marcus.fullName || record.location.name, 'Driver', 'AVAILABLE', 'ready'))
+      if (carrier) popupContent.append(buildMetaRow('CARRIER', carrier.name))
+      const locationRow = buildMetaRow('LOCATION', atHome ? home?.name : 'Current position')
+      if (locationRow) popupContent.append(locationRow)
+      if (marcus.equipment?.label) popupContent.append(buildMetaRow('EQUIPMENT', marcus.equipment.label))
+      if (marcus.hours?.status) popupContent.append(buildMetaRow('HOURS', marcus.hours.status === 'full' ? 'Full' : marcus.hours.status))
     }
+
     record.popup.setDOMContent(popupContent)
   }, [drivers, carriers, assignedLoad, evaluationLoad, isDriverFitEvaluation, onDriverAction, suppressAttention, gameTime, runtimeProgress, runtimePositions, tutorialEnabled, tutorialDriverAction])
 

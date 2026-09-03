@@ -29,6 +29,42 @@ function formatEvaluationBuffer(minutes) {
   return `${minutes} min`
 }
 
+function formatDurationLabel(minutes) {
+  if (!Number.isFinite(minutes)) return '—'
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+  return remainingMinutes ? `${hours} hr ${remainingMinutes} min` : `${hours} hr`
+}
+
+function getPlanningBufferMinutes(load, route, gameTime) {
+  if (!load || !route) return null
+  const arrival = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay + route.durationMinutes
+  const windowStart = load.pickupDayIndex * 1440 + load.pickupWindowStartMinutes
+  const windowEnd = load.pickupDayIndex * 1440 + load.pickupWindowEndMinutes
+
+  if (arrival < windowStart) return windowStart - arrival
+  if (arrival <= windowEnd) return windowEnd - arrival
+  return windowEnd - arrival
+}
+
+function getDeliveryPlanningBufferMinutes(load, route, gameTime) {
+  if (!load || !route) return null
+  const arrival = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay + route.durationMinutes
+  const windowStart = load.deliveryDayIndex * 1440 + load.deliveryWindowStartMinutes
+  const windowEnd = load.deliveryDayIndex * 1440 + load.deliveryWindowEndMinutes
+
+  if (arrival < windowStart) return windowStart - arrival
+  if (arrival <= windowEnd) return windowEnd - arrival
+  return windowEnd - arrival
+}
+
+function formatPlanningBuffer(minutes) {
+  if (!Number.isFinite(minutes)) return '—'
+  if (minutes < 0) return `${formatDurationLabel(Math.abs(minutes))} late`
+  return formatDurationLabel(minutes)
+}
+
 function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, onActivateCarrier, carrierApplicationsById, onApplyCarrier, onAcceptAgreement, emailMessages, setEmailMessages, tutorialEnabled = false, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, runtimeProgress, setRuntimeProgress, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId, setGameTime }) {
   const [devOpen, setDevOpen] = useState(false)
   const [isPhoneOpen, setIsPhoneOpen] = useState(false)
@@ -216,9 +252,17 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
 
   const planningLoad = planningMode ? loads.find((load) => load.id === planningMode.loadId) : null
   const planningPickup = planningLoad ? mapLocations.find((location) => location.id === planningLoad.pickupLocationId) : null
+  const planningDriver = planningMode ? drivers.find((driver) => driver.id === planningMode.driverId) : null
+  const planningRoute = planningMode && planningMode.route && typeof planningMode.route === 'object' ? planningMode.route : null
+  const planningArrivalAbsoluteMinutes = planningRoute ? (gameTime.gameDayIndex * 1440) + gameTime.totalMinutesOfDay + planningRoute.durationMinutes : null
+  const planningBufferMinutes = planningLoad && planningRoute ? getPlanningBufferMinutes(planningLoad, planningRoute, gameTime) : null
   const deliveryPlanningLoad = deliveryPlanning ? loads.find((load) => load.id === deliveryPlanning.loadId) : null
   const deliveryPlanningPickup = deliveryPlanningLoad ? mapLocations.find((location) => location.id === deliveryPlanningLoad.pickupLocationId) : null
   const deliveryPlanningDelivery = deliveryPlanningLoad ? mapLocations.find((location) => location.id === deliveryPlanningLoad.deliveryLocationId) : null
+  const deliveryPlanningDriver = drivers.find((driver) => driver.id === 'marcus')
+  const deliveryPlanningRoute = deliveryPlanning && deliveryPlanning.route && typeof deliveryPlanning.route === 'object' ? deliveryPlanning.route : null
+  const deliveryPlanningArrivalAbsoluteMinutes = deliveryPlanningRoute ? (gameTime.gameDayIndex * 1440) + gameTime.totalMinutesOfDay + deliveryPlanningRoute.durationMinutes : null
+  const deliveryPlanningBufferMinutes = deliveryPlanningLoad && deliveryPlanningRoute ? getDeliveryPlanningBufferMinutes(deliveryPlanningLoad, deliveryPlanningRoute, gameTime) : null
   const timeControlsLocked = Boolean(isPhoneOpen || driverFitEvaluation || planningMode || deliveryPlanning)
   const fastForwardActive = simulationSpeed === 5 && !isGameClockPaused
   const togglePause = () => {
@@ -271,8 +315,214 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
           </button>
         </div>
         <GameMap activeRouteGeometry={activeRouteGeometry} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgress={runtimeProgress} runtimeRoute={assignedLoad?.tripStatus === 'en-route-delivery' ? assignedLoad.plannedLoadedRouteGeometry : assignedLoad?.plannedDeadheadRouteGeometry} assignedLoad={assignedLoad} evaluationLoad={driverFitEvaluation ? loads.find((load) => load.id === driverFitEvaluation.loadId) : null} isDriverFitEvaluation={Boolean(driverFitEvaluation)} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} tutorialEnabled={tutorialEnabled} tutorialDriverAction={tutorialDriverAction} />
-        {deliveryPlanning && <div className="map-evaluation"><strong>DELIVERY PLANNING</strong><span>{deliveryPlanning.loadId}</span><span>Driver: Marcus</span><strong>FROM</strong><span>{deliveryPlanningPickup?.name || 'Pickup'}</span><strong>NEXT STOP</strong><span>{deliveryPlanningDelivery?.name || 'Delivery'}</span><strong>ROUTE OPTIONS</strong>{deliveryPlanning.route === 'loading' && <span>Calculating...</span>}{deliveryPlanning.route === 'unavailable' && <span>Route unavailable</span>}{deliveryPlanning.route?.distanceMiles && <><span>Distance: {deliveryPlanning.route.distanceMiles.toFixed(1)} miles</span><span>Drive Time: {deliveryPlanning.route.durationMinutes} minutes</span><button type="button" className={tutorialEnabled && deliveryPlanning.loadId === tutorialLoadId && !deliveryPlanning.selected ? 'tutorial-target' : ''} onClick={() => setDeliveryPlanning((current) => ({ ...current, selected: true }))}>{deliveryPlanning.selected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}</button></>}<div><button type="button" onClick={() => { setDeliveryPlanning(null); restoreClockAfterModal() }}>BACK</button><button type="button" className={tutorialEnabled && deliveryPlanning.loadId === tutorialLoadId && deliveryPlanning.selected ? 'tutorial-target' : ''} disabled={!deliveryPlanning.selected} onClick={() => { setLoads((current) => current.map((load) => load.id === deliveryPlanning.loadId ? { ...load, deliveryPlanningStatus: 'route-ready', plannedLoadedMiles: deliveryPlanning.route.distanceMiles, plannedLoadedDriveTimeMinutes: deliveryPlanning.route.durationMinutes, plannedLoadedRouteGeometry: deliveryPlanning.route.routeShape, selectedLoadedRouteId: 'recommended' } : load)); setDeliveryPlanning(null); restoreClockAfterModal() }}>CONFIRM PLAN</button></div></div>}
-        {planningMode && <div className="map-evaluation"><strong>TRIP PLANNING</strong><span>{planningMode.loadId}</span><span>Driver: Marcus</span><strong>NEXT STOP</strong><span>{planningPickup?.name || 'Pickup'}</span><span>Pickup Window: {planningLoad ? formatAppointment(planningLoad.pickupDayIndex, planningLoad.pickupWindowStartMinutes, planningLoad.pickupWindowEndMinutes) : '—'}</span><strong>ROUTE OPTIONS</strong>{planningMode.route === 'loading' && <span>Calculating...</span>}{planningMode.route === 'unavailable' && <span>Route unavailable</span>}{planningMode.route?.distanceMiles && <><span>Distance: {planningMode.route.distanceMiles.toFixed(1)} miles</span><span>Drive Time: {planningMode.route.durationMinutes} minutes</span><span>Estimated Arrival: {formatCompactDate(gameTime.gameDayIndex)} • {formatTime(gameTime.totalMinutesOfDay + planningMode.route.durationMinutes)}</span><button type="button" className={tutorialEnabled && planningMode.loadId === tutorialLoadId && !planningMode.selected ? 'tutorial-target' : ''} onClick={() => setPlanningMode((current) => ({ ...current, selected: true }))}>{planningMode.selected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}</button></>}<div><button type="button" onClick={() => { setPlanningMode(null); restoreClockAfterModal() }}>BACK</button><button type="button" className={tutorialEnabled && planningMode.loadId === tutorialLoadId && planningMode.selected ? 'tutorial-target' : ''} disabled={!planningMode.selected} onClick={() => { setLoads((current) => current.map((load) => load.id === planningMode.loadId ? { ...load, planningStatus: 'route-ready', plannedDeadheadMiles: planningMode.route.distanceMiles, plannedDeadheadDriveTimeMinutes: planningMode.route.durationMinutes, plannedDeadheadRouteGeometry: planningMode.route.routeShape, selectedDeadheadRouteId: 'recommended' } : load)); setPlanningMode(null); restoreClockAfterModal() }}>CONFIRM PLAN</button></div></div>}
+        {deliveryPlanning && (
+          <div className="map-evaluation trip-planning-v2 delivery-planning-v2">
+            <div className="trip-plan-v2-heading">
+              <div>
+                <span className="trip-plan-v2-kicker">DELIVERY PLANNING</span>
+                <strong>{deliveryPlanning.loadId}</strong>
+              </div>
+              <span className={`trip-plan-v2-status ${deliveryPlanning.selected ? 'selected' : 'pending'}`}>
+                {deliveryPlanning.selected ? 'ROUTE SELECTED' : 'PENDING'}
+              </span>
+            </div>
+
+            <div className="trip-plan-v2-driver-row">
+              <div className="trip-plan-v2-driver-badge" aria-hidden="true">M</div>
+              <div>
+                <span>DRIVER</span>
+                <strong>{deliveryPlanningDriver?.fullName || deliveryPlanningDriver?.name || 'Marcus Reed'}</strong>
+              </div>
+            </div>
+
+            <div className="delivery-plan-v2-stops">
+              <div>
+                <span>FROM</span>
+                <strong>{deliveryPlanningPickup?.name || 'Pickup'}</strong>
+                <small>Loaded at pickup</small>
+              </div>
+              <div className="delivery-plan-v2-arrow" aria-hidden="true">→</div>
+              <div>
+                <span>NEXT STOP</span>
+                <strong>{deliveryPlanningDelivery?.name || 'Delivery'}</strong>
+                <small>{deliveryPlanningLoad ? formatAppointment(deliveryPlanningLoad.deliveryDayIndex, deliveryPlanningLoad.deliveryWindowStartMinutes, deliveryPlanningLoad.deliveryWindowEndMinutes) : '—'}</small>
+              </div>
+            </div>
+
+            <div className="trip-plan-v2-route-label">
+              <span>ROUTE A — RECOMMENDED</span>
+              <small>Loaded route</small>
+            </div>
+
+            <div className="trip-plan-v2-body">
+              {deliveryPlanning.route === 'loading' && <div className="trip-plan-v2-empty">Calculating route…</div>}
+              {deliveryPlanning.route === 'unavailable' && <div className="trip-plan-v2-empty">Route unavailable</div>}
+              {deliveryPlanningRoute && (
+                <>
+                  <div className="trip-plan-v2-metrics">
+                    <div>
+                      <span>DISTANCE</span>
+                      <strong>{deliveryPlanningRoute.distanceMiles.toFixed(1)} mi</strong>
+                    </div>
+                    <div>
+                      <span>DRIVE TIME</span>
+                      <strong>{deliveryPlanningRoute.durationMinutes} min</strong>
+                    </div>
+                    <div>
+                      <span>ETA</span>
+                      <strong>{formatCompactDate(Math.floor(deliveryPlanningArrivalAbsoluteMinutes / 1440))} • {formatTime(deliveryPlanningArrivalAbsoluteMinutes % 1440)}</strong>
+                    </div>
+                    <div>
+                      <span>BUFFER</span>
+                      <strong>{formatPlanningBuffer(deliveryPlanningBufferMinutes)}</strong>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={`trip-plan-v2-select ${tutorialEnabled && deliveryPlanning.loadId === tutorialLoadId && !deliveryPlanning.selected ? 'tutorial-target' : ''}`}
+                    onClick={() => setDeliveryPlanning((current) => ({ ...current, selected: true }))}
+                    disabled={deliveryPlanning.selected}
+                  >
+                    {deliveryPlanning.selected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="trip-plan-v2-actions">
+              <button
+                type="button"
+                className="trip-plan-v2-back"
+                onClick={() => {
+                  setDeliveryPlanning(null)
+                  restoreClockAfterModal()
+                }}
+              >
+                BACK
+              </button>
+              <button
+                type="button"
+                className={`trip-plan-v2-confirm ${tutorialEnabled && deliveryPlanning.loadId === tutorialLoadId && deliveryPlanning.selected ? 'tutorial-target' : ''}`}
+                disabled={!deliveryPlanning.selected || !deliveryPlanningRoute}
+                onClick={() => {
+                  setLoads((current) => current.map((load) => load.id === deliveryPlanning.loadId ? {
+                    ...load,
+                    deliveryPlanningStatus: 'route-ready',
+                    plannedLoadedMiles: deliveryPlanningRoute.distanceMiles,
+                    plannedLoadedDriveTimeMinutes: deliveryPlanningRoute.durationMinutes,
+                    plannedLoadedRouteGeometry: deliveryPlanningRoute.routeShape,
+                    selectedLoadedRouteId: 'recommended',
+                  } : load))
+                  setDeliveryPlanning(null)
+                  restoreClockAfterModal()
+                }}
+              >
+                CONFIRM PLAN
+              </button>
+            </div>
+          </div>
+        )}
+        {planningMode && (
+          <div className="map-evaluation trip-planning-v2">
+            <div className="trip-plan-v2-heading">
+              <div>
+                <span className="trip-plan-v2-kicker">TRIP PLANNING</span>
+                <strong>{planningMode.loadId}</strong>
+              </div>
+              <span className={`trip-plan-v2-status ${planningMode.selected ? 'selected' : 'pending'}`}>
+                {planningMode.selected ? 'ROUTE SELECTED' : 'PENDING'}
+              </span>
+            </div>
+
+            <div className="trip-plan-v2-driver-row">
+              <div className="trip-plan-v2-driver-badge" aria-hidden="true">M</div>
+              <div>
+                <span>DRIVER</span>
+                <strong>{planningDriver?.fullName || planningDriver?.name || 'Marcus Reed'}</strong>
+              </div>
+            </div>
+
+            <div className="trip-plan-v2-stop-row">
+              <span>NEXT STOP</span>
+              <strong>{planningPickup?.name || 'Pickup'}</strong>
+              <small>{planningLoad ? formatAppointment(planningLoad.pickupDayIndex, planningLoad.pickupWindowStartMinutes, planningLoad.pickupWindowEndMinutes) : '—'}</small>
+            </div>
+
+            <div className="trip-plan-v2-route-label">
+              <span>ROUTE A — RECOMMENDED</span>
+              <small>Deadhead to pickup</small>
+            </div>
+
+            <div className="trip-plan-v2-body">
+              {planningMode.route === 'loading' && <div className="trip-plan-v2-empty">Calculating route…</div>}
+              {planningMode.route === 'unavailable' && <div className="trip-plan-v2-empty">Route unavailable</div>}
+              {planningRoute && (
+                <>
+                  <div className="trip-plan-v2-metrics">
+                    <div>
+                      <span>DISTANCE</span>
+                      <strong>{planningRoute.distanceMiles.toFixed(1)} mi</strong>
+                    </div>
+                    <div>
+                      <span>DRIVE TIME</span>
+                      <strong>{planningRoute.durationMinutes} min</strong>
+                    </div>
+                    <div>
+                      <span>ETA</span>
+                      <strong>{formatCompactDate(Math.floor(planningArrivalAbsoluteMinutes / 1440))} • {formatTime(planningArrivalAbsoluteMinutes % 1440)}</strong>
+                    </div>
+                    <div>
+                      <span>BUFFER</span>
+                      <strong>{formatPlanningBuffer(planningBufferMinutes)}</strong>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={`trip-plan-v2-select ${tutorialEnabled && planningMode.loadId === tutorialLoadId && !planningMode.selected ? 'tutorial-target' : ''}`}
+                    onClick={() => setPlanningMode((current) => ({ ...current, selected: true }))}
+                    disabled={planningMode.selected}
+                  >
+                    {planningMode.selected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="trip-plan-v2-actions">
+              <button
+                type="button"
+                className="trip-plan-v2-back"
+                onClick={() => {
+                  setPlanningMode(null)
+                  restoreClockAfterModal()
+                }}
+              >
+                BACK
+              </button>
+              <button
+                type="button"
+                className={`trip-plan-v2-confirm ${tutorialEnabled && planningMode.loadId === tutorialLoadId && planningMode.selected ? 'tutorial-target' : ''}`}
+                disabled={!planningMode.selected || !planningRoute}
+                onClick={() => {
+                  setLoads((current) => current.map((load) => load.id === planningMode.loadId ? {
+                    ...load,
+                    planningStatus: 'route-ready',
+                    plannedDeadheadMiles: planningRoute.distanceMiles,
+                    plannedDeadheadDriveTimeMinutes: planningRoute.durationMinutes,
+                    plannedDeadheadRouteGeometry: planningRoute.routeShape,
+                    selectedDeadheadRouteId: 'recommended',
+                  } : load))
+                  setPlanningMode(null)
+                  restoreClockAfterModal()
+                }}
+              >
+                CONFIRM PLAN
+              </button>
+            </div>
+          </div>
+        )}
         {driverFitEvaluation && (
           <div className="map-evaluation route-evaluation-v2">
             <div className="route-eval-v2-heading">

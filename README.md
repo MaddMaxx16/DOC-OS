@@ -1,16 +1,27 @@
-# React + Vite
+# DOC OS — Driver Operations v2.1 + Trip Planning v2
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This build is based on the tested Driver Operations v2 + Trip Planning v2 source.
 
-Currently, two official plugins are available:
+## Tiny operational consistency fixes
+- WAITING AT PICKUP no longer repeats Empire Freight Terminal as both NEXT STOP and LOCATION.
+- WAITING AT PICKUP now shows CURRENT LOCATION and WAIT TIME.
+- LOADED now correctly shows:
+  - CURRENT LOCATION: Empire Freight Terminal
+  - NEXT STOP: Harborline Logistics
+- READY FOR DISPATCH carries the same current-location / next-stop model forward.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Preserved
+- Driver Operations v2 visual design
+- Trip Planning v2 visual design
+- Route A / recommended route flow
+- Tutorial highlights
+- SELECT ROUTE -> CONFIRM PLAN behavior
+- SEND TO PICKUP
+- pickup wait/check-in/loading flow
+- PLAN DELIVERY TRIP progression
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Delivery Planning v2 patch
+- Restyles Delivery Planning to match Trip Planning v2.
+- Adds loaded-route ETA and delivery-window buffer metrics.
+- Preserves existing route selection / confirm logic and tutorial highlights.
+- Narrows the SELECT ROUTE CTA on both Trip Planning and Delivery Planning for better inset spacing on iPhone.
