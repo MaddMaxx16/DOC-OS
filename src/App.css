@@ -6532,3 +6532,648 @@
     transform: none;
   }
 }
+
+
+/* =========================================================
+   Opening Experience v2.2.5 — Final Start Screen Tuning +
+   Operations Bar / Quick Notifications Drawer
+   ========================================================= */
+
+.status-bar {
+  min-height: calc(46px + env(safe-area-inset-top));
+  padding: calc(env(safe-area-inset-top) + 4px) 16px 6px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+.status-bar-center {
+  color: #7F8CA0;
+  font-size: 9px;
+  letter-spacing: .16em;
+}
+
+.operations-hud {
+  position: relative;
+  z-index: 4;
+  padding: 8px 14px 0;
+  background: #0F1115;
+}
+
+.operations-bar {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid rgba(55, 66, 82, .88);
+  border-radius: 13px;
+  background: rgba(15, 18, 24, .96);
+  color: #E8ECF2;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .18);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.operations-bar-main,
+.operations-bar-meta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.operations-bar-main {
+  gap: 10px;
+}
+
+.operations-bar-kicker {
+  color: #7D8B9F;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .16em;
+  white-space: nowrap;
+}
+
+.operations-bar strong {
+  color: #F3F6FA;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+
+.operations-bar-meta {
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.operations-bar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: #92A0B3;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .13em;
+  white-space: nowrap;
+}
+
+.operations-bar-status.attention {
+  color: #D9A16B;
+}
+
+.operations-bar-status-dot,
+.operations-drawer-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #5CC297;
+  flex: 0 0 auto;
+}
+
+.operations-bar-status.attention .operations-bar-status-dot {
+  background: #D98B45;
+}
+
+.operations-bar-badge {
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #D68B45;
+  color: #15181D;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.operations-bar-chevron {
+  color: #78A9FF;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.operations-drawer {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 14px;
+  right: 14px;
+  padding: 12px;
+  border: 1px solid rgba(57, 67, 82, .9);
+  border-radius: 14px;
+  background: rgba(15, 18, 24, .97);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, .32);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.operations-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(47, 57, 71, .84);
+  color: #7F8CA0;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .15em;
+}
+
+.operations-drawer-header strong {
+  color: #D8DEE7;
+  font-size: 9px;
+}
+
+.operations-drawer-list {
+  display: grid;
+  gap: 9px;
+  padding-top: 10px;
+}
+
+.operations-drawer-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 10px;
+  border: 1px solid #2C3542;
+  border-radius: 11px;
+  background: rgba(20, 25, 32, .92);
+}
+
+.operations-drawer-item.attention .operations-drawer-dot {
+  background: #D98B45;
+}
+
+.operations-drawer-item.info .operations-drawer-dot {
+  background: #4C8DFF;
+}
+
+.operations-drawer-item.success .operations-drawer-dot {
+  background: #5CC297;
+}
+
+.operations-drawer-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.operations-drawer-copy strong {
+  color: #F0F3F8;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .09em;
+}
+
+.operations-drawer-copy small {
+  color: #8F9BAC;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.operations-drawer-value {
+  color: #D8DEE7;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .10em;
+  white-space: nowrap;
+}
+
+.operations-drawer-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 12px;
+  color: #8F9BAC;
+  font-size: 10px;
+}
+
+.operations-drawer-empty strong {
+  color: #E5EAF1;
+  font-size: 10px;
+  letter-spacing: .08em;
+}
+
+/* Preserve the approved market-select silhouette from the prior patch. */
+.market-terminal-card {
+  width: min(calc(100% - 28px), 326px);
+  min-height: 588px;
+  padding: 17px 14px;
+  border-radius: 13px;
+  display: flex;
+  flex-direction: column;
+}
+
+.market-selection-header {
+  padding: 3px 3px 15px;
+}
+
+.market-list.market-list-v2 {
+  gap: 9px;
+}
+
+.market-card-featured {
+  padding: 14px 12px;
+}
+
+.market-card-locked {
+  min-height: 70px;
+  padding: 10px 11px;
+}
+
+.confirm-button.market-confirm-action {
+  margin-top: auto;
+}
+
+/* Start screen gets one final leaner, taller adjustment. */
+.start-terminal-card {
+  width: min(calc(100% - 48px), 298px);
+  min-height: 444px;
+  padding: 22px 18px 20px;
+  border-radius: 13px;
+  display: flex;
+  flex-direction: column;
+}
+
+.start-brand-lockup {
+  padding: 54px 0 28px;
+}
+
+.start-system-grid {
+  margin-top: auto;
+  margin-bottom: 16px;
+}
+
+.start-terminal-footer {
+  margin-top: 14px;
+}
+
+.start-network-status.offline {
+  color: #D98A8A;
+}
+
+.start-network-status.offline .start-network-dot {
+  background: #D95F5F;
+  box-shadow: 0 0 0 6px rgba(217, 95, 95, .11), 0 0 18px rgba(217, 95, 95, .22);
+}
+
+.start-network-status.online {
+  color: #A8BBC9;
+}
+
+.start-network-status.online .start-network-dot {
+  background: #59C69D;
+  box-shadow: 0 0 0 6px rgba(89, 198, 157, .11), 0 0 18px rgba(89, 198, 157, .22);
+}
+
+.start-core-status.offline strong {
+  color: #D98A8A;
+}
+
+.start-core-status.online strong {
+  color: #B9C7D4;
+}
+
+@media (max-height: 700px) {
+  .status-bar {
+    min-height: calc(44px + env(safe-area-inset-top));
+    padding: calc(env(safe-area-inset-top) + 3px) 14px 5px;
+  }
+
+  .operations-hud {
+    padding: 6px 12px 0;
+  }
+
+  .operations-bar {
+    min-height: 36px;
+    padding: 7px 10px;
+  }
+
+  .start-terminal-card {
+    width: min(calc(100% - 42px), 292px);
+    min-height: 388px;
+    padding: 17px 15px;
+  }
+
+  .start-brand-lockup {
+    padding: 34px 0 18px;
+  }
+
+  .market-terminal-card {
+    width: min(calc(100% - 24px), 314px);
+    min-height: 520px;
+    padding: 13px 12px;
+  }
+
+  .market-card-locked {
+    min-height: 62px;
+  }
+
+  .operations-drawer {
+    left: 12px;
+    right: 12px;
+  }
+}
+
+/* =========================================================
+   DOC OS Flow Pass 01 — UX / state consistency
+   ========================================================= */
+
+/* Start terminal now uses the same tall/lean silhouette as Market Select. */
+.start-terminal-card {
+  width: min(calc(100% - 28px), 326px);
+  min-height: 588px;
+  padding: 17px 14px;
+}
+
+.start-brand-lockup {
+  padding: 30px 3px 20px;
+}
+
+.start-save-list {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+
+.start-save-slot {
+  min-height: 58px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #303946;
+  border-radius: 10px;
+  background: rgba(22, 27, 34, .9);
+  overflow: hidden;
+}
+
+.start-save-slot.active {
+  border-color: #42679e;
+}
+
+.start-save-slot.empty {
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  color: #667383;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .13em;
+}
+
+.start-save-slot.empty small {
+  color: #566170;
+  font-size: 7px;
+  letter-spacing: .12em;
+}
+
+.start-save-resume {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "slot market"
+    "slot time";
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 3px;
+  padding: 9px 10px;
+  border: 0;
+  background: transparent;
+  color: #e9edf3;
+  font: inherit;
+  text-align: left;
+}
+
+.start-save-resume > span {
+  grid-area: slot;
+  color: #8290a3;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .13em;
+}
+
+.start-save-resume > strong {
+  grid-area: market;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.start-save-resume > small {
+  grid-area: time;
+  color: #7f8b9a;
+  font-size: 7px;
+  font-weight: 650;
+  letter-spacing: .05em;
+}
+
+.start-save-delete {
+  width: 38px;
+  flex: 0 0 38px;
+  border: 0;
+  border-left: 1px solid #303946;
+  background: rgba(15, 18, 24, .52);
+  color: #8b96a5;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.start-save-delete:active {
+  background: rgba(118, 50, 50, .22);
+  color: #d98a8a;
+}
+
+.start-primary-action:disabled {
+  opacity: .5;
+}
+
+/* Operations drawer owns the upper decision space while expanded. */
+.map-area .time-controls {
+  transition: opacity .16s ease, transform .16s ease;
+}
+
+.map-area.operations-open .time-controls,
+.map-area.operations-open .carrier-review-wait {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+}
+
+.operations-drawer-item.actionable {
+  width: 100%;
+  border-color: #334154;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.operations-drawer-item.actionable:active {
+  background: rgba(40, 52, 69, .96);
+  border-color: #4c6c98;
+}
+
+/* Driver Fit keeps the driver card as the hero; the CTA becomes compact. */
+.driver-fit-v2-actions {
+  justify-items: end;
+  padding-top: 7px;
+}
+
+.driver-fit-v2-evaluate {
+  width: auto;
+  min-width: 176px;
+  max-width: 214px;
+  min-height: 36px;
+  padding: 0 11px;
+}
+
+/* Quick driver interactions stay shallow so the map remains primary. */
+.maplibregl-popup-content .docos-driver-popup {
+  min-width: 238px;
+}
+
+.docos-driver-popup-header {
+  padding: 10px 11px 8px;
+}
+
+.docos-driver-popup-row {
+  padding: 7px 11px;
+}
+
+.docos-driver-popup-action {
+  width: calc(100% - 22px);
+  min-height: 38px;
+  margin: 9px 11px 11px;
+}
+
+.docos-driver-popup-metrics {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, .9fr) minmax(0, .7fr);
+  gap: 0 !important;
+  border-top: 1px solid #232a33;
+}
+
+.docos-driver-popup-metrics > div {
+  min-width: 0;
+  display: grid !important;
+  gap: 4px !important;
+  padding: 8px 9px;
+  border-right: 1px solid #232a33;
+}
+
+.docos-driver-popup-metrics > div:last-child {
+  border-right: 0;
+}
+
+.docos-driver-popup-metrics span {
+  color: #697483 !important;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: .09em;
+}
+
+.docos-driver-popup-metrics strong {
+  min-width: 0;
+  color: #edf1f5 !important;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+/* Route decisions are bottom-anchored and compact, leaving route context above. */
+.map-evaluation.trip-planning-v2,
+.map-evaluation.route-evaluation-v2 {
+  top: auto;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.map-evaluation.trip-planning-v2 {
+  width: min(326px, calc(100% - 24px));
+}
+
+.trip-plan-v2-heading {
+  padding: 9px 11px 8px;
+}
+
+.trip-plan-v2-driver-row,
+.trip-plan-v2-stop-row {
+  padding: 7px 11px;
+}
+
+.delivery-plan-v2-stops {
+  padding: 7px 11px;
+}
+
+.trip-plan-v2-route-label {
+  padding: 7px 11px 5px;
+}
+
+.trip-plan-v2-body {
+  padding: 0 11px 8px;
+}
+
+.trip-plan-v2-metrics {
+  gap: 5px !important;
+}
+
+.trip-plan-v2-metrics > div {
+  gap: 3px !important;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.map-evaluation.trip-planning-v2 .trip-plan-v2-select {
+  width: calc(100% - 24px);
+  min-height: 34px;
+  margin: 7px 12px 0;
+}
+
+.trip-plan-v2-actions {
+  gap: 6px !important;
+  padding: 7px 11px 9px;
+}
+
+.map-evaluation.trip-planning-v2 .trip-plan-v2-back,
+.map-evaluation.trip-planning-v2 .trip-plan-v2-confirm {
+  min-height: 34px;
+}
+
+/* Route evaluation uses the same map-first vertical strategy. */
+.map-evaluation.route-evaluation-v2 {
+  width: min(346px, calc(100% - 24px));
+}
+
+@media (max-height: 700px) {
+  .start-terminal-card {
+    width: min(calc(100% - 24px), 314px);
+    min-height: 520px;
+    padding: 13px 12px;
+  }
+
+  .start-brand-lockup {
+    padding: 20px 2px 14px;
+  }
+
+  .start-save-slot {
+    min-height: 50px;
+  }
+
+  .map-evaluation.trip-planning-v2,
+  .map-evaluation.route-evaluation-v2 {
+    bottom: 10px;
+  }
+}

@@ -21,7 +21,7 @@ function getMessagePreview(message, template) {
 }
 
 function EmailScreen({ messages, carriers, onOpenMessage, onBack, tutorialTarget = null, currentGameMinute = null }) {
-  const sortedMessages = [...messages].sort((a, b) => b.receivedGameMinute - a.receivedGameMinute)
+  const sortedMessages = messages.map((message, index) => ({ message, index })).sort((a, b) => (b.message.receivedGameMinute - a.message.receivedGameMinute) || (b.index - a.index)).map(({ message }) => message)
   const unreadCount = messages.filter((message) => !message.read).length
 
   return (

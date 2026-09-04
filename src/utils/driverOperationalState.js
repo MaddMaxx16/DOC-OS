@@ -65,9 +65,11 @@ export function getMarcusPanelModel({ assignedLoad, gameTime, runtimeProgress = 
   const [actionType, actionLabel] = actions[operationalState]
   const remainingMinutes = operationalState === 'WAITING_PICKUP' && Number.isFinite(assignedLoad.pickupArrivalGameMinute)
     ? Math.max(0, PICKUP_WAIT_MINUTES - (now - assignedLoad.pickupArrivalGameMinute))
-    : operationalState === 'UNLOADING' && Number.isFinite(assignedLoad.deliveryUnloadStartGameMinute)
-      ? Math.max(0, 8 - (now - assignedLoad.deliveryUnloadStartGameMinute))
-      : null
+    : operationalState === 'WAITING_DELIVERY' && Number.isFinite(assignedLoad.deliveryArrivalGameMinute)
+      ? Math.max(0, now - assignedLoad.deliveryArrivalGameMinute)
+      : operationalState === 'UNLOADING' && Number.isFinite(assignedLoad.deliveryUnloadStartGameMinute)
+        ? Math.max(0, 8 - (now - assignedLoad.deliveryUnloadStartGameMinute))
+        : null
 
   const disabled = ['EN_ROUTE_PICKUP', 'CHECKED_IN_PICKUP', 'LOADING', 'EN_ROUTE_DELIVERY', 'CHECKED_IN', 'UNLOADING'].includes(operationalState)
     || (actionType === 'CHECK_IN' && operationalState === 'WAITING_PICKUP' && remainingMinutes > 0)

@@ -52,7 +52,7 @@ function LoadBoardScreen({ loads, gameTime, embedded = false, onBack, onSelectLo
               return (
                 <button
                   type="button"
-                  className={`load-card freight-load-card ${tutorialEnabled && load.id === tutorialLoadId ? 'tutorial-target' : ''}`}
+                  className={`load-card freight-load-card ${tutorialEnabled && load.id === tutorialLoadId && load.status === 'available' ? 'tutorial-target' : ''}`}
                   key={load.id}
                   onClick={() => onSelectLoad(load.id)}
                 >

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import GameMap from './GameMap.jsx'
 import PhoneOverlay from './PhoneOverlay.jsx'
 import StatusBar from './StatusBar.jsx'
+import OperationsBar from './OperationsBar.jsx'
 import { formatAppointment, formatCompactDate, formatTime } from '../utils/gameTime.js'
 import mapLocations from '../data/mapLocations.js'
 import { calculateRoute } from '../services/routingService.js'
@@ -74,6 +75,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [planningMode, setPlanningMode] = useState(null)
   const [deliveryPlanning, setDeliveryPlanning] = useState(null)
   const [pauseStateBeforeModal, setPauseStateBeforeModal] = useState(false)
+  const [operationsOpen, setOperationsOpen] = useState(false)
   const phonePauseStateBeforeOpenRef = useRef(null)
 
   const assignedLoad = loads.find((load) => load.assignedDriverId === 'marcus')
@@ -81,6 +83,9 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const emailUnreadCount = emailMessages?.filter((message) => !message.read).length || 0
   const ledgerNotificationCount = loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved && !seenLedgerReceivableIds.includes(load.id)).length + getReceivables(loads, carriers, ledgerWorkflowByLoadId).filter((item) => item.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(item.loadId)).length
   const phoneNotificationCount = podNotificationCount + ledgerNotificationCount + emailUnreadCount
+  const currentAbsoluteGameMinute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+  const pendingCarrierReview = Object.entries(carrierApplicationsById).find(([, application]) => application?.status === 'PENDING')
+  const pendingCarrierReviewMinutes = pendingCarrierReview ? Math.max(0, pendingCarrierReview[1].responseGameMinute - currentAbsoluteGameMinute) : null
   const tutorialObjective = getCurrentTutorialObjective({ tutorialEnabled, stage: 'game', applications: carrierApplicationsById, emails: emailMessages, loads, ledger: ledgerWorkflowByLoadId })
   const shouldGuideCarrierResponseWait = tutorialEnabled && tutorialObjective === 'fast-forward-carrier-response' && !isPhoneOpen
   const tutorialLoadId = emailMessages.some((message) => message.id === 'mentor-round-two') ? 'DOC002' : 'DOC001'
@@ -108,6 +113,45 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     || (tutorialReceivable?.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(tutorialLoadId))
   )
   const shouldHighlightPhoneForLedger = tutorialLedgerNeedsAttention && !isPhoneOpen
+  const driverOperationAlert = (() => {
+    if (!assignedLoad) return null
+    if (assignedLoad.tripStatus === 'waiting-at-pickup') return { title: 'MARCUS REED', detail: 'Waiting at pickup — check-in action pending.', value: 'PICKUP' }
+    if (assignedLoad.tripStatus === 'at-delivery') return { title: 'MARCUS REED', detail: 'Waiting at delivery — check-in action pending.', value: 'DELIVERY' }
+    if (assignedLoad.tripStatus === 'assigned' && assignedLoad.planningStatus === 'route-ready') return { title: 'MARCUS REED', detail: 'Route ready — send Marcus to pickup.', value: 'READY' }
+    if (assignedLoad.tripStatus === 'loaded' && assignedLoad.deliveryPlanningStatus === 'route-ready') return { title: 'MARCUS REED', detail: 'Delivery route ready — dispatch Marcus.', value: 'READY' }
+    if (assignedLoad.tripStatus === 'loaded') return { title: 'MARCUS REED', detail: 'Loaded — delivery trip planning is required.', value: 'ACTION' }
+    return null
+  })()
+
+  const operationNotifications = [
+    ...(driverOperationAlert ? [{ id: 'driver-action', tone: 'attention', ...driverOperationAlert }] : []),
+    ...(emailUnreadCount > 0 ? [{
+      id: 'email-unread',
+      tone: 'info',
+      title: 'EMAIL',
+      detail: emailUnreadCount === 1 ? '1 unread message.' : `${emailUnreadCount} unread messages.`,
+      value: emailUnreadCount === 1 ? '1 NEW' : `${emailUnreadCount} NEW`,
+      action: 'email',
+    }] : []),
+    ...(podNotificationCount > 0 ? [{
+      id: 'pod-review',
+      tone: 'attention',
+      title: 'DOCUMENTS',
+      detail: podNotificationCount === 1 ? '1 POD ready for review.' : `${podNotificationCount} PODs ready for review.`,
+      value: podNotificationCount === 1 ? '1 READY' : `${podNotificationCount} READY`,
+      action: 'documents',
+    }] : []),
+    ...(ledgerNotificationCount > 0 ? [{
+      id: 'ledgerdesk',
+      tone: 'success',
+      title: 'LEDGERDESK',
+      detail: ledgerNotificationCount === 1 ? '1 payment or receivable update.' : `${ledgerNotificationCount} payment or receivable updates.`,
+      value: ledgerNotificationCount === 1 ? '1 UPDATE' : `${ledgerNotificationCount} UPDATES`,
+      action: 'ledger',
+    }] : []),
+  ]
+  // The badge is a true aggregate count: every unresolved actionable item counts.
+  const operationsNotificationCount = emailUnreadCount + podNotificationCount + ledgerNotificationCount + (driverOperationAlert ? 1 : 0)
 
   // Simulation safety rules:
   // - The DOC OS phone is decision space, so opening it pauses the world.
@@ -284,22 +328,37 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     setSimulationSpeed(fastForwardActive ? 1 : 5)
   }
 
+  const openOperationNotification = (action) => {
+    if (action === 'ledger') onOpenLedger?.()
+    if (!['email', 'documents', 'ledger'].includes(action)) return
+    setPhoneInitialScreen(action)
+    setPhoneLoadId(null)
+    setIsPhoneOpen(true)
+  }
+
   return (
     <div className="main-game-screen">
       <StatusBar selectedMarket={selectedMarket} gameTime={gameTime} cash={getLedgerSummary(getReceivables(loads, carriers, ledgerWorkflowByLoadId)).collected} />
-      <div className="map-area">
+      <OperationsBar
+        selectedMarket={selectedMarket}
+        notificationCount={operationsNotificationCount}
+        notifications={operationNotifications}
+        onOpenChange={setOperationsOpen}
+        onNotificationAction={openOperationNotification}
+      />
+      <div className={`map-area ${operationsOpen ? 'operations-open' : ''}`}>
         {import.meta.env.DEV && <><button type="button" className="dev-button" onClick={() => setDevOpen((open) => !open)}>DEV</button>{devOpen && <div className="dev-menu"><div className="dev-menu-header"><strong>DEV TOOLS</strong><button type="button" onClick={() => setDevOpen(false)} aria-label="Close developer tools">×</button></div><div className="dev-presets"><strong>TIME</strong><span>DAY {gameTime.gameDayIndex + 1}<br />{formatCompactDate(gameTime.gameDayIndex)} • {formatTime(gameTime.totalMinutesOfDay)}</span>{[60, 360].map((minutes) => <button type="button" key={minutes} onClick={() => setGameTime((time) => { const total = time.gameDayIndex * 1440 + time.totalMinutesOfDay + minutes; return { gameDayIndex: Math.floor(total / 1440), totalMinutesOfDay: total % 1440 } })}>+{minutes === 60 ? '1 HR' : '6 HR'}</button>)}{[1, 3, 7].map((days) => <button type="button" key={days} onClick={() => setGameTime((time) => ({ ...time, gameDayIndex: time.gameDayIndex + days }))}>+{days} DAY{days > 1 ? 'S' : ''}</button>)}</div><button type="button" className="dev-reset" onClick={() => { onResetGame(); setDevOpen(false) }}>RESET GAME</button></div>}</>}
         {shouldGuideCarrierResponseWait && (
           <div className="carrier-review-wait" role="status" aria-live="polite">
             <span className="carrier-review-wait-dot" aria-hidden="true" />
             <span>METROLINE REVIEW</span>
-            <strong>10 MIN</strong>
+            <strong>{pendingCarrierReviewMinutes ?? 10} MIN</strong>
           </div>
         )}
         <div className="time-controls" aria-label="Simulation time controls">
           <button
             type="button"
-            className={isGameClockPaused ? 'active' : ''}
+            className={isGameClockPaused && !shouldGuideCarrierResponseWait ? 'active' : ''}
             onClick={togglePause}
             aria-label={isGameClockPaused ? 'Resume simulation' : 'Pause simulation'}
             aria-pressed={isGameClockPaused}
@@ -322,7 +381,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             )}
           </button>
         </div>
-        <GameMap activeRouteGeometry={activeRouteGeometry} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgress={runtimeProgress} runtimeRoute={assignedLoad?.tripStatus === 'en-route-delivery' ? assignedLoad.plannedLoadedRouteGeometry : assignedLoad?.plannedDeadheadRouteGeometry} assignedLoad={assignedLoad} evaluationLoad={driverFitEvaluation ? loads.find((load) => load.id === driverFitEvaluation.loadId) : null} isDriverFitEvaluation={Boolean(driverFitEvaluation)} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} tutorialEnabled={tutorialEnabled} tutorialDriverAction={tutorialDriverAction} />
+        <GameMap activeRouteGeometry={activeRouteGeometry} routeFocusMode={driverFitEvaluation ? 'evaluation' : (planningMode || deliveryPlanning ? 'planning' : null)} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgress={runtimeProgress} runtimeRoute={assignedLoad?.tripStatus === 'en-route-delivery' ? assignedLoad.plannedLoadedRouteGeometry : assignedLoad?.plannedDeadheadRouteGeometry} assignedLoad={assignedLoad} evaluationLoad={driverFitEvaluation ? loads.find((load) => load.id === driverFitEvaluation.loadId) : null} isDriverFitEvaluation={Boolean(driverFitEvaluation)} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} tutorialEnabled={tutorialEnabled} tutorialDriverAction={tutorialDriverAction} />
         {deliveryPlanning && (
           <div className="map-evaluation trip-planning-v2 delivery-planning-v2">
             <div className="trip-plan-v2-heading">
@@ -637,7 +696,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18V11M10 18V7M15 18v-5M20 18V4"/></svg>
           <span>MARKET</span>
         </button>
-        {!isPhoneOpen && (
+        {!isPhoneOpen && !driverFitEvaluation && !planningMode && !deliveryPlanning && (
           <button
             type="button"
             className={`phone-button ${!isPhoneOpen && (hasUnreadTutorialEmail || shouldHighlightPhoneForPod || shouldHighlightPhoneForLedger) && !driverFitEvaluation ? 'tutorial-target' : ''}`}

@@ -22,7 +22,7 @@ function routePosition(route, progress) {
   return [a[0] + (b[0] - a[0]) * amount, a[1] + (b[1] - a[1]) * amount]
 }
 
-function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, tutorialEnabled = false, tutorialDriverAction = null }) {
+function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, tutorialEnabled = false, tutorialDriverAction = null }) {
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const markerRecords = useRef([])
@@ -199,6 +199,26 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDr
   }, [activeRouteGeometry, tripStatus, isDriverFitEvaluation])
 
   useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady || !routeFocusMode || !activeRouteGeometry?.length) return
+
+    const lngs = activeRouteGeometry.map((point) => point[0])
+    const lats = activeRouteGeometry.map((point) => point[1])
+    const bounds = [
+      [Math.min(...lngs), Math.min(...lats)],
+      [Math.max(...lngs), Math.max(...lats)],
+    ]
+
+    map.fitBounds(bounds, {
+      padding: routeFocusMode === 'evaluation'
+        ? { top: 74, right: 26, bottom: 330, left: 26 }
+        : { top: 74, right: 26, bottom: 300, left: 26 },
+      maxZoom: 12.8,
+      duration: 420,
+    })
+  }, [activeRouteGeometry, routeFocusMode, mapReady])
+
+  useEffect(() => {
     const pickupRecord = markerRecords.current.find(({ marker }) => marker === pickupMarkerRef.current)
     const popupLoad = assignedLoad || evaluationLoad
     if (pickupRecord && popupLoad) {
@@ -245,6 +265,23 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDr
 
       row.append(label, value)
       return row
+    }
+
+    const buildMetricGrid = (entries) => {
+      const values = entries.filter((entry) => entry?.value)
+      if (!values.length) return null
+      const grid = document.createElement('div')
+      grid.className = 'docos-driver-popup-metrics'
+      values.forEach(({ label, value }) => {
+        const cell = document.createElement('div')
+        const cellLabel = document.createElement('span')
+        cellLabel.textContent = label
+        const cellValue = document.createElement('strong')
+        cellValue.textContent = value
+        cell.append(cellLabel, cellValue)
+        grid.append(cell)
+      })
+      return grid
     }
 
     const buildActionButton = (label, actionType, disabled = false) => {
@@ -299,28 +336,25 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, tripStatus, onDr
         const pillTone = model.operationalState === 'TRIP_PLANNED' ? 'ready' : model.operationalState === 'WAITING_DELIVERY' ? 'attention' : 'neutral'
         popupContent.append(buildHeader(model.driverName || marcus.fullName || record.location.name, model.roleLabel || 'Driver', model.statusLabel?.toUpperCase(), pillTone))
 
-        if (model.operationalState === 'EN_ROUTE_PICKUP' || model.operationalState === 'EN_ROUTE_DELIVERY') {
-          const statusRow = buildMetaRow('CURRENT STATUS', model.statusLabel)
-          const stopRow = buildMetaRow('NEXT STOP', model.nextStopLabel)
-          const etaRow = buildMetaRow('ETA', model.eta)
-          const progressRow = buildMetaRow('PROGRESS', `${Math.round((model.progress || 0) * 100)}%`)
-          if (statusRow) popupContent.append(statusRow)
-          if (stopRow) popupContent.append(stopRow)
-          if (etaRow) popupContent.append(etaRow)
-          if (progressRow) popupContent.append(progressRow)
+        if (['ASSIGNED', 'TRIP_PLANNED'].includes(model.operationalState)) {
+          // Quick map action: identity + status + primary action only.
+        } else if (model.operationalState === 'EN_ROUTE_PICKUP' || model.operationalState === 'EN_ROUTE_DELIVERY') {
+          const metrics = buildMetricGrid([
+            { label: 'NEXT STOP', value: model.nextStopLabel },
+            { label: 'ETA', value: model.eta },
+            { label: 'PROGRESS', value: `${Math.round((model.progress || 0) * 100)}%` },
+          ])
+          if (metrics) popupContent.append(metrics)
         } else {
           const loadRow = buildMetaRow('CURRENT LOAD', model.loadId)
           const stopRow = buildMetaRow('NEXT STOP', model.nextStopLabel)
           const locationRow = buildMetaRow('CURRENT LOCATION', model.locationLabel)
-          const showPickupWindow = ['ASSIGNED', 'TRIP_PLANNED'].includes(model.operationalState)
-          const windowRow = showPickupWindow ? buildMetaRow('PICKUP WINDOW', model.pickupWindow) : null
-          const remainingLabel = model.operationalState === 'WAITING_PICKUP' ? 'WAIT TIME' : 'REMAINING'
+          const remainingLabel = ['WAITING_PICKUP', 'WAITING_DELIVERY'].includes(model.operationalState) ? 'WAIT TIME' : 'REMAINING'
           const remainingRow = model.remainingMinutes !== null ? buildMetaRow(remainingLabel, `${model.remainingMinutes} min`) : null
 
           if (loadRow) popupContent.append(loadRow)
           if (stopRow) popupContent.append(stopRow)
           if (locationRow) popupContent.append(locationRow)
-          if (windowRow) popupContent.append(windowRow)
           if (remainingRow) popupContent.append(remainingRow)
         }
 
