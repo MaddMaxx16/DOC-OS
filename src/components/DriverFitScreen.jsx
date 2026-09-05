@@ -197,7 +197,7 @@ function DriverFitScreen({
             onClick={evaluateSelected}
             disabled={!selectedDriverId || !selectedFit}
           >
-            <span>{selectedDriverId ? 'EVALUATE ON MAP' : 'SELECT A DRIVER'}</span>
+            <span>{selectedDriverId ? 'EVALUATE FIT' : 'SELECT DRIVER'}</span>
             {selectedDriverId && <span aria-hidden="true">›</span>}
           </button>
         </div>

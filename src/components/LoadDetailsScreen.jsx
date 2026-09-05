@@ -10,7 +10,7 @@ function formatStatus(status = '') {
 }
 
 function formatMiles(value) {
-  if (value === null || value === undefined) return 'Calculating...'
+  if (value === null || value === undefined) return 'Not listed'
   if (value === 'unavailable') return 'Unavailable'
   if (Number.isFinite(value)) return `${value.toFixed(1)} mi`
   return 'Unavailable'
@@ -50,6 +50,7 @@ function LoadDetailsScreen({
   const assignedDriver = drivers.find((driver) => driver.id === load.assignedDriverId)
   const verifiedDriverName = candidateDriver?.name || 'Marcus'
   const statusLabel = formatStatus(load.status)
+  const ratePerMile = Number.isFinite(load.listedMiles) && load.listedMiles > 0 ? load.rate / load.listedMiles : null
 
   return (
     <div className="phone-page load-details-screen load-details-v2">
@@ -115,6 +116,12 @@ function LoadDetailsScreen({
               <span>Listed Miles</span>
               <strong>{formatMiles(load.listedMiles)}</strong>
             </div>
+            {Number.isFinite(ratePerMile) && (
+              <div>
+                <span>Rate / Mile</span>
+                <strong>${ratePerMile.toFixed(2)}/mi</strong>
+              </div>
+            )}
             {Number.isFinite(load.plannedMiles) && (
               <div>
                 <span>Planned Miles</span>
@@ -171,7 +178,7 @@ function LoadDetailsScreen({
                 disabled={!load.driverFitVerified || !load.candidateDriverId}
               >
                 <span>ACCEPT LOAD</span>
-                {!load.driverFitVerified && <small>Confirm driver fit first</small>}
+                {!load.driverFitVerified ? <small>Confirm driver fit first</small> : null}
               </button>
             </>
           ) : load.status === 'assigned' && load.assignedDriverId ? (

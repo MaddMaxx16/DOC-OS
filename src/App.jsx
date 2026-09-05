@@ -4,7 +4,6 @@ import seedLoads from './data/loads.js'
 import seedCarriers from './data/carriers.js'
 import seedDrivers from './data/drivers.js'
 import mapLocations from './data/mapLocations.js'
-import { calculateRoute } from './services/routingService.js'
 import { DELIVERY_UNLOAD_DURATION_MINUTES, PICKUP_LOADING_MINUTES } from './data/pickupConfig.js'
 import { logDocOsState } from './utils/debugLogger.js'
 import { getMarcusPanelModel } from './utils/driverOperationalState.js'
@@ -16,6 +15,7 @@ import { SAVE_SLOT_IDS, clearSave, getActiveSaveSlot, getSaveSlots, loadGame, sa
 import { createDevPreset } from './dev/devPresets.js'
 import { getReceivables } from './utils/ledger.js'
 import { reconcileActiveCarrierDrivers } from './utils/driverRoster.js'
+import { createDayReport, DEFAULT_DAY_LOOP_STATE, DEFAULT_PLAYER_PROGRESSION, getEndDayStatus } from './utils/dayLoop.js'
 
 function App() {
   const [stage, setStage] = useState('start')
@@ -38,6 +38,8 @@ function App() {
   const [carrierApplicationsById, setCarrierApplicationsById] = useState({})
   const [emailMessages, setEmailMessages] = useState([])
   const [tutorialState, setTutorialState] = useState({ enabled: true, completed: false })
+  const [dayLoop, setDayLoop] = useState(() => ({ ...DEFAULT_DAY_LOOP_STATE }))
+  const [playerProgression, setPlayerProgression] = useState(() => ({ ...DEFAULT_PLAYER_PROGRESSION }))
   const [saveSlots, setSaveSlots] = useState([])
   const [activeSaveSlotId, setActiveSaveSlotId] = useState(null)
 
@@ -95,6 +97,8 @@ function App() {
     setCarrierApplicationsById(saved.carrierApplicationsById || {})
     setEmailMessages(Array.isArray(saved.emailMessages) ? saved.emailMessages : [])
     setTutorialState(saved.tutorialState ?? { enabled: false, completed: false })
+    setDayLoop(saved.dayLoop ? { ...DEFAULT_DAY_LOOP_STATE, ...saved.dayLoop, history: Array.isArray(saved.dayLoop.history) ? saved.dayLoop.history : [] } : { ...DEFAULT_DAY_LOOP_STATE })
+    setPlayerProgression(saved.playerProgression ? { ...DEFAULT_PLAYER_PROGRESSION, ...saved.playerProgression } : { ...DEFAULT_PLAYER_PROGRESSION })
     setResumeStage(saved.stage && saved.stage !== 'start' ? saved.stage : (saved.selectedMarket ? 'game' : 'market'))
   }
 
@@ -115,6 +119,8 @@ function App() {
     setCarrierApplicationsById({})
     setEmailMessages([])
     setTutorialState({ enabled: true, completed: false })
+    setDayLoop({ ...DEFAULT_DAY_LOOP_STATE })
+    setPlayerProgression({ ...DEFAULT_PLAYER_PROGRESSION })
   }
 
   useEffect(() => {
@@ -133,11 +139,11 @@ function App() {
     if (stage === 'start' && !hasExistingOperation) return
     const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
     const timer = setTimeout(() => {
-      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, tutorialState }, activeSaveSlotId)
+      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, tutorialState, dayLoop, playerProgression }, activeSaveSlotId)
       setSaveSlots(getSaveSlots())
     }, 700)
     return () => clearTimeout(timer)
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, tutorialState])
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, tutorialState, dayLoop, playerProgression])
 
   useEffect(() => {
     if (!hydrated || !tutorialState.enabled || tutorialState.completed) return
@@ -169,6 +175,16 @@ function App() {
       return changed ? next : current
     })
   }, [gameTime])
+
+  // Final tutorial handoff: when DOC002 payment posts, stop time immediately so
+  // the payment/closeout notification cannot fly past the player at 5x speed.
+  useEffect(() => {
+    if (!hydrated || !tutorialState.enabled || tutorialState.completed) return
+    if (ledgerWorkflowByLoadId.DOC002?.financialStatus !== 'PAID') return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsGameClockPaused(true)
+    setSimulationSpeed(1)
+  }, [hydrated, tutorialState.enabled, tutorialState.completed, ledgerWorkflowByLoadId.DOC002?.financialStatus])
 
   const applyDevPreset = async (name) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads([...preset.loads, ...loads.filter((load) => !preset.loads.some((item) => item.id === load.id)), ...seedLoads.filter((seed) => !preset.loads.some((item) => item.id === seed.id) && !loads.some((item) => item.id === seed.id))]); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgress(preset.runtimeProgress) } catch (error) { console.error('DEV preset route unavailable:', error) } }
   const applySelectedDevPreset = async (name, selectedLoadId) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers, currentRuntimePositions: runtimePositions, currentCarriers: carriers, selectedLoadId }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads([...preset.loads, ...loads.filter((load) => !preset.loads.some((item) => item.id === load.id)), ...seedLoads.filter((seed) => !preset.loads.some((item) => item.id === seed.id) && !loads.some((item) => item.id === seed.id))]); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgress(preset.runtimeProgress) } catch (error) { console.error('DEV preset route unavailable:', error) } }
@@ -243,6 +259,31 @@ function App() {
     }
   }, [tutorialState, emailMessages])
 
+  // Day Loop migration safety: Flow Pass saves can already be fully complete before
+  // the Day Loop state exists. In that case tutorialState may no longer be active,
+  // so the normal tutorial-email effect above will never create the closeout message.
+  // Reconcile from authoritative gameplay state instead of making the player replay.
+  useEffect(() => {
+    if (!hydrated || stage !== 'game' || dayLoop.operationDay !== 1 || dayLoop.phase !== 'operating') return
+    if (emailMessages.some((message) => message.id === 'mentor-tutorial-complete')) return
+
+    const doc002 = loads.find((load) => load.id === 'DOC002')
+    const doc002Paid = getReceivables(loads, carriers, ledgerWorkflowByLoadId)
+      .some((item) => item.loadId === 'DOC002' && item.financialStatus === 'PAID')
+    const paymentWasReviewed = seenLedgerPaymentReceivedIds.includes('DOC002')
+    const legacyFlowWasAlreadyCompleted = tutorialState.completed
+
+    if (doc002?.tripStatus !== 'completed' || !doc002Paid || (!paymentWasReviewed && !legacyFlowWasAlreadyCompleted)) return
+
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEmailMessages((current) => current.some((message) => message.id === 'mentor-tutorial-complete')
+      ? current
+      : [...current, { id: 'mentor-tutorial-complete', type: 'mentor', templateId: 'mentor-tutorial-complete', receivedGameMinute: now, read: false }])
+    setIsGameClockPaused(true)
+    setSimulationSpeed(1)
+  }, [hydrated, stage, dayLoop.operationDay, dayLoop.phase, emailMessages, loads, carriers, ledgerWorkflowByLoadId, seenLedgerPaymentReceivedIds, tutorialState.completed, gameTime])
+
   useEffect(() => {
     const load = loads.find((item) => item.assignedDriverId && ['en-route-pickup', 'en-route-delivery'].includes(item.tripStatus)) || loads.find((item) => item.assignedDriverId) || {}
     const route = load.tripStatus === 'en-route-delivery' ? load.plannedLoadedRouteGeometry : load.tripStatus === 'en-route-pickup' ? load.plannedDeadheadRouteGeometry : load.plannedLoadedRouteGeometry || load.plannedDeadheadRouteGeometry
@@ -297,8 +338,8 @@ function App() {
     if (!delivery) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDrivers((current) => current.map((driver) => driver.id === completed.assignedDriverId ? { ...driver, status: 'available', assignedLoadId: null, longitude: delivery.longitude, latitude: delivery.latitude, lastKnownLocationId: completed.deliveryLocationId } : driver))
-    setLoads((current) => current.map((load) => load.id === completed.id && load.tripStatus === 'delivered' ? { ...load, tripStatus: 'completed', status: 'completed', completedDriverId: completed.assignedDriverId, assignedDriverId: null } : load))
-  }, [loads])
+    setLoads((current) => current.map((load) => load.id === completed.id && load.tripStatus === 'delivered' ? { ...load, tripStatus: 'completed', status: 'completed', completedDriverId: completed.assignedDriverId, assignedDriverId: null, completedGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay, completedOperationDay: dayLoop.operationDay } : load))
+  }, [loads, gameTime, dayLoop.operationDay])
 
   useEffect(() => {
     if (stage !== 'game' || isGameClockPaused) return undefined
@@ -311,27 +352,66 @@ function App() {
     return () => clearInterval(timer)
   }, [stage, isGameClockPaused, simulationSpeed])
 
-  useEffect(() => {
-    const loadsToCalculate = seedLoads.filter((load) => load.listedMiles === null)
-    if (!loadsToCalculate.length) return
 
-    Promise.all(loadsToCalculate.map(async (load) => {
-      const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
-      const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
-      try {
-        const route = await calculateRoute(pickup, delivery)
-        return { id: load.id, listedMiles: route.distanceMiles }
-      } catch (error) {
-        console.error(error)
-        return { id: load.id, listedMiles: 'unavailable' }
-      }
-    })).then((results) => {
-      setLoads((currentLoads) => currentLoads.map((load) => {
-        const result = results.find((item) => item.id === load.id)
-        return result ? { ...load, listedMiles: result.listedMiles } : load
-      }))
+  const closeOperationDay = () => {
+    const receivables = getReceivables(loads, carriers, ledgerWorkflowByLoadId)
+    const closeStatus = getEndDayStatus(loads, receivables)
+    if (!closeStatus.canEnd || dayLoop.phase !== 'operating') return
+
+    const report = createDayReport({
+      operationDay: dayLoop.operationDay,
+      currentStartGameDayIndex: dayLoop.currentStartGameDayIndex,
+      gameTime,
+      loads,
+      receivables,
     })
-  }, [])
+
+    setIsGameClockPaused(true)
+    setSimulationSpeed(1)
+    setLoads((current) => current.map((load) => load.tripStatus === 'completed' && !Number.isFinite(load.completedOperationDay)
+      ? { ...load, completedOperationDay: dayLoop.operationDay }
+      : load))
+    setPlayerProgression((current) => ({
+      ...current,
+      xp: Number(current.xp || 0) + report.xpGain,
+      reputation: Number(current.reputation || 0) + report.reputationChange,
+    }))
+    setDayLoop((current) => ({
+      ...current,
+      phase: 'results',
+      report,
+      history: [...(current.history || []), report],
+    }))
+  }
+
+  const continueToNextDayBriefing = () => {
+    if (!dayLoop.report || dayLoop.phase !== 'results') return
+    setDayLoop((current) => ({ ...current, phase: 'briefing' }))
+  }
+
+  const beginNextOperationDay = () => {
+    const report = dayLoop.report
+    if (!report || dayLoop.phase !== 'briefing') return
+    const nextOperationDay = dayLoop.operationDay + 1
+    const nextAbsoluteMinute = report.nextStartGameDayIndex * 1440 + report.nextStartMinutes
+
+    setGameTime({ gameDayIndex: report.nextStartGameDayIndex, totalMinutesOfDay: report.nextStartMinutes })
+    setDayLoop((current) => ({
+      ...current,
+      operationDay: nextOperationDay,
+      phase: 'operating',
+      currentStartGameDayIndex: report.nextStartGameDayIndex,
+      report: null,
+    }))
+    setTutorialState((current) => ({ ...current, enabled: false, completed: true }))
+    if (nextOperationDay === 2) {
+      setEmailMessages((current) => current.some((message) => message.id === 'mentor-day-two')
+        ? current
+        : [...current, { id: 'mentor-day-two', type: 'mentor', templateId: 'mentor-day-two', receivedGameMinute: nextAbsoluteMinute, read: false }])
+    }
+    setSimulationSpeed(1)
+    setIsGameClockPaused(false)
+  }
 
   return (
     <main className="app">
@@ -368,6 +448,13 @@ function App() {
             onAcceptAgreement={acceptCarrierAgreement}
             emailMessages={emailMessages}
             tutorialEnabled={tutorialState.enabled && !tutorialState.completed}
+            operationDay={dayLoop.operationDay}
+            dayLoopPhase={dayLoop.phase}
+            dayReport={dayLoop.report}
+            playerProgression={playerProgression}
+            onEndDay={closeOperationDay}
+            onContinueDay={continueToNextDayBriefing}
+            onBeginOperations={beginNextOperationDay}
             setEmailMessages={setEmailMessages}
             setDrivers={setDrivers}
             plannedRoute={plannedRoute}

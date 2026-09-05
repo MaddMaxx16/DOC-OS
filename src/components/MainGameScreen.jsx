@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import GameMap from './GameMap.jsx'
 import PhoneOverlay from './PhoneOverlay.jsx'
 import StatusBar from './StatusBar.jsx'
 import OperationsBar from './OperationsBar.jsx'
+import EndDaySheet from './EndDaySheet.jsx'
+import DayResultsScreen from './DayResultsScreen.jsx'
+import DayBriefingScreen from './DayBriefingScreen.jsx'
 import { formatAppointment, formatCompactDate, formatTime } from '../utils/gameTime.js'
 import mapLocations from '../data/mapLocations.js'
 import { calculateRoute } from '../services/routingService.js'
@@ -10,6 +13,7 @@ import { logDocOsEvent } from '../utils/debugLogger.js'
 import { getLedgerSummary, getReceivables } from '../utils/ledger.js'
 import { PICKUP_WAIT_MINUTES } from '../data/pickupConfig.js'
 import { getCurrentTutorialObjective } from '../utils/tutorialObjective.js'
+import { getEndDayStatus } from '../utils/dayLoop.js'
 
 
 function getEvaluationBufferMinutes(evaluation) {
@@ -66,7 +70,7 @@ function formatPlanningBuffer(minutes) {
   return formatDurationLabel(minutes)
 }
 
-function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, onActivateCarrier, carrierApplicationsById, onApplyCarrier, onAcceptAgreement, emailMessages, setEmailMessages, tutorialEnabled = false, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, runtimeProgress, setRuntimeProgress, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId, setGameTime }) {
+function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, onActivateCarrier, carrierApplicationsById, onApplyCarrier, onAcceptAgreement, emailMessages, setEmailMessages, tutorialEnabled = false, operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, runtimeProgress, setRuntimeProgress, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId, setGameTime }) {
   const [devOpen, setDevOpen] = useState(false)
   const [isPhoneOpen, setIsPhoneOpen] = useState(false)
   const [phoneInitialScreen, setPhoneInitialScreen] = useState('home')
@@ -76,12 +80,27 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [deliveryPlanning, setDeliveryPlanning] = useState(null)
   const [pauseStateBeforeModal, setPauseStateBeforeModal] = useState(false)
   const [operationsOpen, setOperationsOpen] = useState(false)
-  const phonePauseStateBeforeOpenRef = useRef(null)
+  const [endDayOpen, setEndDayOpen] = useState(false)
 
-  const assignedLoad = loads.find((load) => load.assignedDriverId === 'marcus')
+  const receivables = getReceivables(loads, carriers, ledgerWorkflowByLoadId)
+  const ledgerSummary = getLedgerSummary(receivables)
+  const endDayStatus = getEndDayStatus(loads, receivables)
+  const closeoutEmail = emailMessages.find((message) => message.id === 'mentor-tutorial-complete')
+  // Once Jordan's closeout message exists, expose the control so an upgraded save
+  // visibly has somewhere to go. It remains neutral/locked until the message is read,
+  // then becomes the single blue tutorial target.
+  const showEndDay = dayLoopPhase === 'operating' && (operationDay > 1 || Boolean(closeoutEmail))
+  const endDayTutorialTarget = operationDay === 1 && dayLoopPhase === 'operating' && Boolean(closeoutEmail?.read) && !endDayOpen && !isPhoneOpen
+  const endDayLockedForCloseout = operationDay === 1 && dayLoopPhase === 'operating' && Boolean(closeoutEmail) && !closeoutEmail.read
+  const dayLoopOverlayActive = dayLoopPhase === 'results' || dayLoopPhase === 'briefing'
+
+  // Prefer Marcus's live operation. A completed tutorial load can briefly coexist in
+  // hydrated saves, and must never drive the map/popup for the newer load.
+  const assignedLoad = loads.find((load) => load.assignedDriverId === 'marcus' && !['delivered', 'completed'].includes(load.tripStatus))
+    || loads.find((load) => load.assignedDriverId === 'marcus')
   const podNotificationCount = loads.filter((load) => load.tripStatus === 'awaiting-pod').length
   const emailUnreadCount = emailMessages?.filter((message) => !message.read).length || 0
-  const ledgerNotificationCount = loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved && !seenLedgerReceivableIds.includes(load.id)).length + getReceivables(loads, carriers, ledgerWorkflowByLoadId).filter((item) => item.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(item.loadId)).length
+  const ledgerNotificationCount = loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved && !seenLedgerReceivableIds.includes(load.id)).length + receivables.filter((item) => item.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(item.loadId)).length
   const phoneNotificationCount = podNotificationCount + ledgerNotificationCount + emailUnreadCount
   const currentAbsoluteGameMinute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
   const pendingCarrierReview = Object.entries(carrierApplicationsById).find(([, application]) => application?.status === 'PENDING')
@@ -90,7 +109,14 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const shouldGuideCarrierResponseWait = tutorialEnabled && tutorialObjective === 'fast-forward-carrier-response' && !isPhoneOpen
   const tutorialLoadId = emailMessages.some((message) => message.id === 'mentor-round-two') ? 'DOC002' : 'DOC001'
   const tutorialLoad = loads.find((load) => load.id === tutorialLoadId)
-  const tutorialReceivable = getReceivables(loads, carriers, ledgerWorkflowByLoadId).find((item) => item.loadId === tutorialLoadId)
+  const tutorialReceivable = receivables.find((item) => item.loadId === tutorialLoadId)
+  const tutorialPaymentRemainingMinutes = tutorialReceivable?.financialStatus === 'AWAITING_PAYMENT' && Number.isFinite(tutorialReceivable.paymentAvailableGameMinute)
+    ? Math.max(0, tutorialReceivable.paymentAvailableGameMinute - currentAbsoluteGameMinute)
+    : null
+  const shouldGuideDoc002PaymentWait = tutorialEnabled
+    && tutorialLoadId === 'DOC002'
+    && tutorialReceivable?.financialStatus === 'AWAITING_PAYMENT'
+    && !isPhoneOpen
   const tutorialDriverAction = (() => {
     if (!tutorialEnabled || isPhoneOpen || driverFitEvaluation || planningMode || deliveryPlanning || tutorialLoad?.assignedDriverId !== 'marcus') return null
     if (tutorialLoad.tripStatus === 'assigned') return tutorialLoad.planningStatus === 'route-ready' ? 'SEND_TO_PICKUP' : 'PLAN_TRIP'
@@ -106,7 +132,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     if (tutorialLoad.tripStatus === 'at-delivery') return 'CHECK_IN'
     return null
   })()
-  const hasUnreadTutorialEmail = tutorialEnabled && emailMessages.some((message) => ['mentor-welcome', 'metroline-application-approved', 'mentor-first-carrier', 'mentor-round-two', 'mentor-tutorial-complete'].includes(message.id) && !message.read)
+  const hasUnreadCloseoutEmail = operationDay === 1 && Boolean(closeoutEmail) && !closeoutEmail.read
+  const hasUnreadTutorialEmail = (tutorialEnabled && emailMessages.some((message) => ['mentor-welcome', 'metroline-application-approved', 'mentor-first-carrier', 'mentor-round-two', 'mentor-tutorial-complete'].includes(message.id) && !message.read)) || hasUnreadCloseoutEmail
   const shouldHighlightPhoneForPod = tutorialEnabled && tutorialLoad?.tripStatus === 'awaiting-pod' && !isPhoneOpen
   const tutorialLedgerNeedsAttention = tutorialEnabled && (
     (tutorialLoad?.tripStatus === 'completed' && tutorialLoad.pod?.approved && !seenLedgerReceivableIds.includes(tutorialLoadId))
@@ -154,65 +181,33 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const operationsNotificationCount = emailUnreadCount + podNotificationCount + ledgerNotificationCount + (driverOperationAlert ? 1 : 0)
 
   // Simulation safety rules:
-  // - The DOC OS phone is decision space, so opening it pauses the world.
-  // - Leaving the app/backgrounding it always pauses and never auto-resumes.
-  // - Thirty seconds without interaction on the live map auto-pauses the clock.
-  // The phone restores the player's prior pause state when it closes unless a
-  // safety pause occurred while the phone was open.
+  // - The phone is part of the live operation: opening it does NOT pause time.
+  // - Leaving/backgrounding the app still pauses for safety.
+  // - Planning/evaluation/end-of-day modal decisions pause while the player reads.
   useEffect(() => {
-    if (isPhoneOpen) {
-      if (phonePauseStateBeforeOpenRef.current === null) {
-        phonePauseStateBeforeOpenRef.current = isGameClockPaused
-      }
-      if (!isGameClockPaused) setGameClockPaused(true)
-      return
-    }
-
-    if (phonePauseStateBeforeOpenRef.current !== null) {
-      const wasPausedBeforePhone = phonePauseStateBeforeOpenRef.current
-      phonePauseStateBeforeOpenRef.current = null
-      setGameClockPaused(wasPausedBeforePhone)
-    }
-  }, [isPhoneOpen, isGameClockPaused, setGameClockPaused])
-
-  useEffect(() => {
-    const safetyPause = () => {
-      if (isPhoneOpen) phonePauseStateBeforeOpenRef.current = true
-      setGameClockPaused(true)
-    }
+    const safetyPause = () => setGameClockPaused(true)
     const handleVisibilityChange = () => {
       if (document.hidden) safetyPause()
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('pagehide', safetyPause)
-    window.addEventListener('blur', safetyPause)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('pagehide', safetyPause)
-      window.removeEventListener('blur', safetyPause)
     }
-  }, [isPhoneOpen, setGameClockPaused])
+  }, [setGameClockPaused])
 
+  // Actionable driver events bring the simulation back to normal speed instead
+  // of letting 10× carry the player past a decision point.
   useEffect(() => {
-    if (isPhoneOpen || isGameClockPaused) return undefined
-
-    let inactivityTimer = null
-    const armInactivityPause = () => {
-      window.clearTimeout(inactivityTimer)
-      inactivityTimer = window.setTimeout(() => setGameClockPaused(true), 30000)
+    if (!assignedLoad || isGameClockPaused) return
+    if (['waiting-at-pickup', 'loaded', 'at-delivery', 'awaiting-pod'].includes(assignedLoad.tripStatus) && simulationSpeed > 1) {
+      setSimulationSpeed(1)
     }
+  }, [assignedLoad?.tripStatus, isGameClockPaused, setSimulationSpeed, simulationSpeed])
 
-    const activityEvents = ['pointerdown', 'touchstart', 'keydown']
-    activityEvents.forEach((eventName) => window.addEventListener(eventName, armInactivityPause, { passive: true }))
-    armInactivityPause()
-
-    return () => {
-      window.clearTimeout(inactivityTimer)
-      activityEvents.forEach((eventName) => window.removeEventListener(eventName, armInactivityPause))
-    }
-  }, [isPhoneOpen, isGameClockPaused, setGameClockPaused])
   const pauseClockForModal = () => {
     setPauseStateBeforeModal(isGameClockPaused)
     setGameClockPaused(true)
@@ -233,14 +228,14 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     const delivery = mapLocations.find((location) => location.id === load?.deliveryLocationId)
     pauseClockForModal()
     logDocOsEvent('OPEN DELIVERY PLANNING')
-    setDeliveryPlanning({ loadId, route: 'loading' })
+    setDeliveryPlanning({ loadId, route: 'loading', selected: false })
     try {
       const route = await calculateRoute(pickup, delivery)
       const first = route.routeShape[0]; const last = route.routeShape[route.routeShape.length - 1]
       const startDistance = Math.hypot(first[0] - pickup.longitude, first[1] - pickup.latitude)
       const endDistance = Math.hypot(last[0] - delivery.longitude, last[1] - delivery.latitude)
       if (startDistance > endDistance) route.routeShape.reverse()
-      setDeliveryPlanning({ loadId, route })
+      setDeliveryPlanning({ loadId, route, selected: true })
     } catch (error) { console.error(error); setDeliveryPlanning({ loadId, route: 'unavailable' }) }
   }
   const startPlanning = async (loadId, driverId) => {
@@ -249,10 +244,10 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     const driver = runtimePositions[driverId] || mapLocations.find((location) => location.id === driverRecord?.homeBaseLocationId)
     const pickup = mapLocations.find((location) => location.id === load?.pickupLocationId)
     pauseClockForModal()
-    setPlanningMode({ loadId, driverId, active: true, route: 'loading' })
+    setPlanningMode({ loadId, driverId, active: true, route: 'loading', selected: false })
     try {
       const route = await calculateRoute(driver, pickup)
-      setPlanningMode((current) => current ? { ...current, route } : current)
+      setPlanningMode((current) => current ? { ...current, route, selected: true } : current)
     } catch (error) {
       console.error('Planning route unavailable:', error)
       setPlanningMode((current) => current ? { ...current, route: 'unavailable' } : current)
@@ -308,24 +303,26 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const deliveryPlanningRoute = deliveryPlanning && deliveryPlanning.route && typeof deliveryPlanning.route === 'object' ? deliveryPlanning.route : null
   const deliveryPlanningArrivalAbsoluteMinutes = deliveryPlanningRoute ? (gameTime.gameDayIndex * 1440) + gameTime.totalMinutesOfDay + deliveryPlanningRoute.durationMinutes : null
   const deliveryPlanningBufferMinutes = deliveryPlanningLoad && deliveryPlanningRoute ? getDeliveryPlanningBufferMinutes(deliveryPlanningLoad, deliveryPlanningRoute, gameTime) : null
-  const timeControlsLocked = Boolean(isPhoneOpen || driverFitEvaluation || planningMode || deliveryPlanning)
-  const fastForwardActive = simulationSpeed === 5 && !isGameClockPaused
-  const togglePause = () => {
+  const timeControlsLocked = Boolean(driverFitEvaluation || planningMode || deliveryPlanning || endDayOpen || dayLoopOverlayActive)
+  const pauseActive = isGameClockPaused
+  const playActive = !isGameClockPaused && simulationSpeed === 1
+  const fastForwardActive = !isGameClockPaused && [2, 5, 10].includes(simulationSpeed)
+  const tutorialFastForwardTarget = shouldGuideCarrierResponseWait || shouldGuideDoc002PaymentWait
+
+  const handlePause = () => {
     if (timeControlsLocked) return
-    setGameClockPaused(!isGameClockPaused)
+    setGameClockPaused(true)
   }
-  const handlePlayFastForward = () => {
+  const handlePlay = () => {
     if (timeControlsLocked) return
-
-    // Paused → Play always resumes at normal speed.
-    if (isGameClockPaused) {
-      setSimulationSpeed(1)
-      setGameClockPaused(false)
-      return
-    }
-
-    // Normal → Fast Forward. Fast Forward → Normal.
-    setSimulationSpeed(fastForwardActive ? 1 : 5)
+    setSimulationSpeed(1)
+    setGameClockPaused(false)
+  }
+  const handleFastForward = () => {
+    if (timeControlsLocked) return
+    const nextSpeed = simulationSpeed < 2 ? 2 : simulationSpeed < 5 ? 5 : simulationSpeed < 10 ? 10 : 2
+    setSimulationSpeed(nextSpeed)
+    setGameClockPaused(false)
   }
 
   const openOperationNotification = (action) => {
@@ -338,13 +335,17 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
 
   return (
     <div className="main-game-screen">
-      <StatusBar selectedMarket={selectedMarket} gameTime={gameTime} cash={getLedgerSummary(getReceivables(loads, carriers, ledgerWorkflowByLoadId)).collected} />
+      <StatusBar selectedMarket={selectedMarket} gameTime={gameTime} cash={ledgerSummary.collected} operationDay={operationDay} />
       <OperationsBar
         selectedMarket={selectedMarket}
         notificationCount={operationsNotificationCount}
         notifications={operationNotifications}
         onOpenChange={setOperationsOpen}
         onNotificationAction={openOperationNotification}
+        showEndDay={showEndDay}
+        endDayTutorialTarget={endDayTutorialTarget}
+        endDayDisabled={endDayLockedForCloseout || isPhoneOpen || Boolean(driverFitEvaluation) || Boolean(planningMode) || Boolean(deliveryPlanning) || endDayOpen}
+        onEndDay={() => { pauseClockForModal(); setEndDayOpen(true) }}
       />
       <div className={`map-area ${operationsOpen ? 'operations-open' : ''}`}>
         {import.meta.env.DEV && <><button type="button" className="dev-button" onClick={() => setDevOpen((open) => !open)}>DEV</button>{devOpen && <div className="dev-menu"><div className="dev-menu-header"><strong>DEV TOOLS</strong><button type="button" onClick={() => setDevOpen(false)} aria-label="Close developer tools">×</button></div><div className="dev-presets"><strong>TIME</strong><span>DAY {gameTime.gameDayIndex + 1}<br />{formatCompactDate(gameTime.gameDayIndex)} • {formatTime(gameTime.totalMinutesOfDay)}</span>{[60, 360].map((minutes) => <button type="button" key={minutes} onClick={() => setGameTime((time) => { const total = time.gameDayIndex * 1440 + time.totalMinutesOfDay + minutes; return { gameDayIndex: Math.floor(total / 1440), totalMinutesOfDay: total % 1440 } })}>+{minutes === 60 ? '1 HR' : '6 HR'}</button>)}{[1, 3, 7].map((days) => <button type="button" key={days} onClick={() => setGameTime((time) => ({ ...time, gameDayIndex: time.gameDayIndex + days }))}>+{days} DAY{days > 1 ? 'S' : ''}</button>)}</div><button type="button" className="dev-reset" onClick={() => { onResetGame(); setDevOpen(false) }}>RESET GAME</button></div>}</>}
@@ -355,32 +356,56 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             <strong>{pendingCarrierReviewMinutes ?? 10} MIN</strong>
           </div>
         )}
-        <div className="time-controls" aria-label="Simulation time controls">
+        {shouldGuideDoc002PaymentWait && (
+          <div className="carrier-review-wait payment-review-wait" role="status" aria-live="polite">
+            <span className="carrier-review-wait-dot" aria-hidden="true" />
+            <span>DOC002 PAYMENT</span>
+            <strong>{tutorialPaymentRemainingMinutes ?? 30} MIN</strong>
+          </div>
+        )}
+        <div className="time-controls-wrap">
+          <span className="time-state-label" aria-live="polite">{pauseActive ? 'PAUSED' : `${simulationSpeed}× SPEED`}</span>
+          <div className="time-controls" aria-label="Simulation time controls">
           <button
             type="button"
-            className={isGameClockPaused && !shouldGuideCarrierResponseWait ? 'active' : ''}
-            onClick={togglePause}
-            aria-label={isGameClockPaused ? 'Resume simulation' : 'Pause simulation'}
-            aria-pressed={isGameClockPaused}
+            className={pauseActive ? 'active' : ''}
+            onClick={handlePause}
+            aria-label="Pause simulation"
+            aria-pressed={pauseActive}
             disabled={timeControlsLocked}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
           </button>
           <button
             type="button"
-            className={`${fastForwardActive ? 'active' : ''} ${shouldGuideCarrierResponseWait ? 'tutorial-target tutorial-time-control' : ''}`.trim()}
-            onClick={handlePlayFastForward}
-            aria-label={isGameClockPaused ? 'Play simulation' : fastForwardActive ? 'Return to normal speed' : 'Fast forward simulation'}
+            className={playActive ? 'active' : ''}
+            onClick={handlePlay}
+            aria-label="Play simulation at normal speed"
+            aria-pressed={playActive}
+            disabled={timeControlsLocked}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5.5 18 12 7 18.5V5.5Z"/></svg>
+          </button>
+          <button
+            type="button"
+            className={`${fastForwardActive ? 'active' : ''} ${tutorialFastForwardTarget ? 'tutorial-target tutorial-time-control' : ''}`.trim()}
+            onClick={handleFastForward}
+            aria-label={`Fast forward simulation. Current speed ${simulationSpeed} times`}
             aria-pressed={fastForwardActive}
             disabled={timeControlsLocked}
           >
-            {isGameClockPaused ? (
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5.5 18 12 7 18.5V5.5Z"/></svg>
-            ) : (
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5.5 12 12l-7.5 6.5V5.5Z"/><path d="M11.5 5.5 19 12l-7.5 6.5V5.5Z"/></svg>
-            )}
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5.5 12 12l-7.5 6.5V5.5Z"/><path d="M11.5 5.5 19 12l-7.5 6.5V5.5Z"/></svg>
           </button>
+          </div>
         </div>
+        {endDayOpen && (
+          <EndDaySheet
+            operationDay={operationDay}
+            status={endDayStatus}
+            onCancel={() => { setEndDayOpen(false); restoreClockAfterModal() }}
+            onConfirm={() => { setEndDayOpen(false); onEndDay?.() }}
+          />
+        )}
         <GameMap activeRouteGeometry={activeRouteGeometry} routeFocusMode={driverFitEvaluation ? 'evaluation' : (planningMode || deliveryPlanning ? 'planning' : null)} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgress={runtimeProgress} runtimeRoute={assignedLoad?.tripStatus === 'en-route-delivery' ? assignedLoad.plannedLoadedRouteGeometry : assignedLoad?.plannedDeadheadRouteGeometry} assignedLoad={assignedLoad} evaluationLoad={driverFitEvaluation ? loads.find((load) => load.id === driverFitEvaluation.loadId) : null} isDriverFitEvaluation={Boolean(driverFitEvaluation)} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} tutorialEnabled={tutorialEnabled} tutorialDriverAction={tutorialDriverAction} />
         {deliveryPlanning && (
           <div className="map-evaluation trip-planning-v2 delivery-planning-v2">
@@ -389,8 +414,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                 <span className="trip-plan-v2-kicker">DELIVERY PLANNING</span>
                 <strong>{deliveryPlanning.loadId}</strong>
               </div>
-              <span className={`trip-plan-v2-status ${deliveryPlanning.selected ? 'selected' : 'pending'}`}>
-                {deliveryPlanning.selected ? 'ROUTE SELECTED' : 'PENDING'}
+              <span className={`trip-plan-v2-status ${deliveryPlanningRoute ? 'selected' : 'pending'}`}>
+                {deliveryPlanningRoute ? 'RECOMMENDED' : 'CALCULATING'}
               </span>
             </div>
 
@@ -445,14 +470,6 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    className={`trip-plan-v2-select ${tutorialEnabled && deliveryPlanning.loadId === tutorialLoadId && !deliveryPlanning.selected ? 'tutorial-target' : ''}`}
-                    onClick={() => setDeliveryPlanning((current) => ({ ...current, selected: true }))}
-                    disabled={deliveryPlanning.selected}
-                  >
-                    {deliveryPlanning.selected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}
-                  </button>
                 </>
               )}
             </div>
@@ -470,8 +487,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
               </button>
               <button
                 type="button"
-                className={`trip-plan-v2-confirm ${tutorialEnabled && deliveryPlanning.loadId === tutorialLoadId && deliveryPlanning.selected ? 'tutorial-target' : ''}`}
-                disabled={!deliveryPlanning.selected || !deliveryPlanningRoute}
+                className={`trip-plan-v2-confirm ${tutorialEnabled && deliveryPlanning.loadId === tutorialLoadId && deliveryPlanningRoute ? 'tutorial-target' : ''}`}
+                disabled={!deliveryPlanningRoute}
                 onClick={() => {
                   setLoads((current) => current.map((load) => load.id === deliveryPlanning.loadId ? {
                     ...load,
@@ -497,8 +514,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                 <span className="trip-plan-v2-kicker">TRIP PLANNING</span>
                 <strong>{planningMode.loadId}</strong>
               </div>
-              <span className={`trip-plan-v2-status ${planningMode.selected ? 'selected' : 'pending'}`}>
-                {planningMode.selected ? 'ROUTE SELECTED' : 'PENDING'}
+              <span className={`trip-plan-v2-status ${planningRoute ? 'selected' : 'pending'}`}>
+                {planningRoute ? 'RECOMMENDED' : 'CALCULATING'}
               </span>
             </div>
 
@@ -545,14 +562,6 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    className={`trip-plan-v2-select ${tutorialEnabled && planningMode.loadId === tutorialLoadId && !planningMode.selected ? 'tutorial-target' : ''}`}
-                    onClick={() => setPlanningMode((current) => ({ ...current, selected: true }))}
-                    disabled={planningMode.selected}
-                  >
-                    {planningMode.selected ? 'ROUTE SELECTED' : 'SELECT ROUTE'}
-                  </button>
                 </>
               )}
             </div>
@@ -570,8 +579,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
               </button>
               <button
                 type="button"
-                className={`trip-plan-v2-confirm ${tutorialEnabled && planningMode.loadId === tutorialLoadId && planningMode.selected ? 'tutorial-target' : ''}`}
-                disabled={!planningMode.selected || !planningRoute}
+                className={`trip-plan-v2-confirm ${tutorialEnabled && planningMode.loadId === tutorialLoadId && planningRoute ? 'tutorial-target' : ''}`}
+                disabled={!planningRoute}
                 onClick={() => {
                   setLoads((current) => current.map((load) => load.id === planningMode.loadId ? {
                     ...load,
@@ -699,7 +708,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         {!isPhoneOpen && !driverFitEvaluation && !planningMode && !deliveryPlanning && (
           <button
             type="button"
-            className={`phone-button ${!isPhoneOpen && (hasUnreadTutorialEmail || shouldHighlightPhoneForPod || shouldHighlightPhoneForLedger) && !driverFitEvaluation ? 'tutorial-target' : ''}`}
+            className={`phone-button ${!isPhoneOpen && !shouldGuideCarrierResponseWait && !shouldGuideDoc002PaymentWait && (hasUnreadTutorialEmail || shouldHighlightPhoneForPod || shouldHighlightPhoneForLedger) && !driverFitEvaluation ? 'tutorial-target' : ''}`}
             onClick={() => { setPhoneInitialScreen('home'); setIsPhoneOpen(true) }}
             aria-label="Open phone"
           >
@@ -716,7 +725,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             onActivateCarrier={onActivateCarrier}
             carrierApplicationsById={carrierApplicationsById}
             onApplyCarrier={onApplyCarrier}
-            onBeginCarrierWait={() => { phonePauseStateBeforeOpenRef.current = true; setSimulationSpeed(1); setGameClockPaused(true); setIsPhoneOpen(false) }}
+            onBeginCarrierWait={() => { setSimulationSpeed(1); setIsPhoneOpen(false) }}
             onAcceptAgreement={onAcceptAgreement}
             emailMessages={emailMessages}
             setEmailMessages={setEmailMessages}
@@ -730,7 +739,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             initialScreen={phoneInitialScreen}
             initialLoadId={phoneLoadId}
             documentsBadgeCount={podNotificationCount}
-            ledgerUnreadCount={loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved && !seenLedgerReceivableIds.includes(load.id)).length + getReceivables(loads, carriers, ledgerWorkflowByLoadId).filter((item) => item.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(item.loadId)).length}
+            ledgerUnreadCount={loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved && !seenLedgerReceivableIds.includes(load.id)).length + receivables.filter((item) => item.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(item.loadId)).length}
             emailUnreadCount={emailUnreadCount}
             onOpenLedger={onOpenLedger}
             ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}
@@ -741,6 +750,26 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
           />
         )}
       </div>
+
+      {dayLoopPhase === 'results' && (
+        <DayResultsScreen
+          report={dayReport}
+          progression={playerProgression}
+          onContinue={onContinueDay}
+        />
+      )}
+
+      {dayLoopPhase === 'briefing' && (
+        <DayBriefingScreen
+          operationDay={operationDay + 1}
+          report={dayReport}
+          cash={ledgerSummary.collected}
+          activeCarriers={carriers.filter((carrier) => carrier.status === 'active').length}
+          availableDrivers={drivers.filter((driver) => driver.status === 'available').length}
+          openReceivables={ledgerSummary.outstanding}
+          onBegin={onBeginOperations}
+        />
+      )}
     </div>
   )
 }

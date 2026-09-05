@@ -67,11 +67,14 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], car
       tutorialTarget = nextCheck ? `pod-check:${nextCheck}` : 'approve-pod'
     }
     else if (screen === 'documents' && tutorialLoad?.pod?.approved) tutorialTarget = 'phone-home'
-    else if (screen === 'ledger' && tutorialReceivable && ['READY_TO_INVOICE', 'DRAFT', 'AWAITING_PAYMENT', 'PAID'].includes(tutorialReceivable.financialStatus)) tutorialTarget = `ledger-card:${tutorialLoadId}`
+    else if (screen === 'ledger' && tutorialLoadId === 'DOC002' && tutorialReceivable?.financialStatus === 'AWAITING_PAYMENT') tutorialTarget = 'phone-close'
+    else if (screen === 'ledger' && tutorialReceivable && ['READY_TO_INVOICE', 'DRAFT', 'PAID'].includes(tutorialReceivable.financialStatus)) tutorialTarget = `ledger-card:${tutorialLoadId}`
     else if (screen === 'ledgerReceivable' && selectedLoadId === tutorialLoadId && tutorialReceivable?.financialStatus === 'READY_TO_INVOICE') tutorialTarget = 'create-invoice'
     else if (screen === 'ledgerReceivable' && selectedLoadId === tutorialLoadId && tutorialReceivable?.financialStatus === 'DRAFT') tutorialTarget = 'send-invoice'
     else if (screen === 'ledgerReceivable' && selectedLoadId === 'DOC001' && doc001Receivable?.financialStatus === 'AWAITING_PAYMENT') tutorialTarget = 'phone-home'
+    else if (screen === 'ledgerReceivable' && selectedLoadId === 'DOC002' && tutorialReceivable?.financialStatus === 'AWAITING_PAYMENT') tutorialTarget = 'phone-close'
     else if (screen === 'ledgerReceivable' && selectedLoadId === tutorialLoadId && ['AWAITING_PAYMENT', 'PAID'].includes(tutorialReceivable?.financialStatus)) tutorialTarget = 'phone-home'
+    else if (screen === 'home' && tutorialLoadId === 'DOC002' && tutorialReceivable?.financialStatus === 'AWAITING_PAYMENT') tutorialTarget = 'phone-close'
     else if (screen === 'home' && tutorialLoad?.tripStatus === 'awaiting-pod') tutorialTarget = 'documents-app'
     else if (screen === 'home' && tutorialReceivable && (['READY_TO_INVOICE', 'DRAFT'].includes(tutorialReceivable.financialStatus) || (tutorialReceivable.financialStatus === 'PAID' && ledgerUnreadCount > 0))) tutorialTarget = 'ledger-app'
     else if (screen === 'home' && ((completion && !completion.read) || (roundTwo && !roundTwo.read) || (approval && !approval.read) || (firstCarrier && !firstCarrier.read) || (welcome && !welcome.read))) tutorialTarget = 'email-app'

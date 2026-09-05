@@ -1,8 +1,8 @@
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 
-function StatusBar({ selectedMarket, gameTime, cash = 0 }) {
+function StatusBar({ selectedMarket, gameTime, cash = 0, operationDay = null }) {
   void selectedMarket
-  const day = gameTime.gameDayIndex + 1
+  const day = Number.isFinite(operationDay) ? operationDay : gameTime.gameDayIndex + 1
   const time = formatTime(gameTime.totalMinutesOfDay)
 
   return (

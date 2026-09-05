@@ -4,7 +4,7 @@ const marketLabels = {
   'new-york': 'NEW YORK',
 }
 
-function OperationsBar({ selectedMarket, notificationCount = 0, notifications = [], onOpenChange, onNotificationAction }) {
+function OperationsBar({ selectedMarket, notificationCount = 0, notifications = [], onOpenChange, onNotificationAction, showEndDay = false, endDayTutorialTarget = false, endDayDisabled = false, onEndDay }) {
   const [open, setOpen] = useState(false)
   const marketName = marketLabels[selectedMarket] ?? selectedMarket?.toUpperCase() ?? 'MARKET OFFLINE'
 
@@ -25,33 +25,53 @@ function OperationsBar({ selectedMarket, notificationCount = 0, notifications = 
     onNotificationAction?.(notification.action, notification)
   }
 
+  const activateEndDay = () => {
+    if (endDayDisabled) return
+    setDrawerOpen(false)
+    onEndDay?.()
+  }
+
   return (
     <div className={`operations-hud ${open ? 'open' : ''}`}>
-      <button
-        type="button"
-        className="operations-bar"
-        onClick={() => setDrawerOpen(!open)}
-        aria-expanded={open}
-        aria-controls="operations-drawer"
-      >
-        <div className="operations-bar-main">
-          <span className="operations-bar-kicker">OPERATIONS</span>
-          <strong>{marketName}</strong>
-        </div>
+      <div className="operations-bar-row">
+        <button
+          type="button"
+          className="operations-bar"
+          onClick={() => setDrawerOpen(!open)}
+          aria-expanded={open}
+          aria-controls="operations-drawer"
+        >
+          <div className="operations-bar-main">
+            <span className="operations-bar-kicker">OPERATIONS</span>
+            <strong>{marketName}</strong>
+          </div>
 
-        <div className="operations-bar-meta">
-          <span className={`operations-bar-status ${notificationCount > 0 ? 'attention' : ''}`}>
-            <span className="operations-bar-status-dot" aria-hidden="true" />
-            <span>{notificationLabel}</span>
-          </span>
-          {notificationCount > 0 && (
-            <span className="operations-bar-badge" aria-label={`${notificationCount} active notifications`}>
-              {notificationCount > 99 ? '99+' : notificationCount}
+          <div className="operations-bar-meta">
+            <span className={`operations-bar-status ${notificationCount > 0 ? 'attention' : ''}`}>
+              <span className="operations-bar-status-dot" aria-hidden="true" />
+              <span>{notificationLabel}</span>
             </span>
-          )}
-          <span className="operations-bar-chevron" aria-hidden="true">{open ? '⌃' : '⌄'}</span>
-        </div>
-      </button>
+            {notificationCount > 0 && (
+              <span className="operations-bar-badge" aria-label={`${notificationCount} active notifications`}>
+                {notificationCount > 99 ? '99+' : notificationCount}
+              </span>
+            )}
+            <span className="operations-bar-chevron" aria-hidden="true">{open ? '⌃' : '⌄'}</span>
+          </div>
+        </button>
+
+        {showEndDay && (
+          <button
+            type="button"
+            className={`operations-end-day ${endDayTutorialTarget ? 'tutorial-target' : ''}`}
+            onClick={activateEndDay}
+            disabled={endDayDisabled}
+            aria-label="End operation day"
+          >
+            END DAY
+          </button>
+        )}
+      </div>
 
       {open && (
         <section id="operations-drawer" className="operations-drawer" aria-label="Quick notifications">

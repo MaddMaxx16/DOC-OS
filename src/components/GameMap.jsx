@@ -223,6 +223,7 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode =
     const popupLoad = assignedLoad || evaluationLoad
     if (pickupRecord && popupLoad) {
       const content = document.createElement('div')
+      content.className = 'docos-facility-popup pickup-facility-popup'
       const heading = document.createElement('strong'); heading.textContent = 'PICKUP'
       const name = document.createElement('span'); name.textContent = mapLocations.find((location) => location.id === popupLoad.pickupLocationId)?.name || 'Pickup location'
       const load = document.createElement('span'); load.textContent = `Load: ${popupLoad.id}`
@@ -233,6 +234,7 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode =
     const deliveryRecord = markerRecords.current.find(({ marker }) => marker === deliveryMarkerRef.current)
     if (deliveryRecord && popupLoad) {
       const content = document.createElement('div')
+      content.className = 'docos-facility-popup delivery-facility-popup'
       const heading = document.createElement('strong'); heading.textContent = 'DELIVERY'
       const name = document.createElement('span'); name.textContent = mapLocations.find((location) => location.id === popupLoad.deliveryLocationId)?.name || 'Delivery location'
       const load = document.createElement('span'); load.textContent = `Load: ${popupLoad.id}`
@@ -345,6 +347,14 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode =
             { label: 'PROGRESS', value: `${Math.round((model.progress || 0) * 100)}%` },
           ])
           if (metrics) popupContent.append(metrics)
+          if (Number.isFinite(marcus.hours?.drivingRemainingMinutes)) {
+            const hosMinutes = marcus.hours.drivingRemainingMinutes
+            const hosHours = Math.floor(hosMinutes / 60)
+            const hosRemainder = hosMinutes % 60
+            const hosLabel = hosRemainder ? `${hosHours}h ${hosRemainder}m drive remaining` : `${hosHours}h drive remaining`
+            const hosRow = buildMetaRow('HOS', hosLabel)
+            if (hosRow) popupContent.append(hosRow)
+          }
         } else {
           const loadRow = buildMetaRow('CURRENT LOAD', model.loadId)
           const stopRow = buildMetaRow('NEXT STOP', model.nextStopLabel)
