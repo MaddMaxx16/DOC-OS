@@ -676,19 +676,53 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     const serviceMinutes = 8 + (result.unloadingDelayMinutes || 0)
     const completeMinute = now + serviceMinutes
-    const damageLabel = result.damagedPallets > 0 ? `${result.damagedPallets} pallet${result.damagedPallets === 1 ? '' : 's'} noted` : 'None'
-    setLoads((current) => current.map((item) => item.id === loadId ? {
-      ...item,
-      tripStatus: 'awaiting-pod',
-      deliveryUnloadCompleteGameMinute: completeMinute,
-      facilityOps: { ...(item.facilityOps || {}), delivery: { ...result, completedGameMinute: completeMinute } },
-      pod: {
-        status: 'complete', receivedGameMinute: completeMinute, viewedGameMinute: null, signedBy: 'Jordan Rivera',
-        piecesExpected: result.expectedPallets, piecesReceived: result.actualReceivedPallets,
-        damage: damageLabel, verification: { signature: false, pieceCount: false, damage: false, deliveryInfo: false },
-        verified: false, verifiedGameMinute: null,
-      },
-    } : item))
+    setLoads((current) => current.map((item) => {
+      if (item.id !== loadId) return item
+
+      // Shipment condition is established at pickup and follows the freight through delivery.
+      // Delivery/POD report that existing truth instead of inventing a new condition.
+      const shipment = item.shipment || {}
+      const manifest = Array.isArray(shipment.palletManifest) ? shipment.palletManifest : []
+      const piecesExpected = Number(shipment.expectedPallets) || Number(result.expectedPallets) || manifest.length
+      const piecesReceived = Number(shipment.loadedPallets) || Number(result.actualReceivedPallets) || manifest.filter((pallet) => pallet?.loaded !== false).length
+      const missingPallets = Number.isFinite(Number(shipment.missingPallets))
+        ? Number(shipment.missingPallets)
+        : Math.max(0, piecesExpected - piecesReceived)
+      const damagedPallets = Number.isFinite(Number(shipment.damagedPallets))
+        ? Number(shipment.damagedPallets)
+        : manifest.filter((pallet) => pallet?.loaded !== false && pallet?.damaged).length
+      const damageLabel = damagedPallets > 0 ? `${damagedPallets} pallet${damagedPallets === 1 ? '' : 's'} noted` : 'None'
+
+      return {
+        ...item,
+        tripStatus: 'awaiting-pod',
+        deliveryUnloadCompleteGameMinute: completeMinute,
+        facilityOps: {
+          ...(item.facilityOps || {}),
+          delivery: {
+            ...result,
+            expectedPallets: piecesExpected,
+            actualReceivedPallets: piecesReceived,
+            missingPallets,
+            damagedPallets,
+            completedGameMinute: completeMinute,
+          },
+        },
+        pod: {
+          status: 'complete', receivedGameMinute: completeMinute, viewedGameMinute: null, signedBy: 'Jordan Rivera',
+          piecesExpected, piecesReceived, damage: damageLabel,
+          freightCondition: {
+            source: 'pickup-shipment',
+            expectedPallets: piecesExpected,
+            loadedAtPickup: piecesReceived,
+            missingAtPickup: missingPallets,
+            damagedAtPickup: damagedPallets,
+          },
+          verification: { signature: false, pieceCount: false, damage: false, deliveryInfo: false },
+          verified: false, verifiedGameMinute: null,
+        },
+      }
+    }))
     setGameTime?.((current) => {
       const absolute = current.gameDayIndex * 1440 + current.totalMinutesOfDay + serviceMinutes
       return { ...current, gameDayIndex: Math.floor(absolute / 1440), totalMinutesOfDay: absolute % 1440 }

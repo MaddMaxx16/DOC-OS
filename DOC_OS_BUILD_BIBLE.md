@@ -444,3 +444,19 @@ The first unload sequencing challenge in an app session must teach the loop befo
 
 ## Delivery Unload Planning — AR2
 Unload Sequencing exposes a short planning window: the current receiver request plus the next two projected requests. The purpose is to make staging a deliberate logistics decision. The player should use staging as temporary parking to clear blockers while considering which freight will be needed next. The planning window updates from the current trailer/staging state and does not alter the underlying freight truth or delivery lifecycle.
+
+## Freight Condition Continuity + POD Handoff — Master AS
+Freight condition is established by the physical pickup/loading workflow and must remain continuous through delivery and closeout.
+
+Authoritative condition contract:
+`PICKUP LOADING -> SHIPMENT STATE -> DELIVERY UNLOAD -> POD -> CLOSEOUT`
+
+- `shipment.expectedPallets`, `shipment.loadedPallets`, `shipment.missingPallets`, `shipment.damagedPallets`, and `shipment.palletManifest` are the source of truth after pickup loading completes.
+- Delivery unloading may report and display that condition, but it must not invent a new clean/damaged/short state that contradicts pickup shipment truth.
+- A clean shipment produces a clean POD (`damage: None`) when all loaded freight arrives.
+- Pickup-created damage remains damage at delivery and must be represented as a POD damage notation.
+- Pickup-created shortages remain reflected in the POD piece count (`received / expected`).
+- POD verification means confirming that the paperwork accurately reflects the shipment, not requiring the shipment itself to be exception-free.
+- Therefore, a documented count mismatch or damage notation is a valid, verifiable POD condition and must not permanently block approval/closeout.
+- Missing POD information remains invalid and requires review.
+- AS does not add new random delivery damage, claims logic, OS&D workflows, or receiver disputes. Those are future exception-system layers.

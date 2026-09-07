@@ -237,3 +237,13 @@ Built from Master AR. Preserves Unload Sequencing / Space Clearing V1 gameplay a
 - Updates onboarding/hint copy to teach forward planning.
 - Gameplay rules and delivery lifecycle remain unchanged.
 - Status: test build pending device approval.
+
+## Master AS — Freight Condition Continuity + POD Handoff
+Built from Master AR2 (Rejected Moves terminology polish).
+- Pickup shipment state is the authoritative source for expected, loaded, missing, and damaged pallet counts through delivery closeout.
+- Unload completion now carries pickup-established condition into delivery facility results and the POD instead of deriving a new condition at delivery.
+- POD verification now verifies that piece-count and damage information is recorded, even when the load contains a legitimate shortage or damage exception.
+- Clean freight still presents `No damage reported`; damaged freight presents a damage notation carried forward from pickup.
+- Exception freight can now complete POD verification and proceed to closeout instead of becoming permanently blocked by a non-clean shipment.
+- Unload Sequencing gameplay, timing, staging, receiver requests, and scoring are unchanged.
+- Status: test build pending device approval.

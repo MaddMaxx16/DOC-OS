@@ -26,10 +26,19 @@ function PodDetailScreen({ load, driver, delivery, onBack, onUpdateVerification,
     ...(load.pod.verification || {}),
   }
 
+  const hasCountException = load.pod.piecesReceived !== load.pod.piecesExpected
+  const hasDamageException = load.pod.damage && load.pod.damage !== 'None'
+  const countLabel = hasCountException
+    ? `Piece count recorded · ${load.pod.piecesReceived} / ${load.pod.piecesExpected}`
+    : `Piece count matches · ${load.pod.piecesReceived} / ${load.pod.piecesExpected}`
+  const damageLabel = hasDamageException
+    ? `Damage notation present · ${load.pod.damage}`
+    : 'No damage reported'
+
   const checks = [
     ['signature', 'Receiver signature present', Boolean(load.pod.signedBy)],
-    ['pieceCount', `Piece count matches · ${load.pod.piecesReceived} / ${load.pod.piecesExpected}`, load.pod.piecesReceived === load.pod.piecesExpected],
-    ['damage', 'No damage reported', load.pod.damage === 'None'],
+    ['pieceCount', countLabel, Number.isFinite(Number(load.pod.piecesReceived)) && Number.isFinite(Number(load.pod.piecesExpected))],
+    ['damage', damageLabel, Boolean(load.pod.damage)],
     ['deliveryInfo', 'Delivery information complete', Number.isFinite(load.pod.receivedGameMinute) && Boolean(driver && delivery && load.id)],
   ]
 
@@ -112,7 +121,9 @@ function PodDetailScreen({ load, driver, delivery, onBack, onUpdateVerification,
                 <span className="pod-check-control" aria-hidden="true">{checked ? '✓' : ''}</span>
                 <span className="pod-check-copy">
                   <strong>{label}</strong>
-                  {!valid && <small>Needs review before approval</small>}
+                  {!valid && <small>Missing information — review before approval</small>}
+                  {valid && key === 'pieceCount' && hasCountException && <small>Exception carried forward from pickup</small>}
+                  {valid && key === 'damage' && hasDamageException && <small>Damage carried forward from pickup</small>}
                 </span>
               </label>
             )
