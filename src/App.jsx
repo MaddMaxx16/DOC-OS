@@ -4,7 +4,7 @@ import seedLoads from './data/loads.js'
 import seedCarriers from './data/carriers.js'
 import seedDrivers from './data/drivers.js'
 import mapLocations from './data/mapLocations.js'
-import { DELIVERY_UNLOAD_DURATION_MINUTES, PICKUP_CHECKIN_MINUTES, PICKUP_LOADING_MINUTES, getPickupDockWaitMinutes } from './data/pickupConfig.js'
+import { DELIVERY_CHECKIN_MINUTES, DELIVERY_UNLOAD_DURATION_MINUTES, PICKUP_CHECKIN_MINUTES, PICKUP_LOADING_MINUTES, getDeliveryDockWaitMinutes, getPickupDockWaitMinutes } from './data/pickupConfig.js'
 import { logDocOsState } from './utils/debugLogger.js'
 import { getMarcusPanelModel } from './utils/driverOperationalState.js'
 import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
@@ -167,6 +167,12 @@ function App() {
     const savedNow = (saved.gameTime?.gameDayIndex ?? 0) * 1440 + (saved.gameTime?.totalMinutesOfDay ?? 420)
     hydratedLoads = hydratedLoads.map((load) => {
       if (load.tripStatus === 'at-delivery' && !Number.isFinite(load.deliveryArrivalGameMinute)) return { ...load, deliveryArrivalGameMinute: savedNow }
+      if (load.tripStatus === 'waiting-at-delivery') {
+        const deliveryArrivalGameMinute = Number.isFinite(load.deliveryArrivalGameMinute) ? load.deliveryArrivalGameMinute : savedNow
+        const deliveryCheckInGameMinute = Number.isFinite(load.deliveryCheckInGameMinute) ? load.deliveryCheckInGameMinute : savedNow
+        const deliveryDockReadyGameMinute = deliveryCheckInGameMinute + getDeliveryDockWaitMinutes(load, deliveryCheckInGameMinute)
+        return { ...load, deliveryArrivalGameMinute, deliveryCheckInGameMinute, deliveryDockReadyGameMinute }
+      }
       if (load.tripStatus === 'waiting-at-pickup') {
         const pickupArrivalGameMinute = Number.isFinite(load.pickupArrivalGameMinute) ? load.pickupArrivalGameMinute : savedNow
         const pickupCheckInGameMinute = Number.isFinite(load.pickupCheckInGameMinute) ? load.pickupCheckInGameMinute : savedNow
@@ -532,7 +538,7 @@ function App() {
     const activeTravelLeg = load.tripStatus === 'en-route-delivery' ? 'loaded' : load.tripStatus === 'en-route-pickup' ? 'deadhead' : null
     const panel = getMarcusPanelModel({ assignedLoad: load, gameTime, runtimeProgress, pickup: mapLocations.find((item) => item.id === load.pickupLocationId), delivery: mapLocations.find((item) => item.id === load.deliveryLocationId) })
     const hasActiveAcceptedLoad = Boolean(load.assignedDriverId) && !['delivered', 'completed'].includes(load.tripStatus)
-    const pickupFinished = ['loaded', 'en-route-delivery', 'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'].includes(load.tripStatus)
+    const pickupFinished = ['loaded', 'en-route-delivery', 'at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'].includes(load.tripStatus)
     const loadFinished = ['delivered', 'completed'].includes(load.tripStatus)
     logDocOsState({ tripStatus: load.tripStatus, planningStatus: load.planningStatus, deliveryPlanningStatus: load.deliveryPlanningStatus, activeTravelLeg, driverOperationalState: panel?.operationalState, panelAction: panel?.actionType, candidateDriverId: load.candidateDriverId, assignedDriverId: load.assignedDriverId, hasActiveAcceptedLoad, showPickupMarker: hasActiveAcceptedLoad && !pickupFinished, showDeliveryMarker: hasActiveAcceptedLoad && !loadFinished, candidateDeadhead: `${load.candidateDeadheadRouteGeometry?.length || 0} coordinates`, plannedDeadhead: `${load.plannedDeadheadRouteGeometry?.length || 0} coordinates`, candidateLoaded: `${load.candidateLoadedRouteGeometry?.length || 0} coordinates`, plannedLoaded: `${load.plannedLoadedRouteGeometry?.length || 0} coordinates`, activeRoute: route === load.plannedLoadedRouteGeometry ? 'plannedLoaded' : route === load.plannedDeadheadRouteGeometry ? 'plannedDeadhead' : 'none', activeRouteCoordinates: route?.length || 0, MarcusPosition: runtimePositions.marcus })
   }, [loads, runtimePositions])
@@ -585,7 +591,24 @@ function App() {
         return { ...load, tripStatus: 'checked-in-pickup' }
       }
       if (load.tripStatus === 'loading-at-pickup' && now - load.loadingStartGameMinute >= PICKUP_LOADING_MINUTES) return { ...load, tripStatus: 'loaded', deliveryPlanningStatus: null, plannedLoadedRouteGeometry: null, plannedLoadedMiles: null, plannedLoadedDriveTimeMinutes: null, selectedLoadedRouteId: null }
-      if (load.tripStatus === 'checked-in-delivery') return { ...load, tripStatus: 'unloading-delivery', deliveryUnloadStartGameMinute: now }
+      if (load.tripStatus === 'at-delivery') return {
+        ...load,
+        tripStatus: 'checking-in-delivery',
+        deliveryArrivalGameMinute: Number.isFinite(load.deliveryArrivalGameMinute) ? load.deliveryArrivalGameMinute : now,
+        deliveryCheckInStartGameMinute: now,
+      }
+      if (load.tripStatus === 'checking-in-delivery' && Number.isFinite(load.deliveryCheckInStartGameMinute) && now - load.deliveryCheckInStartGameMinute >= DELIVERY_CHECKIN_MINUTES) {
+        const deliveryCheckInGameMinute = now
+        return {
+          ...load,
+          tripStatus: 'waiting-at-delivery',
+          deliveryCheckInGameMinute,
+          deliveryDockReadyGameMinute: deliveryCheckInGameMinute + getDeliveryDockWaitMinutes(load, deliveryCheckInGameMinute),
+        }
+      }
+      if (load.tripStatus === 'waiting-at-delivery' && Number.isFinite(load.deliveryDockReadyGameMinute) && now >= load.deliveryDockReadyGameMinute) {
+        return { ...load, tripStatus: 'checked-in-delivery' }
+      }
       if (load.tripStatus === 'unloading-delivery' && now - load.deliveryUnloadStartGameMinute >= DELIVERY_UNLOAD_DURATION_MINUTES) return { ...load, tripStatus: 'awaiting-pod', pod: { status: 'complete', receivedGameMinute: now, viewedGameMinute: null, signedBy: 'Jordan Rivera', piecesExpected: 12, piecesReceived: 12, damage: 'None', verification: { signature: false, pieceCount: false, damage: false, deliveryInfo: false }, verified: false, verifiedGameMinute: null } }
       return load
     }))

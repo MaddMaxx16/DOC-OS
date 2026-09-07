@@ -85,7 +85,9 @@ function formatStatusLabel(status = '') {
     loaded: 'LOADED · PLAN DELIVERY',
     'en-route-delivery': 'EN ROUTE TO DELIVERY',
     'at-delivery': 'ARRIVED AT DELIVERY',
-    'checked-in-delivery': 'CHECKED IN AT DELIVERY',
+    'checking-in-delivery': 'CHECKING IN',
+    'waiting-at-delivery': 'WAITING FOR DOCK',
+    'checked-in-delivery': 'DOCK READY',
     'unloading-delivery': 'UNLOADING',
     'awaiting-pod': 'DELIVERED · POD PENDING',
   }
@@ -108,8 +110,8 @@ function getActiveDriverMeta(load, gameTime, runtimeProgress) {
 
 
 
-const PICKUP_COMPLETE_STATUSES = new Set(['loading-at-pickup', 'loaded', 'en-route-delivery', 'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'])
-const DELIVERY_ARRIVED_STATUSES = new Set(['at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'])
+const PICKUP_COMPLETE_STATUSES = new Set(['loading-at-pickup', 'loaded', 'en-route-delivery', 'at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'])
+const DELIVERY_ARRIVED_STATUSES = new Set(['at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'])
 
 function getAppointmentResult(load, leg) {
   if (!load) return { status: 'unknown', label: '—', lateMinutes: 0, onTime: false }
@@ -270,7 +272,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         receivedGameMinute: load.pickupCheckInGameMinute,
       })
     }
-    if (['loaded', 'en-route-delivery', 'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'].includes(load.tripStatus) && Number.isFinite(load.loadingStartGameMinute)) {
+    if (['loaded', 'en-route-delivery', 'at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'].includes(load.tripStatus) && Number.isFinite(load.loadingStartGameMinute)) {
       messages.push({
         id: `${load.id}-loaded-ready`,
         loadId: load.id,
@@ -295,6 +297,19 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         body: `At delivery — ${deliveryFacility?.name || 'receiver'}. Heading in to check in.`,
         read: Boolean(load.deliveryDriverMessageRead),
         receivedGameMinute: load.deliveryArrivalGameMinute ?? currentAbsoluteGameMinute,
+      })
+    }
+    if (Number.isFinite(load.deliveryCheckInGameMinute)) {
+      messages.push({
+        id: `${load.id}-delivery-checked-in`,
+        loadId: load.id,
+        driverId: messageDriverId,
+        sender: driverName,
+        senderRole: 'Driver',
+        direction: 'inbound',
+        body: "Checked in at the receiver. They've got me waiting on a door.",
+        read: Boolean(load.deliveryCheckedInDriverMessageRead),
+        receivedGameMinute: load.deliveryCheckInGameMinute,
       })
     }
     return messages
@@ -325,7 +340,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     if (tutorialLoad.tripStatus === 'assigned') return tutorialLoad.planningStatus === 'route-ready' ? 'SEND_TO_PICKUP' : 'PLAN_TRIP'
     if (tutorialLoad.tripStatus === 'checked-in-pickup') return 'BEGIN_LOADING'
     if (tutorialLoad.tripStatus === 'loaded') return tutorialLoad.deliveryPlanningStatus === 'route-ready' ? 'DISPATCH' : 'PLAN_DELIVERY_TRIP'
-    if (tutorialLoad.tripStatus === 'at-delivery') return 'CHECK_IN'
+    if (tutorialLoad.tripStatus === 'checked-in-delivery') return 'BEGIN_UNLOADING'
     return null
   })()
   const hasUnreadCloseoutEmail = operationDay === 1 && Boolean(closeoutEmail) && !closeoutEmail.read
@@ -344,7 +359,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     // Alerts surface operational attention; tapping them navigates but never mutates
     // trip state. Explicit game actions live on the driver/facility workflow itself.
     if (assignedLoad.tripStatus === 'checked-in-pickup') return { action: 'pickup', title: `${loadRef} · DOCK READY`, detail: `Marcus has been called to a door at ${pickupName}. Loading is ready to begin.`, value: 'BEGIN LOADING' }
-    if (assignedLoad.tripStatus === 'at-delivery') return { action: 'delivery', title: `${loadRef} · DELIVERY`, detail: `Marcus is waiting at ${deliveryName}. Check in when ready.`, value: 'OPEN DELIVERY' }
+    if (assignedLoad.tripStatus === 'checked-in-delivery') return { action: 'delivery', title: `${loadRef} · DOCK READY`, detail: `Marcus has been called to a door at ${deliveryName}. Unloading is ready to begin.`, value: 'BEGIN UNLOADING' }
     if (assignedLoad.tripStatus === 'assigned' && assignedLoad.planningStatus !== 'route-ready') return { action: 'driver', title: `${loadRef} · PICKUP PLAN REQUIRED`, detail: 'Plan the pickup trip before dispatch.', value: 'VIEW DRIVER' }
     if (assignedLoad.tripStatus === 'assigned' && assignedLoad.planningStatus === 'route-ready' && !Number.isFinite(assignedLoad.pickupDriverBriefedGameMinute)) return { action: 'messages', title: `${loadRef} · DRIVER UPDATE REQUIRED`, detail: 'Send Marcus the correct load details before dispatch.', value: 'MESSAGE MARCUS' }
     if (assignedLoad.tripStatus === 'assigned' && assignedLoad.planningStatus === 'route-ready') return { action: 'driver', title: 'MARCUS REED', detail: 'Driver briefed · pickup dispatch ready.', value: 'VIEW DRIVER' }
@@ -606,7 +621,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     } else if (actionType === 'PLAN_DELIVERY_TRIP' && load.tripStatus === 'loaded') startDeliveryPlanning(loadId)
     else if (actionType === 'DISPATCH' && load.tripStatus === 'loaded' && load.deliveryPlanningStatus === 'route-ready' && load.plannedLoadedRouteGeometry) {
       setRuntimeProgress(0); setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'en-route-delivery', deliveryDepartureGameMinute: now } : item))
-    } else if (actionType === 'CHECK_IN' && load.tripStatus === 'at-delivery') setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'checked-in-delivery', deliveryCheckInGameMinute: now } : item))
+    } else if (actionType === 'BEGIN_UNLOADING' && load.tripStatus === 'checked-in-delivery') setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'unloading-delivery', deliveryUnloadStartGameMinute: now } : item))
     else if (actionType === 'BEGIN_LOADING' && load.tripStatus === 'checked-in-pickup') {
       pauseClockForModal()
       setLoadingChallengeLoadId(loadId)
@@ -662,6 +677,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       if (message.id.endsWith('-pickup-checked-in')) return { ...load, pickupCheckedInDriverMessageRead: true }
       if (message.id.endsWith('-loaded-ready')) return { ...load, loadedDriverMessageRead: true }
       if (message.id.endsWith('-delivery-arrival')) return { ...load, deliveryDriverMessageRead: true }
+      if (message.id.endsWith('-delivery-checked-in')) return { ...load, deliveryCheckedInDriverMessageRead: true }
       return load
     }))
   }

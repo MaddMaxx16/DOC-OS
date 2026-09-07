@@ -28,6 +28,8 @@ const ACTIVE_TRIP_STATUSES = new Set([
   'loaded',
   'en-route-delivery',
   'at-delivery',
+  'checking-in-delivery',
+  'waiting-at-delivery',
   'checked-in-delivery',
   'unloading-delivery',
   'awaiting-pod',

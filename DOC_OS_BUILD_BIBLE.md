@@ -419,3 +419,19 @@ Pickup Operations V1 complete: Marcus automatically checks in, facility dock wai
 
 ## Master AP1 — Pickup Dock-Wait Pacing Rule
 Routine pickup waiting must create background operational texture, not dead gameplay. Early arrivals use a 15-minute facility wait, in-window arrivals use 12 minutes, and late arrivals use 35 minutes. An in-progress saved wait is normalized to the current timing contract when hydrated. The map status pill displays remaining dock ETA rather than elapsed waiting time.
+
+## Delivery Facility Arrival Contract — Master AQ
+Routine receiver arrival is driver-owned, not dispatcher-owned.
+
+Normal delivery facility lifecycle:
+`ARRIVE AT DELIVERY -> CHECKING IN -> WAITING FOR DOCK -> DOCK READY -> BEGIN UNLOADING`
+
+- Marcus automatically checks in with the receiver on arrival; there is no manual dispatcher CHECK IN action.
+- Delivery check-in consumes five game minutes before the receiver wait begins.
+- Receiver dock wait is appointment-aware: early arrival = 12 game minutes, in-window arrival = 10 game minutes, late arrival = 30 game minutes.
+- While Marcus is checking in or waiting, the player may continue dispatcher work. The facility wait must not demand continuous attention.
+- Marcus communicates arrival and completion of check-in through Messages. Messages never own or mutate the facility lifecycle.
+- DOC OS surfaces `DOCK READY` only when the receiver is ready and the player has an actionable next step.
+- The dock-ready alert navigates to the delivery facility but does not start unloading.
+- `BEGIN UNLOADING` remains an explicit facility action. In AQ it starts the existing temporary timed unload behavior; a dedicated unloading/verification gameplay system will replace that placeholder later.
+- Pickup and delivery share an interaction language, but their later gameplay consequences may differ.

@@ -10,8 +10,9 @@ export function getMarcusPanelModel({ assignedLoad, gameTime, runtimeProgress = 
   if (trip === 'completed' || trip === 'delivered') operationalState = 'COMPLETED'
   else if (trip === 'awaiting-pod') operationalState = 'AWAITING_POD'
   else if (trip === 'unloading-delivery') operationalState = 'UNLOADING'
-  else if (trip === 'checked-in-delivery') operationalState = 'CHECKED_IN'
-  else if (trip === 'at-delivery') operationalState = 'WAITING_DELIVERY'
+  else if (trip === 'checked-in-delivery') operationalState = 'DOCK_READY_DELIVERY'
+  else if (trip === 'waiting-at-delivery') operationalState = 'WAITING_DELIVERY'
+  else if (trip === 'checking-in-delivery' || trip === 'at-delivery') operationalState = 'CHECKING_IN_DELIVERY'
   else if (trip === 'en-route-delivery') operationalState = 'EN_ROUTE_DELIVERY'
   else if (trip === 'loaded' && assignedLoad.deliveryPlanningStatus === 'route-ready') operationalState = 'READY_FOR_DISPATCH'
   else if (trip === 'loaded') operationalState = 'LOADED'
@@ -42,8 +43,9 @@ export function getMarcusPanelModel({ assignedLoad, gameTime, runtimeProgress = 
     LOADED: 'Loaded',
     READY_FOR_DISPATCH: 'Ready for Dispatch',
     EN_ROUTE_DELIVERY: 'En Route to Delivery',
-    WAITING_DELIVERY: 'Waiting at Delivery',
-    CHECKED_IN: 'Checked In',
+    CHECKING_IN_DELIVERY: 'Checking In',
+    WAITING_DELIVERY: 'Waiting for Dock',
+    DOCK_READY_DELIVERY: 'Dock Ready',
     UNLOADING: 'Unloading',
     AWAITING_POD: 'Awaiting POD',
     COMPLETED: 'Completed',
@@ -61,8 +63,9 @@ export function getMarcusPanelModel({ assignedLoad, gameTime, runtimeProgress = 
     LOADED: ['PLAN_DELIVERY_TRIP', 'PLAN DELIVERY TRIP'],
     READY_FOR_DISPATCH: ['DISPATCH', 'DISPATCH'],
     EN_ROUTE_DELIVERY: [null, null],
-    WAITING_DELIVERY: ['CHECK_IN', 'CHECK IN'],
-    CHECKED_IN: [null, null],
+    CHECKING_IN_DELIVERY: [null, null],
+    WAITING_DELIVERY: [null, null],
+    DOCK_READY_DELIVERY: [null, null],
     UNLOADING: [null, null],
     AWAITING_POD: [null, null],
     COMPLETED: [null, null],
@@ -71,13 +74,13 @@ export function getMarcusPanelModel({ assignedLoad, gameTime, runtimeProgress = 
   const [actionType, actionLabel] = actions[operationalState]
   const remainingMinutes = operationalState === 'WAITING_PICKUP' && Number.isFinite(assignedLoad.pickupDockReadyGameMinute)
     ? Math.max(0, assignedLoad.pickupDockReadyGameMinute - now)
-    : operationalState === 'WAITING_DELIVERY' && Number.isFinite(assignedLoad.deliveryArrivalGameMinute)
-      ? Math.max(0, now - assignedLoad.deliveryArrivalGameMinute)
+    : operationalState === 'WAITING_DELIVERY' && Number.isFinite(assignedLoad.deliveryDockReadyGameMinute)
+      ? Math.max(0, assignedLoad.deliveryDockReadyGameMinute - now)
       : operationalState === 'UNLOADING' && Number.isFinite(assignedLoad.deliveryUnloadStartGameMinute)
         ? Math.max(0, 8 - (now - assignedLoad.deliveryUnloadStartGameMinute))
         : null
 
-  const disabled = ['EN_ROUTE_PICKUP', 'CHECKING_IN_PICKUP', 'WAITING_PICKUP', 'DOCK_READY_PICKUP', 'LOADING', 'EN_ROUTE_DELIVERY', 'CHECKED_IN', 'UNLOADING'].includes(operationalState)
+  const disabled = ['EN_ROUTE_PICKUP', 'CHECKING_IN_PICKUP', 'WAITING_PICKUP', 'DOCK_READY_PICKUP', 'LOADING', 'EN_ROUTE_DELIVERY', 'CHECKING_IN_DELIVERY', 'WAITING_DELIVERY', 'DOCK_READY_DELIVERY', 'UNLOADING'].includes(operationalState)
 
   const nextStop = ['ASSIGNED', 'BRIEFING_REQUIRED', 'TRIP_PLANNED', 'EN_ROUTE_PICKUP'].includes(operationalState)
     ? pickup?.name
@@ -87,7 +90,7 @@ export function getMarcusPanelModel({ assignedLoad, gameTime, runtimeProgress = 
 
   const locationLabel = ['CHECKING_IN_PICKUP', 'WAITING_PICKUP', 'DOCK_READY_PICKUP', 'LOADING', 'LOADED', 'READY_FOR_DISPATCH'].includes(operationalState)
     ? pickup?.name
-    : ['WAITING_DELIVERY', 'CHECKED_IN', 'UNLOADING', 'AWAITING_POD'].includes(operationalState)
+    : ['CHECKING_IN_DELIVERY', 'WAITING_DELIVERY', 'DOCK_READY_DELIVERY', 'UNLOADING', 'AWAITING_POD'].includes(operationalState)
       ? delivery?.name
       : null
 
@@ -104,7 +107,7 @@ export function getMarcusPanelModel({ assignedLoad, gameTime, runtimeProgress = 
     actionType,
     actionLabel,
     actionDisabled: disabled,
-    attentionRequired: ['BRIEFING_REQUIRED', 'DOCK_READY_PICKUP', 'LOADED', 'READY_FOR_DISPATCH', 'WAITING_DELIVERY', 'AWAITING_POD'].includes(operationalState),
+    attentionRequired: ['BRIEFING_REQUIRED', 'DOCK_READY_PICKUP', 'LOADED', 'READY_FOR_DISPATCH', 'DOCK_READY_DELIVERY', 'AWAITING_POD'].includes(operationalState),
     remainingMinutes,
     plannedDeadheadMiles: assignedLoad.plannedDeadheadMiles,
     plannedDeadheadDriveTimeMinutes: assignedLoad.plannedDeadheadDriveTimeMinutes,

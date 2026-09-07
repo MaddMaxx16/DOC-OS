@@ -214,3 +214,13 @@ Pickup Operations V1 complete: Marcus automatically checks in, facility dock wai
 
 ## Master AP1 — Pickup Dock-Wait Pacing Hotfix
 Test hotfix on AP. Caps normal early/on-time dock waits at 15/12 game minutes, keeps a 35-minute late penalty, repairs excessive in-progress AP waits on hydration, and changes the map pill to show remaining dock ETA. Pickup lifecycle behavior otherwise remains AP.
+
+## Master AQ — Delivery Arrival Lifecycle V1
+Built from Master AP1.
+- Delivery arrival now mirrors the professional-driver ownership established at pickup: Marcus automatically begins receiver check-in on arrival.
+- Adds delivery `CHECKING IN -> WAITING FOR DOCK -> DOCK READY` phases driven by the authoritative game clock.
+- Receiver dock waits are appointment-aware and paced for active gameplay: 12 minutes early, 10 minutes in-window, 30 minutes late.
+- Marcus sends arrival and checked-in/waiting messages; communications report simulation state but never advance it.
+- DOC OS surfaces a `DOCK READY` alert only when player attention is required.
+- Tapping the delivery facility at dock-ready exposes `BEGIN UNLOADING`; this explicit action starts the existing temporary 8-game-minute unload flow.
+- No unloading puzzle or freight verification logic is added in AQ; those remain Delivery Operations follow-up work.

@@ -125,7 +125,7 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
     const activeLoad = isDriverFitEvaluation ? evaluationLoad : (routeFocusMode === 'planning' && routeReviewLoad ? routeReviewLoad : assignedLoad)
     const trip = activeLoad?.tripStatus
     const active = !freightBrowseMode && Boolean(activeLoad?.assignedDriverId) && !['queued', 'delivered', 'completed'].includes(trip)
-    const showPickup = isDriverFitEvaluation || (active && !['loaded', 'en-route-delivery', 'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'].includes(trip))
+    const showPickup = isDriverFitEvaluation || (active && !['loaded', 'en-route-delivery', 'at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'].includes(trip))
     const showDelivery = isDriverFitEvaluation || (active && !['delivered', 'completed'].includes(trip))
     const pickup = mapLocations.find((location) => location.id === activeLoad?.pickupLocationId)
     const delivery = mapLocations.find((location) => location.id === activeLoad?.deliveryLocationId)
@@ -168,7 +168,7 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
     if (showDelivery && delivery) createLocationMarker(delivery, deliveryMarkerRef, 'delivery')
     else removeLocationMarker(deliveryMarkerRef)
     const deliveryRecord = markerRecords.current.find(({ marker }) => marker === deliveryMarkerRef.current)
-    if (deliveryRecord) deliveryRecord.markerElement.style.pointerEvents = ['checked-in-delivery', 'unloading-delivery', 'awaiting-pod'].includes(trip) ? 'none' : ''
+    if (deliveryRecord) deliveryRecord.markerElement.style.pointerEvents = ''
     logDocOsState({ isDriverFitEvaluation, hasActiveAcceptedLoad: active, showPickupMarker: showPickup, showDeliveryMarker: showDelivery, pickupMarkerExists: Boolean(pickupMarkerRef.current), deliveryMarkerExists: Boolean(deliveryMarkerRef.current) })
   }, [mapReady, markerRefreshToken, drivers, runtimePositions, assignedLoad?.id, assignedLoad?.assignedDriverId, assignedLoad?.tripStatus, assignedLoad?.pickupLocationId, assignedLoad?.deliveryLocationId, routeFocusMode, routeReviewLoad?.id, routeReviewLoad?.pickupLocationId, routeReviewLoad?.deliveryLocationId, isDriverFitEvaluation, evaluationLoad?.id])
 
@@ -393,7 +393,7 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
     // remains the operational focus. This prevents stale/early facility navigation
     // from pulling the camera away from Marcus.
     const pickupOwnedStates = new Set(['at-pickup', 'checking-in-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup'])
-    const deliveryOwnedStates = new Set(['at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'])
+    const deliveryOwnedStates = new Set(['at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'])
     const facilityOwnsCamera = facilityFocusRole === 'pickup'
       ? pickupOwnedStates.has(assignedLoad?.tripStatus)
       : deliveryOwnedStates.has(assignedLoad?.tripStatus)
@@ -420,7 +420,7 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
     // popup that may have been left open from a prior tap/navigation request.
     const facilityOwnedStates = new Set([
       'at-pickup', 'checking-in-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup',
-      'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod',
+      'at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod',
     ])
     if (facilityOwnedStates.has(assignedLoad?.tripStatus)) return
     ;[pickupMarkerRef.current, deliveryMarkerRef.current].forEach((marker) => {
@@ -521,22 +521,43 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
       const load = document.createElement('span'); load.textContent = `Load: ${popupLoad.id}`
       const window = document.createElement('span'); window.textContent = `Delivery Window: ${formatAppointment(popupLoad.deliveryDayIndex, popupLoad.deliveryWindowStartMinutes, popupLoad.deliveryWindowEndMinutes)}`
       content.append(heading, name, load, window)
-      if (popupLoad.tripStatus === 'at-delivery') {
+      if (['at-delivery', 'checking-in-delivery'].includes(popupLoad.tripStatus)) {
+        const status = document.createElement('span')
+        status.textContent = 'Marcus is checking in with the receiver and handling the delivery paperwork.'
+        content.append(status)
+      } else if (popupLoad.tripStatus === 'waiting-at-delivery') {
         const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-        const waitedMinutes = Number.isFinite(popupLoad.deliveryArrivalGameMinute)
-          ? Math.max(0, now - popupLoad.deliveryArrivalGameMinute)
+        const waitedMinutes = Number.isFinite(popupLoad.deliveryCheckInGameMinute)
+          ? Math.max(0, now - popupLoad.deliveryCheckInGameMinute)
           : 0
+        const remaining = Number.isFinite(popupLoad.deliveryDockReadyGameMinute)
+          ? Math.max(0, popupLoad.deliveryDockReadyGameMinute - now)
+          : null
         const wait = document.createElement('span')
-        wait.textContent = `Waiting: ${waitedMinutes} min`
-        const checkIn = document.createElement('button')
-        checkIn.type = 'button'
-        checkIn.className = 'docos-driver-popup-action'
-        checkIn.textContent = 'CHECK IN'
-        checkIn.onclick = () => {
+        wait.textContent = remaining === null
+          ? `Waiting for dock · ${waitedMinutes} min`
+          : `Waiting for dock · estimated ${remaining} min`
+        content.append(wait)
+      } else if (popupLoad.tripStatus === 'checked-in-delivery') {
+        const ready = document.createElement('span')
+        ready.textContent = 'Dock ready · receiver is ready to unload'
+        const beginUnloading = document.createElement('button')
+        beginUnloading.type = 'button'
+        beginUnloading.className = 'docos-driver-popup-action'
+        beginUnloading.textContent = 'BEGIN UNLOADING'
+        beginUnloading.onclick = () => {
           deliveryRecord.popup.remove()
-          onDriverAction?.('CHECK_IN', popupLoad.id, popupLoad.assignedDriverId || 'marcus')
+          onDriverAction?.('BEGIN_UNLOADING', popupLoad.id, popupLoad.assignedDriverId || 'marcus')
         }
-        content.append(wait, checkIn)
+        content.append(ready, beginUnloading)
+      } else if (popupLoad.tripStatus === 'unloading-delivery') {
+        const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+        const remaining = Number.isFinite(popupLoad.deliveryUnloadStartGameMinute)
+          ? Math.max(0, DELIVERY_UNLOAD_DURATION_MINUTES - (now - popupLoad.deliveryUnloadStartGameMinute))
+          : DELIVERY_UNLOAD_DURATION_MINUTES
+        const status = document.createElement('span')
+        status.textContent = `Unloading in progress · ${remaining} min remaining`
+        content.append(status)
       }
       deliveryRecord.popup.setDOMContent(content)
     }
@@ -545,7 +566,7 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
     if (!marcus || !record) return
 
     const pickupInteractionStates = new Set(['at-pickup', 'checking-in-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup'])
-    const deliveryInteractionStates = new Set(['at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'])
+    const deliveryInteractionStates = new Set(['at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'])
     const driverAtPickup = pickupInteractionStates.has(assignedLoad?.tripStatus)
     const driverAtDelivery = deliveryInteractionStates.has(assignedLoad?.tripStatus)
     const suppressDriverPopup = driverAtPickup || driverAtDelivery
@@ -758,7 +779,16 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
       pill.textContent = `LOADING • ${loadingMinutes} MIN`
     }
     else if (assignedLoad.tripStatus === 'assigned' && assignedLoad.planningStatus === 'route-ready' && !suppressAttention) pill.textContent = Number.isFinite(assignedLoad.pickupDriverBriefedGameMinute) ? 'READY FOR DISPATCH' : 'DRIVER UPDATE REQUIRED'
-    else if (assignedLoad.tripStatus === 'at-delivery' && !suppressAttention) pill.textContent = 'WAITING AT DELIVERY'
+    else if (assignedLoad.tripStatus === 'at-delivery' || assignedLoad.tripStatus === 'checking-in-delivery') pill.textContent = 'CHECKING IN'
+    else if (assignedLoad.tripStatus === 'waiting-at-delivery') {
+      const remainingMinutes = Number.isFinite(assignedLoad.deliveryDockReadyGameMinute)
+        ? Math.max(0, assignedLoad.deliveryDockReadyGameMinute - now)
+        : null
+      pill.textContent = Number.isFinite(remainingMinutes)
+        ? `WAITING FOR DOCK • ${remainingMinutes} MIN ETA`
+        : 'WAITING FOR DOCK'
+    }
+    else if (assignedLoad.tripStatus === 'checked-in-delivery' && !suppressAttention) pill.textContent = 'DOCK READY'
     else if (assignedLoad.tripStatus === 'unloading-delivery' && !suppressAttention) pill.textContent = `UNLOADING • ${Math.max(0, DELIVERY_UNLOAD_DURATION_MINUTES - (now - assignedLoad.deliveryUnloadStartGameMinute))} MIN`
     else if (assignedLoad.tripStatus === 'awaiting-pod' && !suppressAttention) pill.textContent = 'POD READY'
     else if (assignedLoad.tripStatus === 'loaded' && !suppressAttention) pill.textContent = assignedLoad.deliveryPlanningStatus === 'route-ready' ? 'READY FOR DISPATCH' : 'LOADED'
