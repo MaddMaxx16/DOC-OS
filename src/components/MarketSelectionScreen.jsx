@@ -1,11 +1,14 @@
-function MarketSelectionScreen({ selectedMarket, onSelectMarket, onConfirm }) {
+function MarketSelectionScreen({ selectedMarket, onSelectMarket, onConfirm, onBack }) {
   const newYorkSelected = selectedMarket === 'new-york'
 
   return (
     <div className="entry-screen market-selection-screen market-selection-v2">
       <section className="market-terminal-card">
         <header className="market-selection-header">
-          <span className="market-kicker">OPERATION SETUP</span>
+          <div className="market-selection-topline">
+            <button type="button" className="market-back-button" onClick={onBack} aria-label="Back to save selection">‹ BACK</button>
+            <span className="market-kicker">OPERATION SETUP</span>
+          </div>
           <div className="market-heading-row">
             <div>
               <h1>Choose Your Market</h1>
@@ -19,7 +22,7 @@ function MarketSelectionScreen({ selectedMarket, onSelectMarket, onConfirm }) {
           <button
             type="button"
             className={`market-card market-card-featured ${newYorkSelected ? 'selected' : ''}`}
-            onClick={onSelectMarket}
+            onClick={() => { onSelectMarket(); onConfirm(); }}
             aria-pressed={newYorkSelected}
           >
             <div className="market-card-topline">
@@ -59,15 +62,6 @@ function MarketSelectionScreen({ selectedMarket, onSelectMarket, onConfirm }) {
           </div>
         </div>
 
-        <button
-          type="button"
-          className="confirm-button market-confirm-action"
-          onClick={onConfirm}
-          disabled={!selectedMarket}
-        >
-          <span>{newYorkSelected ? 'START IN NEW YORK' : 'SELECT A MARKET'}</span>
-          <span aria-hidden="true">›</span>
-        </button>
       </section>
     </div>
   )

@@ -2,203 +2,154 @@ import { useEffect, useMemo, useState } from 'react'
 import mapLocations from '../data/mapLocations.js'
 import { calculateRoute } from '../services/routingService.js'
 import { formatAppointment, formatCompactDate, formatTime } from '../utils/gameTime.js'
+import { getProjectedDriverOrigin } from '../utils/driverQueue.js'
 
-function getFitStatus(load, gameTime, fit) {
-  const arrival = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay + fit.minutes
+function evaluateTiming(load, projectedStartMinute, fit) {
+  const arrival = projectedStartMinute + fit.minutes
   const arrivalDay = Math.floor(arrival / 1440)
   const arrivalMinutes = arrival % 1440
+  const start = load.pickupDayIndex * 1440 + load.pickupWindowStartMinutes
+  const end = load.pickupDayIndex * 1440 + load.pickupWindowEndMinutes
+  const buffer = start - arrival
 
-  const status =
-    arrivalDay < load.pickupDayIndex
-    || (arrivalDay === load.pickupDayIndex && arrivalMinutes < load.pickupWindowStartMinutes)
-      ? 'EARLY'
-      : arrivalDay > load.pickupDayIndex
-        || (arrivalDay === load.pickupDayIndex && arrivalMinutes > load.pickupWindowEndMinutes)
-        ? 'LATE'
-        : 'ON TIME'
+  let label = 'GOOD NEXT LOAD'
+  let tone = 'good'
+  if (arrival > end) { label = 'POOR FIT'; tone = 'poor' }
+  else if (arrival > start || buffer < 20) { label = 'TIGHT'; tone = 'tight' }
 
-  return { ...fit, arrivalDay, arrivalMinutes, status }
+  return { ...fit, arrivalDay, arrivalMinutes, label, tone, buffer }
 }
 
 function DriverFitScreen({
   load,
+  loads = [],
   drivers,
   runtimePositions = {},
   gameTime,
   candidateDriverId,
   onEvaluate,
-  tutorialEnabled = false,
-  showTutorialNote = false,
 }) {
   const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
-  const available = useMemo(() => drivers.filter((driver) => driver.status === 'available'), [drivers])
+  const candidates = useMemo(() => drivers.filter((driver) => driver.carrierId), [drivers])
   const [fits, setFits] = useState({})
-  const [selectedDriverId, setSelectedDriverId] = useState(candidateDriverId)
+  const [selectedDriverId, setSelectedDriverId] = useState(null)
 
   useEffect(() => {
     let active = true
+    setFits({})
 
-    available.forEach(async (driver) => {
+    candidates.forEach(async (driver) => {
+      const projection = getProjectedDriverOrigin({ driver, loads, runtimePositions, gameTime })
+      if (!projection.location || !pickup) {
+        if (active) setFits((current) => ({ ...current, [driver.id]: null }))
+        return
+      }
+
       try {
-        const current =
-          runtimePositions[driver.id]
-          || mapLocations.find((location) => location.id === driver.homeBaseLocationId)
-
-        const route = await calculateRoute(current, pickup)
-
-        if (active) {
-          setFits((currentFits) => ({
-            ...currentFits,
-            [driver.id]: {
-              miles: route.distanceMiles,
-              minutes: route.durationMinutes,
-              routeShape: route.routeShape,
-            },
-          }))
-        }
+        const route = await calculateRoute(projection.location, pickup)
+        if (!active) return
+        setFits((current) => ({
+          ...current,
+          [driver.id]: {
+            miles: route.distanceMiles,
+            minutes: route.durationMinutes,
+            routeShape: route.routeShape,
+            projectedStartMinute: projection.availableAbsoluteMinute,
+            queueLength: projection.queueLength,
+            afterLoadId: projection.afterLoadId,
+          },
+        }))
       } catch (error) {
         console.error(error)
-        if (active) setFits((currentFits) => ({ ...currentFits, [driver.id]: null }))
+        if (active) setFits((current) => ({ ...current, [driver.id]: null }))
       }
     })
 
-    return () => {
-      active = false
-    }
-  }, [available, load?.id, pickup?.id])
+    return () => { active = false }
+  }, [candidates, loads, runtimePositions, gameTime, load?.id, pickup?.id])
 
   const selectedFit = selectedDriverId && fits[selectedDriverId]
-    ? getFitStatus(load, gameTime, fits[selectedDriverId])
+    ? evaluateTiming(load, fits[selectedDriverId].projectedStartMinute, fits[selectedDriverId])
     : null
 
-  const evaluateSelected = () => {
-    if (!selectedDriverId || !selectedFit) return
-    onEvaluate(selectedDriverId, selectedFit)
-  }
-
   return (
-    <div className="phone-page driver-fit-screen driver-fit-v2">
-      <header className="driver-fit-v2-hero">
-        <span className="driver-fit-v2-kicker">DRIVER FIT</span>
-        <div className="driver-fit-v2-title-row">
-          <h2>{load.id}</h2>
-          <span>{available.length} {available.length === 1 ? 'DRIVER' : 'DRIVERS'}</span>
+    <div className="phone-page driver-fit-screen driver-select-v3">
+      <header className="docos-page-hero">
+        <span className="docos-page-kicker">DRIVER SELECT</span>
+        <div className="docos-page-title-row">
+          <div>
+            <h2>Assign {load.id}</h2>
+            <p>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</p>
+          </div>
+          <span className="docos-count-chip">{candidates.length} {candidates.length === 1 ? 'DRIVER' : 'DRIVERS'}</span>
         </div>
-        <p>Compare available drivers against the pickup appointment.</p>
       </header>
 
-      <div className="driver-fit-v2-content">
-        {showTutorialNote && (
-          <div className="driver-fit-v2-note">
-            <span>DISPATCH NOTE</span>
-            <p>Driver Fit checks deadhead, arrival time and appointment fit before you commit a driver.</p>
+      <div className="docos-page-body">
+        <section className="docos-section">
+          <div className="docos-section-heading">
+            <span>AVAILABLE ROSTER</span>
+            <small>SELECT ONE</small>
           </div>
-        )}
 
-        <section className="driver-fit-v2-candidates" aria-label="Available drivers">
-          <div className="driver-fit-v2-section-label">AVAILABLE DRIVERS</div>
-
-          {available.map((driver) => {
-            const fit = fits[driver.id]
-            const evaluated = fit ? getFitStatus(load, gameTime, fit) : null
-            const selected = selectedDriverId === driver.id
-            const displayName = driver.fullName || driver.name
-            const equipment = driver.equipment?.label || 'Equipment not listed'
-            const statusTone = evaluated?.status === 'LATE'
-              ? 'late'
-              : evaluated?.status === 'ON TIME'
-                ? 'on-time'
-                : 'early'
-
-            return (
-              <button
-                type="button"
-                className={[
-                  'driver-fit-v2-card',
-                  selected ? 'selected' : '',
-                  tutorialEnabled && !selectedDriverId && driver.id === 'marcus' ? 'tutorial-target' : '',
-                ].filter(Boolean).join(' ')}
-                key={driver.id}
-                onClick={() => setSelectedDriverId(driver.id)}
-              >
-                <div className="driver-fit-v2-card-header">
-                  <div className="driver-fit-v2-driver">
-                    <span className="driver-fit-v2-avatar" aria-hidden="true">
-                      {(displayName || 'D').charAt(0).toUpperCase()}
+          <div className="driver-select-compact-list">
+            {candidates.map((driver) => {
+              const rawFit = fits[driver.id]
+              const fit = rawFit ? evaluateTiming(load, rawFit.projectedStartMinute, rawFit) : null
+              const selected = selectedDriverId === driver.id
+              const name = driver.fullName || driver.name
+              return (
+                <button
+                  type="button"
+                  key={driver.id}
+                  className={`driver-select-compact-card ${selected ? 'selected' : ''}`}
+                  onClick={() => setSelectedDriverId(driver.id)}
+                >
+                  <div className="driver-select-card-main">
+                    <span className="driver-avatar-v2" aria-hidden="true">{name?.charAt(0)?.toUpperCase() || 'D'}</span>
+                    <div className="driver-select-card-copy">
+                      <strong>{name}</strong>
+                      <small>{driver.equipment?.label || 'Equipment not listed'}</small>
+                    </div>
+                    <span className={`driver-select-fit-pill ${fit?.tone || 'loading'}`}>
+                      {fit ? fit.label : rawFit === null ? 'ROUTE UNAVAILABLE' : 'CALCULATING'}
                     </span>
-                    <div>
-                      <strong>{displayName}</strong>
-                      <small>{equipment}</small>
-                    </div>
                   </div>
 
-                  <span className="driver-fit-v2-availability">
-                    {selected ? 'SELECTED' : 'AVAILABLE'}
-                  </span>
-                </div>
-
-                {evaluated ? (
-                  <>
-                    <div className="driver-fit-v2-metrics">
-                      <div>
-                        <span>DEADHEAD</span>
-                        <strong>{evaluated.miles.toFixed(1)} mi</strong>
-                      </div>
-                      <div>
-                        <span>DRIVE TIME</span>
-                        <strong>{evaluated.minutes} min</strong>
-                      </div>
+                  {selected && fit && (
+                    <div className="driver-select-card-details">
+                      <div><span>Next opening</span><strong>{fit.afterLoadId ? `After ${fit.afterLoadId}` : 'Now'}</strong></div>
+                      <div><span>Deadhead</span><strong>{fit.miles.toFixed(1)} mi · {fit.minutes} min</strong></div>
+                      <div><span>Projected arrival</span><strong>{formatCompactDate(fit.arrivalDay)} · {formatTime(fit.arrivalMinutes)}</strong></div>
+                      <div><span>Pickup</span><strong>{formatTime(load.pickupWindowStartMinutes)}</strong></div>
                     </div>
-
-                    <div className="driver-fit-v2-schedule">
-                      <div>
-                        <span>EST. PICKUP ARRIVAL</span>
-                        <strong>
-                          {formatCompactDate(evaluated.arrivalDay)} · {formatTime(evaluated.arrivalMinutes)}
-                        </strong>
-                      </div>
-                      <div>
-                        <span>PICKUP WINDOW</span>
-                        <strong>
-                          {formatAppointment(
-                            load.pickupDayIndex,
-                            load.pickupWindowStartMinutes,
-                            load.pickupWindowEndMinutes,
-                          )}
-                        </strong>
-                      </div>
-                    </div>
-
-                    <div className="driver-fit-v2-result">
-                      <span>FIT STATUS</span>
-                      <strong className={`driver-fit-v2-status ${statusTone}`}>{evaluated.status}</strong>
-                    </div>
-                  </>
-                ) : fit === null ? (
-                  <div className="driver-fit-v2-route-state unavailable">
-                    <span>ROUTE UNAVAILABLE</span>
-                    <small>Deadhead routing could not be calculated.</small>
-                  </div>
-                ) : (
-                  <div className="driver-fit-v2-route-state">
-                    <span>CALCULATING ROUTE</span>
-                    <small>Checking deadhead and pickup timing…</small>
-                  </div>
-                )}
-              </button>
-            )
-          })}
+                  )}
+                </button>
+              )
+            })}
+          </div>
         </section>
 
-        <div className="driver-fit-v2-actions">
+        {selectedDriverId && selectedFit && (
+          <section className="docos-section">
+            <div className="docos-section-heading"><span>ASSIGNMENT IMPACT</span></div>
+            <div className="docos-panel assignment-impact-v2">
+              <div><span>Deadhead</span><strong>{selectedFit.miles.toFixed(1)} mi</strong></div>
+              <div><span>Drive time</span><strong>{selectedFit.minutes} min</strong></div>
+              <div><span>Arrival</span><strong>{formatTime(selectedFit.arrivalMinutes)}</strong></div>
+              <div><span>Queue</span><strong>{selectedFit.queueLength ? `${selectedFit.queueLength} ahead` : 'Next up'}</strong></div>
+            </div>
+          </section>
+        )}
+
+        <div className="docos-sticky-actions">
           <button
             type="button"
-            className={`driver-fit-v2-evaluate ${tutorialEnabled && selectedDriverId === 'marcus' ? 'tutorial-target' : ''}`}
-            onClick={evaluateSelected}
+            className="docos-primary-action"
             disabled={!selectedDriverId || !selectedFit}
+            onClick={() => selectedDriverId && selectedFit && onEvaluate(selectedDriverId, selectedFit)}
           >
-            <span>{selectedDriverId ? 'EVALUATE FIT' : 'SELECT DRIVER'}</span>
-            {selectedDriverId && <span aria-hidden="true">›</span>}
+            ASSIGN LOAD
           </button>
         </div>
       </div>

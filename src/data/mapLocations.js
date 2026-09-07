@@ -18,6 +18,12 @@ const mapLocations = [
   },
   { id: 'liberty-distribution-center', name: 'Liberty Distribution Center', type: 'pickup', longitude: -74.18, latitude: 40.66 },
   { id: 'bronx-commerce-terminal', name: 'Bronx Commerce Terminal', type: 'delivery', longitude: -73.91, latitude: 40.82 },
+
+  // Fictional DOC OS facilities placed in real NY/NJ industrial districts.
+  { id: 'brooklyn-industrial-terminal', name: 'Brooklyn Industrial Terminal', type: 'facility', longitude: -74.0060, latitude: 40.6570 },
+  { id: 'queens-freight-center', name: 'Queens Freight Center', type: 'facility', longitude: -73.8440, latitude: 40.7350 },
+  { id: 'newark-distribution-hub', name: 'Newark Distribution Hub', type: 'facility', longitude: -74.1610, latitude: 40.7080 },
+  { id: 'elizabeth-logistics-park', name: 'Elizabeth Logistics Park', type: 'facility', longitude: -74.1870, latitude: 40.6630 },
 ]
 
 export default mapLocations

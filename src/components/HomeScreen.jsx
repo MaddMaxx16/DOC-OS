@@ -1,8 +1,8 @@
 function BrowserIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="8.25" />
-      <path d="M3.75 12h16.5M12 3.75c2.2 2.25 3.3 5 3.3 8.25S14.2 18 12 20.25C9.8 18 8.7 15.25 8.7 12S9.8 6 12 3.75Z" />
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M3.8 12h16.4M12 3.5c2.35 2.3 3.55 5.15 3.55 8.5S14.35 18.2 12 20.5C9.65 18.2 8.45 15.35 8.45 12S9.65 5.8 12 3.5Z" />
     </svg>
   )
 }
@@ -25,6 +25,16 @@ function LedgerIcon() {
   )
 }
 
+
+function MessagesIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 5.5h14v10H9l-4 3v-13Z" />
+      <path d="M8 9h8M8 12h5" />
+    </svg>
+  )
+}
+
 function EmailIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -34,30 +44,44 @@ function EmailIcon() {
   )
 }
 
-function AppTile({ label, icon, onClick, badgeCount = 0, tutorial = false, badgeClassName = '' }) {
+function AppTile({ label, description, icon, onClick, badgeCount = 0, badgeClassName = '' }) {
   return (
-    <button type="button" className="app-icon" onClick={onClick}>
+    <button type="button" className="app-icon app-grid-tile" onClick={onClick} aria-label={`${label}. ${description}`}>
       <span className="app-icon-visual">
-        <span className={`app-icon-square ${tutorial ? 'tutorial-target' : ''}`}>{icon}</span>
+        <span className="app-icon-square">{icon}</span>
         {badgeCount > 0 && (
           <span className={`app-icon-badge ${badgeClassName}`.trim()}>{badgeCount > 9 ? '9+' : badgeCount}</span>
         )}
       </span>
-      <span className="app-icon-label">{label}</span>
+      <strong className="app-icon-label">{label}</strong>
     </button>
   )
 }
 
-function HomeScreen({ onOpenBrowser, onOpenDocuments, onOpenLedger, onOpenEmail, emailBadgeCount = 0, documentsBadgeCount = 0, ledgerUnreadCount = 0, tutorialTarget = null }) {
+function HomeScreen({ onOpenBrowser, onOpenDocuments, onOpenLedger, onOpenMessages, onOpenEmail, emailBadgeCount = 0, messagesBadgeCount = 0, documentsBadgeCount = 0, ledgerUnreadCount = 0 }) {
   return (
-    <div className="phone-page home-screen">
-      <div className="phone-app-grid" aria-label="DOC OS apps">
-        <AppTile label="Browser" icon={<BrowserIcon />} onClick={onOpenBrowser} />
-        <AppTile label="Documents" icon={<DocumentsIcon />} onClick={onOpenDocuments} badgeCount={documentsBadgeCount} tutorial={tutorialTarget === 'documents-app'} />
-        <AppTile label="LedgerDesk" icon={<LedgerIcon />} onClick={onOpenLedger} badgeCount={ledgerUnreadCount} tutorial={tutorialTarget === 'ledger-app'} badgeClassName="ledger-badge" />
-        <AppTile label="Email" icon={<EmailIcon />} onClick={onOpenEmail} badgeCount={emailBadgeCount} tutorial={tutorialTarget === 'email-app'} />
-      </div>
-      <div className="phone-home-version" aria-hidden="true">DISPATCH TERMINAL</div>
+    <div className="phone-page home-screen docos-ui-page">
+      <header className="device-home-header docos-ui-header">
+        <span className="docos-ui-kicker">WORKSPACE</span>
+        <h1>Dispatch Console</h1>
+        <p>Open an app to manage the operation.</p>
+      </header>
+
+      <section className="device-home-section" aria-labelledby="device-tools-title">
+        <div className="docos-section-heading">
+          <span id="device-tools-title">OPERATIONS TOOLS</span>
+          <small>SELECT AN APP</small>
+        </div>
+        <div className="phone-app-grid" aria-label="DOC OS apps">
+          <AppTile label="Browser" description="FreightLink and Carrier Source" icon={<BrowserIcon />} onClick={onOpenBrowser} />
+          <AppTile label="Documents" description="PODs and operation records" icon={<DocumentsIcon />} onClick={onOpenDocuments} badgeCount={documentsBadgeCount} />
+          <AppTile label="LedgerDesk" description="Invoices and receivables" icon={<LedgerIcon />} onClick={onOpenLedger} badgeCount={ledgerUnreadCount} badgeClassName="ledger-badge" />
+          <AppTile label="Messages" description="Driver communication" icon={<MessagesIcon />} onClick={onOpenMessages} badgeCount={messagesBadgeCount} />
+          <AppTile label="Email" description="Carrier and business mail" icon={<EmailIcon />} onClick={onOpenEmail} badgeCount={emailBadgeCount} />
+        </div>
+      </section>
+
+      <div className="phone-home-version" aria-hidden="true">DOC OS · OPERATIONS DEVICE</div>
     </div>
   )
 }

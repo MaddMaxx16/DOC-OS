@@ -2,11 +2,7 @@ import mapLocations from '../data/mapLocations.js'
 import { formatAppointment } from '../utils/gameTime.js'
 
 function formatStatus(status = '') {
-  return status
-    .split('-')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
+  return status.split('-').filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
 }
 
 function formatMiles(value) {
@@ -16,18 +12,7 @@ function formatMiles(value) {
   return 'Unavailable'
 }
 
-function LoadDetailsScreen({
-  loads,
-  drivers,
-  loadId,
-  onAccept,
-  onCheckDriverFit,
-  onPlanRoute,
-  onDispatch,
-  onBack,
-  tutorialEnabled = false,
-  showTutorialNote = false,
-}) {
+function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit, onPlanRoute, onBack }) {
   const load = loads.find((item) => item.id === loadId)
   const pickup = load && mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = load && mapLocations.find((location) => location.id === load.deliveryLocationId)
@@ -45,152 +30,65 @@ function LoadDetailsScreen({
   }
 
   const isAvailable = load.status === 'available'
-  const sameDay = load.pickupDayIndex === load.deliveryDayIndex
-  const candidateDriver = drivers.find((driver) => driver.id === load.candidateDriverId)
+  const isAccepted = load.status === 'accepted' && !load.assignedDriverId
   const assignedDriver = drivers.find((driver) => driver.id === load.assignedDriverId)
-  const verifiedDriverName = candidateDriver?.name || 'Marcus'
+  const sameDay = load.pickupDayIndex === load.deliveryDayIndex
   const statusLabel = formatStatus(load.status)
-  const ratePerMile = Number.isFinite(load.listedMiles) && load.listedMiles > 0 ? load.rate / load.listedMiles : null
+  const rpm = Number.isFinite(load.listedMiles) && load.listedMiles > 0 ? load.rate / load.listedMiles : null
 
   return (
-    <div className="phone-page load-details-screen load-details-v2">
-      <header className="load-detail-v2-hero">
-        <span className="load-detail-v2-kicker">LOAD OPPORTUNITY</span>
-
-        <div className="load-detail-v2-title-row">
-          <h2>{load.id}</h2>
-          <span className={`load-detail-v2-status ${isAvailable ? 'available' : ''}`}>
-            {statusLabel}
-          </span>
-        </div>
-
-        <strong className="load-detail-v2-rate">${load.rate}</strong>
-
-        <div className="load-detail-v2-summary">
-          <span>{formatMiles(load.listedMiles)}</span>
-          <i aria-hidden="true">•</i>
-          <span>{sameDay ? 'Same Day' : 'Multi Day'}</span>
+    <div className="phone-page load-details-screen load-details-v2 phase2-load-details">
+      <header className="docos-page-hero">
+        <span className="docos-page-kicker">FREIGHTLINK · LOAD</span>
+        <div className="docos-page-title-row">
+          <div>
+            <h2>{load.id}</h2>
+            <p>{pickup.name} → {delivery.name}</p>
+          </div>
+          <span className={`load-detail-v2-status ${isAvailable ? 'available' : ''}`}>{statusLabel}</span>
         </div>
       </header>
 
-      <div className="load-detail-v2-content">
-        {showTutorialNote && (
-          <div className="load-detail-v2-note">
-            <span>DISPATCH NOTE</span>
-            <p>Review the lane, schedule, mileage and rate. Then confirm Marcus can handle the load.</p>
+      <div className="docos-page-body">
+        <section className="load-detail-summary-compact">
+          <div className="load-detail-appointment-row">
+            <div><span>PICKUP</span><strong>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</strong><small>{pickup.name}</small></div>
+            <span aria-hidden="true">→</span>
+            <div><span>DELIVERY</span><strong>{formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)}</strong><small>{delivery.name}</small></div>
           </div>
-        )}
-
-        <section className="load-detail-v2-route" aria-label="Load schedule">
-          <div className="load-detail-v2-stop">
-            <div className="load-detail-v2-stop-marker pickup" aria-hidden="true" />
-            <div>
-              <span>PICKUP</span>
-              <strong>{pickup.name}</strong>
-              <small>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</small>
-            </div>
-          </div>
-
-          <div className="load-detail-v2-route-line" aria-hidden="true">
-            <span>↓</span>
-          </div>
-
-          <div className="load-detail-v2-stop">
-            <div className="load-detail-v2-stop-marker delivery" aria-hidden="true" />
-            <div>
-              <span>DELIVERY</span>
-              <strong>{delivery.name}</strong>
-              <small>{formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)}</small>
-            </div>
+          <div className="load-detail-metric-strip">
+            <div><span>RATE</span><strong>${load.rate}</strong></div>
+            <div><span>MILES</span><strong>{formatMiles(load.listedMiles)}</strong></div>
+            {Number.isFinite(rpm) && <div><span>RATE / MI</span><strong>${rpm.toFixed(2)}</strong></div>}
+            <div><span>SCHEDULE</span><strong>{sameDay ? 'SAME DAY' : 'MULTI-DAY'}</strong></div>
           </div>
         </section>
 
-        <section className="load-detail-v2-facts">
-          <h3>LOAD DETAILS</h3>
-          <div className="load-detail-v2-fact-list">
-            <div>
-              <span>Rate</span>
-              <strong>${load.rate}</strong>
+        {assignedDriver && (
+          <section className="docos-section">
+            <div className="docos-section-heading"><span>DRIVER ASSIGNMENT</span></div>
+            <div className="docos-panel carrier-driver-row-v2">
+              <span className="driver-avatar-v2" aria-hidden="true">{(assignedDriver.fullName || assignedDriver.name || 'D').charAt(0)}</span>
+              <div><strong>{assignedDriver.fullName || assignedDriver.name}</strong><small>{load.status === 'queued' ? `Queue #${load.queuePosition ?? '—'}` : 'Active assignment'}</small></div>
+              <span className="docos-status-text">{load.status === 'queued' ? 'PLANNED' : 'ASSIGNED'}</span>
             </div>
-            <div>
-              <span>Listed Miles</span>
-              <strong>{formatMiles(load.listedMiles)}</strong>
-            </div>
-            {Number.isFinite(ratePerMile) && (
-              <div>
-                <span>Rate / Mile</span>
-                <strong>${ratePerMile.toFixed(2)}/mi</strong>
-              </div>
-            )}
-            {Number.isFinite(load.plannedMiles) && (
-              <div>
-                <span>Planned Miles</span>
-                <strong>{load.plannedMiles.toFixed(1)} mi</strong>
-              </div>
-            )}
-            {Number.isFinite(load.plannedDriveTimeMinutes) && (
-              <div>
-                <span>Drive Time</span>
-                <strong>{load.plannedDriveTimeMinutes} min</strong>
-              </div>
-            )}
-            <div>
-              <span>Status</span>
-              <strong>{statusLabel}</strong>
-            </div>
-            {assignedDriver && (
-              <div>
-                <span>Driver</span>
-                <strong>{assignedDriver.name}</strong>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {isAvailable && load.driverFitVerified && load.candidateDriverId && (
-          <div className="load-detail-v2-fit-verified">
-            <span className="load-detail-v2-fit-check" aria-hidden="true">✓</span>
-            <div>
-              <span>DRIVER FIT VERIFIED</span>
-              <strong>{verifiedDriverName}</strong>
-            </div>
-          </div>
+          </section>
         )}
 
-        <div className="load-detail-v2-actions">
+        <div className="docos-sticky-actions load-actions-phase2">
           {isAvailable ? (
+            <button type="button" className="docos-primary-action" onClick={onAccept}>ACCEPT LOAD</button>
+          ) : isAccepted ? (
             <>
-              {!load.driverFitVerified && (
-                <button
-                  type="button"
-                  className={`load-detail-v2-primary ${tutorialEnabled ? 'tutorial-target' : ''}`}
-                  onClick={onCheckDriverFit}
-                >
-                  CHECK DRIVER FIT
-                  <span aria-hidden="true">›</span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                className={`load-detail-v2-accept ${tutorialEnabled && load.driverFitVerified && load.candidateDriverId ? 'tutorial-target' : ''}`}
-                onClick={onAccept}
-                disabled={!load.driverFitVerified || !load.candidateDriverId}
-              >
-                <span>ACCEPT LOAD</span>
-                {!load.driverFitVerified ? <small>Confirm driver fit first</small> : null}
-              </button>
+              <button type="button" className="docos-primary-action" onClick={onCheckDriverFit}>SELECT DRIVER</button>
+              <button type="button" className="docos-secondary-action" onClick={onBack}>ASSIGN LATER</button>
             </>
-          ) : load.status === 'assigned' && load.assignedDriverId ? (
-            <button type="button" className="load-detail-v2-primary" onClick={onPlanRoute}>
-              PLAN ROUTE
-              <span aria-hidden="true">›</span>
-            </button>
-          ) : load.status === 'route-ready' ? (
-            <button type="button" className="load-detail-v2-primary" onClick={onDispatch}>
-              DISPATCH DRIVER
-              <span aria-hidden="true">›</span>
-            </button>
+          ) : load.status === 'queued' && assignedDriver ? (
+            <button type="button" className="docos-secondary-action" onClick={onBack}>BACK TO FREIGHTLINK</button>
+          ) : load.status === 'assigned' && load.assignedDriverId && load.tripStatus === 'assigned' ? (
+            <button type="button" className="docos-primary-action" onClick={onPlanRoute}>PLAN TRIP</button>
+          ) : load.assignedDriverId && ['en-route-pickup', 'at-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'loaded', 'en-route-delivery', 'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'].includes(load.tripStatus) ? (
+            <button type="button" className="docos-secondary-action" onClick={onBack}>ACTIVE TRIP · BACK TO FREIGHTLINK</button>
           ) : null}
         </div>
       </div>

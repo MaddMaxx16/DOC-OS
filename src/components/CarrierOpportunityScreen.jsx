@@ -1,103 +1,87 @@
-function CarrierOpportunityScreen({ carrier, driver, onApply, application, tutorialTarget = null }) {
-  if (!carrier) {
-    return (
-      <div className="phone-page carrier-detail-screen carrier-detail-empty">
-        <p>Carrier opportunity unavailable.</p>
-      </div>
-    )
-  }
+function CarrierOpportunityScreen({ carrier, driver, onApply, onOpenOffer, application }) {
+  if (!carrier) return <div className="phone-page carrier-detail-screen"><p>Carrier opportunity unavailable.</p></div>
 
   const status = application?.status
   const isAccepted = status === 'ACCEPTED'
   const isOffer = status === 'OFFER_RECEIVED'
   const isPending = status === 'PENDING'
   const equipmentLabel = carrier.equipment?.[0] || driver?.equipment?.label || 'Not listed'
-  const agreementPercent = carrier.dispatchAgreement?.percentage
-  const fleetLabel = `${carrier.fleetSize || 0} ${carrier.fleetSize === 1 ? 'Driver' : 'Drivers'}`
+  const fee = carrier.dispatchAgreement?.percentage
 
-  const statusLabel = isAccepted
-    ? 'CLIENT ACTIVE'
-    : isOffer
-      ? 'AGREEMENT READY'
-      : isPending
-        ? 'APPLICATION PENDING'
-        : 'SEEKING DISPATCH SERVICE'
-
-  const statusTone = isAccepted ? 'active' : isOffer ? 'offer' : isPending ? 'pending' : 'prospect'
+  const statusLabel = isAccepted ? 'ACTIVE CLIENT' : isOffer ? 'OFFER RECEIVED' : isPending ? 'APPLICATION PENDING' : 'OPEN POSTING'
+  const actionLabel = isOffer ? 'OPEN AGREEMENT EMAIL' : 'APPLY FOR ACCOUNT'
 
   return (
-    <div className="phone-page carrier-detail-screen">
-      <header className="carrier-detail-hero">
-        <span className="carriersource-kicker">CARRIER PROFILE</span>
-        <div className="carrier-detail-title-row">
+    <div className="phone-page carrier-detail-screen carrier-posting-v2">
+      <header className="docos-page-hero carrier-posting-hero">
+        <span className="docos-page-kicker">{isAccepted ? 'CARRIER ACCOUNT' : 'CARRIER POSTING'}</span>
+        <div className="carrier-posting-company">
+          <div className="carrier-job-logo large" aria-hidden="true">MT</div>
           <div>
             <h2>{carrier.name}</h2>
-            <p>Brooklyn, NY</p>
+            <p>Brooklyn, NY · Independent dispatch account</p>
           </div>
-          <span className={`carrier-status-pill ${statusTone}`}>{statusLabel}</span>
         </div>
+        <span className={`carrier-job-status ${isAccepted ? 'active' : isOffer ? 'offer' : isPending ? 'pending' : 'prospect'}`}>{statusLabel}</span>
       </header>
 
-      <div className="carrier-detail-content">
-        <section className="carrier-detail-section">
-          <h3>Operation</h3>
-          <div className="carrier-detail-fact-list">
-            <div><span>Fleet</span><strong>{fleetLabel}</strong></div>
-            <div><span>Equipment</span><strong>{equipmentLabel}</strong></div>
-            <div><span>Service Area</span><strong>{carrier.serviceArea || 'Not listed'}</strong></div>
-            <div><span>Home Base</span><strong>Brooklyn, NY</strong></div>
-          </div>
-        </section>
-
-        <section className="carrier-detail-section">
-          <div className="carrier-detail-section-heading">
-            <h3>Driver</h3>
-            <span>{carrier.fleetSize || 0} {carrier.fleetSize === 1 ? 'DRIVER' : 'DRIVERS'}</span>
-          </div>
-          <div className="carrier-driver-card">
-            <div className="carrier-driver-avatar" aria-hidden="true">M</div>
-            <div>
-              <strong>{driver?.fullName || driver?.name || 'Marcus Reed'}</strong>
-              <span>{driver?.equipment?.label || equipmentLabel} · Brooklyn, NY</span>
+      <div className="docos-page-body">
+        <section className="docos-section">
+          <div className="docos-section-heading"><span>ABOUT THE ACCOUNT</span></div>
+          <div className="docos-panel">
+            <p className="carrier-posting-description">
+              Metroline is looking for a dispatcher to source freight, coordinate appointments, plan trips and support daily driver operations.
+            </p>
+            <div className="docos-fact-list">
+              <div><span>Fleet</span><strong>{carrier.fleetSize || 0} {carrier.fleetSize === 1 ? 'driver' : 'drivers'}</strong></div>
+              <div><span>Equipment</span><strong>{equipmentLabel}</strong></div>
+              <div><span>Service Area</span><strong>{carrier.serviceArea || 'Not listed'}</strong></div>
+              <div><span>Home Base</span><strong>Brooklyn, NY</strong></div>
             </div>
           </div>
         </section>
 
-        <section className="carrier-detail-section">
-          <h3>Business Terms</h3>
-          <div className="carrier-detail-fact-list">
-            <div><span>Dispatch Fee</span><strong>{Number.isFinite(agreementPercent) ? `${agreementPercent}% of Carrier Gross` : '—'}</strong></div>
-            <div><span>Payment Terms</span><strong>1 Day</strong></div>
-            <div><span>Relationship</span><strong>{isAccepted ? 'Active Client' : isOffer ? 'Agreement Ready' : isPending ? 'Under Review' : 'Prospective Client'}</strong></div>
+        <section className="docos-section">
+          <div className="docos-section-heading"><span>COMPENSATION & TERMS</span></div>
+          <div className="docos-panel docos-fact-list">
+            <div><span>Dispatch Fee</span><strong>{Number.isFinite(fee) ? `${fee}% of carrier gross` : '—'}</strong></div>
+            <div><span>Payment Terms</span><strong>1 day</strong></div>
+            <div><span>Relationship</span><strong>{isAccepted ? 'Active client' : isPending ? 'Under review' : isOffer ? 'Offer ready' : 'Prospective client'}</strong></div>
           </div>
         </section>
 
-        <section className="carrier-detail-section carrier-needs-section">
-          <h3>What They Need</h3>
-          <p>Load sourcing, trip planning, broker communication, and day-to-day dispatch support for a single dry-van driver.</p>
+        <section className="docos-section">
+          <div className="docos-section-heading"><span>DRIVER ROSTER</span></div>
+          <div className="docos-panel carrier-driver-row-v2">
+            <span className="driver-avatar-v2" aria-hidden="true">M</span>
+            <div><strong>{driver?.fullName || driver?.name || 'Marcus Reed'}</strong><small>{driver?.equipment?.label || equipmentLabel}</small></div>
+            <span className="docos-status-text">{isAccepted ? 'ACTIVE' : '1 DRIVER'}</span>
+          </div>
         </section>
 
         {isAccepted ? (
-          <div className="carrier-detail-state-card active">
+          <div className="docos-state-card success">
             <span>ACCOUNT ACTIVE</span>
-            <strong>{agreementPercent || 8}% dispatch agreement active</strong>
-            <p>{driver?.name || 'Marcus'} is available for dispatch.</p>
+            <strong>Metroline is ready for dispatch.</strong>
+            <p>{driver?.fullName || driver?.name || 'Marcus Reed'} is available in your driver roster.</p>
           </div>
         ) : isPending ? (
-          <div className="carrier-detail-state-card pending">
+          <div className="docos-state-card pending">
             <span>APPLICATION SUBMITTED</span>
             <strong>Metroline is reviewing your application.</strong>
-            <p>DOC OS will notify you when the carrier responds.</p>
+            <p>You can leave this page and continue using DOC OS.</p>
           </div>
+        ) : isOffer ? (
+          <>
+            <div className="docos-state-card offer">
+              <span>OFFER RECEIVED</span>
+              <strong>Metroline sent your dispatch service agreement by email.</strong>
+              <p>Review the agreement attachment from your inbox before accepting the account.</p>
+            </div>
+            <div className="docos-sticky-actions"><button type="button" className="docos-primary-action" onClick={onOpenOffer}>{actionLabel}</button></div>
+          </>
         ) : (
-          <button
-            type="button"
-            className={`carrier-primary-action ${tutorialTarget === (isOffer ? 'accept-agreement' : 'apply-metroline') ? 'tutorial-target' : ''}`}
-            onClick={onApply}
-          >
-            <span>{isOffer ? 'ACCEPT AGREEMENT' : 'APPLY FOR ACCOUNT'}</span>
-            <span aria-hidden="true">›</span>
-          </button>
+          <div className="docos-sticky-actions"><button type="button" className="docos-primary-action" onClick={onApply}>{actionLabel}</button></div>
         )}
       </div>
     </div>

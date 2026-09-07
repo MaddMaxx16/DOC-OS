@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { AttributionControl, Map as MapLibreMap, Marker, Popup, setWorkerUrl } from 'maplibre-gl'
+import { Map as MapLibreMap, Marker, Popup, setWorkerUrl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import mapLocations from '../data/mapLocations.js'
-import { DELIVERY_UNLOAD_DURATION_MINUTES, PICKUP_LOADING_MINUTES } from '../data/pickupConfig.js'
+import { DELIVERY_UNLOAD_DURATION_MINUTES } from '../data/pickupConfig.js'
 import { getMarcusPanelModel } from '../utils/driverOperationalState.js'
 import { formatAppointment } from '../utils/gameTime.js'
 import { logDocOsState } from '../utils/debugLogger.js'
+import { getDriverQueue } from '../utils/driverQueue.js'
 
 setWorkerUrl(workerUrl)
 
@@ -22,7 +23,7 @@ function routePosition(route, progress) {
   return [a[0] + (b[0] - a[0]) * amount, a[1] + (b[1] - a[1]) * amount]
 }
 
-function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, tutorialEnabled = false, tutorialDriverAction = null }) {
+function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, tutorialEnabled = false, tutorialDriverAction = null }) {
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const markerRecords = useRef([])
@@ -67,24 +68,35 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode =
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady || !map.isStyleLoaded()) return
-    const createLocationMarker = (location, ref) => {
-      if (ref.current) return
+    const createLocationMarker = (location, ref, role) => {
+      const existing = ref.current
+      if (existing) {
+        const current = existing.getLngLat()
+        const sameLocation = Math.abs(current.lng - location.longitude) < 0.000001 && Math.abs(current.lat - location.latitude) < 0.000001
+        const record = markerRecords.current.find(({ marker }) => marker === existing)
+        const sameRole = record?.markerElement?.dataset?.role === role
+        if (sameLocation && sameRole) return
+        removeLocationMarker(ref)
+      }
       const element = document.createElement('div')
-      element.className = `game-marker ${location.type}`
-      element.textContent = location.type === 'pickup' ? 'P' : 'D'
+      element.className = `game-marker ${role}`
+      element.dataset.role = role
+      element.textContent = role === 'pickup' ? 'P' : 'D'
       const popup = new Popup({ offset: 20 }).setDOMContent(document.createElement('div'))
       const position = { longitude: location.longitude, latitude: location.latitude }
       const marker = new Marker({ element }).setLngLat([position.longitude, position.latitude]).setPopup(popup).addTo(map)
       popup.on('open', () => element.classList.add('popup-open'))
       popup.on('close', () => element.classList.remove('popup-open'))
       ref.current = marker
-      markerRecords.current.push({ location, marker, markerElement: element, popup })
+      markerRecords.current.push({ location: { ...location, type: role }, marker, markerElement: element, popup })
     }
-    const trip = assignedLoad?.tripStatus
-    const activeLoad = assignedLoad || evaluationLoad
+    // During assignment evaluation, the evaluation load is the map's source of truth.
+    // Otherwise an older active load can leak its facility markers into the new route review.
+    const activeLoad = isDriverFitEvaluation ? evaluationLoad : (routeFocusMode === 'planning' && routeReviewLoad ? routeReviewLoad : assignedLoad)
+    const trip = activeLoad?.tripStatus
     const active = Boolean(activeLoad?.assignedDriverId) && !['delivered', 'completed'].includes(trip)
     const showPickup = isDriverFitEvaluation || (active && !['loaded', 'en-route-delivery', 'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'].includes(trip))
-    const showDelivery = active && !['delivered', 'completed'].includes(trip)
+    const showDelivery = isDriverFitEvaluation || (active && !['delivered', 'completed'].includes(trip))
     const pickup = mapLocations.find((location) => location.id === activeLoad?.pickupLocationId)
     const delivery = mapLocations.find((location) => location.id === activeLoad?.deliveryLocationId)
     const activeDriverIds = new Set(drivers.map((driver) => driver.id))
@@ -100,12 +112,12 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode =
       popup.on('open', () => element.classList.add('popup-open')); popup.on('close', () => element.classList.remove('popup-open'))
       driverMarkerRefs.current.set(driver.id, marker); markerRecords.current.push({ location: { id: driver.id, name: driver.name, type: 'driver' }, marker, markerElement: element, popup })
     })
-    if (showPickup && pickup) createLocationMarker(pickup, pickupMarkerRef)
-    if (showDelivery && delivery) createLocationMarker(delivery, deliveryMarkerRef)
-    if (!showPickup) removeLocationMarker(pickupMarkerRef)
-    if (!showDelivery) removeLocationMarker(deliveryMarkerRef)
+    if (showPickup && pickup) createLocationMarker(pickup, pickupMarkerRef, 'pickup')
+    else removeLocationMarker(pickupMarkerRef)
+    if (showDelivery && delivery) createLocationMarker(delivery, deliveryMarkerRef, 'delivery')
+    else removeLocationMarker(deliveryMarkerRef)
     const deliveryRecord = markerRecords.current.find(({ marker }) => marker === deliveryMarkerRef.current)
-    if (deliveryRecord) deliveryRecord.markerElement.style.pointerEvents = ['at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'].includes(trip) ? 'none' : ''
+    if (deliveryRecord) deliveryRecord.markerElement.style.pointerEvents = ['checked-in-delivery', 'unloading-delivery', 'awaiting-pod'].includes(trip) ? 'none' : ''
     logDocOsState({ isDriverFitEvaluation, hasActiveAcceptedLoad: active, showPickupMarker: showPickup, showDeliveryMarker: showDelivery, pickupMarkerExists: Boolean(pickupMarkerRef.current), deliveryMarkerExists: Boolean(deliveryMarkerRef.current) })
   }, [mapReady, drivers, runtimePositions, assignedLoad?.id, assignedLoad?.assignedDriverId, assignedLoad?.tripStatus, isDriverFitEvaluation, evaluationLoad?.id])
 
@@ -118,38 +130,8 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode =
       attributionControl: false,
     })
     mapRef.current = map
-    map.addControl(new AttributionControl({ compact: true }), 'bottom-left')
-
-    // DOC OS attribution treatment. MapLibre's compact attribution control ships
-    // with its own white circular info artwork. iOS/WebKit can keep rendering
-    // that native artwork even when ordinary stylesheet overrides are present,
-    // so normalize the generated control directly after MapLibre mounts it.
-    requestAnimationFrame(() => {
-      const attribution = map.getContainer().querySelector('.maplibregl-ctrl-attrib')
-      const attributionButton = attribution?.querySelector('.maplibregl-ctrl-attrib-button')
-
-      attribution?.classList.remove('maplibregl-compact-show')
-      attribution?.classList.add('docos-map-attribution')
-
-      if (attributionButton) {
-        attributionButton.classList.add('docos-map-attribution-button')
-        attributionButton.style.setProperty('background', 'rgba(15, 17, 21, 0.94)', 'important')
-        attributionButton.style.setProperty('background-image', 'none', 'important')
-        attributionButton.style.setProperty('border', '1px solid #2A303B', 'important')
-        attributionButton.style.setProperty('border-radius', '999px', 'important')
-        attributionButton.style.setProperty('box-shadow', '0 5px 18px rgba(0, 0, 0, 0.34)', 'important')
-        attributionButton.style.setProperty('appearance', 'none', 'important')
-        attributionButton.style.setProperty('-webkit-appearance', 'none', 'important')
-        attributionButton.style.setProperty('outline', 'none', 'important')
-        attributionButton.replaceChildren()
-
-        const infoGlyph = document.createElement('span')
-        infoGlyph.className = 'docos-map-attribution-glyph'
-        infoGlyph.textContent = 'i'
-        infoGlyph.setAttribute('aria-hidden', 'true')
-        attributionButton.appendChild(infoGlyph)
-      }
-    })
+    // Map attribution is surfaced in the Operations drawer so it remains accessible
+    // without competing with the primary map HUD.
     map.resize()
 
     const markers = []
@@ -177,6 +159,41 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode =
       map.remove()
     }
   }, [])
+
+  useEffect(() => {
+    if (!routeFocusMode) return
+    driverMarkerRefs.current.forEach((marker) => {
+      const popup = marker.getPopup?.()
+      if (popup?.isOpen()) popup.remove()
+    })
+  }, [routeFocusMode])
+
+  useEffect(() => {
+    if (!driverFocusRequest || !mapReady) return
+    const map = mapRef.current
+    const marker = driverMarkerRefs.current.get(driverFocusId)
+    if (!map || !marker) return
+    const lngLat = marker.getLngLat()
+    map.easeTo({ center: [lngLat.lng, lngLat.lat], zoom: Math.max(map.getZoom(), 11.2), duration: 420 })
+    const pickupInteractionStates = new Set(['at-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'loaded'])
+    if (pickupInteractionStates.has(assignedLoad?.tripStatus)) return
+    window.setTimeout(() => {
+      if (!marker.getPopup()?.isOpen()) marker.togglePopup()
+    }, 440)
+  }, [driverFocusRequest, driverFocusId, mapReady, assignedLoad?.tripStatus])
+
+
+  useEffect(() => {
+    if (!facilityFocusRequest || !mapReady || !facilityFocusRole) return
+    const map = mapRef.current
+    const marker = facilityFocusRole === 'pickup' ? pickupMarkerRef.current : deliveryMarkerRef.current
+    if (!map || !marker) return
+    const lngLat = marker.getLngLat()
+    map.easeTo({ center: [lngLat.lng, lngLat.lat], zoom: Math.max(map.getZoom(), 11.2), duration: 420 })
+    window.setTimeout(() => {
+      if (!marker.getPopup()?.isOpen()) marker.togglePopup()
+    }, 440)
+  }, [facilityFocusRequest, facilityFocusRole, mapReady, assignedLoad?.tripStatus])
 
   useEffect(() => {
     const map = mapRef.current
@@ -211,9 +228,9 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode =
 
     map.fitBounds(bounds, {
       padding: routeFocusMode === 'evaluation'
-        ? { top: 74, right: 26, bottom: 330, left: 26 }
-        : { top: 74, right: 26, bottom: 300, left: 26 },
-      maxZoom: 12.8,
+        ? { top: 68, right: 22, bottom: 285, left: 22 }
+        : { top: 68, right: 22, bottom: 245, left: 22 },
+      maxZoom: 11.35,
       duration: 420,
     })
   }, [activeRouteGeometry, routeFocusMode, mapReady])
@@ -229,6 +246,23 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode =
       const load = document.createElement('span'); load.textContent = `Load: ${popupLoad.id}`
       const window = document.createElement('span'); window.textContent = `Pickup Window: ${formatAppointment(popupLoad.pickupDayIndex, popupLoad.pickupWindowStartMinutes, popupLoad.pickupWindowEndMinutes)}`
       content.append(heading, name, load, window)
+      if (['at-pickup', 'waiting-at-pickup'].includes(popupLoad.tripStatus)) {
+        const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+        const waitedMinutes = Number.isFinite(popupLoad.pickupArrivalGameMinute)
+          ? Math.max(0, now - popupLoad.pickupArrivalGameMinute)
+          : 0
+        const wait = document.createElement('span')
+        wait.textContent = `Waiting: ${waitedMinutes} min`
+        const checkIn = document.createElement('button')
+        checkIn.type = 'button'
+        checkIn.className = 'docos-driver-popup-action'
+        checkIn.textContent = 'CHECK IN'
+        checkIn.onclick = () => {
+          pickupRecord.popup.remove()
+          onDriverAction?.('CHECK_IN', popupLoad.id, popupLoad.assignedDriverId || 'marcus')
+        }
+        content.append(wait, checkIn)
+      }
       pickupRecord.popup.setDOMContent(content)
     }
     const deliveryRecord = markerRecords.current.find(({ marker }) => marker === deliveryMarkerRef.current)
@@ -240,15 +274,40 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode =
       const load = document.createElement('span'); load.textContent = `Load: ${popupLoad.id}`
       const window = document.createElement('span'); window.textContent = `Delivery Window: ${formatAppointment(popupLoad.deliveryDayIndex, popupLoad.deliveryWindowStartMinutes, popupLoad.deliveryWindowEndMinutes)}`
       content.append(heading, name, load, window)
+      if (popupLoad.tripStatus === 'at-delivery') {
+        const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+        const waitedMinutes = Number.isFinite(popupLoad.deliveryArrivalGameMinute)
+          ? Math.max(0, now - popupLoad.deliveryArrivalGameMinute)
+          : 0
+        const wait = document.createElement('span')
+        wait.textContent = `Waiting: ${waitedMinutes} min`
+        const checkIn = document.createElement('button')
+        checkIn.type = 'button'
+        checkIn.className = 'docos-driver-popup-action'
+        checkIn.textContent = 'CHECK IN'
+        checkIn.onclick = () => {
+          deliveryRecord.popup.remove()
+          onDriverAction?.('CHECK_IN', popupLoad.id, popupLoad.assignedDriverId || 'marcus')
+        }
+        content.append(wait, checkIn)
+      }
       deliveryRecord.popup.setDOMContent(content)
     }
     const marcus = getDriver()
     const record = markerRecords.current.find(({ location }) => location.id === 'marcus')
     if (!marcus || !record) return
 
+    const pickupInteractionStates = new Set(['at-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'loaded'])
+    const deliveryInteractionStates = new Set(['at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'])
+    const driverAtPickup = pickupInteractionStates.has(assignedLoad?.tripStatus)
+    const driverAtDelivery = deliveryInteractionStates.has(assignedLoad?.tripStatus)
+    const suppressDriverPopup = driverAtPickup || driverAtDelivery
+    if (suppressDriverPopup && record.popup.isOpen()) record.popup.remove()
+    record.markerElement.style.pointerEvents = suppressDriverPopup ? 'none' : ''
     record.markerElement.classList.toggle('unavailable', marcus.status === 'unavailable')
-    record.markerElement.classList.toggle('tutorial-target', tutorialEnabled && tutorialDriverAction && !record.popup.isOpen())
-    record.markerElement.classList.toggle('attention', !suppressAttention && ['loaded', 'at-delivery', 'waiting-at-pickup', 'waiting-at-delivery', 'awaiting-pod'].includes(assignedLoad?.tripStatus))
+    record.markerElement.classList.toggle('tutorial-target', tutorialEnabled && tutorialDriverAction && !record.popup.isOpen() && !suppressDriverPopup)
+    record.markerElement.classList.toggle('attention', false)
+    if (suppressDriverPopup) return
     const popupContent = document.createElement('div')
     popupContent.className = 'docos-driver-popup'
 
@@ -338,23 +397,24 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode =
         const pillTone = model.operationalState === 'TRIP_PLANNED' ? 'ready' : model.operationalState === 'WAITING_DELIVERY' ? 'attention' : 'neutral'
         popupContent.append(buildHeader(model.driverName || marcus.fullName || record.location.name, model.roleLabel || 'Driver', model.statusLabel?.toUpperCase(), pillTone))
 
+        const queuedLoads = getDriverQueue(loads, 'marcus')
+        if (queuedLoads.length) {
+          const nextPlanned = buildMetaRow('NEXT ASSIGNMENT', `${queuedLoads[0].id}${queuedLoads.length > 1 ? `  +${queuedLoads.length - 1}` : ''}`)
+          if (nextPlanned) popupContent.append(nextPlanned)
+        }
+
         if (['ASSIGNED', 'TRIP_PLANNED'].includes(model.operationalState)) {
           // Quick map action: identity + status + primary action only.
         } else if (model.operationalState === 'EN_ROUTE_PICKUP' || model.operationalState === 'EN_ROUTE_DELIVERY') {
-          const metrics = buildMetricGrid([
-            { label: 'NEXT STOP', value: model.nextStopLabel },
-            { label: 'ETA', value: model.eta },
-            { label: 'PROGRESS', value: `${Math.round((model.progress || 0) * 100)}%` },
-          ])
-          if (metrics) popupContent.append(metrics)
-          if (Number.isFinite(marcus.hours?.drivingRemainingMinutes)) {
-            const hosMinutes = marcus.hours.drivingRemainingMinutes
-            const hosHours = Math.floor(hosMinutes / 60)
-            const hosRemainder = hosMinutes % 60
-            const hosLabel = hosRemainder ? `${hosHours}h ${hosRemainder}m drive remaining` : `${hosHours}h drive remaining`
-            const hosRow = buildMetaRow('HOS', hosLabel)
-            if (hosRow) popupContent.append(hosRow)
-          }
+          popupContent.classList.add('enroute-label')
+          const label = document.createElement('div')
+          label.className = 'docos-driver-enroute-label'
+          const status = document.createElement('strong')
+          status.textContent = model.statusLabel?.toUpperCase() || 'EN ROUTE'
+          const detail = document.createElement('span')
+          detail.textContent = `${model.loadId} · ETA ${model.eta || '—'}`
+          label.append(status, detail)
+          popupContent.replaceChildren(label)
         } else {
           const loadRow = buildMetaRow('CURRENT LOAD', model.loadId)
           const stopRow = buildMetaRow('NEXT STOP', model.nextStopLabel)
@@ -391,7 +451,7 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode =
     }
 
     record.popup.setDOMContent(popupContent)
-  }, [drivers, carriers, assignedLoad, evaluationLoad, isDriverFitEvaluation, onDriverAction, suppressAttention, gameTime, runtimeProgress, runtimePositions, tutorialEnabled, tutorialDriverAction])
+  }, [drivers, loads, carriers, assignedLoad, routeReviewLoad, routeFocusMode, evaluationLoad, isDriverFitEvaluation, onDriverAction, suppressAttention, gameTime, runtimeProgress, runtimePositions, tutorialEnabled, tutorialDriverAction])
 
   useEffect(() => {
     const record = markerRecords.current.find(({ location }) => location.id === 'marcus')
@@ -424,8 +484,18 @@ function GameMap({ drivers, carriers = [], activeRouteGeometry, routeFocusMode =
     let pill = record.markerElement.querySelector('.driver-status-pill')
     if (!pill) { pill = document.createElement('span'); pill.className = 'driver-status-pill'; record.markerElement.append(pill) }
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    if (assignedLoad.tripStatus === 'waiting-at-pickup') pill.textContent = 'WAITING AT PICKUP'
-    else if (assignedLoad.tripStatus === 'loading-at-pickup') pill.textContent = `LOADING • ${Math.max(0, PICKUP_LOADING_MINUTES - (now - assignedLoad.loadingStartGameMinute))} MIN`
+    if (assignedLoad.tripStatus === 'waiting-at-pickup') {
+      const waitedMinutes = Number.isFinite(assignedLoad.pickupArrivalGameMinute)
+        ? Math.max(0, now - assignedLoad.pickupArrivalGameMinute)
+        : 0
+      pill.textContent = `WAITING AT PICKUP • ${waitedMinutes} MIN`
+    }
+    else if (assignedLoad.tripStatus === 'loading-at-pickup') {
+      const loadingMinutes = Number.isFinite(assignedLoad.loadingStartGameMinute)
+        ? Math.max(0, now - assignedLoad.loadingStartGameMinute)
+        : 0
+      pill.textContent = `LOADING • ${loadingMinutes} MIN`
+    }
     else if (assignedLoad.tripStatus === 'at-delivery' && !suppressAttention) pill.textContent = 'WAITING AT DELIVERY'
     else if (assignedLoad.tripStatus === 'unloading-delivery' && !suppressAttention) pill.textContent = `UNLOADING • ${Math.max(0, DELIVERY_UNLOAD_DURATION_MINUTES - (now - assignedLoad.deliveryUnloadStartGameMinute))} MIN`
     else if (assignedLoad.tripStatus === 'awaiting-pod' && !suppressAttention) pill.textContent = 'POD READY'

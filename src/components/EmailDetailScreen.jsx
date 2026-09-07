@@ -67,18 +67,9 @@ function EmailDetailScreen({ message, carrier, onReview, onBack, tutorialTarget 
           </div>
 
           {!isMentor && (
-            <section className="email-agreement-summary" aria-label="Proposed agreement summary">
-              <span className="email-agreement-eyebrow">Proposed agreement</span>
-              <div className="email-agreement-grid">
-                <div>
-                  <span>Dispatch fee</span>
-                  <strong>8%</strong>
-                </div>
-                <div>
-                  <span>Payment terms</span>
-                  <strong>1 Day</strong>
-                </div>
-              </div>
+            <section className="email-agreement-attachment" aria-label="Dispatch service agreement attachment">
+              <div className="email-attachment-icon" aria-hidden="true">DOC</div>
+              <div><span>ATTACHMENT</span><strong>Metroline Dispatch Service Agreement</strong><small>Review terms, responsibilities, authorization, and compensation.</small></div>
             </section>
           )}
         </article>

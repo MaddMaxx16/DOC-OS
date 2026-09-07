@@ -15,6 +15,7 @@ import { SAVE_SLOT_IDS, clearSave, getActiveSaveSlot, getSaveSlots, loadGame, sa
 import { createDevPreset } from './dev/devPresets.js'
 import { getReceivables } from './utils/ledger.js'
 import { reconcileActiveCarrierDrivers } from './utils/driverRoster.js'
+import { getDriverActiveLoad, getDriverQueue, promoteNextQueuedLoad } from './utils/driverQueue.js'
 import { createDayReport, DEFAULT_DAY_LOOP_STATE, DEFAULT_PLAYER_PROGRESSION, getEndDayStatus } from './utils/dayLoop.js'
 
 function App() {
@@ -73,8 +74,11 @@ function App() {
       if (seed) hydratedDrivers = [...hydratedDrivers, { ...seed, status: 'unavailable', assignedLoadId: load.id }]
     })
     hydratedDrivers = hydratedDrivers.map((driver) => {
-      const assigned = hydratedLoads.find((load) => load.assignedDriverId === driver.id && !['completed', 'delivered'].includes(load.tripStatus))
-      return assigned ? { ...driver, status: 'unavailable', assignedLoadId: assigned.id } : driver
+      const assigned = getDriverActiveLoad(hydratedLoads, driver.id)
+      const queued = getDriverQueue(hydratedLoads, driver.id)
+      return assigned
+        ? { ...driver, status: 'unavailable', assignedLoadId: assigned.id, queuedLoadIds: queued.map((load) => load.id) }
+        : { ...driver, queuedLoadIds: [] }
     })
 
     const nextPositions = { ...(saved.runtimePositions || {}) }
@@ -146,6 +150,20 @@ function App() {
   }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, tutorialState, dayLoop, playerProgression])
 
   useEffect(() => {
+    if (!hydrated || dayLoop.operationDay !== 2) return
+    const dayIndex = dayLoop.currentStartGameDayIndex || gameTime.gameDayIndex
+    setLoads((current) => {
+      let changed = false
+      const next = current.map((load) => {
+        if (load.scheduledOperationDay !== 2 || (Number.isFinite(load.pickupDayIndex) && Number.isFinite(load.deliveryDayIndex))) return load
+        changed = true
+        return { ...load, pickupDayIndex: dayIndex, deliveryDayIndex: dayIndex }
+      })
+      return changed ? next : current
+    })
+  }, [hydrated, dayLoop.operationDay, dayLoop.currentStartGameDayIndex, gameTime.gameDayIndex])
+
+  useEffect(() => {
     if (!hydrated || !tutorialState.enabled || tutorialState.completed) return
     // Tutorial pacing: DOC001/DOC002 payments arrive 30 game minutes after invoice send.
     // This also migrates tutorial saves created before the shorter payment window.
@@ -182,7 +200,6 @@ function App() {
     if (!hydrated || !tutorialState.enabled || tutorialState.completed) return
     if (ledgerWorkflowByLoadId.DOC002?.financialStatus !== 'PAID') return
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsGameClockPaused(true)
     setSimulationSpeed(1)
   }, [hydrated, tutorialState.enabled, tutorialState.completed, ledgerWorkflowByLoadId.DOC002?.financialStatus])
 
@@ -209,7 +226,24 @@ function App() {
     setResumeStage('market')
     setStage('market')
   }
-  const deleteSaveSlot = (slotId) => { clearSave(slotId); window.location.reload() }
+  const deleteSaveSlot = (slotId) => {
+    clearSave(slotId)
+    const nextSlots = getSaveSlots()
+    setSaveSlots(nextSlots)
+    setHasExistingOperation(nextSlots.length > 0)
+
+    if (activeSaveSlotId === slotId) {
+      const nextSlotId = nextSlots[0]?.id || SAVE_SLOT_IDS[0]
+      setActiveSaveSlot(nextSlotId)
+      setActiveSaveSlotId(nextSlotId)
+      const nextSaved = loadGame(nextSlotId)
+      if (nextSaved) hydrateSavedOperation(nextSaved)
+      else {
+        resetOperationState()
+        setResumeStage(null)
+      }
+    }
+  }
   const resetGame = () => { clearSave(activeSaveSlotId); window.location.reload() }
   const activateCarrier = () => { const nextCarriers = carriers.map((carrier) => carrier.id === 'metroline' ? { ...carrier, status: 'active' } : carrier); setCarriers(nextCarriers); setDrivers((current) => reconcileActiveCarrierDrivers(current, nextCarriers)); const yard = mapLocations.find((location) => location.id === 'metroline-yard'); if (yard) setRuntimePositions((current) => ({ ...current, marcus: current.marcus || { longitude: yard.longitude, latitude: yard.latitude } })) }
   const applyCarrier = () => { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setCarrierApplicationsById((current) => current.metroline ? current : { ...current, metroline: { status: 'PENDING', submittedGameMinute: now, responseGameMinute: now + 10 } }) }
@@ -222,7 +256,6 @@ function App() {
         setCarrierApplicationsById((current) => ({ ...current, [carrierId]: { ...current[carrierId], status: 'OFFER_RECEIVED' } }))
         setEmailMessages((current) => current.some((message) => message.id === `${carrierId}-application-approved`) ? current : [...current, { id: `${carrierId}-application-approved`, type: 'carrier-application-offer', carrierId, subject: 'Dispatch Service Application — Approved', receivedGameMinute: application.responseGameMinute, read: false }])
         if (tutorialState.enabled && !tutorialState.completed && carrierId === 'metroline') {
-          setIsGameClockPaused(true)
           setSimulationSpeed(1)
         }
       }
@@ -280,12 +313,11 @@ function App() {
     setEmailMessages((current) => current.some((message) => message.id === 'mentor-tutorial-complete')
       ? current
       : [...current, { id: 'mentor-tutorial-complete', type: 'mentor', templateId: 'mentor-tutorial-complete', receivedGameMinute: now, read: false }])
-    setIsGameClockPaused(true)
     setSimulationSpeed(1)
   }, [hydrated, stage, dayLoop.operationDay, dayLoop.phase, emailMessages, loads, carriers, ledgerWorkflowByLoadId, seenLedgerPaymentReceivedIds, tutorialState.completed, gameTime])
 
   useEffect(() => {
-    const load = loads.find((item) => item.assignedDriverId && ['en-route-pickup', 'en-route-delivery'].includes(item.tripStatus)) || loads.find((item) => item.assignedDriverId) || {}
+    const load = loads.find((item) => item.assignedDriverId && ['en-route-pickup', 'en-route-delivery'].includes(item.tripStatus)) || getDriverActiveLoad(loads, 'marcus') || loads.find((item) => item.assignedDriverId && item.tripStatus !== 'queued') || {}
     const route = load.tripStatus === 'en-route-delivery' ? load.plannedLoadedRouteGeometry : load.tripStatus === 'en-route-pickup' ? load.plannedDeadheadRouteGeometry : load.plannedLoadedRouteGeometry || load.plannedDeadheadRouteGeometry
     const activeTravelLeg = load.tripStatus === 'en-route-delivery' ? 'loaded' : load.tripStatus === 'en-route-pickup' ? 'deadhead' : null
     const panel = getMarcusPanelModel({ assignedLoad: load, gameTime, runtimeProgress, pickup: mapLocations.find((item) => item.id === load.pickupLocationId), delivery: mapLocations.find((item) => item.id === load.deliveryLocationId) })
@@ -324,7 +356,7 @@ function App() {
     setLoads((current) => current.map((load) => {
       if (load.tripStatus === 'at-pickup') return { ...load, tripStatus: 'waiting-at-pickup', pickupArrivalGameMinute: now }
       if (load.tripStatus === 'checked-in-pickup') return { ...load, tripStatus: 'loading-at-pickup', loadingStartGameMinute: now }
-      if (load.tripStatus === 'loading-at-pickup' && now - load.loadingStartGameMinute >= PICKUP_LOADING_MINUTES) return { ...load, tripStatus: 'loaded' }
+      if (load.tripStatus === 'loading-at-pickup' && now - load.loadingStartGameMinute >= PICKUP_LOADING_MINUTES) return { ...load, tripStatus: 'loaded', deliveryPlanningStatus: null, plannedLoadedRouteGeometry: null, plannedLoadedMiles: null, plannedLoadedDriveTimeMinutes: null, selectedLoadedRouteId: null }
       if (load.tripStatus === 'checked-in-delivery') return { ...load, tripStatus: 'unloading-delivery', deliveryUnloadStartGameMinute: now }
       if (load.tripStatus === 'unloading-delivery' && now - load.deliveryUnloadStartGameMinute >= DELIVERY_UNLOAD_DURATION_MINUTES) return { ...load, tripStatus: 'awaiting-pod', pod: { status: 'complete', receivedGameMinute: now, viewedGameMinute: null, signedBy: 'Jordan Rivera', piecesExpected: 12, piecesReceived: 12, damage: 'None', verification: { signature: false, pieceCount: false, damage: false, deliveryInfo: false }, verified: false, verifiedGameMinute: null } }
       return load
@@ -336,9 +368,30 @@ function App() {
     if (!completed) return
     const delivery = mapLocations.find((location) => location.id === completed.deliveryLocationId)
     if (!delivery) return
+
+    const driverId = completed.assignedDriverId
+    const queuedBeforePromotion = getDriverQueue(loads, driverId)
+    const nextQueued = queuedBeforePromotion[0] || null
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDrivers((current) => current.map((driver) => driver.id === completed.assignedDriverId ? { ...driver, status: 'available', assignedLoadId: null, longitude: delivery.longitude, latitude: delivery.latitude, lastKnownLocationId: completed.deliveryLocationId } : driver))
-    setLoads((current) => current.map((load) => load.id === completed.id && load.tripStatus === 'delivered' ? { ...load, tripStatus: 'completed', status: 'completed', completedDriverId: completed.assignedDriverId, assignedDriverId: null, completedGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay, completedOperationDay: dayLoop.operationDay } : load))
+    setLoads((current) => {
+      const closed = current.map((load) => load.id === completed.id && load.tripStatus === 'delivered'
+        ? { ...load, tripStatus: 'completed', status: 'completed', completedDriverId: driverId, assignedDriverId: null, queuePosition: null, completedGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay, completedOperationDay: dayLoop.operationDay }
+        : load)
+      return promoteNextQueuedLoad(closed, driverId).loads
+    })
+
+    setDrivers((current) => current.map((driver) => driver.id === driverId
+      ? {
+          ...driver,
+          status: nextQueued ? 'unavailable' : 'available',
+          assignedLoadId: nextQueued?.id || null,
+          queuedLoadIds: (driver.queuedLoadIds || []).filter((id) => id !== nextQueued?.id),
+          longitude: delivery.longitude,
+          latitude: delivery.latitude,
+          lastKnownLocationId: completed.deliveryLocationId,
+        }
+      : driver))
   }, [loads, gameTime, dayLoop.operationDay])
 
   useEffect(() => {
@@ -352,6 +405,14 @@ function App() {
     return () => clearInterval(timer)
   }, [stage, isGameClockPaused, simulationSpeed])
 
+
+  const awardLoadXp = (loadId, amount) => {
+    setPlayerProgression((current) => {
+      const awardedLoadXpIds = Array.isArray(current.awardedLoadXpIds) ? current.awardedLoadXpIds : []
+      if (awardedLoadXpIds.includes(loadId)) return current
+      return { ...current, xp: Number(current.xp || 0) + Number(amount || 0), awardedLoadXpIds: [...awardedLoadXpIds, loadId] }
+    })
+  }
 
   const closeOperationDay = () => {
     const receivables = getReceivables(loads, carriers, ledgerWorkflowByLoadId)
@@ -373,7 +434,7 @@ function App() {
       : load))
     setPlayerProgression((current) => ({
       ...current,
-      xp: Number(current.xp || 0) + report.xpGain,
+      xp: Number(current.xp || 0),
       reputation: Number(current.reputation || 0) + report.reputationChange,
     }))
     setDayLoop((current) => ({
@@ -405,6 +466,19 @@ function App() {
     }))
     setTutorialState((current) => ({ ...current, enabled: false, completed: true }))
     if (nextOperationDay === 2) {
+      setLoads((current) => current.map((load) => load.scheduledOperationDay === 2
+        ? {
+            ...load,
+            pickupDayIndex: report.nextStartGameDayIndex,
+            deliveryDayIndex: report.nextStartGameDayIndex,
+            status: load.status === 'completed' ? load.status : 'available',
+            tripStatus: load.status === 'completed' ? load.tripStatus : null,
+            assignedDriverId: null,
+            candidateDriverId: null,
+            queuePosition: null,
+            driverFitVerified: false,
+          }
+        : load))
       setEmailMessages((current) => current.some((message) => message.id === 'mentor-day-two')
         ? current
         : [...current, { id: 'mentor-day-two', type: 'mentor', templateId: 'mentor-day-two', receivedGameMinute: nextAbsoluteMinute, read: false }])
@@ -430,6 +504,7 @@ function App() {
           <MarketSelectionScreen
             selectedMarket={selectedMarket}
             onSelectMarket={() => setSelectedMarket('new-york')}
+            onBack={() => { setSelectedMarket(null); setStage('start') }}
             onConfirm={() => { setHasExistingOperation(true); setResumeStage('game'); setIsGameClockPaused(false); setStage('game') }}
           />
         )}
@@ -452,6 +527,7 @@ function App() {
             dayLoopPhase={dayLoop.phase}
             dayReport={dayLoop.report}
             playerProgression={playerProgression}
+            onAwardLoadXp={awardLoadXp}
             onEndDay={closeOperationDay}
             onContinueDay={continueToNextDayBriefing}
             onBeginOperations={beginNextOperationDay}

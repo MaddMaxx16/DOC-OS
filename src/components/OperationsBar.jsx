@@ -51,11 +51,6 @@ function OperationsBar({ selectedMarket, notificationCount = 0, notifications = 
               <span className="operations-bar-status-dot" aria-hidden="true" />
               <span>{notificationLabel}</span>
             </span>
-            {notificationCount > 0 && (
-              <span className="operations-bar-badge" aria-label={`${notificationCount} active notifications`}>
-                {notificationCount > 99 ? '99+' : notificationCount}
-              </span>
-            )}
             <span className="operations-bar-chevron" aria-hidden="true">{open ? '⌃' : '⌄'}</span>
           </div>
         </button>
@@ -107,6 +102,15 @@ function OperationsBar({ selectedMarket, notificationCount = 0, notifications = 
               <span>No new operational alerts right now.</span>
             </div>
           )}
+
+          <div className="operations-map-data">
+            <span>MAP DATA</span>
+            <div>
+              <a href="https://openfreemap.org" target="_blank" rel="noreferrer">OpenFreeMap</a>
+              <span aria-hidden="true">·</span>
+              <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>
+            </div>
+          </div>
         </section>
       )}
     </div>

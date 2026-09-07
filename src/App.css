@@ -7820,3 +7820,1471 @@
   color: #E3EAF3;
   font-size: 12px;
 }
+
+/* Day 2 — multi-load planning / driver queue */
+.driver-select-v2-queue-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(142, 163, 183, .18);
+  border-radius: 8px;
+  background: rgba(15, 18, 21, .48);
+  text-align: left;
+}
+
+.driver-select-v2-queue-note span {
+  flex: 0 0 auto;
+  font-size: 8px;
+  letter-spacing: .12em;
+  color: #8EA3B7;
+}
+
+.driver-select-v2-queue-note strong {
+  min-width: 0;
+  font-size: 10px;
+  font-weight: 650;
+  color: #B9C7D4;
+  text-align: right;
+}
+
+.load-detail-v2-queue-status {
+  width: 100%;
+  display: grid;
+  gap: 5px;
+  padding: 11px 12px;
+  border: 1px solid rgba(142, 163, 183, .22);
+  border-radius: 9px;
+  background: rgba(27, 31, 36, .9);
+}
+
+.load-detail-v2-queue-status span {
+  font-size: 8px;
+  letter-spacing: .12em;
+  color: #8EA3B7;
+}
+
+.load-detail-v2-queue-status strong {
+  font-size: 13px;
+  color: #B9C7D4;
+}
+
+.load-detail-v2-queue-status small {
+  font-size: 9px;
+  line-height: 1.35;
+  color: #8EA3B7;
+}
+
+
+/* Day 2 freight decision board ------------------------------------------------ */
+.freightlink-sortbar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  padding: 0 12px 10px;
+}
+.freightlink-sortbar button {
+  min-width: 0;
+  min-height: 28px;
+  padding: 0 5px;
+  border: 1px solid #2a313a;
+  border-radius: 7px;
+  background: #15191e;
+  color: #8ea3b7;
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: .09em;
+}
+.freightlink-sortbar button.active {
+  border-color: #56789a;
+  background: #202a34;
+  color: #dce7f1;
+}
+.decision-load-list { gap: 7px; }
+.freight-decision-row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 11px;
+  border: 1px solid #2a313a;
+  border-radius: 9px;
+  background: #171b20;
+  color: #b9c7d4;
+  text-align: left;
+}
+.freight-decision-row:active { transform: translateY(1px); background: #1b2026; }
+.freight-decision-row.is-claimed { border-color: #405467; background: #192028; }
+.freight-decision-top,
+.freight-decision-id,
+.freight-decision-lane,
+.freight-decision-meta { display: flex; align-items: center; }
+.freight-decision-top { justify-content: space-between; gap: 8px; }
+.freight-decision-id { gap: 7px; min-width: 0; }
+.freight-decision-id > strong { font-size: 9px; letter-spacing: .11em; color: #dce7f1; }
+.freight-fit-chip {
+  padding: 3px 5px;
+  border: 1px solid #3b4650;
+  border-radius: 999px;
+  color: #9cadbc;
+  font-size: 5.7px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  white-space: nowrap;
+}
+.freight-fit-chip.good { border-color: #3f6958; color: #a7d4bc; }
+.freight-fit-chip.tight { border-color: #766640; color: #d9c38e; }
+.freight-fit-chip.poor { border-color: #754d4d; color: #d6a2a2; }
+.freight-decision-rate { display: flex; flex-direction: column; align-items: flex-end; flex: 0 0 auto; }
+.freight-decision-rate strong { font-size: 13px; color: #eef5fb; line-height: 1; }
+.freight-decision-rate span { margin-top: 3px; color: #8ea3b7; font-size: 5.8px; font-weight: 750; letter-spacing: .07em; }
+.freight-decision-lane { gap: 6px; min-width: 0; }
+.freight-decision-lane > div { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.freight-decision-lane > div > span { color: #71879a; font-size: 5.4px; font-weight: 800; letter-spacing: .11em; }
+.freight-decision-lane > div > strong { overflow: hidden; color: #c8d5df; font-size: 7.4px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.freight-decision-arrow { flex: 0 0 auto; color: #617487; font-size: 10px; }
+.freight-decision-meta { gap: 6px; flex-wrap: wrap; }
+.freight-decision-meta span {
+  padding-right: 6px;
+  border-right: 1px solid #2c333b;
+  color: #8799aa;
+  font-size: 5.8px;
+  font-weight: 750;
+  letter-spacing: .055em;
+}
+.freight-decision-meta span:last-child { padding-right: 0; border-right: 0; }
+
+/* ========================================================================== 
+   DOC OS Interface System v2 — Phase 1
+   Operations device shell + shared menu primitives.
+   Existing app screens are intentionally migrated in Phase 2.
+   ========================================================================== */
+
+:root {
+  --docos-bg: #0F1215;
+  --docos-panel: #1B1F24;
+  --docos-panel-raised: #20262D;
+  --docos-border: #2A313A;
+  --docos-border-strong: #394553;
+  --docos-text: #8EA3B7;
+  --docos-text-bright: #D7E0E8;
+  --docos-primary: #2F8DEE;
+  --docos-accent: #C2D5E7;
+  --docos-radius-sm: 8px;
+  --docos-radius-md: 12px;
+  --docos-radius-lg: 18px;
+}
+
+/* The phone icon remains the launcher, but the opened surface is now a
+   near-full-screen operations device rather than a literal miniature phone. */
+.phone-overlay {
+  --phone-screen: var(--docos-bg);
+  position: absolute;
+  z-index: 20;
+  top: calc(env(safe-area-inset-top, 0px) + 42px);
+  right: 8px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+  left: 8px;
+  width: auto;
+  max-width: none;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  overflow: visible;
+  border: 1px solid rgba(111, 128, 145, .34);
+  border-radius: 20px;
+  background: #11161B;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, .56), 0 3px 12px rgba(0, 0, 0, .34);
+  animation: docos-device-in 180ms ease-out;
+}
+
+@keyframes docos-device-in {
+  from { opacity: 0; transform: translateY(14px) scale(.992); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.device-sheet-handle {
+  position: absolute;
+  z-index: 30;
+  top: -8px;
+  left: 50%;
+  width: 46px;
+  height: 4px;
+  border-radius: 999px;
+  background: #6F7D8C;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, .5);
+  transform: translateX(-50%);
+  opacity: .72;
+  pointer-events: none;
+}
+
+.phone-hardware-speaker,
+.phone-status-icons {
+  display: none !important;
+}
+
+.phone-device-screen {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 58px minmax(0, 1fr) 46px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 19px;
+  background: var(--docos-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025);
+}
+
+.phone-status-bar {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(104, 120, 138, .23);
+  background: linear-gradient(180deg, #171C22, #14191E);
+  color: var(--docos-text);
+}
+
+.phone-status-brand {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--docos-text-bright);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.device-status-context {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  text-align: right;
+}
+
+.device-status-context span {
+  color: #667789;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .15em;
+}
+
+.device-status-context strong {
+  color: #AFC0CF;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: .035em;
+  white-space: nowrap;
+}
+
+.phone-close-button {
+  position: relative;
+  z-index: 3;
+  top: auto;
+  right: auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #343D48;
+  border-radius: 10px;
+  background: #1C2229;
+  color: #AAB6C2;
+  box-shadow: none;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 350;
+  line-height: 1;
+}
+
+.phone-close-button:active { transform: scale(.97); }
+
+.phone-app-viewport {
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius: 0;
+  background: var(--docos-bg);
+  box-shadow: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.phone-navigation-bar {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-top: 1px solid rgba(104, 120, 138, .22);
+  background: #13181D;
+}
+
+.phone-home-button {
+  position: relative;
+  z-index: 3;
+  bottom: auto;
+  left: auto;
+  width: 54px;
+  height: 30px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #343E49;
+  border-radius: 9px;
+  background: #1B2128;
+  color: #A9B6C3;
+  transform: none;
+  box-shadow: none;
+}
+
+.phone-home-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+}
+
+.phone-page {
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+/* Shared interface primitives for the Phase 2 screen migration. */
+.docos-ui-page {
+  min-height: 100%;
+  padding: 16px;
+  color: var(--docos-text-bright);
+  background: var(--docos-bg);
+}
+
+.docos-ui-header {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 18px;
+}
+
+.docos-ui-kicker,
+.docos-section-heading > span,
+.docos-section-label {
+  color: #6F8497;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .15em;
+}
+
+.docos-ui-header h1 {
+  margin: 0;
+  color: #E5ECF2;
+  font-size: 25px;
+  font-weight: 720;
+  letter-spacing: -.025em;
+  line-height: 1.05;
+}
+
+.docos-ui-header p {
+  max-width: 520px;
+  margin: 0;
+  color: #8798A8;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.docos-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
+.docos-section-heading small {
+  color: #596A79;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.docos-panel {
+  border: 1px solid var(--docos-border);
+  border-radius: var(--docos-radius-md);
+  background: var(--docos-panel);
+}
+
+.docos-status-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--docos-border-strong);
+  border-radius: 999px;
+  color: #AFC0CF;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.docos-primary-action {
+  min-height: 44px;
+  border: 1px solid #3D76AF;
+  border-radius: 10px;
+  background: #245F98;
+  color: #F2F7FB;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+/* Device home now reads like a professional operations menu instead of a
+   miniature smartphone home screen. */
+.home-screen {
+  position: relative;
+  height: auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 18px 16px 12px;
+  color: var(--docos-text-bright);
+  background: radial-gradient(circle at 18% -8%, rgba(47, 141, 238, .07), transparent 30%), var(--docos-bg);
+}
+
+.home-screen h1 { display: block; }
+
+.device-home-header { margin-bottom: 20px; }
+.device-home-section { width: 100%; }
+
+.phone-app-grid {
+  width: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: none;
+  gap: 8px;
+  margin: 0;
+  align-content: start;
+}
+
+.app-icon {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #2A333D;
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(255,255,255,.018), transparent 58%), #191F25;
+  color: var(--docos-text-bright);
+  text-align: left;
+  box-shadow: none;
+}
+
+.app-icon:active {
+  transform: translateY(1px);
+  border-color: #41505E;
+  background: #1D252D;
+}
+
+.app-icon-visual {
+  position: relative;
+  display: block;
+  width: 42px;
+  height: 42px;
+}
+
+.app-icon-square {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #34404B;
+  border-radius: 10px;
+  background: #202831;
+  color: #BDD0DF;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.app-icon-square svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.55;
+}
+
+.app-icon-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.app-icon-label {
+  display: block;
+  max-width: 100%;
+  overflow: visible;
+  color: #D7E1EA;
+  font-size: 12px;
+  font-weight: 740;
+  line-height: 1.1;
+  letter-spacing: -.01em;
+  text-align: left;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.app-icon-copy small {
+  overflow: hidden;
+  color: #728596;
+  font-size: 8px;
+  font-weight: 550;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-icon-open {
+  color: #66798A;
+  font-size: 22px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.app-icon-badge {
+  top: -5px;
+  right: -5px;
+  border-color: #202831;
+}
+
+.phone-home-version {
+  margin-top: auto;
+  padding-top: 18px;
+  padding-bottom: 2px;
+  color: #465563;
+  font-size: 7px;
+  font-weight: 750;
+  letter-spacing: .16em;
+  text-align: center;
+}
+
+/* Tutorial presentation is intentionally dormant while Days 1–3 are built.
+   Progression logic remains in place; the visual coaching layer returns later. */
+.tutorial-note,
+.load-detail-v2-note,
+.driver-fit-v2-note {
+  display: none !important;
+}
+
+.tutorial-target,
+.email-inbox-row.tutorial-target,
+.email-detail-action.tutorial-target,
+.driver-fit-v2-card.tutorial-target,
+.driver-fit-v2-evaluate.tutorial-target {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+.phone-button .phone-notification-badge {
+  animation: none !important;
+}
+
+@media (max-width: 600px) {
+  .phone-overlay {
+    top: calc(env(safe-area-inset-top, 0px) + 40px);
+    right: 7px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+    left: 7px;
+    width: auto;
+    max-width: none;
+  }
+}
+
+@media (max-height: 700px) {
+  .phone-overlay {
+    top: calc(env(safe-area-inset-top, 0px) + 34px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+    height: auto;
+    min-height: 0;
+  }
+
+  .phone-device-screen { grid-template-rows: 52px minmax(0, 1fr) 42px; }
+  .home-screen { padding-top: 14px; }
+  .device-home-header { margin-bottom: 14px; }
+  .app-icon { min-height: 58px; padding-block: 8px; }
+}
+
+/* =========================================================
+   Phase 1.1 — Stability / navigation cleanup
+   ========================================================= */
+.market-selection-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.market-back-button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #2A313A;
+  border-radius: 8px;
+  background: rgba(15, 18, 21, .78);
+  color: #B9C7D4;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.market-back-button:active { background: #20262d; }
+.market-list.market-list-v2 { gap: 14px; }
+.market-selection-v2 .market-card { margin: 0; }
+
+.operations-map-data {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 10px;
+  padding: 10px 2px 0;
+  border-top: 1px solid rgba(142, 163, 183, .12);
+  color: #657180;
+  font-size: 9px;
+  line-height: 1.35;
+}
+.operations-map-data > span { font-weight: 800; letter-spacing: .11em; }
+.operations-map-data div { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; text-align: right; }
+.operations-map-data a { color: #7f8d9d; text-decoration: none; }
+
+/* Keep all live-driver metrics readable on narrow iPhones. */
+.docos-driver-popup-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+.docos-driver-popup-metrics > div:nth-child(2n) { border-right: 0; }
+.docos-driver-popup-metrics > div:nth-child(n+3) { border-top: 1px solid #232a33; }
+.docos-driver-popup-metrics strong { font-size: 11px !important; }
+
+@media (max-width: 390px) {
+  .market-list.market-list-v2 { gap: 12px; }
+  .market-selection-v2 .market-card { min-height: 64px; }
+}
+
+
+/* ==========================================================
+   INTERFACE SYSTEM V2 — PHASE 2.0
+   Shared menu language + simplified dispatch workflow
+   ========================================================== */
+
+.docos-page-hero {
+  padding: 20px 20px 18px;
+  border-bottom: 1px solid #2a313a;
+  background: #11161c;
+}
+.docos-page-kicker,
+.docos-section-heading > span {
+  display: block;
+  color: #8ea3b7;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+.docos-page-hero h2 {
+  margin: 5px 0 0;
+  color: #f4f7fa;
+  font-size: 27px;
+  line-height: 1.05;
+}
+.docos-page-hero p {
+  margin: 7px 0 0;
+  color: #8ea3b7;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.docos-page-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+.docos-page-title-row > div { min-width: 0; }
+.docos-count-chip {
+  flex: 0 0 auto;
+  margin-top: 4px;
+  padding: 7px 9px;
+  border: 1px solid #364454;
+  border-radius: 999px;
+  color: #b9c7d4;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+.docos-page-body {
+  min-height: 0;
+  padding: 16px 20px 24px;
+  overflow-y: auto;
+}
+.docos-section { margin-bottom: 20px; }
+.docos-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.docos-section-heading small {
+  color: #68798a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+}
+.docos-panel {
+  border: 1px solid #2a313a;
+  border-radius: 14px;
+  background: #171c22;
+  overflow: hidden;
+}
+.docos-fact-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 46px;
+  padding: 0 14px;
+  border-bottom: 1px solid #252d35;
+}
+.docos-fact-list > div:last-child { border-bottom: 0; }
+.docos-fact-list span { color: #8293a3; font-size: 12px; }
+.docos-fact-list strong { color: #eef3f7; font-size: 13px; text-align: right; }
+.docos-primary-action,
+.docos-secondary-action {
+  width: 100%;
+  min-height: 50px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+.docos-primary-action {
+  border: 1px solid #4c87c9;
+  background: #29415f;
+  color: #f4f8fc;
+}
+.docos-primary-action:disabled {
+  border-color: #303944;
+  background: #1b2229;
+  color: #586675;
+}
+.docos-secondary-action {
+  border: 1px solid #36414c;
+  background: #171c22;
+  color: #aebbc7;
+}
+.docos-sticky-actions {
+  display: grid;
+  gap: 9px;
+  margin-top: 18px;
+}
+.docos-state-card {
+  padding: 15px;
+  border: 1px solid #33404b;
+  border-radius: 14px;
+  background: #171c22;
+}
+.docos-state-card > span { color: #8ea3b7; font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+.docos-state-card strong { display: block; margin-top: 6px; color: #eef3f7; font-size: 15px; }
+.docos-state-card p { margin: 5px 0 0; color: #8293a3; font-size: 12px; }
+.docos-state-card.success { border-color: #285548; }
+.docos-state-card.pending { border-color: #66512e; }
+
+/* CarrierSource now reads as a job market instead of an operations profile. */
+.carriersource-jobs-v2 { overflow-y: auto; background: #0f1215; }
+.carriersource-jobs-v2 .docos-section { padding: 16px 20px 24px; }
+.carrier-job-card {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #2d3741;
+  border-radius: 15px;
+  background: #171c22;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+}
+.carrier-job-top {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+}
+.carrier-job-logo {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #406891;
+  border-radius: 11px;
+  background: #1c3045;
+  color: #b9d9f8;
+  font-size: 12px;
+  font-weight: 900;
+}
+.carrier-job-logo.large { width: 52px; height: 52px; border-radius: 13px; }
+.carrier-job-title { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.carrier-job-title strong { color: #f1f4f7; font-size: 15px; }
+.carrier-job-title span { color: #81909e; font-size: 11px; line-height: 1.25; }
+.carrier-job-status {
+  align-self: start;
+  padding: 6px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  white-space: nowrap;
+  background: #222a32;
+  color: #9eafbd;
+}
+.carrier-job-status.prospect { color: #9bc8f5; border: 1px solid #315d88; }
+.carrier-job-status.pending { color: #e4bd75; border: 1px solid #735b31; }
+.carrier-job-status.offer { color: #b7d6f3; border: 1px solid #3f6e99; }
+.carrier-job-status.active { color: #8ed3b8; border: 1px solid #326b57; }
+.carrier-job-summary { margin: 14px 0 12px; color: #b4c0cb; font-size: 12px; line-height: 1.5; }
+.carrier-job-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.carrier-job-tags span {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #20262d;
+  color: #9aa9b6;
+  font-size: 10px;
+}
+.carrier-job-comp {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+.carrier-job-comp > div {
+  padding: 10px;
+  border: 1px solid #28313a;
+  border-radius: 10px;
+  background: #12171c;
+}
+.carrier-job-comp span { display:block; color:#71808e; font-size:9px; font-weight:800; letter-spacing:.1em; }
+.carrier-job-comp strong { display:block; margin-top:4px; color:#e7edf2; font-size:11px; }
+.carrier-job-action {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin:14px -16px -16px;
+  padding:13px 16px;
+  border-top:1px solid #2a313a;
+  color:#a9c8e8;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.1em;
+}
+.carrier-posting-v2 { background:#0f1215; overflow-y:auto; }
+.carrier-posting-company { display:flex; align-items:center; gap:12px; margin-top:8px; }
+.carrier-posting-description { margin:0; padding:14px; color:#b8c3cd; font-size:13px; line-height:1.55; }
+.carrier-driver-row-v2 {
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  padding:12px;
+}
+.driver-avatar-v2 {
+  width:40px; height:40px; display:grid; place-items:center;
+  border:1px solid #496c95; border-radius:10px; background:#21364f;
+  color:#b9d3f0; font-weight:900;
+}
+.carrier-driver-row-v2 > div { min-width:0; display:flex; flex-direction:column; gap:3px; }
+.carrier-driver-row-v2 strong { color:#eef3f7; font-size:13px; }
+.carrier-driver-row-v2 small { color:#7f8f9e; font-size:11px; }
+.docos-status-text { color:#8fb7dc; font-size:9px; font-weight:900; letter-spacing:.1em; }
+
+/* FreightLink: pickup time leads the scan. */
+.freight-decision-row.phase2 {
+  display:grid;
+  grid-template-columns:78px minmax(0,1fr);
+  gap:0;
+  padding:0;
+  overflow:hidden;
+}
+.freight-decision-time {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  padding:12px 8px;
+  border-right:1px solid #2b3540;
+  background:#121920;
+}
+.freight-decision-time span { color:#6f8293; font-size:9px; font-weight:800; letter-spacing:.11em; }
+.freight-decision-time strong { color:#f3f6f8; font-size:20px; line-height:1; }
+.freight-decision-body { min-width:0; padding:11px 12px; }
+.freight-decision-lane.phase2 {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:9px 0;
+}
+.freight-decision-lane.phase2 strong {
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#d8e0e7;
+  font-size:11px;
+}
+.freight-decision-lane.phase2 span { color:#657889; }
+
+/* Load detail schedule makes appointments the largest information. */
+.phase2-load-details { background:#0f1215; }
+.load-detail-schedule-v3 {
+  padding:14px;
+  border:1px solid #2a313a;
+  border-radius:14px;
+  background:#171c22;
+}
+.load-detail-time-block { display:flex; flex-direction:column; gap:4px; }
+.load-detail-time-block > span { color:#8295a6; font-size:10px; font-weight:900; letter-spacing:.13em; }
+.load-detail-time-block > strong { color:#f4f7fa; font-size:17px; }
+.load-detail-time-block > small { color:#95a4b1; font-size:12px; }
+.load-detail-route-arrow { margin:7px 0; color:#547596; font-size:18px; }
+.load-actions-phase2 { margin-bottom:8px; }
+
+/* Driver Select: compact roster cards with a clear selected state. */
+.driver-select-v3 { background:#0f1215; overflow-y:auto; }
+.driver-select-v3 .docos-page-body { overflow:visible; }
+.driver-select-compact-list { display:grid; gap:8px; }
+.driver-select-compact-card {
+  width:100%;
+  padding:11px;
+  border:1px solid #2b3540;
+  border-radius:13px;
+  background:#171c22;
+  color:inherit;
+  text-align:left;
+  font:inherit;
+}
+.driver-select-compact-card.selected {
+  border-color:#4a80b6;
+  background:#192431;
+  box-shadow:inset 0 0 0 1px #315b84;
+}
+.driver-select-card-main {
+  display:grid;
+  grid-template-columns:40px minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+}
+.driver-select-card-copy { min-width:0; display:flex; flex-direction:column; gap:2px; }
+.driver-select-card-copy strong { color:#eef3f7; font-size:13px; }
+.driver-select-card-copy small { color:#7e8f9d; font-size:10px; }
+.driver-select-fit-pill {
+  padding:6px 7px;
+  border:1px solid #34404a;
+  border-radius:999px;
+  color:#9aa9b6;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.07em;
+  white-space:nowrap;
+}
+.driver-select-fit-pill.good { color:#8dd4b4; border-color:#326b57; }
+.driver-select-fit-pill.tight { color:#e3bd78; border-color:#6e592f; }
+.driver-select-fit-pill.poor { color:#e59d95; border-color:#70413d; }
+.driver-select-card-details {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  margin-top:10px;
+  padding-top:9px;
+  border-top:1px solid #27313a;
+}
+.driver-select-card-details > div { display:flex; flex-direction:column; gap:2px; }
+.driver-select-card-details span { color:#718290; font-size:9px; }
+.driver-select-card-details strong { color:#d9e1e8; font-size:10px; }
+.assignment-impact-v2 {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0;
+}
+.assignment-impact-v2 > div {
+  display:flex; flex-direction:column; gap:3px;
+  padding:11px;
+  border-right:1px solid #27313a;
+  border-bottom:1px solid #27313a;
+}
+.assignment-impact-v2 > div:nth-child(2n) { border-right:0; }
+.assignment-impact-v2 > div:nth-last-child(-n+2) { border-bottom:0; }
+.assignment-impact-v2 span { color:#738493; font-size:9px; }
+.assignment-impact-v2 strong { color:#eef3f7; font-size:12px; }
+
+@media (max-width: 390px) {
+  .carrier-job-top { grid-template-columns:40px minmax(0,1fr); }
+  .carrier-job-status { grid-column:2; justify-self:start; }
+  .carrier-job-logo { width:40px; height:40px; }
+  .freight-decision-row.phase2 { grid-template-columns:72px minmax(0,1fr); }
+  .freight-decision-time strong { font-size:18px; }
+}
+
+/* Phase 2.1 — game-feel pass */
+.active-driver-card {
+  position: absolute;
+  z-index: 24;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  width: min(92%, 520px);
+  min-height: 68px;
+  border: 1px solid rgba(142, 163, 183, .45);
+  border-radius: 12px;
+  background: rgba(15, 18, 21, .94);
+  color: #b9c7d4;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  text-align: left;
+}
+.active-driver-card-avatar { width: 38px; height: 38px; border-radius: 50%; display:grid; place-items:center; background:#2a313a; font-weight:800; }
+.active-driver-card-copy { min-width:0; display:flex; flex-direction:column; gap:4px; }
+.active-driver-card-copy strong { font-size:14px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.active-driver-card-copy strong small { color:#8ea3b7; font-size:12px; }
+.active-driver-card-copy > span { color:#c2d5e7; font-size:11px; font-weight:800; letter-spacing:.07em; }
+.active-driver-card-meta { font-size:11px; font-weight:800; color:#8ea3b7; white-space:nowrap; }
+.active-driver-card.state-en-route-pickup,
+.active-driver-card.state-en-route-delivery { border-color:rgba(47,141,238,.75); }
+.active-driver-card.state-waiting-at-pickup,
+.active-driver-card.state-at-delivery,
+.active-driver-card.state-loaded { border-color:rgba(238,176,47,.78); box-shadow:0 0 0 1px rgba(238,176,47,.12),0 12px 30px rgba(0,0,0,.35); }
+.active-driver-card.state-loading-at-pickup,
+.active-driver-card.state-unloading-delivery { border-color:rgba(194,213,231,.72); }
+
+.trip-plan-v2-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.trip-plan-v2-metrics > div:nth-last-child(-n+2) strong { color:#fff; }
+
+.load-result-backdrop { position:absolute; inset:0; z-index:70; display:grid; place-items:center; padding:18px; background:rgba(5,8,11,.72); backdrop-filter:blur(4px); }
+.load-result-card { width:min(94vw,460px); border:1px solid rgba(87,201,132,.55); border-radius:14px; background:#1b1f24; padding:22px; box-shadow:0 22px 60px rgba(0,0,0,.5); }
+.load-result-kicker { color:#78d69d; font-size:12px; font-weight:900; letter-spacing:.12em; }
+.load-result-card h2 { margin:6px 0 2px; color:#fff; font-size:28px; }
+.load-result-card p { margin:0 0 14px; color:#8ea3b7; font-size:13px; }
+.load-result-grade { border:1px solid rgba(87,201,132,.28); background:rgba(87,201,132,.08); color:#78d69d; border-radius:8px; padding:10px 12px; font-size:12px; font-weight:900; letter-spacing:.08em; }
+.load-result-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0; }
+.load-result-grid div { border:1px solid #2a313a; border-radius:8px; padding:11px; display:flex; flex-direction:column; gap:4px; }
+.load-result-grid span { color:#8ea3b7; font-size:10px; font-weight:800; letter-spacing:.08em; }
+.load-result-grid strong { color:#fff; font-size:15px; }
+.load-result-card button { width:100%; min-height:46px; border:0; border-radius:9px; background:#2f8dee; color:#fff; font-weight:900; letter-spacing:.04em; }
+
+@media (max-width: 520px) {
+  .active-driver-card { bottom:76px; width:calc(100% - 28px); grid-template-columns:38px minmax(0,1fr); }
+  .active-driver-card-meta { grid-column:2; margin-top:-4px; }
+}
+
+
+/* Phase 2.1a — scalable Driver Hub */
+.driver-hub-launcher {
+  position:absolute; z-index:28; left:16px; bottom:82px; min-height:46px;
+  display:flex; align-items:center; gap:8px; padding:7px 11px 7px 7px;
+  border:1px solid rgba(142,163,183,.48); border-radius:12px;
+  background:rgba(15,18,21,.95); color:#c2d5e7; box-shadow:0 12px 28px rgba(0,0,0,.36);
+  font-size:11px; font-weight:900; letter-spacing:.08em;
+}
+.driver-hub-launcher.open { border-color:rgba(47,141,238,.8); }
+.driver-hub-launcher-icon { width:31px; height:31px; display:grid; place-items:center; border-radius:9px; background:#2a313a; color:#fff; font-size:13px; }
+.driver-hub-launcher strong { min-width:21px; height:21px; display:grid; place-items:center; border-radius:999px; background:#2f8dee; color:#fff; font-size:11px; }
+.driver-hub-sheet {
+  position:absolute; z-index:29; left:16px; right:16px; bottom:138px; max-height:min(52vh,430px); overflow:hidden;
+  border:1px solid rgba(142,163,183,.5); border-radius:14px; background:rgba(15,18,21,.98);
+  box-shadow:0 20px 50px rgba(0,0,0,.5); color:#b9c7d4;
+}
+.driver-hub-sheet header { display:flex; align-items:center; justify-content:space-between; padding:13px 14px; border-bottom:1px solid #2a313a; }
+.driver-hub-sheet header div { display:flex; flex-direction:column; gap:2px; }
+.driver-hub-sheet header small { color:#8ea3b7; font-size:9px; font-weight:900; letter-spacing:.14em; }
+.driver-hub-sheet header strong { color:#fff; font-size:17px; }
+.driver-hub-sheet header button { border:0; background:transparent; color:#8ea3b7; font-size:10px; font-weight:900; letter-spacing:.08em; }
+.driver-hub-list { overflow:auto; max-height:calc(min(52vh,430px) - 58px); padding:7px; }
+.driver-hub-row { width:100%; min-height:68px; display:grid; grid-template-columns:40px minmax(0,1fr) auto; align-items:center; gap:10px; padding:10px; border:1px solid transparent; border-radius:10px; background:transparent; color:#b9c7d4; text-align:left; }
+.driver-hub-row + .driver-hub-row { border-top-color:#222930; border-top-left-radius:0; border-top-right-radius:0; }
+.driver-hub-row:active { background:#1b1f24; }
+.driver-hub-avatar { width:38px; height:38px; display:grid; place-items:center; border-radius:50%; background:#2a313a; color:#fff; font-weight:900; }
+.driver-hub-copy { min-width:0; display:flex; flex-direction:column; gap:3px; }
+.driver-hub-copy strong { color:#fff; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.driver-hub-copy strong small { color:#8ea3b7; font-size:11px; }
+.driver-hub-copy > span { color:#c2d5e7; font-size:10px; font-weight:900; letter-spacing:.07em; }
+.driver-hub-copy > small { color:#8ea3b7; font-size:10px; font-weight:700; }
+.driver-hub-jump { color:#8ea3b7; font-size:10px; font-weight:900; white-space:nowrap; }
+.driver-hub-row.state-en-route-pickup .driver-hub-avatar, .driver-hub-row.state-en-route-delivery .driver-hub-avatar { box-shadow:0 0 0 1px rgba(47,141,238,.8); }
+.driver-hub-row.state-waiting-at-pickup .driver-hub-avatar, .driver-hub-row.state-at-delivery .driver-hub-avatar, .driver-hub-row.state-loaded .driver-hub-avatar { box-shadow:0 0 0 1px rgba(238,176,47,.85); }
+@media (max-width:520px) { .driver-hub-launcher { left:14px; bottom:76px; } .driver-hub-sheet { left:14px; right:14px; bottom:132px; } }
+
+/* Phase 2.1b — load results use the same compact DOC OS surface language. */
+.load-result-card { position:relative; width:min(92vw,430px); border:1px solid #2a313a; border-radius:10px; background:#1b1f24; padding:18px; box-shadow:0 22px 60px rgba(0,0,0,.5); }
+.load-result-close { position:absolute; top:10px; right:10px; width:34px !important; min-height:34px !important; border:1px solid #2a313a !important; border-radius:8px !important; background:#0f1215 !important; color:#b9c7d4 !important; font-size:22px; line-height:1; }
+.load-result-card h2 { margin:5px 40px 2px 0; color:#fff; font-size:27px; }
+.load-result-card p { margin:0 36px 12px 0; color:#8ea3b7; font-size:12px; line-height:1.35; }
+.load-result-grade { border:1px solid #2a313a; background:#0f1215; color:#78d69d; border-radius:8px; padding:9px 11px; }
+.load-result-earnings { margin:12px 0; border:1px solid #2a313a; border-radius:8px; padding:13px; background:#0f1215; display:flex; flex-direction:column; align-items:flex-start; }
+.load-result-earnings span,.load-result-xp span { color:#8ea3b7; font-size:10px; font-weight:900; letter-spacing:.1em; }
+.load-result-earnings strong { color:#78d69d; font-size:30px; line-height:1.1; margin:3px 0; }
+.load-result-earnings small { color:#b9c7d4; font-size:10px; font-weight:800; letter-spacing:.07em; }
+.load-result-earnings div { width:100%; margin-top:9px; padding-top:9px; border-top:1px solid #2a313a; color:#8ea3b7; font-size:12px; }
+.load-result-grid { margin:0 0 10px; }
+.load-result-grid div { background:#0f1215; }
+.load-result-xp { border:1px solid #2a313a; border-radius:8px; background:#0f1215; padding:11px 12px; margin-bottom:12px; }
+.load-result-xp > div { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.load-result-xp strong { color:#c2d5e7; font-size:16px; }
+.load-result-xp small { display:block; margin-top:5px; color:#8ea3b7; font-size:10px; line-height:1.4; }
+.load-result-done { background:#2f8dee !important; }
+
+
+/* Phase 2.2 — quiet operations + communication split */
+.load-result-backdrop {
+  place-items: end center;
+  padding: 18px 14px calc(82px + env(safe-area-inset-bottom));
+  background: rgba(5, 8, 11, .58);
+  backdrop-filter: blur(3px);
+}
+.load-result-card-v2 {
+  width: min(100%, 520px);
+  max-height: min(72vh, 620px);
+  overflow: auto;
+  border: 1px solid #2a313a;
+  border-radius: 12px;
+  background: #11161c;
+  padding: 0;
+  box-shadow: 0 18px 48px rgba(0,0,0,.48);
+}
+.load-result-header-v2 {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 16px 13px;
+  border-bottom: 1px solid #2a313a;
+}
+.load-result-header-v2 .load-result-kicker { color:#8ea3b7; font-size:9px; letter-spacing:.15em; }
+.load-result-header-v2 h2 { margin:3px 0 1px; font-size:21px; }
+.load-result-header-v2 p { margin:0; font-size:11px; color:#8ea3b7; }
+.load-result-header-v2 .load-result-close {
+  position: static; flex: 0 0 32px; width:32px !important; height:32px; min-height:32px !important;
+  padding:0; border:0 !important; background:transparent !important; font-size:20px;
+}
+.load-result-state-v2 {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:9px 16px; border-bottom:1px solid #2a313a; color:#78d69d;
+  font-size:10px; font-weight:900; letter-spacing:.12em;
+}
+.load-result-earnings-v2 {
+  margin:0; border:0; border-radius:0; background:transparent; padding:15px 16px 13px;
+  border-bottom:1px solid #2a313a;
+}
+.load-result-earnings-v2 strong { font-size:34px; margin:4px 0 1px; }
+.load-result-earnings-v2 div { margin-top:9px; padding-top:8px; font-size:11px; }
+.load-result-earnings-v2 div b { color:#b9c7d4; font-weight:900; }
+.load-result-performance-v2 {
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+  border-bottom:1px solid #2a313a;
+}
+.load-result-performance-v2 > div { padding:11px 10px; border-right:1px solid #242b33; min-width:0; }
+.load-result-performance-v2 > div:last-child { border-right:0; }
+.load-result-performance-v2 span { display:block; color:#728497; font-size:8px; font-weight:900; letter-spacing:.1em; }
+.load-result-performance-v2 strong { display:block; margin-top:4px; color:#e5edf5; font-size:12px; white-space:nowrap; }
+.load-result-xp-v2 { margin:0; border:0; border-radius:0; background:transparent; padding:12px 16px; border-bottom:1px solid #2a313a; }
+.load-result-xp-v2 strong { color:#c2d5e7; font-size:15px; }
+.load-result-done-v2 {
+  margin:10px 16px 14px; width:calc(100% - 32px) !important; min-height:40px !important;
+  border:1px solid #35404b !important; background:#1b1f24 !important; color:#c2d5e7 !important;
+  border-radius:8px !important; font-size:11px; letter-spacing:.12em;
+}
+
+/* Keep en-route quick peek intentionally compact. */
+.maplibregl-popup-content .docos-driver-popup:has(.docos-driver-popup-pill) { max-width: 310px; }
+
+/* Driver Messages app */
+.driver-messages-screen { background:#0f1215; min-height:100%; color:#b9c7d4; }
+.driver-messages-header { display:flex; align-items:center; gap:10px; padding:14px 14px 12px; border-bottom:1px solid #2a313a; }
+.driver-messages-header > button { width:34px; height:34px; border:1px solid #2a313a; border-radius:8px; background:#171c22; color:#b9c7d4; font-size:22px; }
+.driver-messages-header div { display:flex; flex-direction:column; gap:1px; }
+.driver-messages-header span { color:#728497; font-size:8px; font-weight:900; letter-spacing:.14em; }
+.driver-messages-header h2 { margin:0; color:#fff; font-size:18px; }
+.driver-messages-list { padding:8px; }
+.driver-message-card { position:relative; display:grid; grid-template-columns:38px minmax(0,1fr) 8px; gap:10px; padding:11px; border-bottom:1px solid #252c34; }
+.driver-message-card.unread { background:#151b22; }
+.driver-message-avatar { width:36px; height:36px; display:grid; place-items:center; border-radius:50%; background:#26313d; color:#fff; font-weight:900; }
+.driver-message-copy { min-width:0; }
+.driver-message-topline { display:flex; justify-content:space-between; gap:10px; }
+.driver-message-topline strong { color:#fff; font-size:12px; }
+.driver-message-topline time { color:#728497; font-size:9px; white-space:nowrap; }
+.driver-message-copy > span { display:block; margin-top:2px; color:#c2d5e7; font-size:10px; font-weight:900; letter-spacing:.04em; }
+.driver-message-copy p { margin:5px 0 7px; color:#8ea3b7; font-size:11px; line-height:1.4; }
+.driver-message-copy button { border:0; background:transparent; padding:0; color:#8eb9e8; font-size:9px; font-weight:900; letter-spacing:.08em; }
+.driver-message-unread { width:7px; height:7px; border-radius:50%; background:#2f8dee; margin-top:4px; }
+.driver-messages-empty { padding:28px 18px; display:flex; flex-direction:column; gap:5px; text-align:center; }
+.driver-messages-empty strong { color:#fff; font-size:14px; }
+.driver-messages-empty span { color:#728497; font-size:11px; }
+
+@media (max-width: 520px) {
+  .load-result-performance-v2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .load-result-performance-v2 > div:nth-child(2) { border-right:0; }
+  .load-result-performance-v2 > div:nth-child(n+3) { border-top:1px solid #242b33; }
+  .load-result-card-v2 { max-height:68vh; }
+}
+
+/* Phase 2.2a — facility communication actions */
+.driver-message-copy .driver-message-primary-action {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:30px;
+  padding:0 10px;
+  border:1px solid #3a5874;
+  border-radius:7px;
+  background:#182534;
+  color:#cfe5fa;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.08em;
+}
+.driver-message-copy .driver-message-primary-action:disabled {
+  opacity:.48;
+}
+
+
+/* =========================================================
+   Phase 2.2c.1 — Interface Cleanup & Workflow Polish
+   ========================================================= */
+
+/* Market setup breathing room */
+.market-list-v2 { gap: 14px; }
+.market-confirm-action { margin-top: 18px; }
+
+/* Device home: scan like an app launcher, not a settings list. */
+.device-home-header { padding-bottom: 12px !important; }
+.device-home-header p { margin-top: 5px; }
+.device-home-section { padding-top: 10px !important; }
+.phone-app-grid {
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:16px 12px !important;
+  padding:10px 2px 18px !important;
+}
+.app-grid-tile {
+  min-height:92px !important;
+  padding:8px 4px !important;
+  border:0 !important;
+  border-radius:12px !important;
+  background:transparent !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  gap:8px !important;
+  text-align:center !important;
+}
+.app-grid-tile .app-icon-visual { width:auto; }
+.app-grid-tile .app-icon-square { width:52px !important; height:52px !important; border-radius:14px !important; }
+.app-grid-tile .app-icon-square svg { width:26px !important; height:26px !important; }
+.app-grid-tile .app-icon-label { color:#E9EDF2; font-size:11px !important; line-height:1.15; }
+.app-grid-tile .app-icon-badge { top:-5px; right:-7px; }
+
+/* CarrierSource listing page = job-board scan. */
+.carrier-source-list-hero { padding-bottom:14px !important; }
+.carrier-source-list-section { padding-top:14px !important; }
+.carrier-job-card-summary { padding:16px !important; gap:12px !important; }
+.carrier-job-card-summary .carrier-job-summary { margin:0 !important; font-size:13px !important; line-height:1.48 !important; }
+.carrier-job-card-summary .carrier-job-action { margin-top:2px !important; padding-top:12px !important; }
+
+/* Agreement is an email attachment, not a CarrierSource state card. */
+.email-agreement-attachment { margin:18px 0 4px; padding:13px; display:grid; grid-template-columns:44px 1fr; align-items:center; gap:12px; border:1px solid #2A313A; border-radius:10px; background:#171C22; }
+.email-attachment-icon { width:42px; height:42px; display:grid; place-items:center; border:1px solid #3B4655; border-radius:9px; color:#C2D5E7; font-size:8px; font-weight:900; letter-spacing:.12em; }
+.email-agreement-attachment > div:last-child { display:grid; gap:3px; min-width:0; }
+.email-agreement-attachment span { color:#8EA3B7; font-size:8px; font-weight:900; letter-spacing:.14em; }
+.email-agreement-attachment strong { color:#F2F5F8; font-size:12px; line-height:1.3; }
+.email-agreement-attachment small { color:#8EA3B7; font-size:10px; line-height:1.35; }
+.dispatch-agreement-screen { min-height:100%; display:flex; flex-direction:column; background:#11151A; }
+.agreement-toolbar { flex:0 0 auto; min-height:64px; padding:12px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #2A313A; }
+.agreement-toolbar button { width:38px; height:38px; border:1px solid #343E4D; border-radius:9px; background:#171C22; color:#DCE3ED; font-size:24px; }
+.agreement-toolbar div { display:grid; gap:2px; }
+.agreement-toolbar span { color:#8EA3B7; font-size:8px; font-weight:900; letter-spacing:.15em; }
+.agreement-toolbar strong { color:#F2F5F8; font-size:14px; }
+.agreement-scroll { flex:1 1 auto; overflow:auto; padding:16px; }
+.agreement-document { max-width:620px; margin:0 auto; padding:18px; border:1px solid #2A313A; border-radius:10px; background:#171C22; color:#B9C7D4; }
+.agreement-document-heading { padding-bottom:16px; border-bottom:1px solid #2A313A; }
+.agreement-document-heading > span, .agreement-signature > span { color:#8EA3B7; font-size:8px; font-weight:900; letter-spacing:.16em; }
+.agreement-document-heading h2 { margin:6px 0 2px; color:#F3F5F8; font-size:23px; }
+.agreement-document-heading p { margin:0; color:#8EA3B7; font-size:11px; }
+.agreement-document section { padding:15px 0; border-bottom:1px solid #252C34; }
+.agreement-document section:last-child { border-bottom:0; }
+.agreement-document h3 { margin:0 0 7px; color:#E9EDF2; font-size:12px; }
+.agreement-document p { margin:0; color:#AAB6C4; font-size:11px; line-height:1.5; }
+.agreement-key-term { margin:8px 0 10px; padding:12px; display:grid; grid-template-columns:auto 1fr; align-items:end; gap:3px 12px; border:1px solid #315547; border-radius:9px; background:rgba(91,178,137,.06); }
+.agreement-key-term span { color:#83CFA8; font-size:8px; font-weight:900; letter-spacing:.14em; }
+.agreement-key-term strong { grid-row:1/3; grid-column:2; justify-self:end; color:#83CFA8; font-size:28px; }
+.agreement-key-term small { color:#8EA3B7; font-size:9px; }
+.agreement-action-bar { flex:0 0 auto; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); border-top:1px solid #2A313A; background:rgba(17,21,26,.98); }
+
+/* Temporary operational waits sit below the time controls. */
+.carrier-review-wait, .payment-review-wait { top:88px !important; right:14px !important; left:auto !important; transform:none !important; }
+.map-area.operations-open .carrier-review-wait, .map-area.operations-open .payment-review-wait { transform:translateY(-4px) !important; }
+
+/* FreightLink listing density: several loads should scan at once. */
+.freightlink-v2 .freightlink-page-heading { padding-bottom:12px !important; }
+.freightlink-v2 .freightlink-page-heading p { margin-top:4px !important; }
+.freightlink-loads { padding-top:8px !important; }
+.freight-listing-row { width:100%; min-height:88px; padding:12px; display:grid; grid-template-columns:58px minmax(0,1fr) auto; gap:12px; align-items:center; border:1px solid #2F3946; border-radius:10px; background:#171C22; color:#B9C7D4; text-align:left; }
+.freight-listing-row + .freight-listing-row { margin-top:9px; }
+.freight-listing-time { align-self:stretch; display:flex; flex-direction:column; justify-content:center; gap:5px; border-right:1px solid #2A313A; }
+.freight-listing-time span { color:#8EA3B7; font-size:7px; font-weight:900; letter-spacing:.15em; }
+.freight-listing-time strong { color:#F2F5F8; font-size:16px; }
+.freight-listing-main { min-width:0; display:grid; gap:5px; }
+.freight-listing-top { display:flex; align-items:center; gap:7px; }
+.freight-listing-top > strong { color:#F3F5F8; font-size:15px; }
+.freight-listing-lane { min-width:0; display:flex; align-items:center; gap:5px; color:#C2D5E7; font-size:10px; line-height:1.25; }
+.freight-listing-lane span { min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.freight-listing-lane b { color:#6E7C8D; font-weight:700; }
+.freight-listing-main small { color:#7F8C9D; font-size:8.5px; font-weight:700; letter-spacing:.03em; }
+.freight-listing-rate { display:grid; justify-items:end; gap:2px; white-space:nowrap; }
+.freight-listing-rate strong { color:#F2F5F8; font-size:17px; }
+.freight-listing-rate span { color:#8EA3B7; font-size:8px; font-weight:800; }
+
+/* Load details: appointment + economics summary, not giant cards. */
+.load-detail-summary-compact { margin:0 0 14px; border-top:1px solid #2A313A; border-bottom:1px solid #2A313A; }
+.load-detail-appointment-row { min-height:104px; padding:14px 0; display:grid; grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr); gap:8px; align-items:center; }
+.load-detail-appointment-row > div { min-width:0; display:grid; gap:4px; }
+.load-detail-appointment-row > div > span { color:#8EA3B7; font-size:8px; font-weight:900; letter-spacing:.14em; }
+.load-detail-appointment-row > div > strong { color:#F2F5F8; font-size:13px; line-height:1.35; }
+.load-detail-appointment-row > div > small { color:#8EA3B7; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.load-detail-appointment-row > span { color:#6E7C8D; text-align:center; font-size:17px; }
+.load-detail-metric-strip { padding:11px 0 13px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; border-top:1px solid #252C34; }
+.load-detail-metric-strip > div { min-width:0; display:grid; gap:3px; }
+.load-detail-metric-strip span { color:#7F8C9D; font-size:7px; font-weight:900; letter-spacing:.12em; }
+.load-detail-metric-strip strong { color:#DCE3ED; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Driver selection starts neutral; selection becomes explicit. */
+.driver-select-compact-card { border-color:#2A313A !important; box-shadow:none !important; }
+.driver-select-compact-card.selected { border-color:#4B74AA !important; background:#1A2330 !important; box-shadow:inset 0 0 0 1px rgba(47,141,238,.22) !important; }
+
+/* Trip planning already works — only increase scan-critical values a notch. */
+.trip-planning-v2 .trip-plan-stat strong,
+.trip-planning-v2 .trip-plan-metric strong,
+.trip-planning-v2 [class*="metric"] strong { font-size:12px; }
+
+/* Fleet drawer: slightly denser, stronger primary state. */
+.driver-hub-row { min-height:62px; padding:9px 10px; }
+.driver-hub-copy strong { font-size:14px; }
+.driver-hub-copy > span { font-size:10.5px; }
+
+/* Phase 2.2c.2 — final cleanup pass */
+.market-selection-v2 .market-confirm-action { display: none !important; }
+.market-selection-v2 .market-card-featured { margin-bottom: 14px; }
+
+.carriersource-jobs-v2 .carrier-source-list-section { padding-top: 14px; }
+.carriersource-jobs-v2 .carrier-job-card-summary { padding: 18px 18px 0; }
+.carriersource-jobs-v2 .carrier-job-card-summary .carrier-job-top { gap: 12px; }
+.carriersource-jobs-v2 .carrier-job-card-summary .carrier-job-logo { width: 58px; height: 58px; flex: 0 0 58px; }
+.carriersource-jobs-v2 .carrier-job-card-summary .carrier-job-title strong { font-size: 18px; line-height: 1.12; }
+.carriersource-jobs-v2 .carrier-job-card-summary .carrier-job-title span { font-size: 13px; line-height: 1.3; }
+.carriersource-jobs-v2 .carrier-job-card-summary .carrier-job-summary { margin: 14px 0 16px; font-size: 14px; line-height: 1.45; }
+.carriersource-jobs-v2 .carrier-job-card-summary .carrier-job-action { margin: 0 -18px; padding: 14px 18px; }
+
+.maplibregl-popup-content:has(.docos-driver-popup.enroute-label) {
+  padding: 0 !important;
+  border-radius: 999px !important;
+  overflow: hidden;
+  min-width: 0 !important;
+}
+.maplibregl-popup-content .docos-driver-popup.enroute-label {
+  width: auto !important;
+  max-width: none !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.docos-driver-enroute-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  white-space: nowrap;
+  background: rgba(17, 22, 29, 0.96);
+  border: 1px solid #35404c;
+  border-radius: 999px;
+}
+.docos-driver-enroute-label strong {
+  font-size: 11px;
+  letter-spacing: .11em;
+  color: #d7e1eb;
+}
+.docos-driver-enroute-label span {
+  font-size: 11px;
+  color: #8ea3b7;
+}
+
+/* Phase 2.2c.3 — compact CarrierSource list card only; posting page untouched */
+.carriersource-jobs-v2 .carrier-source-list-hero {
+  padding-top: 14px !important;
+  padding-bottom: 8px !important;
+}
+.carriersource-jobs-v2 .carrier-source-list-section {
+  padding-top: 8px !important;
+}
+.carriersource-jobs-v2 .carrier-job-card-summary {
+  padding: 12px 12px 0 !important;
+  gap: 8px !important;
+}
+.carriersource-jobs-v2 .carrier-job-card-summary .carrier-job-top {
+  gap: 9px !important;
+}
+.carriersource-jobs-v2 .carrier-job-card-summary .carrier-job-logo {
+  width: 42px !important;
+  height: 42px !important;
+  flex: 0 0 42px !important;
+  font-size: 13px !important;
+}
+.carriersource-jobs-v2 .carrier-job-card-summary .carrier-job-title strong {
+  font-size: 16px !important;
+  line-height: 1.08 !important;
+}
+.carriersource-jobs-v2 .carrier-job-card-summary .carrier-job-title span {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
+.carriersource-jobs-v2 .carrier-job-card-summary .carrier-job-status {
+  font-size: 9px !important;
+  padding: 5px 7px !important;
+}
+.carriersource-jobs-v2 .carrier-job-card-summary .carrier-job-summary {
+  margin: 2px 0 6px !important;
+  font-size: 12px !important;
+  line-height: 1.34 !important;
+}
+.carriersource-jobs-v2 .carrier-job-card-summary .carrier-job-action {
+  margin: 0 -12px !important;
+  padding: 10px 12px !important;
+}
+

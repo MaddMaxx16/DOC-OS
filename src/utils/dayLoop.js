@@ -16,6 +16,8 @@ export const DEFAULT_PLAYER_PROGRESSION = {
 }
 
 const ACTIVE_TRIP_STATUSES = new Set([
+  'accepted',
+  'queued',
   'assigned',
   'en-route-pickup',
   'at-pickup',
