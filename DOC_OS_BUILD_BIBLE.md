@@ -81,7 +81,7 @@ A build is not considered stable unless this full path passes from a clean save.
 [ ] DISPATCH sends Marcus exactly once.
 [ ] Marcus remains visible en route to delivery.
 [ ] Arrival at delivery exposes delivery facility CHECK IN.
-[ ] Fast-forward drops to 1x on actionable arrival and does not force pause.
+[ ] Fast-forward drops to 1x on informational arrival; DOCK READY pauses when a dispatcher action is required.
 [ ] CHECK IN delivery works.
 [ ] Unloading progresses.
 [ ] POD/closeout path remains reachable.
@@ -460,3 +460,33 @@ Authoritative condition contract:
 - Therefore, a documented count mismatch or damage notation is a valid, verifiable POD condition and must not permanently block approval/closeout.
 - Missing POD information remains invalid and requires review.
 - AS does not add new random delivery damage, claims logic, OS&D workflows, or receiver disputes. Those are future exception-system layers.
+
+## State Integrity & Resume Safety — Master AT
+Owned player workflows must be temporally atomic from the simulation's perspective.
+
+Modal timing contract:
+- Trip planning, delivery planning, loading/unloading challenges, and end-of-day decisions pause the authoritative game clock while the player is making the owned decision.
+- Entering one of these workflows records whether the player was already paused, forces simulation speed back to 1x, and pauses time.
+- Leaving the workflow restores the exact pre-modal pause state.
+- Phone browsing remains part of the live operation and does not pause time.
+
+Delivery-unload ownership contract:
+- `unloading-delivery` is not a passive timer state. Unload Sequencing owns completion.
+- `App.jsx` must never auto-transition `unloading-delivery` to `awaiting-pod` and must never fabricate a default clean POD.
+- Only `completeUnloadSequence()` may create delivery facility results/POD from the authoritative pickup shipment state.
+
+Resume contract:
+- If hydration finds an assigned load in `unloading-delivery`, reopen the unload challenge and keep simulation time paused.
+- A resumed unload may restart the real-time puzzle board, but it must not silently complete, advance the game clock, or create paperwork without explicit player completion.
+
+Numeric integrity contract:
+- Zero is valid data. Use `Number.isFinite()` style fallbacks for shipment counts; do not use truthy `||` fallbacks where `0` has meaning.
+
+DEV parity contract:
+- DEV presets that represent loaded/delivered/POD states must build from the same shipment and freight-condition model as normal gameplay. Hard-coded 12/12 clean POD shortcuts are prohibited.
+
+## Dock Ready Decision Timing — Master AT1
+- Facility waiting/check-in remains live simulation time.
+- Entering pickup `checked-in-pickup` or delivery `checked-in-delivery` means the facility is ready and DOC OS is waiting on an owned dispatcher decision; the authoritative game clock must pause immediately.
+- `BEGIN LOADING` / `BEGIN UNLOADING` inherits that pause and must not overwrite whether the player was already paused beforehand.
+- Workflow completion applies explicit service/delay minutes, then restores the player’s pre-decision pause state.

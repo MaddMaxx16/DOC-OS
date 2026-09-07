@@ -9,15 +9,18 @@ const typeLabel = (type) => type === 'heavy' ? 'HEAVY' : type === 'fragile' ? 'F
 const typeIcon = (type) => type === 'heavy' ? '■' : type === 'fragile' ? '◇' : '▦'
 
 function normalizeManifest(load) {
-  const expected = Math.max(1, Number(load?.shipment?.expectedPallets) || SLOT_COUNT)
+  const shipmentExpected = Number(load?.shipment?.expectedPallets)
+  const expected = Math.max(1, Number.isFinite(shipmentExpected) ? shipmentExpected : SLOT_COUNT)
   const manifest = Array.isArray(load?.shipment?.palletManifest) ? load.shipment.palletManifest : []
+  const shipmentLoaded = Number(load?.shipment?.loadedPallets)
+  const loadedCount = Number.isFinite(shipmentLoaded) ? shipmentLoaded : expected
   return Array.from({ length: expected }, (_, index) => {
     const source = manifest.find((p) => p?.id === `P${index + 1}`) || manifest[index] || null
     return {
       id: source?.id || `P${index + 1}`,
       type: source?.type || 'standard',
       slot: Number.isInteger(source?.slot) ? source.slot : index,
-      loaded: source ? source.loaded !== false : index < (Number(load?.shipment?.loadedPallets) || expected),
+      loaded: source ? source.loaded !== false : index < loadedCount,
       damaged: Boolean(source?.damaged),
     }
   })

@@ -4,7 +4,7 @@ import seedLoads from './data/loads.js'
 import seedCarriers from './data/carriers.js'
 import seedDrivers from './data/drivers.js'
 import mapLocations from './data/mapLocations.js'
-import { DELIVERY_CHECKIN_MINUTES, DELIVERY_UNLOAD_DURATION_MINUTES, PICKUP_CHECKIN_MINUTES, PICKUP_LOADING_MINUTES, getDeliveryDockWaitMinutes, getPickupDockWaitMinutes } from './data/pickupConfig.js'
+import { DELIVERY_CHECKIN_MINUTES, PICKUP_CHECKIN_MINUTES, PICKUP_LOADING_MINUTES, getDeliveryDockWaitMinutes, getPickupDockWaitMinutes } from './data/pickupConfig.js'
 import { logDocOsState } from './utils/debugLogger.js'
 import { getMarcusPanelModel } from './utils/driverOperationalState.js'
 import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
@@ -609,7 +609,6 @@ function App() {
       if (load.tripStatus === 'waiting-at-delivery' && Number.isFinite(load.deliveryDockReadyGameMinute) && now >= load.deliveryDockReadyGameMinute) {
         return { ...load, tripStatus: 'checked-in-delivery' }
       }
-      if (load.tripStatus === 'unloading-delivery' && now - load.deliveryUnloadStartGameMinute >= DELIVERY_UNLOAD_DURATION_MINUTES) return { ...load, tripStatus: 'awaiting-pod', pod: { status: 'complete', receivedGameMinute: now, viewedGameMinute: null, signedBy: 'Jordan Rivera', piecesExpected: 12, piecesReceived: 12, damage: 'None', verification: { signature: false, pieceCount: false, damage: false, deliveryInfo: false }, verified: false, verifiedGameMinute: null } }
       return load
     }))
   }, [gameTime])

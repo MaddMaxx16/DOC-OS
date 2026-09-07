@@ -247,3 +247,22 @@ Built from Master AR2 (Rejected Moves terminology polish).
 - Exception freight can now complete POD verification and proceed to closeout instead of becoming permanently blocked by a non-clean shipment.
 - Unload Sequencing gameplay, timing, staging, receiver requests, and scoring are unchanged.
 - Status: test build pending device approval.
+
+## Master AT — State Integrity & Resume Safety
+Built from tested Master AS.
+- Modal-owned planning/minigame workflows now actually pause the simulation clock and restore the player's prior pause state on exit.
+- Removes the obsolete App-level automatic unload path that could fabricate a clean 12/12 POD.
+- Interrupted `unloading-delivery` saves reopen Unload Sequencing on resume with time safely paused.
+- Zero loaded/received pallet counts are preserved as real values instead of falling through numeric defaults.
+- DEV delivery/POD presets now use the same shipment truth and POD continuity model as live gameplay.
+- No AR2 unload gameplay rules changed.
+- Status: test build pending device approval.
+
+## Master AT1 — Dock Ready Pause Hotfix
+Built from Master AT.
+- `DOCK READY` at pickup now pauses the authoritative simulation clock before the player presses `BEGIN LOADING`.
+- `DOCK READY` at delivery follows the same rule before `BEGIN UNLOADING`.
+- Fast-forward normalizes to 1x at the owned decision point.
+- The pre-existing pause state is preserved so completing the loading/unloading workflow restores the correct clock state.
+- No loading/unloading gameplay, shipment, POD, routing, queue, or scoring rules changed.
+- Status: test build pending device approval.

@@ -193,7 +193,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [phoneInitialDriverId, setPhoneInitialDriverId] = useState(null)
   const [planningMode, setPlanningMode] = useState(null)
   const [deliveryPlanning, setDeliveryPlanning] = useState(null)
-  const [pauseStateBeforeModal, setPauseStateBeforeModal] = useState(false)
+  const modalPauseWasAlreadyPausedRef = useRef(false)
   const [operationsOpen, setOperationsOpen] = useState(false)
   const [endDayOpen, setEndDayOpen] = useState(false)
   const [loadingChallengeLoadId, setLoadingChallengeLoadId] = useState(null)
@@ -501,12 +501,53 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     }
   }, [assignedLoad?.tripStatus, isGameClockPaused, setSimulationSpeed, simulationSpeed])
 
+  // AT1: DOCK READY is an owned dispatcher decision point. Once the facility is
+  // ready for BEGIN LOADING / BEGIN UNLOADING, simulation time must stop before
+  // the player presses the button. Preserve whether the player was already
+  // paused so completing the workflow restores the correct prior clock state.
+  const dockReadyPauseKeyRef = useRef(null)
+  useEffect(() => {
+    const isPickupDockReady = assignedLoad?.tripStatus === 'checked-in-pickup'
+    const isDeliveryDockReady = assignedLoad?.tripStatus === 'checked-in-delivery'
+    const pauseKey = isPickupDockReady
+      ? `pickup:${assignedLoad.id}`
+      : isDeliveryDockReady
+        ? `delivery:${assignedLoad.id}`
+        : null
+
+    if (!pauseKey) {
+      dockReadyPauseKeyRef.current = null
+      return
+    }
+
+    if (dockReadyPauseKeyRef.current !== pauseKey) {
+      modalPauseWasAlreadyPausedRef.current = isGameClockPaused
+      dockReadyPauseKeyRef.current = pauseKey
+    }
+
+    if (simulationSpeed !== 1) setSimulationSpeed(1)
+    if (!isGameClockPaused) setGameClockPaused(true)
+  }, [assignedLoad?.id, assignedLoad?.tripStatus, isGameClockPaused, setGameClockPaused, setSimulationSpeed, simulationSpeed])
+
+  // Resume safety: unloading is an owned player workflow, not a timed simulation state.
+  // If the app is backgrounded/closed mid-challenge, hydration restores the load as
+  // `unloading-delivery`; reopen the challenge and keep the clock safely paused.
+  useEffect(() => {
+    const interruptedUnload = loads.find((load) => load.tripStatus === 'unloading-delivery' && load.assignedDriverId)
+    if (!interruptedUnload || unloadSequenceLoadId) return
+    modalPauseWasAlreadyPausedRef.current = true
+    setGameClockPaused(true)
+    if (simulationSpeed !== 1) setSimulationSpeed(1)
+    setUnloadSequenceLoadId(interruptedUnload.id)
+  }, [loads, unloadSequenceLoadId, setGameClockPaused, setSimulationSpeed, simulationSpeed])
+
   const pauseClockForModal = () => {
-    setPauseStateBeforeModal(isGameClockPaused)
-    if (!isGameClockPaused && simulationSpeed > 1) setSimulationSpeed(1)
+    modalPauseWasAlreadyPausedRef.current = isGameClockPaused
+    if (simulationSpeed > 1) setSimulationSpeed(1)
+    setGameClockPaused(true)
   }
   const restoreClockAfterModal = () => {
-    if (pauseStateBeforeModal) setGameClockPaused(true)
+    setGameClockPaused(modalPauseWasAlreadyPausedRef.current)
   }
   const evaluationRouteGeometry = driverFitEvaluation
     ? [
@@ -624,12 +665,18 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     else if (actionType === 'DISPATCH' && load.tripStatus === 'loaded' && load.deliveryPlanningStatus === 'route-ready' && load.plannedLoadedRouteGeometry) {
       setRuntimeProgress(0); setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'en-route-delivery', deliveryDepartureGameMinute: now } : item))
     } else if (actionType === 'BEGIN_UNLOADING' && load.tripStatus === 'checked-in-delivery') {
-      pauseClockForModal()
+      // Clock is already owned/paused by the DOCK READY decision state (AT1).
+      // Do not overwrite modalPauseWasAlreadyPausedRef here.
+      if (simulationSpeed !== 1) setSimulationSpeed(1)
+      if (!isGameClockPaused) setGameClockPaused(true)
       setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'unloading-delivery', deliveryUnloadStartGameMinute: now } : item))
       setUnloadSequenceLoadId(loadId)
     }
     else if (actionType === 'BEGIN_LOADING' && load.tripStatus === 'checked-in-pickup') {
-      pauseClockForModal()
+      // Clock is already owned/paused by the DOCK READY decision state (AT1).
+      // Do not overwrite modalPauseWasAlreadyPausedRef here.
+      if (simulationSpeed !== 1) setSimulationSpeed(1)
+      if (!isGameClockPaused) setGameClockPaused(true)
       setLoadingChallengeLoadId(loadId)
     }
   }
@@ -683,8 +730,20 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       // Delivery/POD report that existing truth instead of inventing a new condition.
       const shipment = item.shipment || {}
       const manifest = Array.isArray(shipment.palletManifest) ? shipment.palletManifest : []
-      const piecesExpected = Number(shipment.expectedPallets) || Number(result.expectedPallets) || manifest.length
-      const piecesReceived = Number(shipment.loadedPallets) || Number(result.actualReceivedPallets) || manifest.filter((pallet) => pallet?.loaded !== false).length
+      const shipmentExpected = Number(shipment.expectedPallets)
+      const resultExpected = Number(result.expectedPallets)
+      const shipmentLoaded = Number(shipment.loadedPallets)
+      const resultReceived = Number(result.actualReceivedPallets)
+      const piecesExpected = Number.isFinite(shipmentExpected)
+        ? shipmentExpected
+        : Number.isFinite(resultExpected)
+          ? resultExpected
+          : manifest.length
+      const piecesReceived = Number.isFinite(shipmentLoaded)
+        ? shipmentLoaded
+        : Number.isFinite(resultReceived)
+          ? resultReceived
+          : manifest.filter((pallet) => pallet?.loaded !== false).length
       const missingPallets = Number.isFinite(Number(shipment.missingPallets))
         ? Number(shipment.missingPallets)
         : Math.max(0, piecesExpected - piecesReceived)
