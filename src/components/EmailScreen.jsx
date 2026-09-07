@@ -43,7 +43,7 @@ function EmailScreen({ messages, carriers, onOpenMessage, onBack, tutorialTarget
           {sortedMessages.map((message) => {
             const carrier = carriers.find((item) => item.id === message.carrierId)
             const template = message.type === 'mentor' ? mentorMessages[message.templateId] : null
-            const sender = template?.sender || carrier?.name || message.carrierId || 'DOC OS'
+            const sender = message.senderOverride || template?.sender || carrier?.name || message.carrierId || 'DOC OS'
             const subject = template?.subject || message.subject || ''
             const preview = getMessagePreview(message, template)
             const isTutorialTarget = message.id === tutorialTarget?.split(':')[1]

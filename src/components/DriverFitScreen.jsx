@@ -75,10 +75,10 @@ function DriverFitScreen({
   return (
     <div className="phone-page driver-fit-screen driver-select-v3">
       <header className="docos-page-hero">
-        <span className="docos-page-kicker">DRIVER SELECT</span>
+        <span className="docos-page-kicker">FREIGHTLINK · {load.loadNumber || load.id}</span>
         <div className="docos-page-title-row">
           <div>
-            <h2>Assign {load.id}</h2>
+            <h2>Driver Select</h2>
             <p>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</p>
           </div>
           <span className="docos-count-chip">{candidates.length} {candidates.length === 1 ? 'DRIVER' : 'DRIVERS'}</span>

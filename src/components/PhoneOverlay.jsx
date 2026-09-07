@@ -15,17 +15,21 @@ import EmailScreen from './EmailScreen.jsx'
 import EmailDetailScreen from './EmailDetailScreen.jsx'
 import DispatchAgreementScreen from './DispatchAgreementScreen.jsx'
 import MessagesScreen from './MessagesScreen.jsx'
+import DriverMessageThreadScreen from './DriverMessageThreadScreen.jsx'
+import BusinessDocumentDetailScreen from './BusinessDocumentDetailScreen.jsx'
 import mapLocations from '../data/mapLocations.js'
 import { getReceivables } from '../utils/ledger.js'
 import { formatTime } from '../utils/gameTime.js'
 
 function getReceivable(loads, carriers, workflows, id) { return getReceivables(loads, carriers, workflows).find((item) => item.loadId === id) }
 
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, carrierApplicationsById = {}, onApplyCarrier, onBeginCarrierWait, onAcceptAgreement, emailMessages = [], setEmailMessages, driverMessages = [], driverMessageUnreadCount = 0, onReadDriverMessage, onFocusDriverMessage, onDriverMessageAction, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, onPlanTrip, tutorialEnabled = false, initialScreen = 'home', initialLoadId = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, setLedgerWorkflowByLoadId, onResetGame, onClose }) {
+function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, carrierApplicationsById = {}, onApplyCarrier, onBeginCarrierWait, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, onPlanTrip, onOpenFreightMap, tutorialEnabled = false, initialScreen = 'home', initialLoadId = null, initialDriverId = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, setLedgerWorkflowByLoadId, onResetGame, onClose }) {
   const [screen, setScreen] = useState(initialScreen)
   const [documentsTab, setDocumentsTab] = useState('pending')
   const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
   const [selectedEmailId, setSelectedEmailId] = useState(null)
+  const [selectedDriverId, setSelectedDriverId] = useState(initialDriverId)
+  const [selectedBusinessDocumentId, setSelectedBusinessDocumentId] = useState(null)
   const [activeTutorialEmailId, setActiveTutorialEmailId] = useState(null)
   const [resetPromptOpen, setResetPromptOpen] = useState(false)
   const resetHoldTimer = useRef(null)
@@ -93,7 +97,6 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
   }
   const visualTutorialTarget = null // Tutorial presentation is intentionally dormant until the post-Day-3 tutorial pass.
   const updatePodVerification = (field, checked) => setLoads((current) => current.map((load) => { if (load.id !== selectedLoadId || !load.pod) return load; const verification = { signature: false, pieceCount: false, damage: false, deliveryInfo: false, ...(load.pod.verification || {}), [field]: checked }; const verified = Object.values(verification).every(Boolean); return { ...load, pod: { ...load.pod, verification, verified, verifiedGameMinute: verified ? gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay : null } } }))
-  const approvePod = () => setLoads((current) => current.map((load) => load.id === selectedLoadId && load.tripStatus === 'awaiting-pod' && load.pod?.verified ? { ...load, tripStatus: 'delivered', status: 'delivered', pod: { ...load.pod, approved: true, approvedGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay } } : load))
 
   return (
     <aside className="phone-overlay" aria-label="DOC OS operations device">
@@ -138,19 +141,18 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
       ) : screen === 'messages' ? (
         <MessagesScreen
           messages={driverMessages}
+          drivers={drivers}
           onBack={() => setScreen('home')}
+          onOpenThread={(driverId) => { setSelectedDriverId(driverId); setScreen('messageThread') }}
+        />
+      ) : screen === 'messageThread' ? (
+        <DriverMessageThreadScreen
+          driver={drivers.find((driver) => driver.id === (selectedDriverId || 'marcus')) || { id: 'marcus', fullName: 'Marcus Reed' }}
+          messages={driverMessages.filter((message) => message.driverId === (selectedDriverId || 'marcus'))}
+          activeLoads={loads.filter((load) => !['available', 'expired', 'completed', 'delivered'].includes(load.status) && !['expired', 'completed', 'delivered'].includes(load.tripStatus))}
+          onBack={() => setScreen('messages')}
           onRead={onReadDriverMessage}
-          onViewDriver={onFocusDriverMessage}
-          onAction={(message) => {
-            onReadDriverMessage?.(message)
-            if (message.actionType === 'REVIEW_POD') {
-              setSelectedLoadId(message.loadId)
-              setDocumentsTab('pending')
-              setScreen('podDetail')
-              return
-            }
-            onDriverMessageAction?.(message)
-          }}
+          onSendLoadUpdate={(loadId) => onSendDriverLoadUpdate?.(loadId, selectedDriverId || 'marcus')}
         />
       ) : screen === 'email' ? (
         <EmailScreen messages={emailMessages} carriers={carriers} tutorialTarget={visualTutorialTarget} currentGameMinute={gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay} onBack={() => setScreen('home')} onOpenMessage={(message) => { const isCurrentTutorialEmail = tutorialTarget === `email:${message.id}`; setActiveTutorialEmailId(isCurrentTutorialEmail ? message.id : null); setEmailMessages?.((current) => current.map((item) => item.id === message.id ? { ...item, read: true } : item)); setSelectedEmailId(message.id); setScreen('emailDetail') }} />
@@ -159,17 +161,20 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
       ) : screen === 'agreement' ? (
         <DispatchAgreementScreen
           carrier={carriers.find((item) => item.id === emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId) || carriers[0]}
+          gameTime={gameTime}
           onBack={() => setScreen('emailDetail')}
           onAccept={() => { onAcceptAgreement?.(); setScreen('email') }}
         />
       ) : screen === 'ledger' ? (
         <LedgerDeskScreen loads={loads} carriers={carriers} ledgerWorkflowByLoadId={ledgerWorkflowByLoadId} tutorialTarget={visualTutorialTarget} onBack={() => setScreen('home')} onOpenReceivable={(item) => { setSelectedLoadId(item.loadId); setScreen('ledgerReceivable') }} />
       ) : screen === 'ledgerReceivable' ? (
-        <LedgerReceivableScreen receivable={getReceivable(loads, carriers, ledgerWorkflowByLoadId, selectedLoadId)} tutorialTarget={visualTutorialTarget} currentGameMinute={gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay} onBack={() => setScreen('ledger')} onAction={(action) => { const current = ledgerWorkflowByLoadId[selectedLoadId] || {}; if (action === 'create') { const numbers = Object.values(ledgerWorkflowByLoadId).map((item) => Number(String(item.invoiceNumber || '').replace('INV-', ''))).filter(Number.isFinite); const next = Math.max(0, ...numbers) + 1; setLedgerWorkflowByLoadId({ ...ledgerWorkflowByLoadId, [selectedLoadId]: { ...current, financialStatus: 'DRAFT', invoiceNumber: `INV-${String(next).padStart(4, '0')}`, invoiceCreatedGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay, invoiceSentGameMinute: null, paymentReceivedGameMinute: null } }) } if (action === 'send') { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; const tutorialPaymentDelay = tutorialEnabled && ['DOC001', 'DOC002'].includes(selectedLoadId) ? 30 : 1440; setLedgerWorkflowByLoadId({ ...ledgerWorkflowByLoadId, [selectedLoadId]: { ...current, financialStatus: 'AWAITING_PAYMENT', invoiceSentGameMinute: now, paymentAvailableGameMinute: now + tutorialPaymentDelay } }) }; if (action === 'pay') setLedgerWorkflowByLoadId({ ...ledgerWorkflowByLoadId, [selectedLoadId]: { ...current, financialStatus: 'PAID', paymentReceivedGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay } }) }} />
+        <LedgerReceivableScreen receivable={getReceivable(loads, carriers, ledgerWorkflowByLoadId, selectedLoadId)} tutorialTarget={visualTutorialTarget} currentGameMinute={gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay} onBack={() => setScreen('ledger')} onAction={(action) => { const current = ledgerWorkflowByLoadId[selectedLoadId] || {}; if (action === 'create') { const numbers = Object.values(ledgerWorkflowByLoadId).map((item) => Number(String(item.invoiceNumber || '').replace('INV-', ''))).filter(Number.isFinite); const next = Math.max(0, ...numbers) + 1; setLedgerWorkflowByLoadId({ ...ledgerWorkflowByLoadId, [selectedLoadId]: { ...current, financialStatus: 'DRAFT', invoiceNumber: `INV-${String(next).padStart(4, '0')}`, invoiceCreatedGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay, invoiceSentGameMinute: null, paymentReceivedGameMinute: null } }) } if (action === 'send') { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; const tutorialPaymentDelay = 1440; setLedgerWorkflowByLoadId({ ...ledgerWorkflowByLoadId, [selectedLoadId]: { ...current, financialStatus: 'AWAITING_PAYMENT', invoiceSentGameMinute: now, paymentAvailableGameMinute: now + tutorialPaymentDelay } }) }; if (action === 'pay') setLedgerWorkflowByLoadId({ ...ledgerWorkflowByLoadId, [selectedLoadId]: { ...current, financialStatus: 'PAID', paymentReceivedGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay } }) }} />
       ) : screen === 'documents' ? (
-        <DocumentsScreen loads={loads} activeTab={documentsTab} tutorialTarget={visualTutorialTarget} onChangeTab={setDocumentsTab} onBack={() => setScreen('home')} onOpenPod={(id) => { const load = loads.find((item) => item.id === id); if (load?.pod && !load.pod.approved && !Number.isFinite(load.pod.viewedGameMinute)) { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setLoads((current) => current.map((item) => item.id === id ? { ...item, pod: { ...item.pod, viewedGameMinute: now } } : item)) } setSelectedLoadId(id); setScreen('podDetail') }} />
+        <DocumentsScreen loads={loads} businessDocuments={businessDocuments} activeTab={documentsTab} tutorialTarget={visualTutorialTarget} onChangeTab={setDocumentsTab} onBack={() => setScreen('home')} onOpenBusinessDocument={(id) => { setSelectedBusinessDocumentId(id); setScreen('businessDocumentDetail') }} onOpenPod={(id) => { const load = loads.find((item) => item.id === id); if (load?.pod && !load.pod.approved && !Number.isFinite(load.pod.viewedGameMinute)) { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setLoads((current) => current.map((item) => item.id === id ? { ...item, pod: { ...item.pod, viewedGameMinute: now } } : item)) } setSelectedLoadId(id); setScreen('podDetail') }} />
+      ) : screen === 'businessDocumentDetail' ? (
+        <BusinessDocumentDetailScreen document={businessDocuments.find((document) => document.id === selectedBusinessDocumentId)} onBack={() => { setDocumentsTab('archive'); setScreen('documents') }} />
       ) : screen === 'podDetail' ? (
-        <PodDetailScreen tutorialTarget={visualTutorialTarget} load={loads.find((load) => load.id === selectedLoadId)} driver={drivers.find((driver) => driver.id === (loads.find((load) => load.id === selectedLoadId)?.assignedDriverId ?? loads.find((load) => load.id === selectedLoadId)?.completedDriverId))} delivery={mapLocations.find((location) => location.id === loads.find((load) => load.id === selectedLoadId)?.deliveryLocationId)} readOnly={Boolean(loads.find((load) => load.id === selectedLoadId)?.pod?.approved)} onUpdateVerification={updatePodVerification} onApprovePod={() => { approvePod(); setDocumentsTab('archive'); setScreen('documents') }} onBack={() => setScreen('documents')} />
+        <PodDetailScreen tutorialTarget={visualTutorialTarget} load={loads.find((load) => load.id === selectedLoadId)} driver={drivers.find((driver) => driver.id === (loads.find((load) => load.id === selectedLoadId)?.assignedDriverId ?? loads.find((load) => load.id === selectedLoadId)?.completedDriverId))} delivery={mapLocations.find((location) => location.id === loads.find((load) => load.id === selectedLoadId)?.deliveryLocationId)} readOnly={Boolean(loads.find((load) => load.id === selectedLoadId)?.pod?.approved)} onUpdateVerification={updatePodVerification} onApprovePod={() => onApprovePod?.(selectedLoadId)} onBack={() => setScreen('documents')} />
       ) : screen === 'carrierSource' || screen === 'carrierOpportunity' ? (
         <BrowserScreen page="carriersource.local" onBack={() => setScreen(screen === 'carrierSource' ? 'browser' : 'carrierSource')} onHome={() => setScreen('browser')} siteTitle="CARRIERSOURCE" siteSubtitle="Carrier Opportunities" showSiteBranding={false}><>{screen === 'carrierSource' && <CarrierSourceScreen carrier={carriers[0]} application={carrierApplicationsById.metroline} tutorialTarget={visualTutorialTarget} onOpen={() => setScreen('carrierOpportunity')} />}{screen === 'carrierOpportunity' && <CarrierOpportunityScreen carrier={carriers[0]} driver={drivers.find((driver) => driver.id === carriers[0]?.driverIds?.[0])} application={carrierApplicationsById.metroline} tutorialTarget={visualTutorialTarget} onApply={() => { onApplyCarrier?.(); if (tutorialEnabled) onBeginCarrierWait?.() }} onOpenOffer={() => setScreen('email')} onContinue={() => setScreen('browser')} />}</></BrowserScreen>
       ) : screen === 'browser' || screen === 'loadBoard' || screen === 'loadDetails' || screen === 'driverFit' || screen === 'routePlanning' ? (
@@ -187,7 +192,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           onHome={() => setScreen('browser')}
           showSiteBranding={false}
         >
-          {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} tutorialEnabled={tutorialEnabled} tutorialLoadId={tutorialLoadId} onSelectLoad={(loadId) => { setSelectedLoadId(loadId); setScreen('loadDetails') }} />}
+          {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} tutorialEnabled={tutorialEnabled} tutorialLoadId={tutorialLoadId} onOpenMarketMap={onOpenFreightMap} onSelectLoad={(loadId) => { setSelectedLoadId(loadId); setScreen('loadDetails') }} />}
           {screen === 'loadDetails' && <LoadDetailsScreen loads={loads} drivers={drivers} loadId={selectedLoadId} onCheckDriverFit={() => setScreen('driverFit')} onAccept={() => {
             setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? {
               ...load,

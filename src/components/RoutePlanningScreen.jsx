@@ -37,16 +37,58 @@ function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedR
 
 
   return (
-    <div className="phone-page route-planning-screen">
-      <div className="route-planning-content">
-        <h1>Route Planning</h1>{tutorialEnabled && !routeSelected && <TutorialNote>Now plan the trip. Compare distance and drive time against the appointments, then select the route Marcus should run.</TutorialNote>}
-        <div className="load-summary"><strong>{load.id}</strong><div className="route-plan-route"><span>{pickup.name}</span><span aria-hidden="true">→</span><span>{delivery.name}</span></div><span>Driver: {driver?.name}</span></div>
-        <section className="planning-section"><strong>APPOINTMENTS</strong><div className="appointment-row"><span>Pickup</span><span>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</span></div><div className="appointment-row"><span>Delivery</span><span>{formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)}</span></div></section>
-        <section className="planning-section"><strong>ROUTE OPTION</strong><div className="route-card">{status === 'loading' && <p>Calculating route...</p>}{status === 'error' && <><p>Route calculation unavailable.</p><button type="button" className="action-button" onClick={calculate}>Retry</button></>}{status === 'success' && <div className="route-result"><strong>Recommended Route</strong><span>Distance: {plannedRoute.distanceMiles.toFixed(1)} miles</span><span>Estimated Drive Time: {plannedRoute.durationMinutes} minutes</span></div>}</div></section>
-      </div>
-      <div className="route-actions">
-        <button type="button" className="back-button" onClick={onBack}>Back</button>
-        <button type="button" className={`action-button ${tutorialEnabled && status === 'success' ? 'tutorial-target' : ''}`} onClick={onContinue} disabled={status !== 'success'}>Continue</button>
+    <div className="phone-page route-planning-screen route-planning-v3">
+      <header className="docos-page-hero docos-page-hero-compact">
+        <span className="docos-page-kicker">TRIP PLANNING</span>
+        <div className="docos-page-title-row">
+          <div>
+            <h2>{load.loadNumber || load.id}</h2>
+            <p>{pickup.name} → {delivery.name}</p>
+          </div>
+          <span className="docos-count-chip">{driver?.name || 'DRIVER'}</span>
+        </div>
+      </header>
+
+      <div className="docos-page-body route-planning-content">
+        {tutorialEnabled && !routeSelected && <TutorialNote>Now plan the trip. Compare distance and drive time against the appointments, then select the route Marcus should run.</TutorialNote>}
+
+        <section className="docos-section">
+          <div className="docos-section-heading"><span>APPOINTMENTS</span></div>
+          <div className="docos-info-grid">
+            <div className="docos-info-cell">
+              <span>PICKUP</span>
+              <strong>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</strong>
+              <small>{pickup.name}</small>
+            </div>
+            <div className="docos-info-cell">
+              <span>DELIVERY</span>
+              <strong>{formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)}</strong>
+              <small>{delivery.name}</small>
+            </div>
+          </div>
+        </section>
+
+        <section className="docos-section">
+          <div className="docos-section-heading"><span>ROUTE OPTION</span></div>
+          <div className="docos-panel route-option-v3">
+            {status === 'loading' && <p>Calculating route...</p>}
+            {status === 'error' && <><p>Route calculation unavailable.</p><button type="button" className="docos-secondary-action" onClick={calculate}>RETRY</button></>}
+            {status === 'success' && (
+              <>
+                <div className="route-option-v3-title"><strong>Recommended Route</strong><span>SELECTED</span></div>
+                <div className="docos-info-grid docos-info-grid-flat">
+                  <div className="docos-info-cell"><span>DISTANCE</span><strong>{plannedRoute.distanceMiles.toFixed(1)} mi</strong></div>
+                  <div className="docos-info-cell"><span>DRIVE TIME</span><strong>{plannedRoute.durationMinutes} min</strong></div>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+
+        <div className="docos-sticky-actions route-actions-v3">
+          <button type="button" className="docos-secondary-action" onClick={onBack}>BACK</button>
+          <button type="button" className={`docos-primary-action ${tutorialEnabled && status === 'success' ? 'tutorial-target' : ''}`} onClick={onContinue} disabled={status !== 'success'}>CONFIRM PLAN</button>
+        </div>
       </div>
     </div>
   )

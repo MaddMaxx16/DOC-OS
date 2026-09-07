@@ -23,7 +23,7 @@ function routePosition(route, progress) {
   return [a[0] + (b[0] - a[0]) * amount, a[1] + (b[1] - a[1]) * amount]
 }
 
-function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, tutorialEnabled = false, tutorialDriverAction = null }) {
+function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgress, runtimeRoute, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, tutorialEnabled = false, tutorialDriverAction = null, freightBrowseMode = false, freightBrowseLoads = [], freightBrowseSelectedLoadId = null, onFreightBrowseSelect }) {
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const markerRecords = useRef([])
@@ -31,10 +31,15 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
   const visualProgress = useRef(null)
   const cameraInitialized = useRef(false)
   const activeTravelKey = useRef(null)
+  const travelCameraKey = useRef(null)
   const pickupMarkerRef = useRef(null)
   const deliveryMarkerRef = useRef(null)
   const driverMarkerRefs = useRef(new Map())
+  const freightBrowseMarkerRefs = useRef(new Map())
+  const freightBrowseDeliveryMarkerRef = useRef(null)
   const [mapReady, setMapReady] = useState(false)
+  const [markerRefreshToken, setMarkerRefreshToken] = useState(0)
+  const [facilityPopupOpen, setFacilityPopupOpen] = useState(false)
 
   const getDriver = () => drivers.find((driver) => driver.id === 'marcus')
   const removeLocationMarker = (ref) => {
@@ -67,16 +72,24 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !mapReady || !map.isStyleLoaded()) return
+    // MapLibre DOM markers do not depend on style readiness. On iOS resume,
+    // the canvas/style can be mid-rehydrate while the marker pane is already usable.
+    // Returning here used to leave the route line restored but P/D/driver markers absent.
+    if (!map || !mapReady) return
     const createLocationMarker = (location, ref, role) => {
       const existing = ref.current
       if (existing) {
+        const existingElement = existing.getElement?.()
+        if (existingElement && !existingElement.isConnected) {
+          removeLocationMarker(ref)
+        } else {
         const current = existing.getLngLat()
         const sameLocation = Math.abs(current.lng - location.longitude) < 0.000001 && Math.abs(current.lat - location.latitude) < 0.000001
         const record = markerRecords.current.find(({ marker }) => marker === existing)
         const sameRole = record?.markerElement?.dataset?.role === role
         if (sameLocation && sameRole) return
         removeLocationMarker(ref)
+        }
       }
       const element = document.createElement('div')
       element.className = `game-marker ${role}`
@@ -85,8 +98,25 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
       const popup = new Popup({ offset: 20 }).setDOMContent(document.createElement('div'))
       const position = { longitude: location.longitude, latitude: location.latitude }
       const marker = new Marker({ element }).setLngLat([position.longitude, position.latitude]).setPopup(popup).addTo(map)
-      popup.on('open', () => element.classList.add('popup-open'))
-      popup.on('close', () => element.classList.remove('popup-open'))
+      let facilityAutoCloseTimer = null
+      popup.on('open', () => {
+        element.classList.add('popup-open')
+        setFacilityPopupOpen(true)
+        if (facilityAutoCloseTimer) clearTimeout(facilityAutoCloseTimer)
+        facilityAutoCloseTimer = setTimeout(() => {
+          const popupNode = popup.getElement?.()
+          const hasAction = Boolean(popupNode?.querySelector?.('.docos-driver-popup-action'))
+          if (popup.isOpen() && !hasAction) popup.remove()
+        }, 2200)
+      })
+      popup.on('close', () => {
+        if (facilityAutoCloseTimer) {
+          clearTimeout(facilityAutoCloseTimer)
+          facilityAutoCloseTimer = null
+        }
+        element.classList.remove('popup-open')
+        setFacilityPopupOpen(false)
+      })
       ref.current = marker
       markerRecords.current.push({ location: { ...location, type: role }, marker, markerElement: element, popup })
     }
@@ -94,7 +124,7 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
     // Otherwise an older active load can leak its facility markers into the new route review.
     const activeLoad = isDriverFitEvaluation ? evaluationLoad : (routeFocusMode === 'planning' && routeReviewLoad ? routeReviewLoad : assignedLoad)
     const trip = activeLoad?.tripStatus
-    const active = Boolean(activeLoad?.assignedDriverId) && !['delivered', 'completed'].includes(trip)
+    const active = !freightBrowseMode && Boolean(activeLoad?.assignedDriverId) && !['queued', 'delivered', 'completed'].includes(trip)
     const showPickup = isDriverFitEvaluation || (active && !['loaded', 'en-route-delivery', 'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'].includes(trip))
     const showDelivery = isDriverFitEvaluation || (active && !['delivered', 'completed'].includes(trip))
     const pickup = mapLocations.find((location) => location.id === activeLoad?.pickupLocationId)
@@ -102,14 +132,35 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
     const activeDriverIds = new Set(drivers.map((driver) => driver.id))
     driverMarkerRefs.current.forEach((marker, id) => { if (!activeDriverIds.has(id)) { marker.remove(); driverMarkerRefs.current.delete(id); markerRecords.current = markerRecords.current.filter((record) => record.marker !== marker) } })
     drivers.forEach((driver) => {
-      if (driverMarkerRefs.current.has(driver.id)) return
+      const existingDriverMarker = driverMarkerRefs.current.get(driver.id)
+      if (existingDriverMarker) {
+        const existingElement = existingDriverMarker.getElement?.()
+        if (existingElement?.isConnected) return
+        existingDriverMarker.remove()
+        driverMarkerRefs.current.delete(driver.id)
+        markerRecords.current = markerRecords.current.filter((record) => record.marker !== existingDriverMarker)
+      }
       const home = mapLocations.find((location) => location.id === driver.homeBaseLocationId)
       const position = runtimePositions[driver.id] || home
       if (!position) return
       const element = document.createElement('div'); element.className = 'game-marker driver'; element.textContent = driver.name?.charAt(0)?.toUpperCase() || 'D'
       const popup = new Popup({ offset: 20 }).setDOMContent(document.createElement('div'))
       const marker = new Marker({ element }).setLngLat([position.longitude, position.latitude]).setPopup(popup).addTo(map)
-      popup.on('open', () => element.classList.add('popup-open')); popup.on('close', () => element.classList.remove('popup-open'))
+      let driverAutoCloseTimer = null
+      popup.on('open', () => {
+        element.classList.add('popup-open')
+        if (driverAutoCloseTimer) clearTimeout(driverAutoCloseTimer)
+        driverAutoCloseTimer = setTimeout(() => {
+          if (popup.isOpen()) popup.remove()
+        }, 2200)
+      })
+      popup.on('close', () => {
+        if (driverAutoCloseTimer) {
+          clearTimeout(driverAutoCloseTimer)
+          driverAutoCloseTimer = null
+        }
+        element.classList.remove('popup-open')
+      })
       driverMarkerRefs.current.set(driver.id, marker); markerRecords.current.push({ location: { id: driver.id, name: driver.name, type: 'driver' }, marker, markerElement: element, popup })
     })
     if (showPickup && pickup) createLocationMarker(pickup, pickupMarkerRef, 'pickup')
@@ -119,7 +170,113 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
     const deliveryRecord = markerRecords.current.find(({ marker }) => marker === deliveryMarkerRef.current)
     if (deliveryRecord) deliveryRecord.markerElement.style.pointerEvents = ['checked-in-delivery', 'unloading-delivery', 'awaiting-pod'].includes(trip) ? 'none' : ''
     logDocOsState({ isDriverFitEvaluation, hasActiveAcceptedLoad: active, showPickupMarker: showPickup, showDeliveryMarker: showDelivery, pickupMarkerExists: Boolean(pickupMarkerRef.current), deliveryMarkerExists: Boolean(deliveryMarkerRef.current) })
-  }, [mapReady, drivers, runtimePositions, assignedLoad?.id, assignedLoad?.assignedDriverId, assignedLoad?.tripStatus, isDriverFitEvaluation, evaluationLoad?.id])
+  }, [mapReady, markerRefreshToken, drivers, runtimePositions, assignedLoad?.id, assignedLoad?.assignedDriverId, assignedLoad?.tripStatus, assignedLoad?.pickupLocationId, assignedLoad?.deliveryLocationId, routeFocusMode, routeReviewLoad?.id, routeReviewLoad?.pickupLocationId, routeReviewLoad?.deliveryLocationId, isDriverFitEvaluation, evaluationLoad?.id])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+
+    freightBrowseMarkerRefs.current.forEach((marker) => marker.remove())
+    freightBrowseMarkerRefs.current.clear()
+    freightBrowseDeliveryMarkerRef.current?.remove()
+    freightBrowseDeliveryMarkerRef.current = null
+
+    if (!freightBrowseMode) return
+
+    freightBrowseLoads.forEach((load) => {
+      const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
+      if (!pickup) return
+      const element = document.createElement('button')
+      element.type = 'button'
+      element.className = `freight-main-map-pin ${freightBrowseSelectedLoadId === load.id ? 'selected' : ''}`
+      element.setAttribute('aria-label', `${load.loadNumber || load.id} pickup at ${pickup.name}`)
+      const pin = document.createElement('span')
+      // FreightLink browse mode uses the exact same facility marker language as
+      // the operational map. Browse mode changes meaning/context, not icon design.
+      pin.className = 'game-marker pickup'
+      pin.textContent = 'P'
+      const label = document.createElement('small')
+      label.textContent = load.loadNumber || load.id
+      element.append(pin, label)
+      element.onclick = (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        onFreightBrowseSelect?.(load.id)
+      }
+      const marker = new Marker({ element }).setLngLat([pickup.longitude, pickup.latitude]).addTo(map)
+      freightBrowseMarkerRefs.current.set(load.id, marker)
+    })
+
+    const selected = freightBrowseLoads.find((load) => load.id === freightBrowseSelectedLoadId)
+    const delivery = mapLocations.find((location) => location.id === selected?.deliveryLocationId)
+    if (delivery) {
+      const element = document.createElement('div')
+      // Reuse the operational delivery marker instead of maintaining a second
+      // FreightLink-only pin design.
+      element.className = 'game-marker delivery freight-main-map-delivery-pin'
+      element.textContent = 'D'
+      freightBrowseDeliveryMarkerRef.current = new Marker({ element }).setLngLat([delivery.longitude, delivery.latitude]).addTo(map)
+    }
+
+    if (!freightBrowseSelectedLoadId && freightBrowseLoads.length) {
+      const points = freightBrowseLoads
+        .map((load) => mapLocations.find((location) => location.id === load.pickupLocationId))
+        .filter(Boolean)
+      if (points.length) {
+        const lngs = points.map((point) => point.longitude)
+        const lats = points.map((point) => point.latitude)
+        map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 70, maxZoom: 11, duration: 420 })
+      }
+    }
+  }, [mapReady, freightBrowseMode, freightBrowseLoads, freightBrowseSelectedLoadId, onFreightBrowseSelect])
+
+  useEffect(() => {
+    let retryTimer = null
+    let settleTimer = null
+
+    const rebuildOperationalMarkers = () => {
+      const map = mapRef.current
+      if (!map) return
+
+      // iOS/WebView can keep the MapLibre canvas/route layer while detaching or
+      // invalidating DOM-backed markers. Treat marker DOM as disposable and
+      // recreate it from game state whenever the game becomes visible again.
+      pickupMarkerRef.current?.remove()
+      deliveryMarkerRef.current?.remove()
+      pickupMarkerRef.current = null
+      deliveryMarkerRef.current = null
+      driverMarkerRefs.current.forEach((marker) => marker.remove())
+      driverMarkerRefs.current.clear()
+      markerRecords.current = markerRecords.current.filter(({ location }) => location?.type === 'freight-browse')
+
+      map.resize()
+      setMarkerRefreshToken((value) => value + 1)
+    }
+
+    const refreshMarkers = () => {
+      if (document.visibilityState === 'hidden') return
+      rebuildOperationalMarkers()
+
+      // Capacitor/WKWebView resume can finish layout/style hydration one or two
+      // frames after visibilitychange/pageshow. Retry after layout settles so a
+      // single race cannot strand the route without its markers.
+      window.clearTimeout(retryTimer)
+      window.clearTimeout(settleTimer)
+      retryTimer = window.setTimeout(rebuildOperationalMarkers, 90)
+      settleTimer = window.setTimeout(rebuildOperationalMarkers, 360)
+    }
+
+    document.addEventListener('visibilitychange', refreshMarkers)
+    window.addEventListener('pageshow', refreshMarkers)
+    window.addEventListener('focus', refreshMarkers)
+    return () => {
+      window.clearTimeout(retryTimer)
+      window.clearTimeout(settleTimer)
+      document.removeEventListener('visibilitychange', refreshMarkers)
+      window.removeEventListener('pageshow', refreshMarkers)
+      window.removeEventListener('focus', refreshMarkers)
+    }
+  }, [])
 
   useEffect(() => {
     const map = new MapLibreMap({
@@ -140,7 +297,7 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
       const initialRoute = activeRouteGeometry?.length ? { routeShape: activeRouteGeometry } : null
       if (initialRoute) {
         map.addSource('active-route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: initialRoute.routeShape } } })
-        map.addLayer({ id: 'active-route-line', type: 'line', source: 'active-route', paint: { 'line-color': '#e0a458', 'line-width': 4 }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
+        map.addLayer({ id: 'active-route-line', type: 'line', source: 'active-route', paint: { 'line-color': '#756D80', 'line-width': 4 }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
       }
       setMapReady(true)
         cameraInitialized.current = true
@@ -151,6 +308,10 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
       markers.forEach((marker) => marker.remove())
       driverMarkerRefs.current.forEach((marker) => marker.remove())
       driverMarkerRefs.current.clear()
+      freightBrowseMarkerRefs.current.forEach((marker) => marker.remove())
+      freightBrowseMarkerRefs.current.clear()
+      freightBrowseDeliveryMarkerRef.current?.remove()
+      freightBrowseDeliveryMarkerRef.current = null
       pickupMarkerRef.current?.remove()
       deliveryMarkerRef.current?.remove()
       pickupMarkerRef.current = null
@@ -175,7 +336,7 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
     if (!map || !marker) return
     const lngLat = marker.getLngLat()
     map.easeTo({ center: [lngLat.lng, lngLat.lat], zoom: Math.max(map.getZoom(), 11.2), duration: 420 })
-    const pickupInteractionStates = new Set(['at-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'loaded'])
+    const pickupInteractionStates = new Set(['at-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup'])
     if (pickupInteractionStates.has(assignedLoad?.tripStatus)) return
     window.setTimeout(() => {
       if (!marker.getPopup()?.isOpen()) marker.togglePopup()
@@ -184,16 +345,89 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
 
 
   useEffect(() => {
+    if (!['en-route-pickup', 'en-route-delivery'].includes(tripStatus)) {
+      travelCameraKey.current = null
+      return
+    }
+    const map = mapRef.current
+    if (!map || !mapReady || !runtimeRoute?.length || runtimeRoute.length < 2 || !assignedLoad) return
+    const departureMinute = tripStatus === 'en-route-pickup'
+      ? assignedLoad.departureGameMinute
+      : assignedLoad.deliveryDepartureGameMinute
+    const key = `${assignedLoad.id}:${tripStatus}:${departureMinute ?? 'departed'}`
+    if (travelCameraKey.current === key) return
+
+    const lngs = runtimeRoute.map((point) => point[0]).filter(Number.isFinite)
+    const lats = runtimeRoute.map((point) => point[1]).filter(Number.isFinite)
+    if (!lngs.length || !lats.length) return
+
+    travelCameraKey.current = key
+    map.fitBounds(
+      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+      {
+        padding: { top: 125, right: 42, bottom: 155, left: 42 },
+        maxZoom: 10.85,
+        duration: 650,
+      },
+    )
+  }, [tripStatus, assignedLoad?.id, assignedLoad?.departureGameMinute, assignedLoad?.deliveryDepartureGameMinute, runtimeRoute, mapReady])
+
+  useEffect(() => {
+    if (!['en-route-pickup', 'en-route-delivery'].includes(tripStatus)) return undefined
+    const timeout = window.setTimeout(() => {
+      const marker = driverMarkerRefs.current.get('marcus')
+      const popup = marker?.getPopup?.()
+      if (popup?.isOpen()) popup.remove()
+    }, 1800)
+    return () => window.clearTimeout(timeout)
+  }, [tripStatus, assignedLoad?.id])
+
+  useEffect(() => {
     if (!facilityFocusRequest || !mapReady || !facilityFocusRole) return
     const map = mapRef.current
+    if (!map) return
+
+    // Camera ownership rule:
+    // Facilities only own the camera once Marcus is physically at that facility.
+    // Before arrival (assigned, planned, en route, loaded/route-ready), the driver
+    // remains the operational focus. This prevents stale/early facility navigation
+    // from pulling the camera away from Marcus.
+    const pickupOwnedStates = new Set(['at-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup'])
+    const deliveryOwnedStates = new Set(['at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'])
+    const facilityOwnsCamera = facilityFocusRole === 'pickup'
+      ? pickupOwnedStates.has(assignedLoad?.tripStatus)
+      : deliveryOwnedStates.has(assignedLoad?.tripStatus)
+
+    if (!facilityOwnsCamera) {
+      const driverMarker = driverMarkerRefs.current.get(driverFocusId || 'marcus') || driverMarkerRefs.current.get('marcus')
+      if (!driverMarker) return
+      const lngLat = driverMarker.getLngLat()
+      map.easeTo({ center: [lngLat.lng, lngLat.lat], zoom: Math.max(map.getZoom(), 10.9), duration: 420 })
+      return
+    }
+
     const marker = facilityFocusRole === 'pickup' ? pickupMarkerRef.current : deliveryMarkerRef.current
-    if (!map || !marker) return
+    if (!marker) return
     const lngLat = marker.getLngLat()
     map.easeTo({ center: [lngLat.lng, lngLat.lat], zoom: Math.max(map.getZoom(), 11.2), duration: 420 })
     window.setTimeout(() => {
       if (!marker.getPopup()?.isOpen()) marker.togglePopup()
     }, 440)
-  }, [facilityFocusRequest, facilityFocusRole, mapReady, assignedLoad?.tripStatus])
+  }, [facilityFocusRequest, facilityFocusRole, mapReady, assignedLoad?.tripStatus, driverFocusId])
+
+  useEffect(() => {
+    // If the load transitions back into a driver-owned state, close any facility
+    // popup that may have been left open from a prior tap/navigation request.
+    const facilityOwnedStates = new Set([
+      'at-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup',
+      'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod',
+    ])
+    if (facilityOwnedStates.has(assignedLoad?.tripStatus)) return
+    ;[pickupMarkerRef.current, deliveryMarkerRef.current].forEach((marker) => {
+      const popup = marker?.getPopup?.()
+      if (popup?.isOpen()) popup.remove()
+    })
+  }, [assignedLoad?.tripStatus, assignedLoad?.id])
 
   useEffect(() => {
     const map = mapRef.current
@@ -203,12 +437,12 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
     if (!source) {
       if (!route) return
       map.addSource('active-route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route.routeShape } } })
-      map.addLayer({ id: 'active-route-line', type: 'line', source: 'active-route', paint: { 'line-color': '#e0a458', 'line-width': 4 }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
+      map.addLayer({ id: 'active-route-line', type: 'line', source: 'active-route', paint: { 'line-color': '#756D80', 'line-width': 4 }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
     } else if (route) source.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route.routeShape } })
     else if (!['en-route-pickup', 'en-route-delivery'].includes(tripStatus)) source.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } })
 
     if (map.getLayer('active-route-line')) {
-      map.setPaintProperty('active-route-line', 'line-color', isDriverFitEvaluation ? '#4c8dff' : '#e0a458')
+      map.setPaintProperty('active-route-line', 'line-color', isDriverFitEvaluation ? '#756D80' : '#756D80')
       map.setPaintProperty('active-route-line', 'line-width', isDriverFitEvaluation ? 5 : 4)
     }
 
@@ -262,6 +496,18 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
           onDriverAction?.('CHECK_IN', popupLoad.id, popupLoad.assignedDriverId || 'marcus')
         }
         content.append(wait, checkIn)
+      } else if (popupLoad.tripStatus === 'checked-in-pickup') {
+        const ready = document.createElement('span')
+        ready.textContent = 'Dock ready · staged freight available'
+        const beginLoading = document.createElement('button')
+        beginLoading.type = 'button'
+        beginLoading.className = 'docos-driver-popup-action'
+        beginLoading.textContent = 'BEGIN LOADING'
+        beginLoading.onclick = () => {
+          pickupRecord.popup.remove()
+          onDriverAction?.('BEGIN_LOADING', popupLoad.id, popupLoad.assignedDriverId || 'marcus')
+        }
+        content.append(ready, beginLoading)
       }
       pickupRecord.popup.setDOMContent(content)
     }
@@ -297,7 +543,7 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
     const record = markerRecords.current.find(({ location }) => location.id === 'marcus')
     if (!marcus || !record) return
 
-    const pickupInteractionStates = new Set(['at-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'loaded'])
+    const pickupInteractionStates = new Set(['at-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup'])
     const deliveryInteractionStates = new Set(['at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'])
     const driverAtPickup = pickupInteractionStates.has(assignedLoad?.tripStatus)
     const driverAtDelivery = deliveryInteractionStates.has(assignedLoad?.tripStatus)
@@ -394,7 +640,7 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
       const model = getMarcusPanelModel({ assignedLoad, gameTime, runtimeProgress, pickup, delivery })
 
       if (model) {
-        const pillTone = model.operationalState === 'TRIP_PLANNED' ? 'ready' : model.operationalState === 'WAITING_DELIVERY' ? 'attention' : 'neutral'
+        const pillTone = model.operationalState === 'TRIP_PLANNED' ? 'ready' : ['BRIEFING_REQUIRED', 'WAITING_DELIVERY'].includes(model.operationalState) ? 'attention' : 'neutral'
         popupContent.append(buildHeader(model.driverName || marcus.fullName || record.location.name, model.roleLabel || 'Driver', model.statusLabel?.toUpperCase(), pillTone))
 
         const queuedLoads = getDriverQueue(loads, 'marcus')
@@ -403,7 +649,7 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
           if (nextPlanned) popupContent.append(nextPlanned)
         }
 
-        if (['ASSIGNED', 'TRIP_PLANNED'].includes(model.operationalState)) {
+        if (['ASSIGNED', 'BRIEFING_REQUIRED', 'TRIP_PLANNED'].includes(model.operationalState)) {
           // Quick map action: identity + status + primary action only.
         } else if (model.operationalState === 'EN_ROUTE_PICKUP' || model.operationalState === 'EN_ROUTE_DELIVERY') {
           popupContent.classList.add('enroute-label')
@@ -412,11 +658,11 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
           const status = document.createElement('strong')
           status.textContent = model.statusLabel?.toUpperCase() || 'EN ROUTE'
           const detail = document.createElement('span')
-          detail.textContent = `${model.loadId} · ETA ${model.eta || '—'}`
+          detail.textContent = `${loads.find((item) => item.id === model.loadId)?.loadNumber || model.loadId} · ETA ${model.eta || '—'}`
           label.append(status, detail)
           popupContent.replaceChildren(label)
         } else {
-          const loadRow = buildMetaRow('CURRENT LOAD', model.loadId)
+          const loadRow = buildMetaRow('CURRENT LOAD', loads.find((item) => item.id === model.loadId)?.loadNumber || model.loadId)
           const stopRow = buildMetaRow('NEXT STOP', model.nextStopLabel)
           const locationRow = buildMetaRow('CURRENT LOCATION', model.locationLabel)
           const remainingLabel = ['WAITING_PICKUP', 'WAITING_DELIVERY'].includes(model.operationalState) ? 'WAIT TIME' : 'REMAINING'
@@ -480,11 +726,19 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
 
   useEffect(() => {
     const record = markerRecords.current.find(({ location }) => location.id === 'marcus')
-    if (!record || !assignedLoad) return
+    if (!record) return
     let pill = record.markerElement.querySelector('.driver-status-pill')
     if (!pill) { pill = document.createElement('span'); pill.className = 'driver-status-pill'; record.markerElement.append(pill) }
+    // A completed load is removed from Marcus immediately after POD approval.
+    // Clear any DOM text left by the previous active load instead of returning
+    // early and leaving a stale "POD READY" pill on an available driver.
+    if (!assignedLoad) {
+      pill.textContent = ''
+      return
+    }
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    if (assignedLoad.tripStatus === 'waiting-at-pickup') {
+    if (facilityPopupOpen) pill.textContent = ''
+    else if (assignedLoad.tripStatus === 'waiting-at-pickup') {
       const waitedMinutes = Number.isFinite(assignedLoad.pickupArrivalGameMinute)
         ? Math.max(0, now - assignedLoad.pickupArrivalGameMinute)
         : 0
@@ -496,13 +750,14 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = 'marcus', facilityFoc
         : 0
       pill.textContent = `LOADING • ${loadingMinutes} MIN`
     }
+    else if (assignedLoad.tripStatus === 'assigned' && assignedLoad.planningStatus === 'route-ready' && !suppressAttention) pill.textContent = Number.isFinite(assignedLoad.pickupDriverBriefedGameMinute) ? 'READY FOR DISPATCH' : 'DRIVER UPDATE REQUIRED'
     else if (assignedLoad.tripStatus === 'at-delivery' && !suppressAttention) pill.textContent = 'WAITING AT DELIVERY'
     else if (assignedLoad.tripStatus === 'unloading-delivery' && !suppressAttention) pill.textContent = `UNLOADING • ${Math.max(0, DELIVERY_UNLOAD_DURATION_MINUTES - (now - assignedLoad.deliveryUnloadStartGameMinute))} MIN`
     else if (assignedLoad.tripStatus === 'awaiting-pod' && !suppressAttention) pill.textContent = 'POD READY'
     else if (assignedLoad.tripStatus === 'loaded' && !suppressAttention) pill.textContent = assignedLoad.deliveryPlanningStatus === 'route-ready' ? 'READY FOR DISPATCH' : 'LOADED'
     else if (assignedLoad.tripStatus === 'loaded') pill.textContent = ''
     else pill.textContent = ''
-  }, [assignedLoad, gameTime, suppressAttention])
+  }, [assignedLoad, gameTime, suppressAttention, facilityPopupOpen])
 
   return <div ref={mapContainer} className="game-map" />
 }

@@ -5,7 +5,7 @@ export function getReceivables(loads = [], carriers = [], workflows = {}) {
     const agreement = carrier.dispatchAgreement || {}
     const percentage = agreement.type === 'percentage' ? agreement.percentage : 0
     const workflow = workflows[load.id] || {}
-    return { loadId: load.id, carrierId: carrier.id, carrierName: carrier.name, carrierGross: load.rate, agreementType: agreement.type, agreementPercentage: percentage, dispatchRevenue: load.rate * percentage / 100, receivableStatus: 'OUTSTANDING', financialStatus: workflow.financialStatus || 'READY_TO_INVOICE', ...workflow, paymentAvailableGameMinute: workflow.paymentAvailableGameMinute ?? (Number.isFinite(workflow.invoiceSentGameMinute) ? workflow.invoiceSentGameMinute + 1440 : null) }
+    return { loadId: load.id, loadNumber: load.loadNumber || load.id, carrierId: carrier.id, carrierName: carrier.name, carrierGross: load.rate, agreementType: agreement.type, agreementPercentage: percentage, dispatchRevenue: load.rate * percentage / 100, receivableStatus: 'OUTSTANDING', financialStatus: workflow.financialStatus || 'READY_TO_INVOICE', ...workflow, paymentAvailableGameMinute: workflow.paymentAvailableGameMinute ?? (Number.isFinite(workflow.invoiceSentGameMinute) ? workflow.invoiceSentGameMinute + 1440 : null) }
   }).filter(Boolean)
 }
 

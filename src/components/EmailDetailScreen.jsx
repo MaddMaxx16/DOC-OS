@@ -17,7 +17,7 @@ function EmailDetailScreen({ message, carrier, onReview, onBack, tutorialTarget 
 
   const template = mentorMessages[message.templateId]
   const isMentor = message.type === 'mentor'
-  const sender = template?.sender || carrier?.name || 'DOC OS'
+  const sender = message.senderOverride || template?.sender || carrier?.name || 'DOC OS'
   const subject = template?.subject || message.subject || 'Message'
   const receivedDate = formatCompactDate(Math.floor(message.receivedGameMinute / 1440))
   const receivedTime = formatTime(message.receivedGameMinute % 1440)
@@ -69,7 +69,7 @@ function EmailDetailScreen({ message, carrier, onReview, onBack, tutorialTarget 
           {!isMentor && (
             <section className="email-agreement-attachment" aria-label="Dispatch service agreement attachment">
               <div className="email-attachment-icon" aria-hidden="true">DOC</div>
-              <div><span>ATTACHMENT</span><strong>Metroline Dispatch Service Agreement</strong><small>Review terms, responsibilities, authorization, and compensation.</small></div>
+              <div><span>ATTACHMENT</span><strong>Metroline Dispatch Operating Agreement</strong><small>Review shift goals, carrier priorities, communication expectations, and compensation.</small></div>
             </section>
           )}
         </article>

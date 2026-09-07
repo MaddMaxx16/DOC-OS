@@ -66,6 +66,16 @@ function normalizeAbsoluteMinute(absoluteMinute) {
   }
 }
 
+
+function appointmentLateMinutes(load, leg) {
+  const isPickup = leg === 'pickup'
+  const arrival = isPickup ? load.pickupArrivalGameMinute : load.deliveryArrivalGameMinute
+  const dayIndex = isPickup ? load.pickupDayIndex : load.deliveryDayIndex
+  const end = isPickup ? load.pickupWindowEndMinutes : load.deliveryWindowEndMinutes
+  if (![arrival, dayIndex, end].every(Number.isFinite)) return null
+  return Math.max(0, arrival - (dayIndex * 1440 + end))
+}
+
 function completedLoadsForOperation(loads, operationDay) {
   return loads.filter((load) => {
     if (load.tripStatus !== 'completed') return false
@@ -98,14 +108,28 @@ export function createDayReport({
   const cashCollected = dayReceivables.filter((item) => item.financialStatus === 'PAID').reduce((sum, item) => sum + Number(item.dispatchRevenue || 0), 0)
   const pendingReceivables = receivables.filter((item) => item.financialStatus !== 'PAID').reduce((sum, item) => sum + Number(item.dispatchRevenue || 0), 0)
 
-  const serviceScore = completedLoads.length > 0 && completedLoads.every((load) => load.pod?.approved) ? 100 : 0
+  const serviceScores = completedLoads.map((load) => {
+    const pickupLate = appointmentLateMinutes(load, 'pickup')
+    const deliveryLate = appointmentLateMinutes(load, 'delivery')
+    let score = 100
+    if (Number.isFinite(pickupLate) && pickupLate > 0) score -= 25
+    if (Number.isFinite(deliveryLate) && deliveryLate > 0) score -= 35
+    if (!load.pod?.approved) score -= 20
+    return Math.max(0, score)
+  })
+  const serviceScore = serviceScores.length ? Math.round(serviceScores.reduce((sum, value) => sum + value, 0) / serviceScores.length) : 0
   const efficiencyScore = completedLoads.length === 0
     ? 0
     : operationDay === 1
       ? 100
       : Math.max(60, 100 - Math.ceil(lateCloseAdjustmentMinutes / 15) * 2)
-  const xpGain = completedLoads.length * 50 + (serviceScore === 100 ? 25 : 0)
-  const reputationChange = completedLoads.length * 3
+  const xpGain = 0 // Per-load XP is awarded at load closeout; day close must not double-award it.
+  const reputationChange = completedLoads.reduce((sum, load) => {
+    const lateCount = [appointmentLateMinutes(load, 'pickup'), appointmentLateMinutes(load, 'delivery')].filter((value) => Number.isFinite(value) && value > 0).length
+    if (lateCount === 0) return sum + 3
+    if (lateCount === 1) return sum - 1
+    return sum - 3
+  }, 0)
 
   return {
     operationDay,

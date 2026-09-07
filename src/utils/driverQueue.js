@@ -17,7 +17,7 @@ export function getDriverAssignedLoads(loads = [], driverId) {
 
 export function getDriverActiveLoad(loads = [], driverId) {
   const assigned = getDriverAssignedLoads(loads, driverId)
-  return assigned.find((load) => load.tripStatus !== 'queued') || assigned[0] || null
+  return assigned.find((load) => load.tripStatus !== 'queued') || null
 }
 
 export function getDriverQueue(loads = [], driverId) {
@@ -67,7 +67,33 @@ export function promoteNextQueuedLoad(loads = [], driverId) {
   return {
     nextLoadId: next.id,
     loads: loads.map((load) => load.id === next.id
-      ? { ...load, tripStatus: 'assigned', status: 'assigned', queuePosition: 0, planningStatus: null, deliveryPlanningStatus: null }
+      ? {
+          ...load,
+          tripStatus: 'assigned',
+          status: 'assigned',
+          queuePosition: 0,
+          planningStatus: null,
+          deliveryPlanningStatus: null,
+          // Queue handoff is a fresh pickup leg. Strip any travel/arrival state
+          // that could make a promoted load look like it is already on delivery.
+          departureGameMinute: null,
+          deliveryDepartureGameMinute: null,
+          pickupArrivalGameMinute: null,
+          pickupCheckInGameMinute: null,
+          loadingStartGameMinute: null,
+          deliveryArrivalGameMinute: null,
+          deliveryCheckInGameMinute: null,
+          deliveryUnloadStartGameMinute: null,
+          plannedDeadheadRouteGeometry: null,
+          plannedDeadheadMiles: null,
+          plannedDeadheadDriveTimeMinutes: null,
+          selectedDeadheadRouteId: null,
+          plannedLoadedRouteGeometry: null,
+          plannedLoadedMiles: null,
+          plannedLoadedDriveTimeMinutes: null,
+          selectedLoadedRouteId: null,
+          pod: null,
+        }
       : load),
   }
 }

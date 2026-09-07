@@ -24,6 +24,10 @@ const mapLocations = [
   { id: 'queens-freight-center', name: 'Queens Freight Center', type: 'facility', longitude: -73.8440, latitude: 40.7350 },
   { id: 'newark-distribution-hub', name: 'Newark Distribution Hub', type: 'facility', longitude: -74.1610, latitude: 40.7080 },
   { id: 'elizabeth-logistics-park', name: 'Elizabeth Logistics Park', type: 'facility', longitude: -74.1870, latitude: 40.6630 },
+
+  // Driver positioning destinations. These are operating/staging points rather than freight facilities.
+  { id: 'queens-staging-area', name: 'Queens Staging Area', type: 'staging', longitude: -73.8990, latitude: 40.7470 },
+  { id: 'newark-fuel-stop', name: 'Newark Fuel & Rest Stop', type: 'staging', longitude: -74.1485, latitude: 40.7200 },
 ]
 
 export default mapLocations

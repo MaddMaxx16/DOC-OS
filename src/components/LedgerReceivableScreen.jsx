@@ -47,7 +47,7 @@ function LedgerReceivableScreen({ receivable, currentGameMinute = 0, onBack, onA
       <section className="receivable-hero">
         <div>
           <span className="ledger-kicker">Load</span>
-          <h2>{receivable.loadId}</h2>
+          <h2>{receivable.loadNumber || receivable.loadId}</h2>
           <p>{receivable.carrierName}</p>
         </div>
         <span className={`receivable-status-pill status-${statusClass}`}>{statusLabel(status)}</span>

@@ -51,7 +51,7 @@ function PodDetailScreen({ load, driver, delivery, onBack, onUpdateVerification,
       <section className="pod-hero">
         <div>
           <span className="pod-kicker">Document</span>
-          <h2>{load.id}</h2>
+          <h2>{load.loadNumber || load.id}</h2>
         </div>
         <span className={`pod-status-pill ${readOnly ? 'approved' : verified ? 'verified' : 'pending'}`}>{documentStatus}</span>
       </section>
@@ -140,7 +140,7 @@ function PodDetailScreen({ load, driver, delivery, onBack, onUpdateVerification,
           <div className="pod-approved-card">
             <span>Approval complete</span>
             <strong>{approvalTime}</strong>
-            <small>{load.id} is cleared for billing and stored in the archive.</small>
+            <small>{load.loadNumber || load.id} is cleared for billing and stored in the archive.</small>
           </div>
         )}
       </section>

@@ -38,11 +38,11 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
 
   return (
     <div className="phone-page load-details-screen load-details-v2 phase2-load-details">
-      <header className="docos-page-hero">
+      <header className="docos-page-hero docos-page-hero-compact freightlink-load-hero">
         <span className="docos-page-kicker">FREIGHTLINK · LOAD</span>
         <div className="docos-page-title-row">
           <div>
-            <h2>{load.id}</h2>
+            <h2>{load.loadNumber || load.id}</h2>
             <p>{pickup.name} → {delivery.name}</p>
           </div>
           <span className={`load-detail-v2-status ${isAvailable ? 'available' : ''}`}>{statusLabel}</span>
@@ -58,7 +58,7 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
           </div>
           <div className="load-detail-metric-strip">
             <div><span>RATE</span><strong>${load.rate}</strong></div>
-            <div><span>MILES</span><strong>{formatMiles(load.listedMiles)}</strong></div>
+            <div><span>LOAD MILES</span><strong>{formatMiles(load.listedMiles)}</strong></div>
             {Number.isFinite(rpm) && <div><span>RATE / MI</span><strong>${rpm.toFixed(2)}</strong></div>}
             <div><span>SCHEDULE</span><strong>{sameDay ? 'SAME DAY' : 'MULTI-DAY'}</strong></div>
           </div>
@@ -67,10 +67,12 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
         {assignedDriver && (
           <section className="docos-section">
             <div className="docos-section-heading"><span>DRIVER ASSIGNMENT</span></div>
-            <div className="docos-panel carrier-driver-row-v2">
+            <div className="freightlink-driver-assignment-row">
               <span className="driver-avatar-v2" aria-hidden="true">{(assignedDriver.fullName || assignedDriver.name || 'D').charAt(0)}</span>
-              <div><strong>{assignedDriver.fullName || assignedDriver.name}</strong><small>{load.status === 'queued' ? `Queue #${load.queuePosition ?? '—'}` : 'Active assignment'}</small></div>
-              <span className="docos-status-text">{load.status === 'queued' ? 'PLANNED' : 'ASSIGNED'}</span>
+              <div><strong>{assignedDriver.fullName || assignedDriver.name}</strong><small>{assignedDriver.equipment?.label || assignedDriver.trailerType || "53' Dry Van"}</small></div>
+              {load.status === 'assigned' && load.tripStatus === 'assigned' ? (
+                <button type="button" onClick={onPlanRoute}>PLAN TRIP</button>
+              ) : <span className="docos-status-text">{load.status === 'queued' ? 'PLANNED' : 'ASSIGNED'}</span>}
             </div>
           </section>
         )}
@@ -85,9 +87,7 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
             </>
           ) : load.status === 'queued' && assignedDriver ? (
             <button type="button" className="docos-secondary-action" onClick={onBack}>BACK TO FREIGHTLINK</button>
-          ) : load.status === 'assigned' && load.assignedDriverId && load.tripStatus === 'assigned' ? (
-            <button type="button" className="docos-primary-action" onClick={onPlanRoute}>PLAN TRIP</button>
-          ) : load.assignedDriverId && ['en-route-pickup', 'at-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'loaded', 'en-route-delivery', 'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'].includes(load.tripStatus) ? (
+          ) : load.status === 'assigned' && load.assignedDriverId && load.tripStatus === 'assigned' ? null : load.assignedDriverId && ['en-route-pickup', 'at-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'loaded', 'en-route-delivery', 'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'].includes(load.tripStatus) ? (
             <button type="button" className="docos-secondary-action" onClick={onBack}>ACTIVE TRIP · BACK TO FREIGHTLINK</button>
           ) : null}
         </div>
