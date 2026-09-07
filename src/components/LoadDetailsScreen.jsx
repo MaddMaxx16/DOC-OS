@@ -87,7 +87,7 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
             </>
           ) : load.status === 'queued' && assignedDriver ? (
             <button type="button" className="docos-secondary-action" onClick={onBack}>BACK TO FREIGHTLINK</button>
-          ) : load.status === 'assigned' && load.assignedDriverId && load.tripStatus === 'assigned' ? null : load.assignedDriverId && ['en-route-pickup', 'at-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'loaded', 'en-route-delivery', 'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'].includes(load.tripStatus) ? (
+          ) : load.status === 'assigned' && load.assignedDriverId && load.tripStatus === 'assigned' ? null : load.assignedDriverId && ['en-route-pickup', 'at-pickup', 'checking-in-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'loaded', 'en-route-delivery', 'at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'].includes(load.tripStatus) ? (
             <button type="button" className="docos-secondary-action" onClick={onBack}>ACTIVE TRIP · BACK TO FREIGHTLINK</button>
           ) : null}
         </div>

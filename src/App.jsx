@@ -4,7 +4,7 @@ import seedLoads from './data/loads.js'
 import seedCarriers from './data/carriers.js'
 import seedDrivers from './data/drivers.js'
 import mapLocations from './data/mapLocations.js'
-import { DELIVERY_UNLOAD_DURATION_MINUTES, PICKUP_LOADING_MINUTES } from './data/pickupConfig.js'
+import { DELIVERY_UNLOAD_DURATION_MINUTES, PICKUP_CHECKIN_MINUTES, PICKUP_LOADING_MINUTES, getPickupDockWaitMinutes } from './data/pickupConfig.js'
 import { logDocOsState } from './utils/debugLogger.js'
 import { getMarcusPanelModel } from './utils/driverOperationalState.js'
 import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
@@ -167,7 +167,14 @@ function App() {
     const savedNow = (saved.gameTime?.gameDayIndex ?? 0) * 1440 + (saved.gameTime?.totalMinutesOfDay ?? 420)
     hydratedLoads = hydratedLoads.map((load) => {
       if (load.tripStatus === 'at-delivery' && !Number.isFinite(load.deliveryArrivalGameMinute)) return { ...load, deliveryArrivalGameMinute: savedNow }
-      if (load.tripStatus === 'waiting-at-pickup' && !Number.isFinite(load.pickupArrivalGameMinute)) return { ...load, pickupArrivalGameMinute: savedNow }
+      if (load.tripStatus === 'waiting-at-pickup') {
+        const pickupArrivalGameMinute = Number.isFinite(load.pickupArrivalGameMinute) ? load.pickupArrivalGameMinute : savedNow
+        const pickupCheckInGameMinute = Number.isFinite(load.pickupCheckInGameMinute) ? load.pickupCheckInGameMinute : savedNow
+        // AP1 normalizes legacy/AP test saves to the current dock-wait contract.
+        // Do not preserve an old excessive ready time after the wait rules change.
+        const pickupDockReadyGameMinute = pickupCheckInGameMinute + getPickupDockWaitMinutes(load, pickupCheckInGameMinute)
+        return { ...load, pickupArrivalGameMinute, pickupCheckInGameMinute, pickupDockReadyGameMinute }
+      }
       return load
     })
     let hydratedDrivers = reconcileActiveCarrierDrivers(saved.drivers ?? [], hydratedCarriers)
@@ -559,7 +566,24 @@ function App() {
     // Advance operational pickup phases from the authoritative game clock.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoads((current) => current.map((load) => {
-      if (load.tripStatus === 'at-pickup') return { ...load, tripStatus: 'waiting-at-pickup', pickupArrivalGameMinute: now }
+      if (load.tripStatus === 'at-pickup') return {
+        ...load,
+        tripStatus: 'checking-in-pickup',
+        pickupArrivalGameMinute: Number.isFinite(load.pickupArrivalGameMinute) ? load.pickupArrivalGameMinute : now,
+        pickupCheckInStartGameMinute: now,
+      }
+      if (load.tripStatus === 'checking-in-pickup' && Number.isFinite(load.pickupCheckInStartGameMinute) && now - load.pickupCheckInStartGameMinute >= PICKUP_CHECKIN_MINUTES) {
+        const pickupCheckInGameMinute = now
+        return {
+          ...load,
+          tripStatus: 'waiting-at-pickup',
+          pickupCheckInGameMinute,
+          pickupDockReadyGameMinute: pickupCheckInGameMinute + getPickupDockWaitMinutes(load, pickupCheckInGameMinute),
+        }
+      }
+      if (load.tripStatus === 'waiting-at-pickup' && Number.isFinite(load.pickupDockReadyGameMinute) && now >= load.pickupDockReadyGameMinute) {
+        return { ...load, tripStatus: 'checked-in-pickup' }
+      }
       if (load.tripStatus === 'loading-at-pickup' && now - load.loadingStartGameMinute >= PICKUP_LOADING_MINUTES) return { ...load, tripStatus: 'loaded', deliveryPlanningStatus: null, plannedLoadedRouteGeometry: null, plannedLoadedMiles: null, plannedLoadedDriveTimeMinutes: null, selectedLoadedRouteId: null }
       if (load.tripStatus === 'checked-in-delivery') return { ...load, tripStatus: 'unloading-delivery', deliveryUnloadStartGameMinute: now }
       if (load.tripStatus === 'unloading-delivery' && now - load.deliveryUnloadStartGameMinute >= DELIVERY_UNLOAD_DURATION_MINUTES) return { ...load, tripStatus: 'awaiting-pod', pod: { status: 'complete', receivedGameMinute: now, viewedGameMinute: null, signedBy: 'Jordan Rivera', piecesExpected: 12, piecesReceived: 12, damage: 'None', verification: { signature: false, pieceCount: false, damage: false, deliveryInfo: false }, verified: false, verifiedGameMinute: null } }

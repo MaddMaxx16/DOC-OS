@@ -207,3 +207,10 @@ Adds heavy/standard/fragile freight placement rules, recoverable trailer rearran
 
 ## Master AO — 2026-09-07
 Branched from AN. Adds a pre-loading briefing/fade. First loading challenge in the app session receives the full 2-second rule card; subsequent challenges receive a short title sting. The dock timer and pallet interaction remain paused until the briefing clears. Puzzle and load-state rules are unchanged.
+
+
+## Master AP — Automated Pickup Facility Cycle
+Pickup Operations V1 complete: Marcus automatically checks in, facility dock waiting is appointment-aware, and DOC OS alerts the player only when loading is ready. AO loading puzzle remains unchanged.
+
+## Master AP1 — Pickup Dock-Wait Pacing Hotfix
+Test hotfix on AP. Caps normal early/on-time dock waits at 15/12 game minutes, keeps a 35-minute late penalty, repairs excessive in-progress AP waits on hydration, and changes the map pill to show remaining dock ETA. Pickup lifecycle behavior otherwise remains AP.

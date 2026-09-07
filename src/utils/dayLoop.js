@@ -21,6 +21,7 @@ const ACTIVE_TRIP_STATUSES = new Set([
   'assigned',
   'en-route-pickup',
   'at-pickup',
+  'checking-in-pickup',
   'waiting-at-pickup',
   'checked-in-pickup',
   'loading-at-pickup',

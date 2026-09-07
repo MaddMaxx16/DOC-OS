@@ -412,3 +412,10 @@ The pickup loading challenge is a short player-skill puzzle. Heavy freight belon
 
 ## Loading Challenge entry contract — Master AO
 The loading puzzle begins with an instructional beat before live play. On the first loading challenge of the app session, show HEAVY -> FRONT, STANDARD -> CENTER, FRAGILE -> REAR for approximately two seconds and fade into the board. Later challenges use a short LOADING CHALLENGE sting. The dock timer must never run and freight must not be draggable until the entry overlay has completely cleared.
+
+
+## Master AP — Automated Pickup Facility Cycle
+Pickup Operations V1 complete: Marcus automatically checks in, facility dock waiting is appointment-aware, and DOC OS alerts the player only when loading is ready. AO loading puzzle remains unchanged.
+
+## Master AP1 — Pickup Dock-Wait Pacing Rule
+Routine pickup waiting must create background operational texture, not dead gameplay. Early arrivals use a 15-minute facility wait, in-window arrivals use 12 minutes, and late arrivals use 35 minutes. An in-progress saved wait is normalized to the current timing contract when hydrated. The map status pill displays remaining dock ETA rather than elapsed waiting time.
