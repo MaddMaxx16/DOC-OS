@@ -435,3 +435,12 @@ Normal delivery facility lifecycle:
 - The dock-ready alert navigates to the delivery facility but does not start unloading.
 - `BEGIN UNLOADING` remains an explicit facility action. In AQ it starts the existing temporary timed unload behavior; a dedicated unloading/verification gameplay system will replace that placeholder later.
 - Pickup and delivery share an interaction language, but their later gameplay consequences may differ.
+
+## Master AR — Delivery Gameplay Identity
+Delivery Operations V1 uses unload sequencing / space clearing as its core physical minigame. The trailer layout is inherited from pickup. Rear-most freight is accessible; blocked receiver-requested pallets require temporary staging. Delivery gameplay is therefore extraction/order planning rather than a second loading puzzle or a receiver classification quiz.
+
+## Unload Sequencing Entry Contract — Master AR1
+The first unload sequencing challenge in an app session must teach the loop before live play: receiver-requested freight is delivered in order; only rear-accessible trailer freight can move; two staging spaces clear blockers; requested freight goes to the receiver. The dock timer and interactions remain paused until the player dismisses the first-run briefing. Accessible pallets and staging spaces receive temporary first-move emphasis. Later unload challenges use a short title sting and enter live play automatically. AR gameplay rules and freight truth are unchanged.
+
+## Delivery Unload Planning — AR2
+Unload Sequencing exposes a short planning window: the current receiver request plus the next two projected requests. The purpose is to make staging a deliberate logistics decision. The player should use staging as temporary parking to clear blockers while considering which freight will be needed next. The planning window updates from the current trailer/staging state and does not alter the underlying freight truth or delivery lifecycle.

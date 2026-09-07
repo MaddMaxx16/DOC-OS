@@ -224,3 +224,16 @@ Built from Master AP1.
 - DOC OS surfaces a `DOCK READY` alert only when player attention is required.
 - Tapping the delivery facility at dock-ready exposes `BEGIN UNLOADING`; this explicit action starts the existing temporary 8-game-minute unload flow.
 - No unloading puzzle or freight verification logic is added in AQ; those remain Delivery Operations follow-up work.
+
+## Master AR — Unload Sequencing / Space Clearing V1
+Built from Master AQ. Replaces passive delivery unloading with a 45-second spatial logistics puzzle using the actual pickup trailer layout. The receiver requests freight in sequence; the player clears blocking pallets into two staging spaces and sends only requested freight to the dock. Extra moves/rejected receiver attempts add handling delay. Pickup-created shipment truth remains authoritative.
+
+## Master AR1 — Unload Sequencing Onboarding Polish
+Built from Master AR. Preserves Unload Sequencing / Space Clearing V1 gameplay and adds a first-run instructional briefing, paused timer until dismissal, trailer → staging → receiver flow cue, first-move highlights for accessible pallets and staging spaces, and a short repeat-play title sting.
+
+## AR2 — Unload Planning Visibility
+- Built from AR1 unload sequencing onboarding polish.
+- Adds current + next two receiver-request visibility for staging strategy.
+- Updates onboarding/hint copy to teach forward planning.
+- Gameplay rules and delivery lifecycle remain unchanged.
+- Status: test build pending device approval.

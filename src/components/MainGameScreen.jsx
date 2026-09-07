@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import GameMap from './GameMap.jsx'
 import LoadingChallenge from './LoadingChallenge.jsx'
+import UnloadSequencingChallenge from './UnloadSequencingChallenge.jsx'
 import PhoneOverlay from './PhoneOverlay.jsx'
 import StatusBar from './StatusBar.jsx'
 import OperationsBar from './OperationsBar.jsx'
@@ -196,6 +197,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [operationsOpen, setOperationsOpen] = useState(false)
   const [endDayOpen, setEndDayOpen] = useState(false)
   const [loadingChallengeLoadId, setLoadingChallengeLoadId] = useState(null)
+  const [unloadSequenceLoadId, setUnloadSequenceLoadId] = useState(null)
   const [driverFocusRequest, setDriverFocusRequest] = useState(0)
   const [facilityFocusRequest, setFacilityFocusRequest] = useState(0)
   const [facilityFocusRole, setFacilityFocusRole] = useState(null)
@@ -621,7 +623,11 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     } else if (actionType === 'PLAN_DELIVERY_TRIP' && load.tripStatus === 'loaded') startDeliveryPlanning(loadId)
     else if (actionType === 'DISPATCH' && load.tripStatus === 'loaded' && load.deliveryPlanningStatus === 'route-ready' && load.plannedLoadedRouteGeometry) {
       setRuntimeProgress(0); setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'en-route-delivery', deliveryDepartureGameMinute: now } : item))
-    } else if (actionType === 'BEGIN_UNLOADING' && load.tripStatus === 'checked-in-delivery') setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'unloading-delivery', deliveryUnloadStartGameMinute: now } : item))
+    } else if (actionType === 'BEGIN_UNLOADING' && load.tripStatus === 'checked-in-delivery') {
+      pauseClockForModal()
+      setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'unloading-delivery', deliveryUnloadStartGameMinute: now } : item))
+      setUnloadSequenceLoadId(loadId)
+    }
     else if (actionType === 'BEGIN_LOADING' && load.tripStatus === 'checked-in-pickup') {
       pauseClockForModal()
       setLoadingChallengeLoadId(loadId)
@@ -661,6 +667,33 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       return { ...current, gameDayIndex: Math.floor(absolute / 1440), totalMinutesOfDay: absolute % 1440 }
     })
     setLoadingChallengeLoadId(null)
+    restoreClockAfterModal()
+  }
+
+  const completeUnloadSequence = (result) => {
+    const loadId = unloadSequenceLoadId
+    if (!loadId || !result) return
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const serviceMinutes = 8 + (result.unloadingDelayMinutes || 0)
+    const completeMinute = now + serviceMinutes
+    const damageLabel = result.damagedPallets > 0 ? `${result.damagedPallets} pallet${result.damagedPallets === 1 ? '' : 's'} noted` : 'None'
+    setLoads((current) => current.map((item) => item.id === loadId ? {
+      ...item,
+      tripStatus: 'awaiting-pod',
+      deliveryUnloadCompleteGameMinute: completeMinute,
+      facilityOps: { ...(item.facilityOps || {}), delivery: { ...result, completedGameMinute: completeMinute } },
+      pod: {
+        status: 'complete', receivedGameMinute: completeMinute, viewedGameMinute: null, signedBy: 'Jordan Rivera',
+        piecesExpected: result.expectedPallets, piecesReceived: result.actualReceivedPallets,
+        damage: damageLabel, verification: { signature: false, pieceCount: false, damage: false, deliveryInfo: false },
+        verified: false, verifiedGameMinute: null,
+      },
+    } : item))
+    setGameTime?.((current) => {
+      const absolute = current.gameDayIndex * 1440 + current.totalMinutesOfDay + serviceMinutes
+      return { ...current, gameDayIndex: Math.floor(absolute / 1440), totalMinutesOfDay: absolute % 1440 }
+    })
+    setUnloadSequenceLoadId(null)
     restoreClockAfterModal()
   }
 
@@ -882,6 +915,19 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             load={loads.find((item) => item.id === loadingChallengeLoadId)}
             onCancel={() => { setLoadingChallengeLoadId(null); restoreClockAfterModal() }}
             onComplete={completeLoadingChallenge}
+          />
+        )}
+
+        {unloadSequenceLoadId && (
+          <UnloadSequencingChallenge
+            load={loads.find((item) => item.id === unloadSequenceLoadId)}
+            onCancel={() => {
+              const loadId = unloadSequenceLoadId
+              setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'checked-in-delivery', deliveryUnloadStartGameMinute: null } : item))
+              setUnloadSequenceLoadId(null)
+              restoreClockAfterModal()
+            }}
+            onComplete={completeUnloadSequence}
           />
         )}
         <GameMap driverFocusRequest={driverFocusRequest} driverFocusId={driverFocusId} facilityFocusRequest={facilityFocusRequest} facilityFocusRole={facilityFocusRole} loads={loads} activeRouteGeometry={freightBrowseMode ? freightBrowseRouteGeometry : activeRouteGeometry} routeFocusMode={freightBrowseMode && freightBrowseRouteGeometry ? 'freight-browse' : planningMode || deliveryPlanning ? 'planning' : null} routeReviewLoad={planningLoad || deliveryPlanningLoad} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgress={runtimeProgress} runtimeRoute={assignedLoad?.tripStatus === 'en-route-delivery' ? assignedLoad.plannedLoadedRouteGeometry : assignedLoad?.plannedDeadheadRouteGeometry} assignedLoad={assignedLoad} evaluationLoad={null} isDriverFitEvaluation={false} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} tutorialEnabled={tutorialEnabled} tutorialDriverAction={tutorialDriverAction} freightBrowseMode={freightBrowseMode} freightBrowseLoads={freightBrowseLoads} freightBrowseSelectedLoadId={freightBrowseLoadId} onFreightBrowseSelect={selectFreightBrowseLoad} />
