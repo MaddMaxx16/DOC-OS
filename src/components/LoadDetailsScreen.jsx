@@ -32,6 +32,8 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
   const isAvailable = load.status === 'available'
   const isAccepted = load.status === 'accepted' && !load.assignedDriverId
   const assignedDriver = drivers.find((driver) => driver.id === load.assignedDriverId)
+  const candidateDriver = drivers.find((driver) => driver.id === load.candidateDriverId)
+  const eligibleDrivers = drivers.filter((driver) => driver.carrierId)
   const sameDay = load.pickupDayIndex === load.deliveryDayIndex
   const statusLabel = formatStatus(load.status)
   const rpm = Number.isFinite(load.listedMiles) && load.listedMiles > 0 ? load.rate / load.listedMiles : null
@@ -64,6 +66,31 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
           </div>
         </section>
 
+        {isAvailable && (
+          <section className="docos-section freightlink-driver-coverage">
+            <div className="docos-section-heading"><span>DRIVER COVERAGE</span></div>
+            <div className={`freightlink-driver-coverage-row ${eligibleDrivers.length ? 'ready' : 'none'}`}>
+              <div><strong>{eligibleDrivers.length ? `${eligibleDrivers.length} DRIVER${eligibleDrivers.length === 1 ? '' : 'S'} ON ROSTER` : 'NO DRIVER AVAILABLE'}</strong><small>Check driver fit before committing to this load.</small></div>
+              <span>{eligibleDrivers.length ? 'CHECK FIT' : 'BLOCKED'}</span>
+            </div>
+          </section>
+        )}
+
+
+        {isAvailable && candidateDriver && load.driverFitVerified && (
+          <section className="docos-section freightlink-commit-review">
+            <div className="docos-section-heading"><span>FIT REVIEW</span><small>LOAD NOT ACCEPTED</small></div>
+            <div className="freightlink-driver-assignment-row candidate">
+              <span className="driver-avatar-v2" aria-hidden="true">{(candidateDriver.fullName || candidateDriver.name || 'D').charAt(0)}</span>
+              <div>
+                <strong>{candidateDriver.fullName || candidateDriver.name}</strong>
+                <small>{Number.isFinite(load.assignmentProjection?.deadheadMiles) ? `${load.assignmentProjection.deadheadMiles.toFixed(1)} mi deadhead · ` : ''}{load.assignmentProjection?.status || 'FIT REVIEWED'}</small>
+              </div>
+              <span className="docos-status-text">READY</span>
+            </div>
+          </section>
+        )}
+
         {assignedDriver && (
           <section className="docos-section">
             <div className="docos-section-heading"><span>DRIVER ASSIGNMENT</span></div>
@@ -78,8 +105,13 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
         )}
 
         <div className="docos-sticky-actions load-actions-phase2">
-          {isAvailable ? (
-            <button type="button" className="docos-primary-action" onClick={onAccept}>ACCEPT LOAD</button>
+          {isAvailable && candidateDriver && load.driverFitVerified ? (
+            <>
+              <button type="button" className="docos-primary-action" onClick={onAccept}>ACCEPT &amp; ASSIGN {candidateDriver.name?.toUpperCase() || 'DRIVER'}</button>
+              <button type="button" className="docos-secondary-action" onClick={onCheckDriverFit}>CHANGE DRIVER</button>
+            </>
+          ) : isAvailable ? (
+            <button type="button" className="docos-primary-action" disabled={!eligibleDrivers.length} onClick={onCheckDriverFit}>CHECK DRIVER FIT</button>
           ) : isAccepted ? (
             <>
               <button type="button" className="docos-primary-action" onClick={onCheckDriverFit}>SELECT DRIVER</button>

@@ -83,11 +83,8 @@ export default function LoadingChallenge({ load, onComplete, onCancel }) {
     return () => window.clearInterval(timer)
   }, [finished, briefing.active])
 
-  // Filling the trailer incorrectly does not end the puzzle. The player gets the
-  // remaining dock time to rearrange freight and recover the load.
-  useEffect(() => {
-    if (allCorrect && !finished && !briefing.active) setFinished(true)
-  }, [allCorrect, finished, briefing.active])
+  // AU: completion is player-owned. Filling the trailer never auto-locks the load;
+  // the player may use remaining dock time to inspect/rearrange before SECURE LOAD.
 
   useEffect(() => {
     if (!dragging) return undefined
@@ -107,8 +104,15 @@ export default function LoadingChallenge({ load, onComplete, onCancel }) {
         setSlotAssignments((current) => {
           const sourceSlot = Number.isInteger(active.sourceSlot) ? active.sourceSlot : null
           const targetOccupant = current[slotIndex]
-          if (targetOccupant && slotIndex !== sourceSlot) return current
           const next = [...current]
+          if (sourceSlot !== null && targetOccupant && slotIndex !== sourceSlot) {
+            // AU: a full trailer is still editable. Dragging pallet A onto occupied
+            // slot B swaps them so a late-caught placement error can be repaired.
+            next[sourceSlot] = targetOccupant
+            next[slotIndex] = active.palletId
+            return next
+          }
+          if (targetOccupant && slotIndex !== sourceSlot) return current
           if (sourceSlot !== null) next[sourceSlot] = null
           next[slotIndex] = active.palletId
           return next
@@ -321,6 +325,7 @@ export default function LoadingChallenge({ load, onComplete, onCancel }) {
 
         <footer className="loading-challenge-actions">
           {!finished && <button type="button" className="secondary" onClick={onCancel}>BACK TO MAP</button>}
+          {!finished && loadedIds.length === PALLET_COUNT && <button type="button" className="primary" onClick={() => setFinished(true)}>SECURE LOAD · {seconds}s LEFT</button>}
           {finished && <button type="button" className="primary" onClick={() => onComplete?.({
             expectedPallets: PALLET_COUNT,
             loadedPallets: loadedIds.length,

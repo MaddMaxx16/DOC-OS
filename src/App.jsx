@@ -4,7 +4,7 @@ import seedLoads from './data/loads.js'
 import seedCarriers from './data/carriers.js'
 import seedDrivers from './data/drivers.js'
 import mapLocations from './data/mapLocations.js'
-import { DELIVERY_CHECKIN_MINUTES, PICKUP_CHECKIN_MINUTES, PICKUP_LOADING_MINUTES, getDeliveryDockWaitMinutes, getPickupDockWaitMinutes } from './data/pickupConfig.js'
+import { DELIVERY_CHECKIN_MINUTES, PICKUP_CHECKIN_MINUTES, getDeliveryDockWaitMinutes, getPickupDockWaitMinutes } from './data/pickupConfig.js'
 import { logDocOsState } from './utils/debugLogger.js'
 import { getMarcusPanelModel } from './utils/driverOperationalState.js'
 import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
@@ -280,6 +280,24 @@ function App() {
       setSaveSlots(getSaveSlots())
     }, 700)
     return () => clearTimeout(timer)
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, tutorialState, dayLoop, playerProgression])
+
+  // AU3 mobile persistence hardening: keep the normal debounce for routine
+  // updates, but flush the current snapshot immediately when iOS backgrounds
+  // or unloads the web view. This closes the common sub-second lifecycle gap.
+  useEffect(() => {
+    if (!hydrated || !activeSaveSlotId) return undefined
+    const flushSave = () => {
+      const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
+      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, tutorialState, dayLoop, playerProgression }, activeSaveSlotId)
+    }
+    const onVisibility = () => { if (document.visibilityState === 'hidden') flushSave() }
+    window.addEventListener('pagehide', flushSave)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('pagehide', flushSave)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, tutorialState, dayLoop, playerProgression])
 
   // Market appointments are seeded directly; operation-day/tutorial gates do not rewrite them.
@@ -590,7 +608,6 @@ function App() {
       if (load.tripStatus === 'waiting-at-pickup' && Number.isFinite(load.pickupDockReadyGameMinute) && now >= load.pickupDockReadyGameMinute) {
         return { ...load, tripStatus: 'checked-in-pickup' }
       }
-      if (load.tripStatus === 'loading-at-pickup' && now - load.loadingStartGameMinute >= PICKUP_LOADING_MINUTES) return { ...load, tripStatus: 'loaded', deliveryPlanningStatus: null, plannedLoadedRouteGeometry: null, plannedLoadedMiles: null, plannedLoadedDriveTimeMinutes: null, selectedLoadedRouteId: null }
       if (load.tripStatus === 'at-delivery') return {
         ...load,
         tripStatus: 'checking-in-delivery',

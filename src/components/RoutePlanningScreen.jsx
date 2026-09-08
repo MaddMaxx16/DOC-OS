@@ -75,7 +75,8 @@ function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedR
             {status === 'error' && <><p>Route calculation unavailable.</p><button type="button" className="docos-secondary-action" onClick={calculate}>RETRY</button></>}
             {status === 'success' && (
               <>
-                <div className="route-option-v3-title"><strong>Recommended Route</strong><span>SELECTED</span></div>
+                <div className="route-option-v3-title"><strong>{plannedRoute.source === 'fallback' ? 'Fallback Route' : 'Recommended Route'}</strong><span>SELECTED</span></div>
+                {plannedRoute.source === 'fallback' && <p>Routing service unavailable. Using a safe estimated route so operations can continue.</p>}
                 <div className="docos-info-grid docos-info-grid-flat">
                   <div className="docos-info-cell"><span>DISTANCE</span><strong>{plannedRoute.distanceMiles.toFixed(1)} mi</strong></div>
                   <div className="docos-info-cell"><span>DRIVE TIME</span><strong>{plannedRoute.durationMinutes} min</strong></div>

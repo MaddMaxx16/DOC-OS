@@ -167,9 +167,8 @@ export default function UnloadSequencingChallenge({ load, onComplete, onCancel }
     return () => window.clearInterval(timer)
   }, [briefing.active, finished])
 
-  useEffect(() => {
-    if (!finished && delivered.length >= loadedCount) setFinished(true)
-  }, [delivered.length, loadedCount, finished])
+  // AU: clearing the final pallet unlocks COMPLETE UNLOAD but does not
+  // auto-finish. The player owns the stop and remaining dock time is recorded.
 
   const sourceFor = (id) => {
     const trailerIndex = slots.indexOf(id)
@@ -286,13 +285,13 @@ export default function UnloadSequencingChallenge({ load, onComplete, onCancel }
         </> : <>
           <div className={`unload-sequence-result ${perfect ? 'perfect' : completed ? 'complete' : 'exception'}`}>
             <span>{completed ? 'TRAILER CLEARED' : 'DOCK TIME EXPIRED'}</span>
-            <strong>{completed ? (perfect ? 'CLEAN, EFFICIENT UNLOAD' : 'FREIGHT DELIVERED') : `${remaining} PALLET${remaining === 1 ? '' : 'S'} STILL ON DOCK`}</strong>
+            <strong>{completed ? (perfect ? 'CLEAN, EFFICIENT UNLOAD' : 'FREIGHT DELIVERED') : `${remaining} PALLET${remaining === 1 ? '' : 'S'} NOT CLEARED`}</strong>
             <p>{completed ? `${delivered.length} pallets delivered in ${moves} moves with ${seconds}s remaining.` : `${delivered.length}/${loadedCount} pallets cleared before time expired.`}{delayMinutes ? ` Handling adds ${delayMinutes} game minutes.` : ''}</p>
           </div>
           <div className="unload-result-grid"><div><span>EXPECTED</span><strong>{manifest.length}</strong></div><div><span>ARRIVED</span><strong>{loadedCount}</strong></div><div><span>MISSING</span><strong>{missingCount}</strong></div><div><span>MOVES</span><strong>{moves}</strong></div><div><span>REJECTED MOVES</span><strong>{wrongMoves}</strong></div><div><span>DELAY</span><strong>+{delayMinutes}m</strong></div></div>
         </>}
 
-        <footer className="unload-sequence-actions">{!finished ? <button type="button" className="secondary" onClick={onCancel}>BACK TO MAP</button> : <button type="button" className="primary" onClick={() => onComplete?.({ expectedPallets: manifest.length, actualReceivedPallets: loadedCount, missingPallets: missingCount, damagedPallets: manifest.filter((p) => p.loaded && p.damaged).length, deliveredPallets: delivered.length, moves, wrongMoves, secondsRemaining: seconds, unloadingDelayMinutes: delayMinutes, perfect, sequenceCompleted: completed, deliverySequence: delivered })}>CONFIRM UNLOAD</button>}</footer>
+        <footer className="unload-sequence-actions">{!finished ? <><button type="button" className="secondary" onClick={onCancel}>BACK TO MAP</button>{completed && <button type="button" className="primary" onClick={() => setFinished(true)}>COMPLETE UNLOAD · {seconds}s LEFT</button>}</> : <button type="button" className="primary" onClick={() => onComplete?.({ expectedPallets: manifest.length, actualReceivedPallets: loadedCount, missingPallets: missingCount, damagedPallets: manifest.filter((p) => p.loaded && p.damaged).length, deliveredPallets: delivered.length, moves, wrongMoves, secondsRemaining: seconds, unloadingDelayMinutes: delayMinutes, perfect, sequenceCompleted: completed, deliverySequence: delivered })}>CONFIRM UNLOAD</button>}</footer>
       </section>
     </div>
   )

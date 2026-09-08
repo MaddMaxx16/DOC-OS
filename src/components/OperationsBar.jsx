@@ -88,6 +88,7 @@ function OperationsBar({ selectedMarket, notificationCount = 0, notifications = 
                   >
                     <span className="operations-drawer-dot" aria-hidden="true" />
                     <div className="operations-drawer-copy">
+                      <span className="operations-drawer-source">{notification.action === 'messages' ? 'DRIVER COMMS' : ['pickup', 'delivery'].includes(notification.action) ? 'FACILITY OPS' : notification.id?.startsWith('appt-') ? 'APPOINTMENT' : notification.action === 'documents' ? 'DOCUMENTS' : 'DOC OS'}</span>
                       <strong>{notification.title}</strong>
                       {notification.detail ? <small>{notification.detail}</small> : null}
                     </div>

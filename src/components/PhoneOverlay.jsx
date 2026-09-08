@@ -23,7 +23,7 @@ import { formatTime } from '../utils/gameTime.js'
 
 function getReceivable(loads, carriers, workflows, id) { return getReceivables(loads, carriers, workflows).find((item) => item.loadId === id) }
 
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, carrierApplicationsById = {}, onApplyCarrier, onBeginCarrierWait, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, onPlanTrip, onOpenFreightMap, tutorialEnabled = false, initialScreen = 'home', initialLoadId = null, initialDriverId = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, setLedgerWorkflowByLoadId, onResetGame, onClose }) {
+function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, carrierApplicationsById = {}, onApplyCarrier, onBeginCarrierWait, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onDispatchDriverFromMessage, onPlanDeliveryRoute, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, onAcceptCandidateAssignment, onPlanTrip, onOpenFreightMap, tutorialEnabled = false, initialScreen = 'home', initialLoadId = null, initialDriverId = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, setLedgerWorkflowByLoadId, onResetGame, onClose }) {
   const [screen, setScreen] = useState(initialScreen)
   const [documentsTab, setDocumentsTab] = useState('pending')
   const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
@@ -153,6 +153,9 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           onBack={() => setScreen('messages')}
           onRead={onReadDriverMessage}
           onSendLoadUpdate={(loadId) => onSendDriverLoadUpdate?.(loadId, selectedDriverId || 'marcus')}
+          onSendQuickReply={(body) => onSendDriverQuickReply?.(body, selectedDriverId || 'marcus')}
+          onDispatchLoad={(loadId, phase) => onDispatchDriverFromMessage?.(loadId, selectedDriverId || 'marcus', phase)}
+          onPlanDeliveryRoute={(loadId) => onPlanDeliveryRoute?.(loadId, selectedDriverId || 'marcus')}
         />
       ) : screen === 'email' ? (
         <EmailScreen messages={emailMessages} carriers={carriers} tutorialTarget={visualTutorialTarget} currentGameMinute={gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay} onBack={() => setScreen('home')} onOpenMessage={(message) => { const isCurrentTutorialEmail = tutorialTarget === `email:${message.id}`; setActiveTutorialEmailId(isCurrentTutorialEmail ? message.id : null); setEmailMessages?.((current) => current.map((item) => item.id === message.id ? { ...item, read: true } : item)); setSelectedEmailId(message.id); setScreen('emailDetail') }} />
@@ -194,15 +197,8 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
         >
           {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} tutorialEnabled={tutorialEnabled} tutorialLoadId={tutorialLoadId} onOpenMarketMap={onOpenFreightMap} onSelectLoad={(loadId) => { setSelectedLoadId(loadId); setScreen('loadDetails') }} />}
           {screen === 'loadDetails' && <LoadDetailsScreen loads={loads} drivers={drivers} loadId={selectedLoadId} onCheckDriverFit={() => setScreen('driverFit')} onAccept={() => {
-            setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? {
-              ...load,
-              status: 'accepted',
-              tripStatus: 'accepted',
-              planningStatus: null,
-              deliveryPlanningStatus: null,
-              driverFitVerified: false,
-              candidateDriverId: null,
-            } : load))
+            const accepted = onAcceptCandidateAssignment?.(selectedLoadId)
+            if (accepted !== false) setScreen('loadDetails')
           }} onPlanRoute={() => { const load = loads.find((item) => item.id === selectedLoadId); if (load?.assignedDriverId && onPlanTrip) onPlanTrip(selectedLoadId, load.assignedDriverId); else setScreen('routePlanning') }} onBack={() => setScreen('loadBoard')} />}
           {screen === 'driverFit' && <DriverFitScreen load={loads.find((load) => load.id === selectedLoadId)} loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} candidateDriverId={loads.find((load) => load.id === selectedLoadId)?.candidateDriverId} onEvaluate={(driverId, fit) => {
             onEvaluateFit(selectedLoadId, driverId, fit)

@@ -266,3 +266,38 @@ Built from Master AT.
 - The pre-existing pause state is preserved so completing the loading/unloading workflow restores the correct clock state.
 - No loading/unloading gameplay, shipment, POD, routing, queue, or scoring rules changed.
 - Status: test build pending device approval.
+
+## AT2 — Route Planning Recovery
+- Adds a hard route-resolution ceiling so external routing cannot deadlock progression.
+- Live ORS routing remains preferred.
+- Timeout/error/missing-key cases resolve to a deterministic fallback route.
+- Pickup and delivery planning both receive the same protection.
+- Fallback routes are visibly labeled in planning UI.
+
+## MASTER AU — Interaction & Puzzle Polish
+- Built from AT2.
+- Player-owned pickup/delivery puzzle completion.
+- Full-trailer pickup pallet swapping before secure.
+- Clean-operation time efficiency XP.
+- Lightweight dispatcher quick replies.
+- Notification source hierarchy and unload timeout wording polish.
+
+
+## Master AU1 — Map & Communication Language
+- Brighter purple notification language.
+- Driver Fit before load commitment.
+- Quiet map: no driver card, wait progress ring, facility `!` attention.
+- Dock-ready no longer globally pauses.
+- Explicit message-driven dispatch.
+- Message threads auto-scroll to newest.
+
+
+## Master AU2 — Navigation & Operational Feedback
+- Built from AU1.
+- Restores compact en-route/arrival/check-in map feedback.
+- Makes delivery planning directly reachable from Alerts, Messages, and the Drivers drawer.
+- Strengthens one project-wide purple attention language.
+
+
+## AU3 — Day Integrity & Operational Cleanup
+Driver Fit is now review-only with explicit accept/assign commitment; appointment alerts are restricted to player-owned freight; legacy loading auto-completion is removed; mobile background saves flush immediately; idle return movement is smoothed; and active carrier yards are visible on the operations map.

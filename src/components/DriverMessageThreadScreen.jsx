@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import mapLocations from '../data/mapLocations.js'
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 
@@ -13,9 +13,10 @@ function loadRouteLabel(load) {
   return `${load.loadNumber || load.id} · ${pickup} → ${delivery}`
 }
 
-function DriverMessageThreadScreen({ driver, messages = [], activeLoads = [], onBack, onRead, onSendLoadUpdate }) {
+function DriverMessageThreadScreen({ driver, messages = [], activeLoads = [], onBack, onRead, onSendLoadUpdate, onSendQuickReply, onDispatchLoad, onPlanDeliveryRoute }) {
   const [selectedLoadId, setSelectedLoadId] = useState('')
   const [loadPickerOpen, setLoadPickerOpen] = useState(false)
+  const historyRef = useRef(null)
   const sorted = useMemo(() => [...messages].sort((a, b) => (a.receivedGameMinute || 0) - (b.receivedGameMinute || 0)), [messages])
 
   useEffect(() => {
@@ -24,7 +25,26 @@ function DriverMessageThreadScreen({ driver, messages = [], activeLoads = [], on
     })
   }, [sorted, onRead])
 
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const node = historyRef.current
+      if (node) node.scrollTop = node.scrollHeight
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [sorted.length])
+
   const selectedLoad = activeLoads.find((load) => load.id === selectedLoadId)
+  const latestInbound = [...sorted].reverse().find((message) => message.direction !== 'outbound')
+  const quickReplies = latestInbound ? ['Copy that.', 'Stand by — I’m on it.', 'Good work. I’ll send the next move.'] : []
+  const dispatchableLoad = activeLoads.find((load) =>
+    (load.tripStatus === 'assigned' && load.planningStatus === 'route-ready' && load.plannedDeadheadRouteGeometry)
+    || (load.tripStatus === 'loaded' && load.deliveryPlanningStatus === 'route-ready' && load.plannedLoadedRouteGeometry)
+  )
+  const plannableDeliveryLoad = activeLoads.find((load) => load.tripStatus === 'loaded' && load.deliveryPlanningStatus !== 'route-ready')
+  const dispatchPhase = dispatchableLoad?.tripStatus === 'loaded' ? 'delivery' : 'pickup'
+  const dispatchDestination = dispatchableLoad
+    ? mapLocations.find((location) => location.id === (dispatchPhase === 'delivery' ? dispatchableLoad.deliveryLocationId : dispatchableLoad.pickupLocationId))?.name
+    : null
 
   return (
     <div className="phone-page driver-thread-screen">
@@ -37,7 +57,7 @@ function DriverMessageThreadScreen({ driver, messages = [], activeLoads = [], on
         </div>
       </header>
 
-      <div className="driver-thread-history">
+      <div className="driver-thread-history" ref={historyRef}>
         {sorted.map((message) => (
           <div className={`driver-chat-row ${message.direction === 'outbound' ? 'outbound' : 'inbound'}`} key={message.id}>
             <div className="driver-chat-bubble">
@@ -49,6 +69,32 @@ function DriverMessageThreadScreen({ driver, messages = [], activeLoads = [], on
       </div>
 
       <div className="driver-thread-composer">
+        {plannableDeliveryLoad && (
+          <div className="driver-dispatch-message-action driver-plan-message-action">
+            <span>DELIVERY PLAN REQUIRED</span>
+            <strong>{plannableDeliveryLoad.loadNumber || plannableDeliveryLoad.id}</strong>
+            <small>Marcus is loaded and waiting for the delivery route.</small>
+            <button type="button" onClick={() => onPlanDeliveryRoute?.(plannableDeliveryLoad.id)}>
+              PLAN DELIVERY ROUTE
+            </button>
+          </div>
+        )}
+        {dispatchableLoad && (
+          <div className="driver-dispatch-message-action">
+            <span>READY TO DISPATCH</span>
+            <strong>{dispatchableLoad.loadNumber || dispatchableLoad.id}</strong>
+            <small>{dispatchPhase === 'delivery' ? 'Loaded route' : 'Pickup route'} ready · {dispatchDestination || 'next stop'}</small>
+            <button type="button" onClick={() => onDispatchLoad?.(dispatchableLoad.id, dispatchPhase)}>
+              SEND "ROUTE SENT" & DISPATCH
+            </button>
+          </div>
+        )}
+        {quickReplies.length > 0 && (
+          <div className="driver-quick-replies" aria-label="Quick replies">
+            <span>QUICK REPLY</span>
+            <div>{quickReplies.map((reply) => <button type="button" key={reply} onClick={() => onSendQuickReply?.(reply)}>{reply}</button>)}</div>
+          </div>
+        )}
         {loadPickerOpen && (
           <div className="driver-load-picker" role="dialog" aria-label="Choose active load">
             <div className="driver-load-picker-heading">

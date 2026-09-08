@@ -32,7 +32,7 @@ function DriverFitScreen({
   const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
   const candidates = useMemo(() => drivers.filter((driver) => driver.carrierId), [drivers])
   const [fits, setFits] = useState({})
-  const [selectedDriverId, setSelectedDriverId] = useState(null)
+  const [selectedDriverId, setSelectedDriverId] = useState(candidateDriverId || null)
 
   useEffect(() => {
     let active = true
@@ -81,7 +81,7 @@ function DriverFitScreen({
             <h2>Driver Select</h2>
             <p>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</p>
           </div>
-          <span className="docos-count-chip">{candidates.length} {candidates.length === 1 ? 'DRIVER' : 'DRIVERS'}</span>
+          <span className="docos-count-chip">FIT REVIEW · NOT ACCEPTED</span>
         </div>
       </header>
 
@@ -149,7 +149,7 @@ function DriverFitScreen({
             disabled={!selectedDriverId || !selectedFit}
             onClick={() => selectedDriverId && selectedFit && onEvaluate(selectedDriverId, selectedFit)}
           >
-            ASSIGN LOAD
+            USE THIS DRIVER
           </button>
         </div>
       </div>

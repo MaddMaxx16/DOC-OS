@@ -490,3 +490,41 @@ DEV parity contract:
 - Entering pickup `checked-in-pickup` or delivery `checked-in-delivery` means the facility is ready and DOC OS is waiting on an owned dispatcher decision; the authoritative game clock must pause immediately.
 - `BEGIN LOADING` / `BEGIN UNLOADING` inherits that pause and must not overwrite whether the player was already paused beforehand.
 - Workflow completion applies explicit service/delay minutes, then restores the player’s pre-decision pause state.
+
+## Routing progression safety — AT2
+Trip planning must never become a permanent progression blocker because an external routing request hangs or fails.
+
+Contract:
+`request live truck route -> live success OR bounded failure -> fallback route -> player can confirm plan`
+
+Live ORS truck routing remains authoritative when available. If unavailable, DOC OS uses a deterministic estimated fallback route so gameplay continues. Fallback routing must be clearly identified to the player and must not silently masquerade as live route data.
+
+## AU Interaction Contract
+- Timer creates pressure; the player owns successful completion.
+- A solved facility puzzle unlocks an explicit completion action rather than auto-ending.
+- Remaining real-time dock seconds may reward clean execution, but never cancel mistakes.
+- Pickup freight remains editable until SECURE LOAD; occupied trailer slots may be swapped.
+- Driver quick replies are conversational only and never mutate simulation state.
+- Operational alerts identify their source and remain navigation-only.
+
+
+## Master AU1 — Map & Communication Language
+- Brighter purple notification language.
+- Driver Fit before load commitment.
+- Quiet map: no driver card, wait progress ring, facility `!` attention.
+- Dock-ready no longer globally pauses.
+- Explicit message-driven dispatch.
+- Message threads auto-scroll to newest.
+
+
+## Master AU2 — Navigation & Operational Feedback
+- Map labels remain compact: `EN ROUTE`, `ARRIVED`, `CHECKING IN…`, and `WAITING FOR DOCK`; detailed status stays in the Drivers drawer.
+- Dock waiting uses a progress ring plus state label, never a minute-count banner.
+- Actionable alerts must navigate to the workflow that resolves them. A delivery-plan alert opens delivery planning directly.
+- Driver Messages may expose explicit operational commands. Loaded/no-route Marcus exposes `PLAN DELIVERY ROUTE`; route-ready Marcus exposes explicit route-sent dispatch.
+- Drivers drawer rows may become direct state-appropriate actions when the next workflow is unambiguous.
+- Purple attention tokens are the single badge/alert attention language across DOC OS.
+
+
+## AU3 — Day Integrity & Operational Cleanup
+Driver Fit is now review-only with explicit accept/assign commitment; appointment alerts are restricted to player-owned freight; legacy loading auto-completion is removed; mobile background saves flush immediately; idle return movement is smoothed; and active carrier yards are visible on the operations map.
