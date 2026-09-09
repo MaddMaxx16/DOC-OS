@@ -422,15 +422,15 @@
 .phone-page { width: 100%; height: 100%; box-sizing: border-box; }
 .phone-close-button { position: absolute; z-index: 3; top: 4px; right: 8px; border: 0; background: transparent; color: #b5b5ba; font-size: 24px; line-height: 1; cursor: pointer; }
 .phone-home-button { position: absolute; z-index: 3; bottom: 22px; left: 50%; width: 46px; height: 30px; padding: 0; border: 0; border-radius: 15px; background: #2A2E38; color: #f5f5f7; font-size: 20px; line-height: 1; transform: translateX(-50%); cursor: pointer; }
-.tutorial-target { border-color: #756D80 !important; outline: 3px solid #756D80; outline-offset: 3px; box-shadow: 0 0 0 5px rgba(117,109,128,.16), 0 0 18px rgba(117,109,128,.45); animation: tutorial-breathe 1.8s ease-in-out infinite; }
-.phone-button .phone-notification-badge { animation: tutorial-badge-bounce 1.8s ease-in-out infinite; }
-.phone-home-button.tutorial-target { background: #332A49; color: #fff; }
-@keyframes tutorial-breathe { 0%, 100% { box-shadow: 0 0 0 5px rgba(117,109,128,.16), 0 0 18px rgba(117,109,128,.45); } 50% { box-shadow: 0 0 0 6px rgba(117,109,128,.28), 0 0 24px rgba(117,109,128,.58); } }
-@media (prefers-reduced-motion: reduce) { .tutorial-target { animation: none; } }
-@keyframes tutorial-badge-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+.phone-button .phone-notification-badge {}
+
+
+@media (prefers-reduced-motion: reduce) {  }
+
 @media (prefers-reduced-motion: reduce) { .phone-button .phone-notification-badge { animation: none; } }
-.tutorial-note { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; margin: 8px 0; border-left: 2px solid #756D80; background: rgba(117,109,128,.08); color: #cbd5e1; font-size: 11px; text-align: left; }
-.tutorial-note strong { color: #A49BAE; font-size: 10px; letter-spacing: .08em; }
+
+
 
 .close-button {
   position: absolute;
@@ -654,10 +654,7 @@
   outline: none;
 }
 
-.load-card.freight-load-card.tutorial-target {
-  outline-width: 2px;
-  outline-offset: 2px;
-}
+
 
 .freight-load-topline {
   min-width: 0;
@@ -1512,17 +1509,10 @@
   text-align: center;
 }
 
-/* Keep the tutorial glow visually centered on compact v2 controls. */
-.app-icon-square.tutorial-target {
-  outline-width: 2px;
-  outline-offset: 2px;
-}
 
-.phone-close-button.tutorial-target,
-.phone-home-button.tutorial-target {
-  outline-width: 2px;
-  outline-offset: 2px;
-}
+
+
+
 
 @media (max-width: 600px) {
   .phone-overlay {
@@ -1544,10 +1534,7 @@
   }
 }
 
-/* --------------------------------------------------------------------------
-   Email Inbox v2
-   Compact, modern inbox rows that preserve DOC OS notification/tutorial logic.
-   -------------------------------------------------------------------------- */
+
 .email-inbox-screen {
   min-height: 100%;
   padding: 12px 10px 10px;
@@ -1734,15 +1721,7 @@
   opacity: .82;
 }
 
-.email-inbox-row.tutorial-target {
-  z-index: 1;
-  border-bottom-color: transparent;
-  border-radius: 9px;
-  outline-width: 2px;
-  outline-offset: -2px;
-  background: rgba(117,109,128,.055);
-  box-shadow: 0 0 0 3px rgba(117,109,128,.13), 0 0 14px rgba(117,109,128,.26);
-}
+
 
 .email-inbox-empty {
   min-height: 120px;
@@ -1947,10 +1926,7 @@
   background: #222934;
 }
 
-.email-detail-action.tutorial-target {
-  outline-width: 2px;
-  outline-offset: 2px;
-}
+
 
 .email-detail-missing .email-detail-scroll {
   display: grid;
@@ -1959,57 +1935,15 @@
   font-size: 9px;
 }
 
-/* --------------------------------------------------------------------------
-   Email v2 tutorial highlight reinforcement
-   Keep the modern compact email UI while making the current tutorial target
-   unmistakably blue. These selectors intentionally live after the Email v2
-   styles so the generic tutorial glow cannot be visually muted by later rules.
-   -------------------------------------------------------------------------- */
-.email-inbox-row.tutorial-target {
-  position: relative;
-  z-index: 2;
-  border-radius: 9px;
-  outline: 2px solid #756D80 !important;
-  outline-offset: -2px !important;
-  background: rgba(117,109,128,.08) !important;
-  box-shadow:
-    0 0 0 3px rgba(117,109,128,.24),
-    0 0 18px rgba(117,109,128,.52) !important;
-  animation: email-tutorial-glow 1.8s ease-in-out infinite !important;
-}
 
-.email-detail-action.tutorial-target {
-  position: relative;
-  z-index: 2;
-  border-color: #756D80 !important;
-  outline: 2px solid #756D80 !important;
-  outline-offset: 2px !important;
-  background: #282234 !important;
-  box-shadow:
-    0 0 0 3px rgba(117,109,128,.22),
-    0 0 20px rgba(117,109,128,.52),
-    inset 0 1px 0 rgba(255, 255, 255, .035) !important;
-  animation: email-tutorial-glow 1.8s ease-in-out infinite !important;
-}
 
-@keyframes email-tutorial-glow {
-  0%, 100% {
-    box-shadow:
-      0 0 0 3px rgba(117,109,128,.20),
-      0 0 15px rgba(117,109,128,.42);
-  }
-  50% {
-    box-shadow:
-      0 0 0 4px rgba(117,109,128,.30),
-      0 0 24px rgba(117,109,128,.66);
-  }
-}
+
+
+
+
 
 @media (prefers-reduced-motion: reduce) {
-  .email-inbox-row.tutorial-target,
-  .email-detail-action.tutorial-target {
-    animation: none !important;
-  }
+  
 }
 
 
@@ -2433,10 +2367,7 @@
   line-height: .8;
 }
 
-.carrier-opportunity-card.tutorial-target {
-  outline-width: 2px;
-  outline-offset: 2px;
-}
+
 
 .carrier-detail-screen {
   overflow-y: auto;
@@ -2620,10 +2551,7 @@
   font-weight: 400;
 }
 
-.carrier-primary-action.tutorial-target {
-  outline-width: 2px;
-  outline-offset: 2px;
-}
+
 
 .carrier-detail-state-card {
   display: grid;
@@ -3064,10 +2992,7 @@
   opacity: 1;
 }
 
-.load-detail-v2-primary.tutorial-target,
-.load-detail-v2-accept.tutorial-target {
-  border-color: #756D80 !important;
-}
+
 
 .load-detail-empty {
   display: grid;
@@ -3482,9 +3407,7 @@
   background: #2a3441;
 }
 
-.driver-fit-v2-evaluate.tutorial-target {
-  border-color: #756D80 !important;
-}
+
 
 @media (max-width: 360px) {
   .driver-fit-v2-card-header {
@@ -3808,9 +3731,7 @@
   transform: scale(.986);
 }
 
-.map-evaluation.route-evaluation-v2 .route-eval-v2-confirm.tutorial-target {
-  border-color: #756D80 !important;
-}
+
 
 @media (max-width: 360px) {
   .map-evaluation.route-evaluation-v2 {
@@ -4222,9 +4143,7 @@
   }
 }
 
-/* --------------------------------------------------------------------------
-   Trip Planning v2.2 — keep tutorial route CTA safely inside the panel
-   -------------------------------------------------------------------------- */
+
 .map-evaluation.trip-planning-v2 .trip-plan-v2-select {
   box-sizing: border-box;
   width: calc(100% - 48px);
@@ -4475,10 +4394,7 @@
   appearance: none;
 }
 
-.document-card.document-card-v2.tutorial-target {
-  outline-width: 2px;
-  outline-offset: 2px;
-}
+
 
 .document-card-topline {
   min-width: 0;
@@ -4887,15 +4803,9 @@
   color: #8bd0aa;
 }
 
-.pod-approve-button.tutorial-target {
-  outline-width: 2px;
-  outline-offset: 2px;
-}
 
-.pod-check-row.tutorial-target {
-  outline-width: 2px;
-  outline-offset: 2px;
-}
+
+
 
 .pod-approved-card {
   display: grid;
@@ -5145,10 +5055,7 @@
   appearance: none;
 }
 
-.ledger-receivable-card.tutorial-target {
-  outline-width: 2px;
-  outline-offset: 2px;
-}
+
 
 .ledger-card-topline {
   min-width: 0;
@@ -5558,10 +5465,7 @@
   letter-spacing: .14em;
 }
 
-.ledger-primary-action.tutorial-target {
-  outline-width: 2px;
-  outline-offset: 2px;
-}
+
 
 .ledger-wait-note {
   margin: 0 !important;
@@ -6176,10 +6080,7 @@
   opacity: 1;
 }
 
-.time-controls button.tutorial-time-control {
-  position: relative;
-  z-index: 1;
-}
+
 
 @keyframes entry-grid-drift {
   from { transform: rotate(-7deg) scale(1.08) translate3d(-4px, -3px, 0); }
@@ -7706,8 +7607,7 @@
    DOC OS Cleanup Pass v1.4 — live operations + final UI pass
    ========================================================= */
 
-/* Time control is one coherent cluster. State sits above the buttons while
-   tutorial/operational waits occupy their own centered lane. */
+
 .time-controls-wrap {
   top: 12px;
   right: 14px;
@@ -7742,7 +7642,7 @@
   transform: translate(-50%, -4px);
 }
 
-/* Driver Fit: selection should read as selected, not as a glowing tutorial box. */
+
 .driver-fit-v2-card.selected {
   border-color: #3B4655;
   background: linear-gradient(145deg, rgba(31, 37, 46, .98), rgba(27, 32, 39, .98));
@@ -7755,21 +7655,14 @@
   color: #7FC59F;
 }
 
-.driver-fit-v2-card.tutorial-target,
-.driver-fit-v2-evaluate.tutorial-target {
-  outline: 1px solid rgba(117,109,128,.62) !important;
-  outline-offset: 1px !important;
-  box-shadow: 0 0 0 2px rgba(117,109,128,.08) !important;
-  animation: none !important;
-}
+
 
 .driver-fit-v2-evaluate {
   min-height: 32px !important;
   padding-inline: 11px !important;
 }
 
-/* One route exists in the tutorial. It is already the recommended route, so
-   Confirm Plan is the decision instead of forcing a redundant Select Route. */
+
 .trip-plan-v2-status.selected {
   border-color: #315547;
   background: rgba(91, 178, 137, .08);
@@ -7780,53 +7673,17 @@
   padding-bottom: 10px;
 }
 
-/* Day 1 gets a clear payoff; Day 2 gets a stronger independent-operation handoff. */
-.day-training-complete,
-.day-independent-brief {
-  display: flex;
-  gap: 9px;
-  margin-bottom: 10px;
-  padding: 10px;
-  border: 1px solid rgba(72, 145, 111, .46);
-  border-radius: 9px;
-  background: rgba(30, 79, 59, .16);
-}
 
-.day-training-complete > div,
-.day-independent-brief {
-  min-width: 0;
-}
 
-.day-training-complete > div {
-  display: grid;
-  gap: 3px;
-}
 
-.day-training-complete-dot {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 auto;
-  margin-top: 3px;
-  border-radius: 999px;
-  background: #5CC297;
-  box-shadow: 0 0 0 4px rgba(92, 194, 151, .08);
-}
 
-.day-training-complete strong,
-.day-independent-brief > span {
-  color: #8FD1B3;
-  font-size: 8px;
-  font-weight: 900;
-  letter-spacing: .12em;
-}
 
-.day-training-complete span,
-.day-independent-brief p {
-  margin: 0;
-  color: #8798AA;
-  font-size: 9px;
-  line-height: 1.4;
-}
+
+
+
+
+
+
 
 .day-independent-brief {
   display: grid;
@@ -8406,24 +8263,10 @@
   text-align: center;
 }
 
-/* Tutorial presentation is intentionally dormant while Days 1–3 are built.
-   Progression logic remains in place; the visual coaching layer returns later. */
-.tutorial-note,
-.load-detail-v2-note,
-.driver-fit-v2-note {
-  display: none !important;
-}
 
-.tutorial-target,
-.email-inbox-row.tutorial-target,
-.email-detail-action.tutorial-target,
-.driver-fit-v2-card.tutorial-target,
-.driver-fit-v2-evaluate.tutorial-target {
-  outline: none !important;
-  outline-offset: 0 !important;
-  box-shadow: none !important;
-  animation: none !important;
-}
+
+
+
 
 .phone-button .phone-notification-badge {
   animation: none !important;
@@ -9310,7 +9153,7 @@
 }
 
 
-/* ==========================================================================\n   MASTER D — Interaction polish\n   Blue is reserved for the future tutorial guidance layer. Normal selection\n   and active-operation emphasis use DOC OS amber instead.\n   ========================================================================== */
+
 :root {
   --docos-primary: #756D80;
   --docos-selection: #756D80;
@@ -9335,27 +9178,19 @@
 .load-result-card button,
 .load-result-done { background: #756D80 !important; color: #0F1215 !important; }
 
-/* Tutorial selectors intentionally remain blue. Do not reuse this blue for\n   ordinary selected/active UI; it is reserved for guided tutorial targets. */
-.tutorial-target { --docos-tutorial-blue: #756D80; }
 
 
-/* =========================================================
-   MASTER E — Accent language
-   Lavender = ordinary selection/action emphasis.
-   Blue is reserved for the future tutorial guidance layer.
-   ========================================================= */
+
+
+
 :root {
   --docos-accent: #756D80;
   --docos-accent-soft: #A49BAE;
   --docos-accent-deep: #554F5D;
-  --docos-tutorial-blue: #756D80;
 }
 
-/* Keep the dormant tutorial language blue for the later tutorial pass. */
-.tutorial-target {
-  border-color: var(--docos-tutorial-blue) !important;
-  outline-color: var(--docos-tutorial-blue) !important;
-}
+
+
 
 
 /* =========================================================
@@ -9371,7 +9206,6 @@
   --docos-accent-deep: #554F5D;
   --docos-accent-surface: #27232D;
   --docos-accent-border: #6A6274;
-  --docos-tutorial-blue: #756D80; /* dormant; tutorial gets its own palette later */
 }
 
 /* Primary player actions: restrained, not neon. */
@@ -9810,9 +9644,7 @@
 }
 
 
-/* MASTER L — FreightLink lifecycle cohesion guardrails
-   The same FreightLink shell/filters remain present for DOC001, DOC002 and later loads.
-   There is no per-load or tutorial-specific home layout. */
+
 .freightlink-v2 .freightlink-filter-row { display:grid !important; }
 
 
@@ -10152,4 +9984,537 @@
 }
 .freightlink-commit-review .freightlink-driver-assignment-row.candidate {
   border-color:rgba(205,168,230,.58); box-shadow:inset 3px 0 0 var(--docos-attention);
+}
+
+/* AV1 — Driver Action Hub + natural driver messaging */
+.driver-thread-composer-v2{display:grid;gap:8px}
+.driver-reply-button{width:100%;min-height:44px;border:1px solid #3a4450;border-radius:12px;background:#1a2027;color:#f2f5f8;display:flex;align-items:center;justify-content:space-between;padding:9px 12px;text-align:left}
+.driver-reply-button span{font-size:12px;font-weight:850}.driver-reply-button small{font-size:8px;color:#8ea3b7}.driver-reply-button.open{border-color:rgba(181,154,203,.7);background:rgba(45,35,55,.96)}
+.driver-reply-menu{display:grid;gap:6px;padding:9px;border:1px solid #303844;border-radius:12px;background:#151a20;max-height:38vh;overflow:auto}
+.driver-reply-menu-heading{display:flex;align-items:center;justify-content:space-between;padding:0 2px 4px;color:#8ea3b7;font-size:8px;font-weight:900;letter-spacing:.14em}.driver-reply-menu-heading button{border:0;background:transparent;color:#b9c7d4;font-size:18px}
+.driver-reply-menu>button{display:grid;gap:2px;width:100%;padding:9px 10px;border:1px solid #303844;border-radius:9px;background:#1b222a;color:#eef3f7;text-align:left}.driver-reply-menu>button strong{font-size:10px}.driver-reply-menu>button small{font-size:8px;line-height:1.3;color:#8ea3b7}
+.driver-reply-menu>button.driver-reply-dispatch{border-color:rgba(181,154,203,.58);background:rgba(53,39,64,.96)}
+.driver-thread-context-action{width:100%;display:grid;gap:2px;padding:9px 10px;border:1px solid rgba(181,154,203,.45);border-radius:10px;background:rgba(42,32,51,.88);text-align:left}.driver-thread-context-action span{font-size:7px;font-weight:900;letter-spacing:.12em;color:var(--docos-attention-bright)}.driver-thread-context-action strong{font-size:10px;color:#f2f5f8}
+.driver-load-picker-inline{position:static;margin-top:2px;padding:6px;border:1px solid #303844;border-radius:9px;background:#11161c}.driver-load-picker-inline .driver-load-picker-list{max-height:160px;overflow:auto}.driver-load-picker-inline .driver-load-send-button{width:100%;margin-top:6px}
+
+/* MASTER AV2 — schedule, window-risk, communication, and market refresh */
+.freight-load-status.expired{
+  color:#ff8f86;
+  border-color:rgba(255,105,95,.55);
+  background:rgba(94,28,25,.44);
+}
+
+.freightlink-new-loads{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:20px;
+  padding:0 8px;
+  margin-left:auto;
+  border:1px solid rgba(142,163,183,.36);
+  border-radius:999px;
+  color:#c2d5e7;
+  background:rgba(27,31,36,.82);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.08em;
+}
+
+.operations-schedule-button{
+  min-width:116px;
+  height:48px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0 10px;
+  border:1px solid var(--docos-border, #2a313a);
+  border-radius:8px;
+  background:rgba(18,22,26,.96);
+  color:var(--docos-text-bright, #b9c7d4);
+}
+.operations-schedule-button.active{
+  border-color:rgba(142,163,183,.62);
+  background:rgba(28,34,40,.98);
+}
+.operations-hamburger{
+  width:18px;
+  display:grid;
+  gap:3px;
+  flex:0 0 auto;
+}
+.operations-hamburger i{
+  display:block;
+  height:2px;
+  border-radius:999px;
+  background:#c2d5e7;
+}
+.operations-next-load{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  line-height:1.05;
+}
+.operations-next-load small{
+  color:#728497;
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+.operations-next-load strong{
+  max-width:78px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  margin-top:3px;
+  font-size:9px;
+  letter-spacing:.02em;
+}
+.operations-schedule-drawer{
+  max-height:min(62vh, 520px);
+  overflow:auto;
+}
+.operations-schedule-list{
+  display:grid;
+  gap:7px;
+}
+.operations-schedule-item{
+  display:grid;
+  grid-template-columns:76px minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  padding:10px 11px;
+  border:1px solid rgba(80,94,108,.44);
+  border-radius:8px;
+  background:rgba(20,24,29,.96);
+}
+.operations-schedule-item.attention{border-color:rgba(204,165,90,.55)}
+.operations-schedule-item.danger{border-color:rgba(209,103,94,.58)}
+.operations-schedule-time,
+.operations-schedule-copy{display:flex;flex-direction:column;min-width:0}
+.operations-schedule-time strong{font-size:12px;color:#cbd7e2}
+.operations-schedule-time small{margin-top:2px;color:#7f91a3;font-size:9px}
+.operations-schedule-copy span{color:#7f91a3;font-size:8px;font-weight:900;letter-spacing:.09em}
+.operations-schedule-copy strong{margin-top:2px;color:#d2dce5;font-size:12px}
+.operations-schedule-copy small{margin-top:3px;color:#8ea3b7;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.operations-schedule-risk{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:22px;
+  padding:0 7px;
+  border:1px solid #326b57;
+  border-radius:999px;
+  color:#8dd4b4;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.06em;
+}
+.operations-schedule-risk.attention{color:#e3bd78;border-color:#6e592f}
+.operations-schedule-risk.danger{color:#e59d95;border-color:#70413d}
+
+.driver-reply-context-label{
+  padding:7px 10px 3px;
+  color:#8ea3b7;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+
+@media (max-width: 520px){
+  .operations-schedule-button{min-width:52px;width:52px;padding:0;justify-content:center}
+  .operations-next-load{display:none}
+  .operations-schedule-item{grid-template-columns:68px minmax(0,1fr) auto}
+}
+
+
+/* AV2.1 — keep End Day out of the persistent operations header. */
+.operations-drawer-end-day-wrap {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(47, 57, 71, .84);
+}
+.operations-drawer-end-day {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 8px;
+  letter-spacing: .14em;
+}
+
+/* MASTER AV2.2 — document/email gameplay + artifact lift */
+.email-inbox-header { grid-template-columns: 38px 1fr auto; align-items: center; }
+.email-new-button { border: 1px solid rgba(142,163,183,.28); background: rgba(47,141,238,.12); color: #cfe5f7; font-size: 11px; font-weight: 800; letter-spacing: .06em; border-radius: 8px; padding: 9px 11px; }
+.email-inbox-row.sent .email-row-sender { color: #8ea3b7; }
+.email-direction-chip { display: inline-flex; width: fit-content; padding: 4px 7px; border-radius: 999px; border: 1px solid rgba(142,163,183,.25); font-size: 9px; letter-spacing: .12em; font-weight: 800; color: #8ea3b7; margin-bottom: 8px; }
+.email-direction-chip.sent { border-color: rgba(47,141,238,.35); color: #9bc9f4; }
+.email-detail-attachments { margin-top: 18px; border-top: 1px solid #2a313a; padding-top: 14px; display: grid; gap: 9px; }
+.email-detail-attachments > span { font-size: 9px; letter-spacing: .14em; color: #8ea3b7; font-weight: 800; }
+.email-detail-attachments > div { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; background: #151a1f; border: 1px solid #2a313a; border-radius: 9px; padding: 10px; }
+.email-detail-attachments b { display: grid; place-items: center; height: 34px; border-radius: 7px; background: #202933; color: #c2d5e7; font-size: 9px; }
+.email-detail-attachments p { margin: 0; display: grid; gap: 2px; min-width: 0; }
+.email-detail-attachments strong { font-size: 12px; color: #dbe6ef; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.email-detail-attachments small { font-size: 10px; color: #8ea3b7; }
+
+.email-compose-screen { background: #0f1215; }
+.email-compose-toolbar { min-height: 54px; display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #2a313a; background: #171b20; }
+.email-compose-toolbar > button:first-child { width: 38px; height: 38px; border: 0; background: transparent; color: #c2d5e7; font-size: 30px; }
+.email-compose-toolbar > div { display: grid; gap: 1px; }
+.email-compose-toolbar span { font-size: 9px; color: #8ea3b7; letter-spacing: .14em; font-weight: 800; }
+.email-compose-toolbar strong { color: #dbe6ef; font-size: 13px; }
+.email-compose-send-top { border: 0; background: transparent; color: #78b9f2; font-size: 11px; font-weight: 900; letter-spacing: .08em; padding: 10px 6px; }
+.email-compose-scroll { padding: 14px; display: grid; gap: 12px; overflow-y: auto; }
+.email-compose-context { display: grid; gap: 3px; padding: 11px 12px; border: 1px solid rgba(47,141,238,.3); background: rgba(47,141,238,.08); border-radius: 9px; }
+.email-compose-context span, .email-compose-field > span { font-size: 9px; font-weight: 800; letter-spacing: .14em; color: #8ea3b7; }
+.email-compose-context strong { color: #cfe5f7; font-size: 12px; }
+.email-compose-context small { color: #8ea3b7; font-size: 10px; }
+.email-compose-field { display: grid; gap: 6px; }
+.email-compose-field select, .email-compose-field input, .email-compose-field textarea { width: 100%; box-sizing: border-box; border: 1px solid #303842; border-radius: 8px; background: #171c21; color: #dbe6ef; font: inherit; font-size: 13px; padding: 11px; outline: none; }
+.email-compose-field select:focus, .email-compose-field input:focus, .email-compose-field textarea:focus { border-color: #2f8dee; }
+.email-compose-field textarea { resize: none; line-height: 1.45; min-height: 130px; }
+.email-attachment-picker { border-top: 1px solid #2a313a; padding-top: 13px; }
+.email-attachment-picker-heading { display: flex; justify-content: space-between; align-items: end; margin-bottom: 9px; }
+.email-attachment-picker-heading > div { display: grid; gap: 2px; }
+.email-attachment-picker-heading span { font-size: 9px; letter-spacing: .14em; color: #8ea3b7; font-weight: 800; }
+.email-attachment-picker-heading strong { font-size: 13px; color: #dbe6ef; }
+.email-attachment-picker-heading small { font-size: 10px; color: #8ea3b7; }
+.email-attachment-options { display: grid; gap: 7px; }
+.email-attachment-option { display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 9px; min-height: 48px; padding: 8px 10px; border: 1px solid #2a313a; background: #161b20; border-radius: 8px; }
+.email-attachment-option.selected { border-color: rgba(47,141,238,.5); background: rgba(47,141,238,.09); }
+.email-attachment-option input { position: absolute; opacity: 0; pointer-events: none; }
+.email-attachment-check { width: 24px; height: 24px; border: 1px solid #46515d; border-radius: 6px; display: grid; place-items: center; color: #cfe5f7; font-size: 12px; }
+.email-attachment-option.selected .email-attachment-check { background: #2f8dee; border-color: #2f8dee; }
+.email-attachment-copy { display: grid; min-width: 0; gap: 2px; }
+.email-attachment-copy strong { color: #dbe6ef; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.email-attachment-copy small { color: #8ea3b7; font-size: 9px; }
+.email-compose-empty, .email-compose-error { border: 1px solid #2a313a; border-radius: 8px; padding: 11px; font-size: 11px; color: #8ea3b7; }
+.email-compose-error { border-color: rgba(205,77,77,.5); color: #f1b1b1; background: rgba(205,77,77,.08); }
+.email-compose-action-bar { padding: 10px 14px 14px; border-top: 1px solid #2a313a; background: #12161a; }
+
+.agreement-v3 .agreement-scroll { background: #11151a; }
+.agreement-paper { margin: 14px; background: #f1eee6; color: #222; border-radius: 5px; padding: 20px 17px; box-shadow: 0 10px 25px rgba(0,0,0,.25); }
+.agreement-paper-masthead { padding-bottom: 16px; border-bottom: 2px solid #1f2933; }
+.agreement-paper-masthead span { font-size: 9px; font-weight: 900; letter-spacing: .18em; color: #555e66; }
+.agreement-paper-masthead h2 { margin: 5px 0 3px; font-size: 22px; line-height: 1.05; color: #15191d; }
+.agreement-paper-masthead p { margin: 0; font-size: 10px; color: #67717a; }
+.agreement-contract-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 0; border-bottom: 1px solid #c8c5bd; }
+.agreement-contract-parties div { display: grid; gap: 3px; }
+.agreement-contract-parties span, .agreement-key-terms span, .agreement-operational-consequence span { font-size: 8px; letter-spacing: .14em; font-weight: 900; color: #6c7277; }
+.agreement-contract-parties strong { font-size: 11px; color: #20262b; }
+.agreement-key-terms { display: grid; gap: 8px; padding: 14px 0; }
+.agreement-key-terms button, .agreement-key-terms.static > div { text-align: left; border: 1px solid #cbc8c0; background: rgba(255,255,255,.42); border-radius: 4px; padding: 12px; display: grid; gap: 4px; color: #222; }
+.agreement-key-terms button.reviewed { border-color: #738b78; background: #e4ebe3; }
+.agreement-key-terms strong { font-size: 13px; color: #171d22; }
+.agreement-key-terms small { font-size: 10px; line-height: 1.35; color: #5c666f; }
+.agreement-key-terms b { margin-top: 5px; font-size: 8px; letter-spacing: .1em; color: #6c7277; }
+.agreement-key-terms button.reviewed b { color: #4f6d55; }
+.agreement-operational-consequence { border-left: 3px solid #2f4e67; padding: 10px 12px; background: #e7e9e9; display: grid; gap: 4px; margin: 2px 0 14px; }
+.agreement-operational-consequence strong { font-size: 11px; color: #1f2d38; }
+.agreement-operational-consequence p { margin: 0; color: #5c666f; font-size: 9px; }
+.agreement-v3 .electronic-signature { border-top: 1px solid #c8c5bd; color: #222; }
+.agreement-v3 .electronic-signature-copy span, .agreement-v3 .agreement-signature-meta span { color: #6c7277; }
+.agreement-v3 .electronic-signature-copy p, .agreement-v3 .agreement-signature-meta strong { color: #343a40; }
+.agreement-v3 .agreement-signed-block { margin-top: 16px; padding: 14px; background: #e5ebe4; border: 1px solid #bfcbbd; color: #222; display: grid; gap: 3px; }
+.agreement-v3 .agreement-signed-block span { font-size: 8px; letter-spacing: .14em; color: #667268; font-weight: 900; }
+.agreement-v3 .agreement-signed-block strong { color: #263328; }
+.agreement-v3 .agreement-signed-block small { color: #667268; }
+.agreement-action-bar .docos-primary-action:disabled { opacity: .5; }
+
+.carrier-approval-panel { margin-top: 6px; }
+.carrier-approval-state { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 11px 12px; border: 1px solid #39434e; border-radius: 8px; background: #171c21; }
+.carrier-approval-state > div { display: grid; gap: 3px; }
+.carrier-approval-state strong { color: #dbe6ef; font-size: 11px; }
+.carrier-approval-state small { color: #8ea3b7; font-size: 9px; line-height: 1.35; }
+.carrier-approval-state > span { color: #8ea3b7; font-size: 13px; font-weight: 900; }
+.carrier-approval-state.approved { border-color: rgba(82,157,97,.45); background: rgba(82,157,97,.08); }
+.carrier-approval-state.approved > span { color: #9bd2a4; }
+.carrier-approval-state.pending { border-color: rgba(198,158,65,.42); background: rgba(198,158,65,.06); }
+.carrier-approval-state.needs_info { border-color: rgba(205,77,77,.45); background: rgba(205,77,77,.07); }
+
+.pod-detail-v3 { background: #0f1215; }
+.pod-document-scroll { padding: 14px; display: grid; gap: 12px; overflow-y: auto; }
+.pod-paper { position: relative; background: #f4f1e9; color: #222; border-radius: 4px; padding: 18px 16px; box-shadow: 0 9px 22px rgba(0,0,0,.28); }
+.pod-paper-masthead { display: grid; gap: 3px; padding-bottom: 13px; border-bottom: 2px solid #24292d; }
+.pod-paper-masthead span { font-size: 9px; font-weight: 900; letter-spacing: .16em; color: #58616a; }
+.pod-paper-masthead strong { font-size: 20px; color: #15191d; }
+.pod-paper-masthead small { font-size: 9px; color: #69737b; }
+.pod-paper-route { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 13px 0; border-bottom: 1px solid #cbc8c0; }
+.pod-paper-route div, .pod-paper-freight div { display: grid; gap: 3px; }
+.pod-paper-route span, .pod-paper-freight span, .pod-paper-signature span { font-size: 8px; letter-spacing: .13em; color: #70777c; font-weight: 900; }
+.pod-paper-route strong { font-size: 10px; color: #252b30; }
+.pod-paper-freight { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 13px 0; }
+.pod-paper-freight div { background: rgba(255,255,255,.52); border: 1px solid #cbc8c0; padding: 10px; }
+.pod-paper-freight strong { color: #1d2327; font-size: 14px; }
+.pod-paper-freight .exception { border-color: #b77777; background: #f3e4e2; }
+.pod-paper-signature { border-top: 1px solid #cbc8c0; padding-top: 13px; display: grid; gap: 4px; }
+.pod-paper-signature strong { font-family: Georgia, serif; font-size: 18px; font-style: italic; color: #1e252a; }
+.pod-paper-signature small { color: #717980; font-size: 8px; }
+.pod-corrected-stamp { position: absolute; right: 15px; top: 14px; border: 2px solid #4f7356; color: #4f7356; font-size: 8px; font-weight: 900; letter-spacing: .12em; padding: 4px 6px; transform: rotate(-4deg); }
+.pod-shipment-record { background: #171c21; border: 1px solid #2d3640; border-radius: 9px; padding: 12px; }
+.pod-record-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+.pod-record-grid div { padding: 9px; border: 1px solid #303943; border-radius: 7px; display: grid; gap: 3px; }
+.pod-record-grid div.mismatch { border-color: rgba(198,158,65,.55); background: rgba(198,158,65,.07); }
+.pod-record-grid span { font-size: 8px; color: #8ea3b7; letter-spacing: .08em; }
+.pod-record-grid strong { color: #dbe6ef; font-size: 11px; }
+.pod-shipment-record p { margin: 0; color: #8ea3b7; font-size: 9px; line-height: 1.45; }
+.pod-mini-status.warning { color: #e0bd6f; border-color: rgba(198,158,65,.5); }
+.pod-review-actions { display: grid; grid-template-columns: 1fr 1.15fr; gap: 8px; margin-top: 12px; }
+.pod-secondary-button { border: 1px solid #39434e; background: #171c21; color: #c2d5e7; border-radius: 8px; font-size: 10px; font-weight: 900; letter-spacing: .04em; min-height: 46px; padding: 8px; }
+.pod-approval-error { margin-top: 10px; border: 1px solid rgba(205,77,77,.5); background: rgba(205,77,77,.08); color: #f0b7b7; border-radius: 8px; padding: 10px; font-size: 10px; line-height: 1.4; }
+.pod-correction-pending { margin-top: 10px; border: 1px solid rgba(198,158,65,.45); background: rgba(198,158,65,.07); border-radius: 8px; padding: 11px; display: grid; gap: 3px; }
+.pod-correction-pending span { color: #c7a75f; font-size: 8px; font-weight: 900; letter-spacing: .12em; }
+.pod-correction-pending strong { color: #e8ddc2; font-size: 11px; }
+.pod-correction-pending small { color: #9f9785; font-size: 9px; line-height: 1.4; }
+
+.game-marker.carrier-yard { width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center; background: #1b1f24; border: 1px solid #617184; box-shadow: 0 4px 10px rgba(0,0,0,.35); color: #c2d5e7; }
+.game-marker.carrier-yard svg { width: 18px; height: 18px; fill: currentColor; }
+
+/* AV2.3 — Relationship + Documents + Workflow Navigation */
+.driver-relationship { display:grid; gap:5px; margin-top:2px; }
+.driver-relationship-label { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+.driver-relationship-label small:first-child { color:#8ea3b7; letter-spacing:.08em; font-weight:800; }
+.driver-relationship-label small:last-child { color:#b9c7d4; font-weight:800; }
+.driver-relationship-track { height:6px; border-radius:999px; background:#2a313a; overflow:hidden; display:block; }
+.driver-relationship-track i { display:block; height:100%; border-radius:inherit; background:#8ea3b7; transition:width .22s ease; }
+
+.document-folders { display:grid; gap:8px; padding:0 14px 18px; }
+.document-folder { border:1px solid #2a313a; border-radius:9px; overflow:hidden; background:#151a1f; }
+.document-folder-toggle { width:100%; min-height:54px; padding:10px 12px; border:0; background:transparent; color:#dbe6ef; display:flex; justify-content:space-between; align-items:center; text-align:left; }
+.document-folder-toggle > span { display:grid; gap:2px; }
+.document-folder-toggle strong { font-size:12px; }
+.document-folder-toggle small { color:#8ea3b7; font-size:9px; }
+.document-folder-toggle b { color:#8ea3b7; font-size:16px; }
+.document-folder-rows { border-top:1px solid #2a313a; display:grid; }
+.document-file-row { min-height:52px; display:grid; grid-template-columns:32px 1fr auto; align-items:center; gap:9px; padding:8px 10px; border:0; border-bottom:1px solid rgba(42,49,58,.7); background:#11161b; color:#dbe6ef; text-align:left; }
+.document-file-row:last-child { border-bottom:0; }
+.document-file-row > span:nth-child(2) { min-width:0; display:grid; gap:2px; }
+.document-file-row strong { font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.document-file-row small { color:#8ea3b7; font-size:8.5px; text-transform:capitalize; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.document-file-row > b { color:#8ea3b7; font-size:8px; text-transform:uppercase; letter-spacing:.06em; }
+.document-file-icon { width:28px; height:28px; border:1px solid #3b4651; border-radius:6px; display:grid; place-items:center; color:#b9c7d4; font-size:8px; font-weight:900; }
+.document-folder-empty { padding:14px 12px; color:#8ea3b7; font-size:9px; }
+
+.email-compose-v2 .email-attachment-picker.compact { padding-top:12px; }
+.email-attachment-links, .email-attached-links { display:grid; gap:2px; }
+.email-attached-links { margin-bottom:8px; }
+.email-file-link { width:100%; min-height:44px; display:grid; grid-template-columns:22px 1fr auto; gap:8px; align-items:center; border:0; border-bottom:1px solid rgba(42,49,58,.72); background:transparent; padding:7px 2px; text-align:left; color:#dbe6ef; }
+.email-file-link > span:nth-child(2) { min-width:0; display:grid; gap:1px; }
+.email-file-link strong { font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.email-file-link small { color:#8ea3b7; font-size:8.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.email-file-link > b { color:#8ea3b7; font-size:8px; text-transform:uppercase; letter-spacing:.06em; }
+.email-file-link.attached > b { font-size:14px; }
+.email-paperclip { color:#b9c7d4; font-size:14px; }
+.email-related-record { margin-bottom:10px; border-left:2px solid #46515d; padding:7px 9px; display:grid; gap:2px; background:rgba(255,255,255,.02); }
+.email-related-record span { color:#8ea3b7; font-size:8px; letter-spacing:.12em; font-weight:900; }
+.email-related-record strong { color:#dbe6ef; font-size:11px; }
+.email-related-record small { color:#8ea3b7; font-size:8.5px; }
+
+.email-related-link-block { margin-top:14px; padding-top:12px; border-top:1px solid #2a313a; display:grid; gap:7px; }
+.email-related-link-block > span { color:#8ea3b7; font-size:8px; letter-spacing:.12em; font-weight:900; }
+.email-related-link-block button { border:0; background:transparent; padding:0; color:#b9c7d4; text-align:left; text-decoration:underline; text-underline-offset:3px; font-size:10px; font-weight:800; }
+.email-detail-attachments.compact { display:grid; gap:2px; }
+.email-detail-file-link { min-height:44px !important; display:grid !important; grid-template-columns:22px 1fr auto !important; gap:8px !important; align-items:center !important; width:100%; border:0 !important; border-bottom:1px solid rgba(42,49,58,.72) !important; background:transparent !important; padding:7px 0 !important; text-align:left; color:#dbe6ef; }
+.email-detail-file-link > b { width:auto !important; height:auto !important; border:0 !important; font-size:13px !important; color:#b9c7d4 !important; }
+.email-detail-file-link p { margin:0; min-width:0; display:grid; gap:1px; }
+.email-detail-file-link strong { font-size:10px; }
+.email-detail-file-link small { color:#8ea3b7; font-size:8.5px; }
+.email-detail-file-link i { color:#8ea3b7; font-size:8px; font-style:normal; text-transform:uppercase; }
+
+.document-expand-button { margin-left:auto; width:36px; height:36px; border:1px solid #3a444e; border-radius:7px; background:#171d22; color:#c2d5e7; font-size:15px; display:grid; place-items:center; }
+.document-tap-to-expand { width:100%; min-height:36px; border:1px solid #2f3943; border-radius:7px; background:#171c21; color:#b9c7d4; margin-bottom:9px; font-size:9px; font-weight:800; letter-spacing:.04em; }
+.document-tap-to-expand span { margin-right:5px; }
+.document-zoom-overlay { position:fixed; inset:0; z-index:9999; background:rgba(6,9,12,.88); display:flex; align-items:flex-start; justify-content:center; padding:22px 14px; }
+.document-zoom-shell { width:min(720px, 100%); max-height:calc(100vh - 44px); border:1px solid #36414c; border-radius:12px; background:#101419; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 18px 55px rgba(0,0,0,.55); }
+.document-zoom-toolbar { min-height:52px; display:flex; align-items:center; gap:12px; padding:8px 12px; border-bottom:1px solid #2a313a; }
+.document-zoom-toolbar > div { display:grid; gap:2px; min-width:0; }
+.document-zoom-toolbar span { color:#8ea3b7; font-size:8px; letter-spacing:.14em; font-weight:900; }
+.document-zoom-toolbar strong { color:#dbe6ef; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.document-zoom-toolbar button { margin-left:auto; width:36px; height:36px; border:1px solid #3a444e; border-radius:7px; background:#171c21; color:#dbe6ef; font-size:18px; }
+.document-zoom-scroll { overflow:auto; padding:16px; }
+.document-zoom-scroll .agreement-paper, .document-zoom-scroll .pod-paper { width:min(620px, 100%); margin:0 auto; }
+.document-zoom-scroll .agreement-paper { padding:24px 22px; }
+.document-zoom-scroll .pod-paper { padding:24px 22px; }
+.agreement-operational-rule { outline:1px solid rgba(194,213,231,.18); }
+
+@media (max-width: 420px) {
+  .document-zoom-overlay { padding:10px 8px; }
+  .document-zoom-shell { max-height:calc(100vh - 20px); }
+  .document-zoom-scroll { padding:10px; }
+}
+
+/* MASTER AV2.3.1 — friction cleanup + native DOC OS documents */
+.document-zoom-overlay { background: rgba(5,8,11,.94); padding: 10px 8px; align-items: stretch; }
+.document-zoom-shell { width: min(760px, 100%); max-height: calc(100vh - 20px); border-color: #2A313A; border-radius: 10px; background: #0F1215; box-shadow: 0 24px 70px rgba(0,0,0,.65); }
+.document-zoom-toolbar { min-height: 56px; background: #151A1F; padding: 9px 12px; }
+.document-zoom-toolbar span { color: #8EA3B7; }
+.document-zoom-toolbar strong { color: #D7E2EC; font-size: 13px; }
+.document-zoom-toolbar button { background: #1B1F24; border-color: #36404A; }
+.document-zoom-scroll { padding: 12px; }
+.document-zoom-footer { border-top: 1px solid #2A313A; background: #151A1F; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
+.document-sign-action { width: 100%; min-height: 46px; }
+
+.docos-document-surface,
+.document-zoom-scroll .agreement-paper,
+.document-zoom-scroll .pod-paper,
+.operational-document-paper {
+  width: min(660px, 100%);
+  margin: 0 auto;
+  background: #171C21;
+  color: #D7E2EC;
+  border: 1px solid #34404B;
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.32);
+}
+.agreement-paper { margin: 0 auto; padding: 22px 18px; }
+.agreement-paper-masthead { border-bottom: 1px solid #39444F; padding-bottom: 15px; }
+.agreement-paper-masthead span { color: #8EA3B7; }
+.agreement-paper-masthead h2 { color: #E5EEF6; font-size: 21px; }
+.agreement-paper-masthead p { color: #8EA3B7; }
+.agreement-contract-parties { border-bottom-color: #2A313A; }
+.agreement-contract-parties span,
+.agreement-key-terms span,
+.agreement-operational-consequence span,
+.agreement-signature-form span,
+.agreement-signed-block span { color: #8EA3B7 !important; }
+.agreement-contract-parties strong,
+.agreement-key-terms strong,
+.agreement-operational-consequence strong,
+.agreement-signature-form strong,
+.agreement-signed-block strong { color: #DCE8F2 !important; }
+.agreement-key-terms button,
+.agreement-key-terms.static > div { background: #12171B; border-color: #313A43; color: #D7E2EC; }
+.agreement-key-terms button small,
+.agreement-key-terms.static small,
+.agreement-operational-consequence p,
+.electronic-signature-copy p { color: #8EA3B7 !important; }
+.agreement-key-terms button b { color: #9EB2C4; }
+.agreement-key-terms button.reviewed { border-color: rgba(47,141,238,.62); background: rgba(47,141,238,.09); }
+
+.agreement-operational-consequence { background: #12171B; border-color: #313A43; }
+.agreement-signature-form,
+.agreement-signed-block { border-color: #3A4651; background: #11161A; }
+
+.pod-expanded-layout { display: grid; gap: 12px; }
+.pod-paper { padding: 20px 17px; }
+.pod-paper-masthead { border-bottom-color: #39444F; }
+.pod-paper-masthead span { color: #8EA3B7; }
+.pod-paper-masthead strong { color: #E5EEF6; }
+.pod-paper-masthead small { color: #8EA3B7; }
+.pod-paper-route { border-bottom-color: #2F3942; }
+.pod-paper-route span,
+.pod-paper-freight span,
+.pod-paper-signature span { color: #8EA3B7; }
+.pod-paper-route strong,
+.pod-paper-freight strong { color: #DCE8F2; }
+.pod-paper-freight div { background: #11161A; border-color: #303A43; }
+.pod-paper-freight .exception { background: rgba(192,75,75,.10); border-color: rgba(214,99,99,.58); }
+.pod-paper-signature { border-top-color: #303A43; }
+.pod-paper-signature strong { color: #C2D5E7; font-family: inherit; font-style: normal; letter-spacing: .02em; }
+.pod-paper-signature small { color: #8EA3B7; }
+.docos-review-panel { width: min(660px, 100%); margin: 0 auto; background: #12171B; border: 1px solid #2F3942; border-radius: 8px; padding: 13px; }
+.pod-overlay-actions { display: grid; grid-template-columns: 1fr 1.2fr; gap: 8px; }
+.pod-overlay-actions button { min-height: 44px; }
+.pod-overlay-footer-status { display: grid; gap: 2px; }
+.pod-overlay-footer-status span { font-size: 8px; letter-spacing: .14em; color: #8EA3B7; font-weight: 900; }
+.pod-overlay-footer-status strong { color: #DCE8F2; font-size: 11px; }
+.docos-document-missing { color: #B9C7D4; padding: 28px 10px; text-align: center; }
+
+.attachment-dropdown-picker { display: grid; gap: 10px; }
+.attachment-dropdown-controls { display: grid; gap: 8px; padding-top: 4px; }
+.attachment-dropdown-controls label { display: grid; gap: 4px; }
+.attachment-dropdown-controls label > span { color: #8EA3B7; font-size: 8px; letter-spacing: .13em; font-weight: 900; }
+.attachment-dropdown-controls select { width: 100%; min-height: 42px; border: 1px solid #34404B; border-radius: 7px; background: #151A1F; color: #DCE8F2; padding: 0 10px; font-size: 11px; }
+.attachment-preview-link { border: 0; background: transparent; color: #AFC9E3; text-align: left; padding: 3px 1px; font-size: 10px; text-decoration: underline; text-underline-offset: 3px; }
+.attachment-add-button { min-height: 40px; border: 1px solid #3F4A55; border-radius: 7px; background: #1B232A; color: #DCE8F2; font-size: 9px; letter-spacing: .1em; font-weight: 900; }
+.attachment-add-button:disabled { opacity: .38; }
+.email-attached-links { display: grid; gap: 1px; border-top: 1px solid rgba(42,49,58,.7); }
+.email-file-link.attached { display: grid; grid-template-columns: 1fr 34px; align-items: center; min-height: 44px; border-bottom: 1px solid rgba(42,49,58,.72); background: transparent; padding: 0; }
+.email-file-open { width: 100%; min-width: 0; display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 8px; border: 0; background: transparent; color: #DCE8F2; text-align: left; padding: 7px 2px; }
+.email-file-open > span:last-child { min-width: 0; display: grid; gap: 1px; }
+.email-file-open strong { font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.email-file-open small { color: #8EA3B7; font-size: 8.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.email-file-remove { width: 32px; height: 32px; border: 0; background: transparent; color: #8EA3B7; font-size: 16px; }
+.email-paperclip { color: #AFC9E3; font-size: 13px; }
+.email-detail-attachments.agreement-email-link { margin-top: 14px; }
+.email-detail-file-link { background: transparent !important; border-left: 0 !important; border-right: 0 !important; border-radius: 0 !important; }
+
+.operational-document-paper { padding: 20px 18px; }
+.operational-document-masthead { display: grid; gap: 3px; padding-bottom: 14px; border-bottom: 1px solid #39444F; }
+.operational-document-masthead span { color: #8EA3B7; font-size: 8px; letter-spacing: .14em; font-weight: 900; }
+.operational-document-masthead h2 { margin: 0; color: #E5EEF6; font-size: 21px; }
+.operational-document-masthead p { margin: 0; color: #8EA3B7; font-size: 10px; }
+.operational-document-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 14px; }
+.operational-document-grid > div,
+.operational-document-note { display: grid; gap: 4px; padding: 11px; background: #11161A; border: 1px solid #303A43; border-radius: 6px; }
+.operational-document-grid span,
+.operational-document-note span { color: #8EA3B7; font-size: 8px; letter-spacing: .12em; font-weight: 900; }
+.operational-document-grid strong,
+.operational-document-note strong { color: #DCE8F2; font-size: 11px; }
+.operational-document-note { margin-top: 9px; }
+
+@media (max-width: 520px) {
+  .document-zoom-scroll { padding: 9px; }
+  .agreement-paper, .pod-paper, .operational-document-paper { padding: 17px 14px; }
+  .operational-document-grid { grid-template-columns: 1fr; }
+  .pod-overlay-actions { grid-template-columns: 1fr; }
+}
+
+
+/* AV2.3.2 stabilization: Email actions + mobile document containment */
+.email-compose-toolbar-spacer { width: 38px; min-width: 38px; }
+.email-compose-bottom .docos-primary-action {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 8px;
+  border: 1px solid rgba(155, 112, 255, .44);
+  background: linear-gradient(180deg, rgba(132, 80, 232, .98), rgba(104, 61, 190, .98));
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+.document-zoom-shell { max-width: 100vw; overflow: hidden; }
+.document-zoom-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  max-width: 100%;
+  min-width: 0;
+  touch-action: pan-y;
+}
+.document-zoom-scroll > * { max-width: 100%; min-width: 0; box-sizing: border-box; }
+.document-zoom-scroll .agreement-paper,
+.document-zoom-scroll .pod-paper { width: 100%; max-width: 620px; box-sizing: border-box; }
+
+
+/* AV2.4.1 — restrained attention treatment */
+.operations-bar-status.attention {
+  border-color: rgba(181,154,203,.30);
+  background: rgba(24,22,28,.84);
+}
+.operations-bar-status.attention .operations-bar-status-dot {
+  background: var(--docos-attention-bright);
+  box-shadow: 0 0 0 2px rgba(157,107,196,.10);
+}
+.driver-dispatch-message-action {
+  border-color: rgba(181,154,203,.30);
+  background: rgba(27,24,31,.96);
+}
+.driver-plan-message-action {
+  border-color: rgba(181,154,203,.34);
+  box-shadow: inset 2px 0 0 rgba(181,154,203,.55);
+}
+.driver-thread-context-action {
+  border-color: rgba(181,154,203,.25);
+  background: rgba(27,24,31,.92);
+}
+.driver-reply-menu > button.driver-reply-dispatch {
+  border-color: rgba(181,154,203,.30);
+  background: rgba(31,27,35,.96);
+}
+.freightlink-commit-review .freightlink-driver-assignment-row.candidate {
+  border-color: rgba(181,154,203,.32);
+  box-shadow: inset 2px 0 0 rgba(181,154,203,.52);
 }

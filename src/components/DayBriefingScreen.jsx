@@ -16,18 +16,11 @@ function DayBriefingScreen({ operationDay, report, cash, activeCarriers, availab
 
       <header className="day-loop-header">
         <span className="day-loop-kicker">DAY {String(operationDay).padStart(2, '0')}</span>
-        <h1>{operationDay > 1 ? 'The board is yours.' : 'Operation briefing.'}</h1>
+        <h1>Operation briefing.</h1>
         <p>{formatCompactDate(report.nextStartGameDayIndex)} · START {formatTime(report.nextStartMinutes)}</p>
       </header>
 
       <div className="day-loop-scroll">
-        {operationDay > 1 && (
-          <section className="day-independent-brief">
-            <span>INDEPENDENT OPERATION</span>
-            <strong>Full control unlocked.</strong>
-            <p>The board, driver movement and carrier decisions now run live. Make the call when tradeoffs appear.</p>
-          </section>
-        )}
         <section className="day-report-section">
           <h2>OPERATION STATUS</h2>
           <div className="day-report-rows">

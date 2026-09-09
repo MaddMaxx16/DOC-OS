@@ -30,7 +30,7 @@ function CarrierOpportunityScreen({ carrier, driver, onApply, onOpenOffer, appli
           <div className="docos-section-heading"><span>ABOUT THE ACCOUNT</span></div>
           <div className="docos-panel">
             <p className="carrier-posting-description">
-              Metroline is looking for a dispatcher to source freight, coordinate appointments, plan trips and support daily driver operations.
+              Metroline is looking for a dispatcher to source freight, coordinate pickup and delivery windows, plan trips and support daily driver operations.
             </p>
             <div className="docos-fact-list">
               <div><span>Fleet</span><strong>{carrier.fleetSize || 0} {carrier.fleetSize === 1 ? 'driver' : 'drivers'}</strong></div>
@@ -62,7 +62,7 @@ function CarrierOpportunityScreen({ carrier, driver, onApply, onOpenOffer, appli
         {isAccepted ? (
           <div className="docos-state-card success">
             <span>ACCOUNT ACTIVE</span>
-            <strong>Metroline is ready for dispatch.</strong>
+            <strong>Metroline is ready for operations.</strong>
             <p>{driver?.fullName || driver?.name || 'Marcus Reed'} is available in your driver roster.</p>
           </div>
         ) : isPending ? (

@@ -2,9 +2,8 @@ import mapLocations from '../data/mapLocations.js'
 import { useCallback, useEffect, useState } from 'react'
 import { calculateRoute } from '../services/routingService.js'
 import { formatAppointment } from '../utils/gameTime.js'
-import TutorialNote from './TutorialNote.jsx'
 
-function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedRoute, onSelectRoute, onBack, onContinue, tutorialEnabled = false }) {
+function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedRoute, onSelectRoute, onBack, onContinue }) {
   const load = loads.find((item) => item.id === loadId)
   const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
@@ -50,10 +49,9 @@ function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedR
       </header>
 
       <div className="docos-page-body route-planning-content">
-        {tutorialEnabled && !routeSelected && <TutorialNote>Now plan the trip. Compare distance and drive time against the appointments, then select the route Marcus should run.</TutorialNote>}
 
         <section className="docos-section">
-          <div className="docos-section-heading"><span>APPOINTMENTS</span></div>
+          <div className="docos-section-heading"><span>WINDOWS</span></div>
           <div className="docos-info-grid">
             <div className="docos-info-cell">
               <span>PICKUP</span>
@@ -88,7 +86,7 @@ function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedR
 
         <div className="docos-sticky-actions route-actions-v3">
           <button type="button" className="docos-secondary-action" onClick={onBack}>BACK</button>
-          <button type="button" className={`docos-primary-action ${tutorialEnabled && status === 'success' ? 'tutorial-target' : ''}`} onClick={onContinue} disabled={status !== 'success'}>CONFIRM PLAN</button>
+          <button type="button" className="docos-primary-action" onClick={onContinue} disabled={status !== 'success'}>CONFIRM PLAN</button>
         </div>
       </div>
     </div>

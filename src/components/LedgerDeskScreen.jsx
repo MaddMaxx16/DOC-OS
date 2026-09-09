@@ -26,7 +26,7 @@ function tabSectionLabel(tab) {
   return 'Ready for action'
 }
 
-function LedgerDeskScreen({ loads, carriers, ledgerWorkflowByLoadId, onBack, onOpenReceivable, tutorialTarget = null }) {
+function LedgerDeskScreen({ loads, carriers, ledgerWorkflowByLoadId, onBack, onOpenReceivable }) {
   const receivables = getReceivables(loads, carriers, ledgerWorkflowByLoadId)
   const summary = getLedgerSummary(receivables.map((item) => ({ ...item, dispatchRevenue: item.dispatchRevenue })))
   const [activeTab, setActiveTab] = useState(() => (
@@ -43,16 +43,7 @@ function LedgerDeskScreen({ loads, carriers, ledgerWorkflowByLoadId, onBack, onO
     ['paid', 'Paid', ['PAID']],
   ]
 
-  const tutorialLoadId = tutorialTarget?.startsWith('ledger-card:') ? tutorialTarget.split(':')[1] : null
-  const tutorialReceivable = receivables.find((item) => item.loadId === tutorialLoadId)
-  const guidedTab = tutorialReceivable?.financialStatus === 'PAID'
-    ? 'paid'
-    : tutorialReceivable?.financialStatus === 'AWAITING_PAYMENT'
-      ? 'sent'
-      : tutorialReceivable
-        ? 'receivables'
-        : null
-  const displayTab = guidedTab || activeTab
+  const displayTab = activeTab
   const selectedTab = tabs.find((tab) => tab[0] === displayTab) || tabs[0]
   const visible = receivables.filter((item) => selectedTab[2].includes(item.financialStatus))
 
@@ -109,12 +100,11 @@ function LedgerDeskScreen({ loads, carriers, ledgerWorkflowByLoadId, onBack, onO
       <section className="ledger-list-v2" aria-label={selectedTab[1]}>
         <span className="ledger-section-label">{tabSectionLabel(displayTab)}</span>
         {visible.length ? visible.map((item) => {
-          const isTutorialTarget = tutorialTarget === `ledger-card:${item.loadId}`
           const statusClass = String(item.financialStatus || '').toLowerCase().replaceAll('_', '-')
           return (
             <button
               type="button"
-              className={`ledger-receivable-card status-${statusClass} ${isTutorialTarget ? 'tutorial-target' : ''}`}
+              className={`ledger-receivable-card status-${statusClass}`}
               key={item.loadId}
               onClick={() => onOpenReceivable(item)}
             >

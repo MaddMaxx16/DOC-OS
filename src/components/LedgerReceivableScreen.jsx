@@ -18,7 +18,7 @@ function statusLabel(status) {
   return String(status || '').replaceAll('_', ' ')
 }
 
-function LedgerReceivableScreen({ receivable, currentGameMinute = 0, onBack, onAction, tutorialTarget = null }) {
+function LedgerReceivableScreen({ receivable, currentGameMinute = 0, onBack, onAction }) {
   if (!receivable) {
     return (
       <div className="phone-page ledger-screen ledger-v2 ledger-receivable-v2">
@@ -129,7 +129,7 @@ function LedgerReceivableScreen({ receivable, currentGameMinute = 0, onBack, onA
 
         {status === 'READY_TO_INVOICE' && (
           <button
-            className={`ledger-primary-action ${tutorialTarget === 'create-invoice' ? 'tutorial-target' : ''}`}
+            className="ledger-primary-action"
             type="button"
             onClick={() => onAction('create')}
           >
@@ -139,11 +139,11 @@ function LedgerReceivableScreen({ receivable, currentGameMinute = 0, onBack, onA
 
         {status === 'DRAFT' && (
           <button
-            className={`ledger-primary-action ${tutorialTarget === 'send-invoice' ? 'tutorial-target' : ''}`}
+            className="ledger-primary-action"
             type="button"
             onClick={() => onAction('send')}
           >
-            SEND INVOICE
+            EMAIL INVOICE + POD
           </button>
         )}
 

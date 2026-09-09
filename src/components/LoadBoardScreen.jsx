@@ -19,7 +19,7 @@ function bucketFor(load) {
   return 'active'
 }
 
-function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime, operationDay = 1, embedded = false, onBack, onSelectLoad, onOpenMarketMap, tutorialEnabled = false, tutorialLoadId = 'DOC001' }) {
+function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime, operationDay = 1, embedded = false, onBack, onSelectLoad, onOpenMarketMap }) {
   const [sortMode, setSortMode] = useState('pickup')
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const now = (gameTime?.gameDayIndex ?? 0) * 1440 + (gameTime?.totalMinutesOfDay ?? 420)
@@ -31,9 +31,10 @@ function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime,
   })
 
   const counts = unlockedLoads.reduce((acc, load) => { acc[bucketFor(load)] += 1; return acc }, { available: 0, active: 0, history: 0 })
+  const recentNewCount = unlockedLoads.filter((load) => load.status === 'available' && Number.isFinite(load.postedGameMinute) && now - load.postedGameMinute >= 0 && now - load.postedGameMinute <= 30).length
   const [filterMode, setFilterMode] = useState(() => counts.available ? 'available' : counts.active ? 'active' : 'history')
 
-  const decisionMode = !tutorialEnabled
+  const decisionMode = true
   const loadViews = useMemo(() => unlockedLoads.map((load) => {
     const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
     const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
@@ -59,7 +60,7 @@ function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime,
     <div className={`phone-page load-board-screen freightlink-v2 ${embedded ? 'embedded' : ''}`}>
       <header className="freightlink-page-heading freightlink-home-compact">
         <span className="freightlink-kicker">FREIGHT MARKET</span>
-        <div className="freightlink-title-row"><h2>FreightLink</h2></div>
+        <div className="freightlink-title-row"><h2>FreightLink</h2>{recentNewCount > 0 && <span className="freightlink-new-loads">{recentNewCount} NEW LOAD{recentNewCount === 1 ? '' : 'S'}</span>}</div>
         <p>Source freight and manage the loads your carrier is working.</p>
       </header>
 
@@ -100,9 +101,9 @@ function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime,
                 <div className="freight-decision-body"><div className="freight-decision-top"><div className="freight-decision-id"><strong>{load.loadNumber || load.id}</strong></div><div className="freight-decision-rate"><strong>${load.rate}</strong><span>{rpm ? `$${rpm.toFixed(2)}/MI` : 'RATE'}</span></div></div><div className="freight-decision-lane phase2"><strong>{pickup.name}</strong><span>→</span><strong>{delivery.name}</strong></div><div className="freight-decision-meta"><span>LOAD {formatListedMiles(load.listedMiles)}</span><span>DELIVERY {formatCompactDate(load.deliveryDayIndex)} · {formatTime(load.deliveryWindowStartMinutes)}</span></div></div>
               </button>
             ) : (
-              <button type="button" className={`freight-listing-row ${tutorialEnabled && load.id === tutorialLoadId && load.status === 'available' ? 'tutorial-target' : ''}`} key={load.id} onClick={() => onSelectLoad(load.id)}>
+              <button type="button" className="freight-listing-row" key={load.id} onClick={() => onSelectLoad(load.id)}>
                 <div className="freight-listing-time"><span>PICKUP · {formatCompactDate(load.pickupDayIndex)}</span><strong>{formatTime(load.pickupWindowStartMinutes)}</strong></div>
-                <div className="freight-listing-main"><div className="freight-listing-top"><strong>{load.loadNumber || load.id}</strong><span className="freight-load-status">{formatLoadStatus(load.status)}</span></div><div className="freight-listing-lane"><span>{pickup.name}</span><b>→</b><span>{delivery.name}</span></div><small>DELIVERY {formatCompactDate(load.deliveryDayIndex)} · {formatTime(load.deliveryWindowStartMinutes)} · LOAD {formatListedMiles(load.listedMiles)}</small></div>
+                <div className="freight-listing-main"><div className="freight-listing-top"><strong>{load.loadNumber || load.id}</strong><span className={`freight-load-status ${load.status === 'expired' ? 'expired' : ''}`}>{formatLoadStatus(load.status)}</span></div><div className="freight-listing-lane"><span>{pickup.name}</span><b>→</b><span>{delivery.name}</span></div><small>DELIVERY {formatCompactDate(load.deliveryDayIndex)} · {formatTime(load.deliveryWindowStartMinutes)} · LOAD {formatListedMiles(load.listedMiles)}</small></div>
                 <div className="freight-listing-rate"><strong>${load.rate}</strong><span>{rpm ? `$${rpm.toFixed(2)}/MI` : 'RATE'}</span></div>
               </button>
             ))}

@@ -25,7 +25,7 @@ function CarrierSourceScreen({ carrier, application, onOpen }) {
             <div className="carrier-job-title"><strong>{carrier.name}</strong><span>Independent Dispatch · Brooklyn, NY</span></div>
             <span className={`carrier-job-status ${state.tone}`}>{state.label}</span>
           </div>
-          <p className="carrier-job-summary">Regional carrier seeking day-to-day dispatch support for load sourcing, trip planning, appointment coordination, and driver support.</p>
+          <p className="carrier-job-summary">Regional carrier seeking day-to-day dispatch support for load sourcing, trip planning, pickup and delivery window coordination, and driver support.</p>
           <div className="carrier-job-action"><span>{state.action}</span><span aria-hidden="true">›</span></div>
         </button>
       </section>

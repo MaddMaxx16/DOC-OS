@@ -12,7 +12,7 @@ function formatMiles(value) {
   return 'Unavailable'
 }
 
-function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit, onPlanRoute, onBack }) {
+function LoadDetailsScreen({ loads, drivers, carriers = [], loadId, onAccept, onCheckDriverFit, onRequestCarrierApproval, onViewCarrierApproval, onPlanRoute, onBack }) {
   const load = loads.find((item) => item.id === loadId)
   const pickup = load && mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = load && mapLocations.find((location) => location.id === load.deliveryLocationId)
@@ -37,6 +37,11 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
   const sameDay = load.pickupDayIndex === load.deliveryDayIndex
   const statusLabel = formatStatus(load.status)
   const rpm = Number.isFinite(load.listedMiles) && load.listedMiles > 0 ? load.rate / load.listedMiles : null
+
+  const candidateCarrier = candidateDriver ? carriers.find((carrier) => carrier.id === candidateDriver.carrierId) : null
+  const approvalRequired = Boolean(candidateCarrier?.dispatchAgreement?.loadApprovalRequired)
+  const approvalStatus = load.carrierApprovalStatus || null
+  const approvalReady = !approvalRequired || approvalStatus === 'APPROVED'
 
   return (
     <div className="phone-page load-details-screen load-details-v2 phase2-load-details">
@@ -91,6 +96,16 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
           </section>
         )}
 
+        {isAvailable && candidateDriver && load.driverFitVerified && approvalRequired && (
+          <section className="docos-section carrier-approval-panel">
+            <div className="docos-section-heading"><span>CARRIER APPROVAL</span><small>{candidateCarrier?.name || 'Carrier'}</small></div>
+            <div className={`carrier-approval-state ${String(approvalStatus || 'required').toLowerCase()}`}>
+              <div><strong>{approvalStatus === 'APPROVED' ? 'APPROVED TO BOOK' : approvalStatus === 'PENDING' ? 'AWAITING EMAIL APPROVAL' : approvalStatus === 'NEEDS_INFO' ? 'RESEND REQUIRED' : 'APPROVAL REQUIRED'}</strong><small>{approvalStatus === 'APPROVED' ? 'Carrier approval is on file for this load.' : 'Your agreement requires written approval before FreightLink acceptance.'}</small></div>
+              <span>{approvalStatus === 'APPROVED' ? '✓' : approvalStatus === 'PENDING' ? '···' : 'EMAIL'}</span>
+            </div>
+          </section>
+        )}
+
         {assignedDriver && (
           <section className="docos-section">
             <div className="docos-section-heading"><span>DRIVER ASSIGNMENT</span></div>
@@ -107,7 +122,16 @@ function LoadDetailsScreen({ loads, drivers, loadId, onAccept, onCheckDriverFit,
         <div className="docos-sticky-actions load-actions-phase2">
           {isAvailable && candidateDriver && load.driverFitVerified ? (
             <>
-              <button type="button" className="docos-primary-action" onClick={onAccept}>ACCEPT &amp; ASSIGN {candidateDriver.name?.toUpperCase() || 'DRIVER'}</button>
+              {approvalReady ? (
+                <button type="button" className="docos-primary-action" onClick={onAccept}>ACCEPT &amp; ASSIGN {candidateDriver.name?.toUpperCase() || 'DRIVER'}</button>
+              ) : approvalStatus === 'PENDING' ? (
+                <>
+                  <button type="button" className="docos-primary-action" disabled>AWAITING CARRIER APPROVAL</button>
+                  <button type="button" className="docos-secondary-action" onClick={() => onViewCarrierApproval?.(load.id)}>VIEW APPROVAL REQUEST</button>
+                </>
+              ) : (
+                <button type="button" className="docos-primary-action" onClick={() => onRequestCarrierApproval?.(load.id)}>REQUEST CARRIER APPROVAL</button>
+              )}
               <button type="button" className="docos-secondary-action" onClick={onCheckDriverFit}>CHANGE DRIVER</button>
             </>
           ) : isAvailable ? (

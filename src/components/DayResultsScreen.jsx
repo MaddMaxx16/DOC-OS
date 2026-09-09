@@ -14,7 +14,6 @@ function DayResultsScreen({ report, progression, onContinue }) {
   const progress = getProgressionView(progression)
   const nextOperationDay = report.operationDay + 1
   const dispatchFeePercent = report.carrierRevenue > 0 ? Math.round((report.dispatchRevenue / report.carrierRevenue) * 1000) / 10 : 0
-  const trainingComplete = report.operationDay === 1
 
   return (
     <section className="day-loop-screen day-results-screen" aria-label={`Day ${report.operationDay} results`}>
@@ -25,47 +24,40 @@ function DayResultsScreen({ report, progression, onContinue }) {
 
       <header className="day-loop-header">
         <span className="day-loop-kicker">DAY {String(report.operationDay).padStart(2, '0')} RESULTS</span>
-        <h1>{trainingComplete ? 'Training operation complete.' : 'Operation closed.'}</h1>
+        <h1>Operation closed.</h1>
         <p>{formatCompactDate(report.closeGameDayIndex)} · {formatTime(report.closeMinutes)}</p>
       </header>
 
       <div className="day-loop-scroll">
-        {trainingComplete && (
-          <section className="day-training-complete">
-            <span className="day-training-complete-dot" aria-hidden="true" />
-            <div>
-              <strong>GUIDED TRAINING COMPLETE</strong>
-              <span>Day 2 begins independent operation. The board, timing and carrier decisions are yours.</span>
-            </div>
-          </section>
-        )}
 
         <section className="day-report-section">
-          <h2>DAILY SUMMARY</h2>
+          <h2>OPERATION SUMMARY</h2>
           <div className="day-report-rows">
             <div><span>Loads Completed</span><strong>{report.loadsCompleted}</strong></div>
-            <div><span>Carrier Revenue</span><strong>{money(report.carrierRevenue)}</strong></div>
+            <div><span>Carrier Gross</span><strong>{money(report.carrierRevenue)}</strong></div>
             <div><span>Dispatch Fee</span><strong>{dispatchFeePercent}%</strong></div>
             <div><span>Dispatch Revenue</span><strong>{money(report.dispatchRevenue)}</strong></div>
             <div><span>Cash Collected</span><strong>{money(report.cashCollected)}</strong></div>
-            <div><span>Pending Receivables</span><strong>{money(report.pendingReceivables)}</strong></div>
+            <div><span>Open Receivables</span><strong>{money(report.pendingReceivables)}</strong></div>
           </div>
         </section>
 
         <section className="day-report-section">
-          <h2>PERFORMANCE</h2>
+          <h2>SERVICE & PERFORMANCE</h2>
           <div className="day-report-rows">
-            <div><span>Service</span><strong className="positive">{score(report.serviceScore)}</strong></div>
+            <div><span>Pickup Windows Met</span><strong>{report.onTimePickups ?? 0} / {report.loadsCompleted}</strong></div>
+            <div><span>Delivery Windows Met</span><strong>{report.onTimeDeliveries ?? 0} / {report.loadsCompleted}</strong></div>
+            <div><span>Freight Exceptions</span><strong className={report.exceptionLoads > 0 ? 'attention' : ''}>{report.exceptionLoads ?? 0}</strong></div>
+            <div><span>Service Score</span><strong className="positive">{score(report.serviceScore)}</strong></div>
             <div><span>Efficiency</span><strong>{score(report.efficiencyScore)}</strong></div>
-            <div><span>Reputation · completed service</span><strong className="positive">+{report.reputationChange}</strong></div>
+            <div><span>Reputation</span><strong className={report.reputationChange >= 0 ? 'positive' : 'attention'}>{report.reputationChange >= 0 ? '+' : ''}{report.reputationChange}</strong></div>
           </div>
-          {report.tutorialPenaltyExempt && <p className="day-report-note">Training-day close timing is protected. Late-start consequences begin after this operation.</p>}
         </section>
 
         <section className="day-report-section">
-          <h2>OPERATOR PROGRESSION</h2>
+          <h2>DISPATCHER PROGRESS</h2>
           <div className="day-report-rows">
-            <div><span>Dispatcher XP · loads + service</span><strong className="positive">+{report.xpGain}</strong></div>
+            <div><span>Total XP</span><strong>{progress.xp}</strong></div>
             <div><span>Level</span><strong>{progress.level}</strong></div>
             <div><span>Progress</span><strong>{progress.xpIntoLevel} / {progress.xpPerLevel} XP</strong></div>
           </div>
@@ -75,7 +67,7 @@ function DayResultsScreen({ report, progression, onContinue }) {
         </section>
 
         <section className="day-report-section next-day-outlook">
-          <h2>NEXT DAY OUTLOOK</h2>
+          <h2>NEXT OPERATION</h2>
           <div className="day-report-rows">
             <div><span>Standard Start</span><strong>{formatTime(report.standardStartMinutes)}</strong></div>
             <div><span>Late Close Adjustment</span><strong className={report.lateCloseAdjustmentMinutes > 0 ? 'attention' : ''}>{report.lateCloseAdjustmentMinutes > 0 ? `+${report.lateCloseAdjustmentMinutes} min` : 'None'}</strong></div>

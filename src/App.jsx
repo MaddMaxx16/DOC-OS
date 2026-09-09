@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import seedLoads from './data/loads.js'
 import seedCarriers from './data/carriers.js'
@@ -6,7 +6,7 @@ import seedDrivers from './data/drivers.js'
 import mapLocations from './data/mapLocations.js'
 import { DELIVERY_CHECKIN_MINUTES, PICKUP_CHECKIN_MINUTES, getDeliveryDockWaitMinutes, getPickupDockWaitMinutes } from './data/pickupConfig.js'
 import { logDocOsState } from './utils/debugLogger.js'
-import { getMarcusPanelModel } from './utils/driverOperationalState.js'
+import { getDriverPanelModel } from './utils/driverOperationalState.js'
 import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
 import MainGameScreen from './components/MainGameScreen.jsx'
 import StartScreen from './components/StartScreen.jsx'
@@ -39,6 +39,35 @@ function pointAlongRoute(route, progress) {
   return { longitude: a[0] + (b[0] - a[0]) * local, latitude: a[1] + (b[1] - a[1]) * local }
 }
 
+function reconcileDriverRuntimeState(driver, activeLoad, savedPosition, now) {
+  if (!driver) return { position: savedPosition || null, progress: null }
+  if (!activeLoad) {
+    const fallback = mapLocations.find((location) => location.id === (driver.lastKnownLocationId || driver.homeBaseLocationId))
+    return { position: savedPosition || (fallback ? { longitude: fallback.longitude, latitude: fallback.latitude } : null), progress: null }
+  }
+
+  const isPickupTravel = activeLoad.tripStatus === 'en-route-pickup'
+  const isDeliveryTravel = activeLoad.tripStatus === 'en-route-delivery'
+  const route = isPickupTravel ? activeLoad.plannedDeadheadRouteGeometry : isDeliveryTravel ? activeLoad.plannedLoadedRouteGeometry : null
+  const departure = isPickupTravel ? activeLoad.departureGameMinute : isDeliveryTravel ? activeLoad.deliveryDepartureGameMinute : null
+  const duration = isPickupTravel ? activeLoad.plannedDeadheadDriveTimeMinutes : isDeliveryTravel ? activeLoad.plannedLoadedDriveTimeMinutes : null
+
+  if (Array.isArray(route) && route.length >= 2 && Number.isFinite(departure) && Number.isFinite(duration) && duration > 0) {
+    const progress = Math.max(0, Math.min(1, (now - departure) / duration))
+    const position = pointAlongRoute(route, progress)
+    if (position) return { position, progress }
+  }
+
+  const pickupStates = new Set(['at-pickup', 'checking-in-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup'])
+  const deliveryStates = new Set(['at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'])
+  const facilityId = pickupStates.has(activeLoad.tripStatus) ? activeLoad.pickupLocationId : deliveryStates.has(activeLoad.tripStatus) ? activeLoad.deliveryLocationId : null
+  const facility = facilityId ? mapLocations.find((location) => location.id === facilityId) : null
+  if (facility) return { position: { longitude: facility.longitude, latitude: facility.latitude }, progress: null }
+
+  const fallback = mapLocations.find((location) => location.id === (driver.lastKnownLocationId || driver.homeBaseLocationId))
+  return { position: savedPosition || (fallback ? { longitude: fallback.longitude, latitude: fallback.latitude } : null), progress: null }
+}
+
 function App() {
   const [stage, setStage] = useState('start')
   const [selectedMarket, setSelectedMarket] = useState(null)
@@ -50,7 +79,7 @@ function App() {
   const [isGameClockPaused, setIsGameClockPaused] = useState(true)
   const [simulationSpeed, setSimulationSpeed] = useState(1)
   const [runtimePositions, setRuntimePositions] = useState({})
-  const [runtimeProgress, setRuntimeProgress] = useState(null)
+  const [runtimeProgressByDriver, setRuntimeProgressByDriver] = useState({})
   const [hydrated, setHydrated] = useState(false)
   const [hasExistingOperation, setHasExistingOperation] = useState(false)
   const [resumeStage, setResumeStage] = useState(null)
@@ -61,15 +90,19 @@ function App() {
   const [emailMessages, setEmailMessages] = useState([])
   const [driverMessages, setDriverMessages] = useState([])
   const [businessDocuments, setBusinessDocuments] = useState([])
-  const [tutorialState, setTutorialState] = useState({ enabled: false, completed: true })
   const [dayLoop, setDayLoop] = useState(() => ({ ...DEFAULT_DAY_LOOP_STATE }))
   const [playerProgression, setPlayerProgression] = useState(() => ({ ...DEFAULT_PLAYER_PROGRESSION }))
   const [saveSlots, setSaveSlots] = useState([])
   const [activeSaveSlotId, setActiveSaveSlotId] = useState(null)
+  const lifecycleSaveSignatureRef = useRef('')
 
   const approvePodAndCloseout = (loadId) => {
     const load = loads.find((item) => item.id === loadId)
     if (!load || load.tripStatus !== 'awaiting-pod' || !load.pod?.verified || !load.assignedDriverId) return false
+    const recordPieces = Number.isFinite(Number(load.pod?.freightCondition?.loadedAtPickup)) ? Number(load.pod.freightCondition.loadedAtPickup) : Number(load.pod.piecesReceived)
+    const recordDamageCount = Number(load.pod?.freightCondition?.damagedAtPickup || 0)
+    const recordDamage = recordDamageCount > 0 ? `${recordDamageCount} pallet${recordDamageCount === 1 ? '' : 's'} noted` : 'None'
+    if (Number(load.pod.piecesReceived) !== Number(recordPieces) || String(load.pod.damage || '').trim() !== recordDamage) return false
 
     const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
     if (!delivery) {
@@ -128,7 +161,7 @@ function App() {
       ...current,
       [driverId]: { longitude: delivery.longitude, latitude: delivery.latitude },
     }))
-    setRuntimeProgress(null)
+    setRuntimeProgressByDriver((current) => ({ ...current, [driverId]: null }))
     return true
   }
 
@@ -138,7 +171,7 @@ function App() {
       if (!seed) return load
       const merged = { ...seed, ...load }
       if (seed.loadNumber) merged.loadNumber = seed.loadNumber
-      // Unified market-flow migration: tutorial/progression/operation-day gates never control freight visibility.
+      // Unified market-flow migration: progression/operation-day gates never control freight visibility.
       delete merged.unlockAfterLoadId
       const hadLegacyOperationGate = Number.isFinite(load.scheduledOperationDay)
       delete merged.scheduledOperationDay
@@ -162,7 +195,10 @@ function App() {
 
   const hydrateSavedOperation = (saved) => {
     if (!saved) return
-    const hydratedCarriers = saved.carriers ?? seedCarriers.map((carrier) => ({ ...carrier }))
+    const hydratedCarriers = (saved.carriers ?? seedCarriers).map((carrier) => {
+      const seed = seedCarriers.find((item) => item.id === carrier.id)
+      return seed ? { ...seed, ...carrier, dispatchAgreement: { ...(seed.dispatchAgreement || {}), ...(carrier.dispatchAgreement || {}) } } : carrier
+    })
     let hydratedLoads = mergeSavedLoads(saved.loads ?? [])
     const savedNow = (saved.gameTime?.gameDayIndex ?? 0) * 1440 + (saved.gameTime?.totalMinutesOfDay ?? 420)
     hydratedLoads = hydratedLoads.map((load) => {
@@ -200,10 +236,12 @@ function App() {
     })
 
     const nextPositions = { ...(saved.runtimePositions || {}) }
+    const nextRuntimeProgress = {}
     hydratedDrivers.forEach((driver) => {
-      if (nextPositions[driver.id]) return
-      const home = mapLocations.find((location) => location.id === driver.homeBaseLocationId)
-      if (home) nextPositions[driver.id] = { longitude: home.longitude, latitude: home.latitude }
+      const activeLoad = getDriverActiveLoad(hydratedLoads, driver.id)
+      const reconciled = reconcileDriverRuntimeState(driver, activeLoad, nextPositions[driver.id], savedNow)
+      if (reconciled.position) nextPositions[driver.id] = reconciled.position
+      if (Number.isFinite(reconciled.progress)) nextRuntimeProgress[driver.id] = reconciled.progress
     })
 
     setSelectedMarket(saved.selectedMarket ?? null)
@@ -212,12 +250,12 @@ function App() {
     setDrivers(hydratedDrivers)
     setCarriers(hydratedCarriers)
     setRuntimePositions(nextPositions)
-    setRuntimeProgress(saved.runtimeProgress ?? null)
+    setRuntimeProgressByDriver(nextRuntimeProgress)
     setSeenLedgerReceivableIds(Array.isArray(saved.seenLedgerReceivableIds) ? saved.seenLedgerReceivableIds : [])
     setSeenLedgerPaymentReceivedIds(Array.isArray(saved.seenLedgerPaymentReceivedIds) ? saved.seenLedgerPaymentReceivedIds : [])
     setLedgerWorkflowByLoadId(saved.ledgerWorkflowByLoadId || {})
     setCarrierApplicationsById(saved.carrierApplicationsById || {})
-    setEmailMessages(Array.isArray(saved.emailMessages) ? saved.emailMessages : [])
+    setEmailMessages(Array.isArray(saved.emailMessages) ? saved.emailMessages.filter((message) => !message.templateId) : [])
     const savedDriverMessages = Array.isArray(saved.driverMessages) ? saved.driverMessages : []
     const migratedDriverMessages = savedDriverMessages.flatMap((message) => {
       if (message.id !== 'marcus-intro') return [message]
@@ -230,8 +268,6 @@ function App() {
     })
     setDriverMessages(migratedDriverMessages)
     setBusinessDocuments(Array.isArray(saved.businessDocuments) ? saved.businessDocuments : [])
-    // Tutorial mechanics are dormant: existing saves migrate into the same open gameplay flow.
-    setTutorialState({ enabled: false, completed: true })
     setDayLoop(saved.dayLoop ? { ...DEFAULT_DAY_LOOP_STATE, ...saved.dayLoop, history: Array.isArray(saved.dayLoop.history) ? saved.dayLoop.history : [] } : { ...DEFAULT_DAY_LOOP_STATE })
     setPlayerProgression(saved.playerProgression ? { ...DEFAULT_PLAYER_PROGRESSION, ...saved.playerProgression } : { ...DEFAULT_PLAYER_PROGRESSION })
     setResumeStage(saved.stage && saved.stage !== 'start' ? saved.stage : (saved.selectedMarket ? 'game' : 'market'))
@@ -247,7 +283,7 @@ function App() {
     setIsGameClockPaused(true)
     setSimulationSpeed(1)
     setRuntimePositions({})
-    setRuntimeProgress(null)
+    setRuntimeProgressByDriver({})
     setSeenLedgerReceivableIds([])
     setSeenLedgerPaymentReceivedIds([])
     setLedgerWorkflowByLoadId({})
@@ -255,7 +291,6 @@ function App() {
     setEmailMessages([])
     setDriverMessages([])
     setBusinessDocuments([])
-    setTutorialState({ enabled: false, completed: true })
     setDayLoop({ ...DEFAULT_DAY_LOOP_STATE })
     setPlayerProgression({ ...DEFAULT_PLAYER_PROGRESSION })
   }
@@ -276,11 +311,26 @@ function App() {
     if (stage === 'start' && !hasExistingOperation) return
     const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
     const timer = setTimeout(() => {
-      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, tutorialState, dayLoop, playerProgression }, activeSaveSlotId)
+      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
       setSaveSlots(getSaveSlots())
     }, 700)
     return () => clearTimeout(timer)
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, tutorialState, dayLoop, playerProgression])
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
+
+  // AV lifecycle persistence: critical operational boundaries flush immediately.
+  // Routine animation/clock changes still use the normal debounce above.
+  useEffect(() => {
+    if (!hydrated || !activeSaveSlotId || (stage === 'start' && !hasExistingOperation)) return
+    const signature = loads
+      .filter((load) => load.assignedDriverId || ['accepted', 'assigned', 'queued', 'completed'].includes(load.status))
+      .map((load) => `${load.id}:${load.assignedDriverId || load.completedDriverId || '-'}:${load.status}:${load.tripStatus}:${load.planningStatus || '-'}:${load.deliveryPlanningStatus || '-'}:${load.pod?.approved ? 'pod-approved' : '-'}`)
+      .sort()
+      .join('|')
+    if (!signature || signature === lifecycleSaveSignatureRef.current) return
+    lifecycleSaveSignatureRef.current = signature
+    const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
+    saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
 
   // AU3 mobile persistence hardening: keep the normal debounce for routine
   // updates, but flush the current snapshot immediately when iOS backgrounds
@@ -289,7 +339,7 @@ function App() {
     if (!hydrated || !activeSaveSlotId) return undefined
     const flushSave = () => {
       const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
-      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, tutorialState, dayLoop, playerProgression }, activeSaveSlotId)
+      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
     }
     const onVisibility = () => { if (document.visibilityState === 'hidden') flushSave() }
     window.addEventListener('pagehide', flushSave)
@@ -298,9 +348,9 @@ function App() {
       window.removeEventListener('pagehide', flushSave)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgress, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, tutorialState, dayLoop, playerProgression])
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
 
-  // Market appointments are seeded directly; operation-day/tutorial gates do not rewrite them.
+  // Market appointments are seeded directly; operation-day gates do not rewrite them.
 
 
   // Freight market clock contract: an unaccepted load stops being actionable once
@@ -336,25 +386,76 @@ function App() {
     })
   }, [hydrated, stage, dayLoop.phase, dayLoop.operationDay, gameTime.gameDayIndex, gameTime.totalMinutesOfDay])
 
+
   useEffect(() => {
-    if (!hydrated || !tutorialState.enabled || tutorialState.completed) return
-    // Tutorial pacing: DOC001/DOC002 payments arrive 30 game minutes after invoice send.
-    // This also migrates tutorial saves created before the shorter payment window.
-    setLedgerWorkflowByLoadId((current) => {
-      let changed = false
-      const next = { ...current }
-      ;['DOC001', 'DOC002'].forEach((id) => {
-        const workflow = current[id]
-        if (workflow?.financialStatus !== 'AWAITING_PAYMENT' || !Number.isFinite(workflow.invoiceSentGameMinute)) return
-        const tutorialPaymentMinute = workflow.invoiceSentGameMinute + 30
-        if (!Number.isFinite(workflow.paymentAvailableGameMinute) || workflow.paymentAvailableGameMinute > tutorialPaymentMinute) {
-          next[id] = { ...workflow, paymentAvailableGameMinute: tutorialPaymentMinute }
-          changed = true
-        }
-      })
-      return changed ? next : current
-    })
-  }, [hydrated, tutorialState.enabled, tutorialState.completed])
+    if (!hydrated || stage !== 'game') return
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const pending = emailMessages.find((message) => message.direction === 'outbound'
+      && message.workflowType && message.workflowType !== 'general'
+      && Number.isFinite(message.responseGameMinute)
+      && now >= message.responseGameMinute
+      && !emailMessages.some((entry) => entry.replyToEmailId === message.id))
+    if (!pending) return
+
+    const load = loads.find((item) => item.id === pending.loadId)
+    const loadNumber = load?.loadNumber || pending.loadId || 'load'
+    let senderOverride = 'Metroline Transport'
+    let subject = `Re: ${pending.subject || loadNumber}`
+    let bodyOverride = 'Received. Thank you.'
+    let attachments = []
+
+    if (pending.workflowType === 'carrier-approval') {
+      senderOverride = 'Metroline Transport · Operations'
+      if (pending.workflowValid) {
+        bodyOverride = `Approved. Go ahead and book ${loadNumber}. Keep us posted if the schedule or rate changes.`
+        setLoads((current) => current.map((item) => item.id === pending.loadId ? { ...item, carrierApprovalStatus: 'APPROVED', carrierApprovedGameMinute: now } : item))
+      } else {
+        bodyOverride = `We can’t approve ${loadNumber} yet. Please resend the request to Operations with the FreightLink load offer attached.`
+        setLoads((current) => current.map((item) => item.id === pending.loadId ? { ...item, carrierApprovalStatus: 'NEEDS_INFO' } : item))
+      }
+    }
+
+    if (pending.workflowType === 'pod-correction') {
+      senderOverride = 'Metroline Transport · Documentation'
+      if (pending.workflowValid && load?.pod) {
+        const piecesReceived = Number.isFinite(Number(load.pod.freightCondition?.loadedAtPickup)) ? Number(load.pod.freightCondition.loadedAtPickup) : Number(load.pod.piecesReceived)
+        const damaged = Number(load.pod.freightCondition?.damagedAtPickup || 0)
+        const damage = damaged > 0 ? `${damaged} pallet${damaged === 1 ? '' : 's'} noted` : 'None'
+        bodyOverride = `Corrected POD for ${loadNumber} is attached. Piece count and freight condition now match the delivery record.`
+        attachments = [{ id: `corrected-pod:${pending.loadId}`, type: 'pod', title: `Corrected POD · ${loadNumber}`, meta: 'Corrected copy', loadId: pending.loadId }]
+        setLoads((current) => current.map((item) => item.id === pending.loadId && item.pod ? { ...item, pod: { ...item.pod, piecesReceived, damage, correctionStatus: 'CORRECTED', correctedGameMinute: now, verification: { signature: false, pieceCount: false, damage: false, deliveryInfo: false }, verified: false, verifiedGameMinute: null } } : item))
+      } else {
+        bodyOverride = `We need the current POD and supporting exception report before we can issue a correction for ${loadNumber}. Please resend to Documentation with both attached.`
+        setLoads((current) => current.map((item) => item.id === pending.loadId && item.pod ? { ...item, pod: { ...item.pod, correctionStatus: 'NEEDS_INFO' } } : item))
+      }
+    }
+
+    if (pending.workflowType === 'invoice-submission') {
+      senderOverride = 'Metroline Transport · Accounting'
+      if (pending.workflowValid) {
+        bodyOverride = `Invoice received for ${loadNumber} with supporting POD. Payment terms are active.`
+      } else {
+        bodyOverride = `We can’t process this invoice yet. Please resend to Accounting with the invoice and signed POD attached.`
+        setLedgerWorkflowByLoadId((current) => ({ ...current, [pending.loadId]: { ...(current[pending.loadId] || {}), financialStatus: 'DRAFT', invoiceSentGameMinute: null, paymentAvailableGameMinute: null, submissionStatus: 'DOCUMENTATION_REQUIRED' } }))
+      }
+    }
+
+    setEmailMessages((current) => current.some((entry) => entry.replyToEmailId === pending.id) ? current : [...current, {
+      id: `email-reply-${pending.id}`,
+      type: 'operational-email-reply',
+      direction: 'inbound',
+      senderOverride,
+      carrierId: pending.carrierId || 'metroline',
+      subject,
+      bodyOverride,
+      attachments,
+      loadId: pending.loadId,
+      replyToEmailId: pending.id,
+      receivedGameMinute: now,
+      read: false,
+    }])
+  }, [hydrated, stage, gameTime, emailMessages, loads])
+
 
   useEffect(() => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
@@ -367,17 +468,9 @@ function App() {
     })
   }, [gameTime])
 
-  // Final tutorial handoff: when DOC002 payment posts, stop time immediately so
-  // the payment/closeout notification cannot fly past the player at 5x speed.
-  useEffect(() => {
-    if (!hydrated || !tutorialState.enabled || tutorialState.completed) return
-    if (ledgerWorkflowByLoadId.DOC002?.financialStatus !== 'PAID') return
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSimulationSpeed(1)
-  }, [hydrated, tutorialState.enabled, tutorialState.completed, ledgerWorkflowByLoadId.DOC002?.financialStatus])
 
-  const applyDevPreset = async (name) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads([...preset.loads, ...loads.filter((load) => !preset.loads.some((item) => item.id === load.id)), ...seedLoads.filter((seed) => !preset.loads.some((item) => item.id === seed.id) && !loads.some((item) => item.id === seed.id))]); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgress(preset.runtimeProgress) } catch (error) { console.error('DEV preset route unavailable:', error) } }
-  const applySelectedDevPreset = async (name, selectedLoadId) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers, currentRuntimePositions: runtimePositions, currentCarriers: carriers, selectedLoadId }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads([...preset.loads, ...loads.filter((load) => !preset.loads.some((item) => item.id === load.id)), ...seedLoads.filter((seed) => !preset.loads.some((item) => item.id === seed.id) && !loads.some((item) => item.id === seed.id))]); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgress(preset.runtimeProgress) } catch (error) { console.error('DEV preset route unavailable:', error) } }
+  const applyDevPreset = async (name) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads([...preset.loads, ...loads.filter((load) => !preset.loads.some((item) => item.id === load.id)), ...seedLoads.filter((seed) => !preset.loads.some((item) => item.id === seed.id) && !loads.some((item) => item.id === seed.id))]); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgressByDriver(preset.runtimeProgressByDriver || (Number.isFinite(preset.runtimeProgress) ? { marcus: preset.runtimeProgress } : {})) } catch (error) { console.error('DEV preset route unavailable:', error) } }
+  const applySelectedDevPreset = async (name, selectedLoadId) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers, currentRuntimePositions: runtimePositions, currentCarriers: carriers, selectedLoadId }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads([...preset.loads, ...loads.filter((load) => !preset.loads.some((item) => item.id === load.id)), ...seedLoads.filter((seed) => !preset.loads.some((item) => item.id === seed.id) && !loads.some((item) => item.id === seed.id))]); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgressByDriver(preset.runtimeProgressByDriver || (Number.isFinite(preset.runtimeProgress) ? { marcus: preset.runtimeProgress } : {})) } catch (error) { console.error('DEV preset route unavailable:', error) } }
   void applyDevPreset
   const resumeSave = (slotId) => {
     const saved = loadGame(slotId)
@@ -418,7 +511,23 @@ function App() {
     }
   }
   const resetGame = () => { clearSave(activeSaveSlotId); window.location.reload() }
-  const activateCarrier = () => { const nextCarriers = carriers.map((carrier) => carrier.id === 'metroline' ? { ...carrier, status: 'active' } : carrier); setCarriers(nextCarriers); setDrivers((current) => reconcileActiveCarrierDrivers(current, nextCarriers)); const yard = mapLocations.find((location) => location.id === 'metroline-yard'); if (yard) setRuntimePositions((current) => ({ ...current, marcus: current.marcus || { longitude: yard.longitude, latitude: yard.latitude } })) }
+  const activateCarrier = () => {
+    const nextCarriers = carriers.map((carrier) => carrier.id === 'metroline' ? { ...carrier, status: 'active' } : carrier)
+    setCarriers(nextCarriers)
+    setDrivers((current) => {
+      const nextDrivers = reconcileActiveCarrierDrivers(current, nextCarriers)
+      setRuntimePositions((positions) => {
+        const next = { ...positions }
+        nextDrivers.forEach((driver) => {
+          if (next[driver.id]) return
+          const home = mapLocations.find((location) => location.id === driver.homeBaseLocationId)
+          if (home) next[driver.id] = { longitude: home.longitude, latitude: home.latitude }
+        })
+        return next
+      })
+      return nextDrivers
+    })
+  }
   const applyCarrier = () => { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setCarrierApplicationsById((current) => current.metroline ? current : { ...current, metroline: { status: 'PENDING', submittedGameMinute: now, responseGameMinute: now + 10 } }) }
   const acceptCarrierAgreement = () => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
@@ -446,6 +555,7 @@ function App() {
         'Dispatch fee: 8% of carrier gross.',
       ],
       priorities: ['On-time service', 'Rate quality', 'Reasonable deadhead', 'Driver communication', 'Smart truck positioning'],
+      terms: { dispatchFee: '8% of carrier gross', loadApprovalRequired: true, paymentTermsDays: 1 },
       acknowledgment: 'These are Metroline’s operating goals, not absolute rules. Freight markets change throughout the day. Use reasonable judgment when balancing carrier goals, driver preferences, appointment requirements, and available freight.',
     }])
     setDriverMessages((current) => current.some((message) => message.id === 'marcus-intro-1' || message.id === 'marcus-intro') ? current : [...current,
@@ -482,18 +592,6 @@ function App() {
     ])
   }
 
-  useEffect(() => {
-    if (!hydrated || stage !== 'game') return
-    if (carrierApplicationsById.metroline || carriers.some((carrier) => carrier.id === 'metroline' && carrier.status === 'active')) return
-    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    setEmailMessages((current) => current.some((message) => message.id === 'mentor-welcome') ? current : [...current, {
-      id: 'mentor-welcome',
-      type: 'mentor',
-      templateId: 'mentor-welcome',
-      receivedGameMinute: now,
-      read: false,
-    }])
-  }, [hydrated, stage, gameTime, carrierApplicationsById, carriers])
 
   useEffect(() => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
@@ -510,79 +608,64 @@ function App() {
           receivedGameMinute: application.responseGameMinute,
           read: false,
         }])
-        if (tutorialState.enabled && !tutorialState.completed && carrierId === 'metroline') {
-          setSimulationSpeed(1)
-        }
       }
     })
-  }, [gameTime, carrierApplicationsById, tutorialState.enabled, tutorialState.completed])
+  }, [gameTime, carrierApplicationsById])
 
-  useEffect(() => {
-    if (!hydrated || !tutorialState.enabled || tutorialState.completed) return
-    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    const metrolineAccepted = carrierApplicationsById.metroline?.status === 'ACCEPTED' && carriers.some((carrier) => carrier.id === 'metroline' && carrier.status === 'active')
-    const doc001 = loads.find((load) => load.id === 'DOC001')
-    const doc002Paid = getReceivables(loads, carriers, ledgerWorkflowByLoadId).some((item) => item.loadId === 'DOC002' && item.financialStatus === 'PAID')
-    const doc002PaymentReviewed = seenLedgerPaymentReceivedIds.includes('DOC002')
-    const triggers = [
-      ['mentor-welcome', stage === 'game' && !carrierApplicationsById.metroline],
-      ['mentor-first-carrier', metrolineAccepted],
-      ['mentor-round-two', ledgerWorkflowByLoadId.DOC001?.financialStatus === 'AWAITING_PAYMENT'],
-      ['mentor-tutorial-complete', doc002Paid && doc002PaymentReviewed]
-    ]
-    const missing = triggers.find(([id, condition]) => condition && !emailMessages.some((message) => message.id === id))
-    if (!missing) return
-    const [id] = missing
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEmailMessages((current) => current.some((message) => message.id === id) ? current : [...current, { id, type: 'mentor', templateId: id, receivedGameMinute: now, read: false }])
-    void doc001
-  }, [hydrated, tutorialState, stage, gameTime, carrierApplicationsById, carriers, loads, ledgerWorkflowByLoadId, emailMessages, seenLedgerPaymentReceivedIds])
 
-  useEffect(() => {
-    if (!tutorialState.enabled || tutorialState.completed) return
-    const completionEmail = emailMessages.find((message) => message.id === 'mentor-tutorial-complete')
-    if (completionEmail?.read) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTutorialState((current) => ({ ...current, completed: true }))
-    }
-  }, [tutorialState, emailMessages])
-
-  // Legacy DOC001/DOC002 tutorial closeout communication is intentionally disabled in Communications V1.
 
 
   useEffect(() => {
-    const load = loads.find((item) => item.assignedDriverId && ['en-route-pickup', 'en-route-delivery'].includes(item.tripStatus)) || getDriverActiveLoad(loads, 'marcus') || loads.find((item) => item.assignedDriverId && item.tripStatus !== 'queued') || {}
+    const load = loads.find((item) => item.assignedDriverId && ['en-route-pickup', 'en-route-delivery'].includes(item.tripStatus)) || loads.find((item) => item.assignedDriverId && item.tripStatus !== 'queued') || {}
+    const driver = drivers.find((item) => item.id === load.assignedDriverId)
     const route = load.tripStatus === 'en-route-delivery' ? load.plannedLoadedRouteGeometry : load.tripStatus === 'en-route-pickup' ? load.plannedDeadheadRouteGeometry : load.plannedLoadedRouteGeometry || load.plannedDeadheadRouteGeometry
     const activeTravelLeg = load.tripStatus === 'en-route-delivery' ? 'loaded' : load.tripStatus === 'en-route-pickup' ? 'deadhead' : null
-    const panel = getMarcusPanelModel({ assignedLoad: load, gameTime, runtimeProgress, pickup: mapLocations.find((item) => item.id === load.pickupLocationId), delivery: mapLocations.find((item) => item.id === load.deliveryLocationId) })
+    const panel = getDriverPanelModel({ driver, assignedLoad: load, gameTime, runtimeProgress: runtimeProgressByDriver[driver?.id] ?? 0, pickup: mapLocations.find((item) => item.id === load.pickupLocationId), delivery: mapLocations.find((item) => item.id === load.deliveryLocationId) })
     const hasActiveAcceptedLoad = Boolean(load.assignedDriverId) && !['delivered', 'completed'].includes(load.tripStatus)
     const pickupFinished = ['loaded', 'en-route-delivery', 'at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'].includes(load.tripStatus)
     const loadFinished = ['delivered', 'completed'].includes(load.tripStatus)
-    logDocOsState({ tripStatus: load.tripStatus, planningStatus: load.planningStatus, deliveryPlanningStatus: load.deliveryPlanningStatus, activeTravelLeg, driverOperationalState: panel?.operationalState, panelAction: panel?.actionType, candidateDriverId: load.candidateDriverId, assignedDriverId: load.assignedDriverId, hasActiveAcceptedLoad, showPickupMarker: hasActiveAcceptedLoad && !pickupFinished, showDeliveryMarker: hasActiveAcceptedLoad && !loadFinished, candidateDeadhead: `${load.candidateDeadheadRouteGeometry?.length || 0} coordinates`, plannedDeadhead: `${load.plannedDeadheadRouteGeometry?.length || 0} coordinates`, candidateLoaded: `${load.candidateLoadedRouteGeometry?.length || 0} coordinates`, plannedLoaded: `${load.plannedLoadedRouteGeometry?.length || 0} coordinates`, activeRoute: route === load.plannedLoadedRouteGeometry ? 'plannedLoaded' : route === load.plannedDeadheadRouteGeometry ? 'plannedDeadhead' : 'none', activeRouteCoordinates: route?.length || 0, MarcusPosition: runtimePositions.marcus })
-  }, [loads, runtimePositions])
+    logDocOsState({ tripStatus: load.tripStatus, planningStatus: load.planningStatus, deliveryPlanningStatus: load.deliveryPlanningStatus, activeTravelLeg, driverOperationalState: panel?.operationalState, panelAction: panel?.actionType, candidateDriverId: load.candidateDriverId, assignedDriverId: load.assignedDriverId, hasActiveAcceptedLoad, showPickupMarker: hasActiveAcceptedLoad && !pickupFinished, showDeliveryMarker: hasActiveAcceptedLoad && !loadFinished, candidateDeadhead: `${load.candidateDeadheadRouteGeometry?.length || 0} coordinates`, plannedDeadhead: `${load.plannedDeadheadRouteGeometry?.length || 0} coordinates`, candidateLoaded: `${load.candidateLoadedRouteGeometry?.length || 0} coordinates`, plannedLoaded: `${load.plannedLoadedRouteGeometry?.length || 0} coordinates`, activeRoute: route === load.plannedLoadedRouteGeometry ? 'plannedLoaded' : route === load.plannedDeadheadRouteGeometry ? 'plannedDeadhead' : 'none', activeRouteCoordinates: route?.length || 0, driverPosition: runtimePositions[load.assignedDriverId] })
+  }, [loads, drivers, runtimePositions, runtimeProgressByDriver, gameTime])
 
   useEffect(() => {
-    // Only the driver's promoted active load is allowed to own movement.
-    // A queued/stale load must never steal Marcus and pull him toward its delivery.
-    const load = getDriverActiveLoad(loads, 'marcus')
-    const delivery = load?.tripStatus === 'en-route-delivery'
-    if (!load || !['en-route-pickup', 'en-route-delivery'].includes(load.tripStatus)) return
-    const route = delivery ? load.plannedLoadedRouteGeometry : load.plannedDeadheadRouteGeometry
-    const departure = delivery ? load.deliveryDepartureGameMinute : load.departureGameMinute
-    const duration = delivery ? load.plannedLoadedDriveTimeMinutes : load.plannedDeadheadDriveTimeMinutes
-    if (!route || !Number.isFinite(departure) || !duration) return
-    const elapsed = (gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay) - departure
-    const progress = Math.max(0, Math.min(1, elapsed / duration))
-    const coords = route
-    const index = Math.min(coords.length - 2, Math.floor(progress * (coords.length - 1)))
-    const local = progress * (coords.length - 1) - index
-    const a = coords[index]; const b = coords[index + 1]
-    // The position is derived from the central clock tick.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRuntimeProgress(progress)
-    const destination = mapLocations.find((location) => location.id === (delivery ? load.deliveryLocationId : load.pickupLocationId))
-    setRuntimePositions((current) => ({ ...current, [load.assignedDriverId]: progress >= 1 && destination ? { longitude: destination.longitude, latitude: destination.latitude } : { longitude: a[0] + (b[0] - a[0]) * local, latitude: a[1] + (b[1] - a[1]) * local } }))
-    if (progress >= 1) { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setLoads((current) => current.map((item) => item.id === load.id ? { ...item, tripStatus: delivery ? 'at-delivery' : 'at-pickup', ...(delivery ? { deliveryArrivalGameMinute: item.deliveryArrivalGameMinute ?? now } : {}) } : item)) }
+    // AV: each driver owns independent travel progress and route state. This keeps
+    // simultaneous drivers from stealing one another's movement.
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const travelingLoads = loads.filter((load) => load.assignedDriverId && ['en-route-pickup', 'en-route-delivery'].includes(load.tripStatus))
+    if (!travelingLoads.length) return
+
+    const progressUpdates = {}
+    const positionUpdates = {}
+    const arrivedLoadIds = new Set()
+
+    travelingLoads.forEach((load) => {
+      const delivery = load.tripStatus === 'en-route-delivery'
+      const route = delivery ? load.plannedLoadedRouteGeometry : load.plannedDeadheadRouteGeometry
+      const departure = delivery ? load.deliveryDepartureGameMinute : load.departureGameMinute
+      const duration = delivery ? load.plannedLoadedDriveTimeMinutes : load.plannedDeadheadDriveTimeMinutes
+      if (!Array.isArray(route) || route.length < 2 || !Number.isFinite(departure) || !Number.isFinite(duration) || duration <= 0) return
+      const progress = Math.max(0, Math.min(1, (now - departure) / duration))
+      progressUpdates[load.assignedDriverId] = progress
+      const position = pointAlongRoute(route, progress)
+      const destination = mapLocations.find((location) => location.id === (delivery ? load.deliveryLocationId : load.pickupLocationId))
+      if (progress >= 1 && destination) positionUpdates[load.assignedDriverId] = { longitude: destination.longitude, latitude: destination.latitude }
+      else if (position) positionUpdates[load.assignedDriverId] = position
+      if (progress >= 1) arrivedLoadIds.add(load.id)
+    })
+
+    if (Object.keys(progressUpdates).length) setRuntimeProgressByDriver((current) => ({ ...current, ...progressUpdates }))
+    if (Object.keys(positionUpdates).length) setRuntimePositions((current) => ({ ...current, ...positionUpdates }))
+    if (arrivedLoadIds.size) {
+      setLoads((current) => current.map((item) => {
+        if (!arrivedLoadIds.has(item.id)) return item
+        const delivery = item.tripStatus === 'en-route-delivery'
+        return {
+          ...item,
+          tripStatus: delivery ? 'at-delivery' : 'at-pickup',
+          ...(delivery ? { deliveryArrivalGameMinute: item.deliveryArrivalGameMinute ?? now } : { pickupArrivalGameMinute: item.pickupArrivalGameMinute ?? now }),
+        }
+      }))
+    }
   }, [gameTime, loads])
 
   useEffect(() => {
@@ -676,67 +759,74 @@ function App() {
       ...current,
       [driverId]: { longitude: delivery.longitude, latitude: delivery.latitude },
     }))
-    setRuntimeProgress(null)
+    setRuntimeProgressByDriver((current) => ({ ...current, [driverId]: null }))
   }, [loads, gameTime, dayLoop.operationDay])
 
 
-  // Dynamic Driver Positioning v1: an idle driver does not freeze forever at the
-  // receiver. After a short post-delivery dwell, Marcus heads toward a sensible
-  // staging/fuel/yard location. The live runtime position remains authoritative,
-  // so FreightLink fit and the next trip plan use where he actually is.
+  // AV: idle repositioning is per-driver and interruptible. Returning to a yard
+  // is a default destination, never a commitment; assigning a load clears the idle route.
   useEffect(() => {
     if (!hydrated || stage !== 'game' || dayLoop.phase !== 'operating') return undefined
-    const marcus = drivers.find((driver) => driver.id === 'marcus')
-    if (!marcus || getDriverActiveLoad(loads, 'marcus')) return undefined
-    if (marcus.idleRouteStatus !== 'dwell' || !Number.isFinite(marcus.idleSinceGameMinute) || !marcus.idleTargetLocationId) return undefined
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    if (now - marcus.idleSinceGameMinute < IDLE_DWELL_MINUTES) return undefined
-    const origin = runtimePositions.marcus
-    const target = mapLocations.find((location) => location.id === marcus.idleTargetLocationId)
-    if (!origin || !target) return undefined
-
-    setDrivers((current) => current.map((driver) => driver.id === 'marcus' && driver.idleRouteStatus === 'dwell'
-      ? { ...driver, idleRouteStatus: 'calculating' }
-      : driver))
-    calculateRoute(origin, target).then((route) => {
-      setDrivers((current) => current.map((driver) => driver.id === 'marcus' && driver.idleRouteStatus === 'calculating'
-        ? {
-            ...driver,
-            idleRouteStatus: 'traveling',
-            idleRouteGeometry: route.routeShape,
-            idleRouteStartGameMinute: now,
-            idleRouteDurationMinutes: Math.max(1, route.durationMinutes),
-          }
-        : driver))
-    }).catch((error) => {
-      console.error('Idle positioning route unavailable:', error)
-      setDrivers((current) => current.map((driver) => driver.id === 'marcus' && driver.idleRouteStatus === 'calculating'
-        ? { ...driver, idleRouteStatus: 'route-unavailable' }
-        : driver))
+    drivers.forEach((driver) => {
+      if (getDriverActiveLoad(loads, driver.id)) return
+      if (driver.idleRouteStatus !== 'dwell' || !Number.isFinite(driver.idleSinceGameMinute) || !driver.idleTargetLocationId) return
+      if (now - driver.idleSinceGameMinute < IDLE_DWELL_MINUTES) return
+      const origin = runtimePositions[driver.id]
+      const target = mapLocations.find((location) => location.id === driver.idleTargetLocationId)
+      if (!origin || !target) return
+      setDrivers((current) => current.map((item) => item.id === driver.id && item.idleRouteStatus === 'dwell' ? { ...item, idleRouteStatus: 'calculating' } : item))
+      calculateRoute(origin, target).then((route) => {
+        setDrivers((current) => current.map((item) => item.id === driver.id && item.idleRouteStatus === 'calculating' && !getDriverActiveLoad(loads, driver.id)
+          ? { ...item, idleRouteStatus: 'traveling', idleRouteGeometry: route.routeShape, idleRouteStartGameMinute: now, idleRouteDurationMinutes: Math.max(1, route.durationMinutes) }
+          : item))
+      }).catch((error) => {
+        console.error('Idle positioning route unavailable:', driver.id, error)
+        setDrivers((current) => current.map((item) => item.id === driver.id && item.idleRouteStatus === 'calculating' ? { ...item, idleRouteStatus: 'route-unavailable' } : item))
+      })
     })
-  }, [hydrated, stage, dayLoop.phase, drivers, loads, gameTime, runtimePositions.marcus])
+  }, [hydrated, stage, dayLoop.phase, drivers, loads, gameTime, runtimePositions])
 
   useEffect(() => {
-    const marcus = drivers.find((driver) => driver.id === 'marcus')
-    if (!marcus || marcus.idleRouteStatus !== 'traveling' || getDriverActiveLoad(loads, 'marcus')) return
-    if (!Array.isArray(marcus.idleRouteGeometry) || marcus.idleRouteGeometry.length < 2 || !Number.isFinite(marcus.idleRouteStartGameMinute) || !Number.isFinite(marcus.idleRouteDurationMinutes)) return
+    if (!hydrated) return
+    setDrivers((current) => current.map((driver) => {
+      const active = getDriverActiveLoad(loads, driver.id)
+      const queued = getDriverQueue(loads, driver.id)
+      const assignedLoadId = active?.id || null
+      const queuedLoadIds = queued.map((load) => load.id)
+      const shouldBeUnavailable = Boolean(active || queued.length)
+      if (driver.assignedLoadId === assignedLoadId
+        && JSON.stringify(driver.queuedLoadIds || []) === JSON.stringify(queuedLoadIds)
+        && (shouldBeUnavailable ? driver.status === 'unavailable' : true)) return driver
+      return {
+        ...driver,
+        assignedLoadId,
+        queuedLoadIds,
+        status: shouldBeUnavailable ? 'unavailable' : driver.status,
+      }
+    }))
+  }, [hydrated, loads])
+
+  useEffect(() => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    const progress = Math.max(0, Math.min(1, (now - marcus.idleRouteStartGameMinute) / marcus.idleRouteDurationMinutes))
-    const position = pointAlongRoute(marcus.idleRouteGeometry, progress)
-    if (position) setRuntimePositions((current) => ({ ...current, marcus: position }))
-    if (progress < 1) return
-    const target = mapLocations.find((location) => location.id === marcus.idleTargetLocationId)
-    if (target) setRuntimePositions((current) => ({ ...current, marcus: { longitude: target.longitude, latitude: target.latitude } }))
-    setDrivers((current) => current.map((driver) => driver.id === 'marcus'
-      ? {
-          ...driver,
-          idleRouteStatus: 'arrived',
-          lastKnownLocationId: driver.idleTargetLocationId,
-          longitude: target?.longitude ?? driver.longitude,
-          latitude: target?.latitude ?? driver.latitude,
-        }
-      : driver))
+    const positionUpdates = {}
+    const arrivedDriverIds = new Set()
+    drivers.forEach((driver) => {
+      if (driver.idleRouteStatus !== 'traveling' || getDriverActiveLoad(loads, driver.id)) return
+      if (!Array.isArray(driver.idleRouteGeometry) || driver.idleRouteGeometry.length < 2 || !Number.isFinite(driver.idleRouteStartGameMinute) || !Number.isFinite(driver.idleRouteDurationMinutes)) return
+      const progress = Math.max(0, Math.min(1, (now - driver.idleRouteStartGameMinute) / driver.idleRouteDurationMinutes))
+      const position = pointAlongRoute(driver.idleRouteGeometry, progress)
+      if (position) positionUpdates[driver.id] = position
+      if (progress >= 1) arrivedDriverIds.add(driver.id)
+    })
+    if (Object.keys(positionUpdates).length) setRuntimePositions((current) => ({ ...current, ...positionUpdates }))
+    if (arrivedDriverIds.size) setDrivers((current) => current.map((driver) => {
+      if (!arrivedDriverIds.has(driver.id)) return driver
+      const target = mapLocations.find((location) => location.id === driver.idleTargetLocationId)
+      return { ...driver, idleRouteStatus: 'arrived', lastKnownLocationId: driver.idleTargetLocationId, longitude: target?.longitude ?? driver.longitude, latitude: target?.latitude ?? driver.latitude }
+    }))
   }, [gameTime, drivers, loads])
+
 
   useEffect(() => {
     if (stage !== 'game' || isGameClockPaused) return undefined
@@ -806,9 +896,7 @@ function App() {
       currentStartGameDayIndex: report.nextStartGameDayIndex,
       report: null,
     }))
-    setTutorialState((current) => ({ ...current, enabled: false, completed: true }))
-    // No special Day-2 freight reset or mentor unlock. The market continues from its
-    // own posting/expiration state across operation days.
+    // The freight market continues from its own posting/expiration state across operation days.
     setSimulationSpeed(1)
     setIsGameClockPaused(false)
   }
@@ -852,7 +940,6 @@ function App() {
             driverMessages={driverMessages}
             setDriverMessages={setDriverMessages}
             businessDocuments={businessDocuments}
-            tutorialEnabled={tutorialState.enabled && !tutorialState.completed}
             operationDay={dayLoop.operationDay}
             dayLoopPhase={dayLoop.phase}
             dayReport={dayLoop.report}
@@ -868,8 +955,8 @@ function App() {
             isGameClockPaused={isGameClockPaused}
             setGameClockPaused={setIsGameClockPaused}
             runtimePositions={runtimePositions}
-            runtimeProgress={runtimeProgress}
-            setRuntimeProgress={setRuntimeProgress}
+            runtimeProgressByDriver={runtimeProgressByDriver}
+            setRuntimeProgressByDriver={setRuntimeProgressByDriver}
             simulationSpeed={simulationSpeed}
             setSimulationSpeed={setSimulationSpeed}
             onOpenMarkets={() => setStage('market')}

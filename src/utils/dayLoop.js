@@ -98,7 +98,7 @@ export function createDayReport({
   const closeAbsoluteMinute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
   const standardCloseAbsoluteMinute = currentStartGameDayIndex * 1440 + TARGET_OPERATION_CLOSE_MINUTES
   const rawLateCloseMinutes = Math.max(0, closeAbsoluteMinute - standardCloseAbsoluteMinute)
-  const lateCloseAdjustmentMinutes = operationDay === 1 ? 0 : rawLateCloseMinutes
+  const lateCloseAdjustmentMinutes = rawLateCloseMinutes
   const nextBaseDayIndex = gameTime.gameDayIndex + 1
   const nextStartAbsoluteMinute = nextBaseDayIndex * 1440 + STANDARD_OPERATION_START_MINUTES + lateCloseAdjustmentMinutes
   const nextStart = normalizeAbsoluteMinute(nextStartAbsoluteMinute)
@@ -110,6 +110,16 @@ export function createDayReport({
   const dispatchRevenue = dayReceivables.reduce((sum, item) => sum + Number(item.dispatchRevenue || 0), 0)
   const cashCollected = dayReceivables.filter((item) => item.financialStatus === 'PAID').reduce((sum, item) => sum + Number(item.dispatchRevenue || 0), 0)
   const pendingReceivables = receivables.filter((item) => item.financialStatus !== 'PAID').reduce((sum, item) => sum + Number(item.dispatchRevenue || 0), 0)
+
+  const onTimePickups = completedLoads.filter((load) => {
+    const late = appointmentLateMinutes(load, 'pickup')
+    return Number.isFinite(late) && late === 0
+  }).length
+  const onTimeDeliveries = completedLoads.filter((load) => {
+    const late = appointmentLateMinutes(load, 'delivery')
+    return Number.isFinite(late) && late === 0
+  }).length
+  const exceptionLoads = completedLoads.filter((load) => Number(load.pod?.freightCondition?.damagedAtPickup || 0) > 0 || Number(load.pod?.freightCondition?.missingAtPickup || 0) > 0).length
 
   const serviceScores = completedLoads.map((load) => {
     const pickupLate = appointmentLateMinutes(load, 'pickup')
@@ -123,9 +133,7 @@ export function createDayReport({
   const serviceScore = serviceScores.length ? Math.round(serviceScores.reduce((sum, value) => sum + value, 0) / serviceScores.length) : 0
   const efficiencyScore = completedLoads.length === 0
     ? 0
-    : operationDay === 1
-      ? 100
-      : Math.max(60, 100 - Math.ceil(lateCloseAdjustmentMinutes / 15) * 2)
+    : Math.max(60, 100 - Math.ceil(lateCloseAdjustmentMinutes / 15) * 2)
   const xpGain = 0 // Per-load XP is awarded at load closeout; day close must not double-award it.
   const reputationChange = completedLoads.reduce((sum, load) => {
     const lateCount = [appointmentLateMinutes(load, 'pickup'), appointmentLateMinutes(load, 'delivery')].filter((value) => Number.isFinite(value) && value > 0).length
@@ -145,13 +153,15 @@ export function createDayReport({
     pendingReceivables,
     serviceScore,
     efficiencyScore,
+    onTimePickups,
+    onTimeDeliveries,
+    exceptionLoads,
     reputationChange,
     xpGain,
     standardStartMinutes: STANDARD_OPERATION_START_MINUTES,
     lateCloseAdjustmentMinutes,
     nextStartGameDayIndex: nextStart.gameDayIndex,
     nextStartMinutes: nextStart.totalMinutesOfDay,
-    tutorialPenaltyExempt: operationDay === 1,
   }
 }
 

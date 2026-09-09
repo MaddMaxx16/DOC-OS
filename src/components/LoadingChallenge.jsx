@@ -27,7 +27,7 @@ function seededTypes(seed = '') {
   return base
 }
 
-export default function LoadingChallenge({ load, onComplete, onCancel }) {
+export default function LoadingChallenge({ load, onComplete, onCancel, onProgress }) {
   const pallets = useMemo(() => {
     const types = seededTypes(String(load?.id || load?.loadNumber || 'DOCOS'))
     return Array.from({ length: PALLET_COUNT }, (_, index) => ({
@@ -38,15 +38,17 @@ export default function LoadingChallenge({ load, onComplete, onCancel }) {
   }, [load?.id, load?.loadNumber])
 
   const palletById = useMemo(() => Object.fromEntries(pallets.map((pallet) => [pallet.id, pallet])), [pallets])
-  const [seconds, setSeconds] = useState(CHALLENGE_SECONDS)
+  const savedState = load?.loadingChallengeState || {}
+  const [seconds, setSeconds] = useState(() => Number.isFinite(savedState.seconds) ? savedState.seconds : CHALLENGE_SECONDS)
   const [briefing, setBriefing] = useState(() => {
     try { return { active: true, full: sessionStorage.getItem('docos-loading-briefing-seen') !== '1', fading: false } }
     catch { return { active: true, full: true, fading: false } }
   })
-  const [slotAssignments, setSlotAssignments] = useState(() => Array(PALLET_COUNT).fill(null))
-  const [finished, setFinished] = useState(false)
+  const [slotAssignments, setSlotAssignments] = useState(() => Array.isArray(savedState.slotAssignments) && savedState.slotAssignments.length === PALLET_COUNT ? [...savedState.slotAssignments] : Array(PALLET_COUNT).fill(null))
+  const [finished, setFinished] = useState(() => Boolean(savedState.finished))
   const [dragging, setDragging] = useState(null)
   const dragRef = useRef(null)
+  const onProgressRef = useRef(onProgress)
 
   const loadedIds = useMemo(() => slotAssignments.filter(Boolean), [slotAssignments])
   const placementErrors = useMemo(() => slotAssignments.reduce((count, palletId, index) => {
@@ -54,6 +56,11 @@ export default function LoadingChallenge({ load, onComplete, onCancel }) {
     return count + (palletById[palletId]?.type === zoneForSlot(index) ? 0 : 1)
   }, 0), [slotAssignments, palletById])
   const allCorrect = loadedIds.length === PALLET_COUNT && placementErrors === 0
+
+  useEffect(() => { onProgressRef.current = onProgress }, [onProgress])
+  useEffect(() => {
+    onProgressRef.current?.({ seconds, slotAssignments, finished })
+  }, [seconds, slotAssignments, finished])
 
   useEffect(() => {
     if (!briefing.active) return undefined

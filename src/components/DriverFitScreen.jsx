@@ -10,12 +10,15 @@ function evaluateTiming(load, projectedStartMinute, fit) {
   const arrivalMinutes = arrival % 1440
   const start = load.pickupDayIndex * 1440 + load.pickupWindowStartMinutes
   const end = load.pickupDayIndex * 1440 + load.pickupWindowEndMinutes
-  const buffer = start - arrival
+  // AV2: pickup is a WINDOW, not a single appointment time. Driver Fit risk is
+  // judged against the closing edge of that window. Arriving after the window
+  // opens can still be a perfectly good fit.
+  const buffer = end - arrival
 
-  let label = 'GOOD NEXT LOAD'
+  let label = 'GOOD FIT'
   let tone = 'good'
-  if (arrival > end) { label = 'POOR FIT'; tone = 'poor' }
-  else if (arrival > start || buffer < 20) { label = 'TIGHT'; tone = 'tight' }
+  if (arrival > end) { label = 'AT RISK'; tone = 'poor' }
+  else if (buffer <= 30) { label = 'TIGHT'; tone = 'tight' }
 
   return { ...fit, arrivalDay, arrivalMinutes, label, tone, buffer }
 }
@@ -121,7 +124,7 @@ function DriverFitScreen({
                       <div><span>Next opening</span><strong>{fit.afterLoadId ? `After ${fit.afterLoadId}` : 'Now'}</strong></div>
                       <div><span>Deadhead</span><strong>{fit.miles.toFixed(1)} mi · {fit.minutes} min</strong></div>
                       <div><span>Projected arrival</span><strong>{formatCompactDate(fit.arrivalDay)} · {formatTime(fit.arrivalMinutes)}</strong></div>
-                      <div><span>Pickup</span><strong>{formatTime(load.pickupWindowStartMinutes)}</strong></div>
+                      <div><span>Pickup window</span><strong>{formatTime(load.pickupWindowStartMinutes)}–{formatTime(load.pickupWindowEndMinutes)}</strong></div>
                     </div>
                   )}
                 </button>

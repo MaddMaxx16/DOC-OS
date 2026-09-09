@@ -301,3 +301,73 @@ Built from Master AT.
 
 ## AU3 — Day Integrity & Operational Cleanup
 Driver Fit is now review-only with explicit accept/assign commitment; appointment alerts are restricted to player-owned freight; legacy loading auto-completion is removed; mobile background saves flush immediately; idle return movement is smoothed; and active carrier yards are visible on the operations map.
+
+## MASTER AV — Multi-Load Operations Foundation
+- Driver-independent runtime progress and movement ownership.
+- Driver-scoped current/queued load architecture and queue projection.
+- Interruptible idle/yard repositioning.
+- Drivers drawer shows current/next/projected availability.
+- Shared driver operational-state model drives map/drawer language.
+- Alerts and Messages carry driver/load ownership.
+- Loading/unloading challenges no longer globally pause simulation.
+- Critical lifecycle transitions flush saves immediately.
+- Operational Marcus hardcodes removed; Marcus remains the only content driver for AV regression testing.
+- Next intended step after AV passes: AV1 adds Driver #2.
+
+## AV1 — Driver Action Hub & Natural Messaging
+AV1 preserves AV's multi-load/multi-driver foundation while making the driver drawer the direct next-action hub. Driver cards now route the player into the exact workflow required by the current load. En-route map labels are tap-to-reveal instead of permanently displayed. Driver Messages return to a normal text-thread interaction model: Reply opens contextual choices, Send Route and Dispatch are separate, and operational actions produce natural outbound messages.
+
+## MASTER AV2 — Schedule, Communication & Market Rhythm
+- Built from AV1.
+- Adds daily load schedule hamburger drawer.
+- Driver Fit risk now uses pickup-window close, not pickup-window open.
+- Combines arrival/check-in/waiting into one driver update per facility.
+- Adds communication reply choices + per-driver communication rapport.
+- Cleans alert language around pickup/delivery windows.
+- Makes EXPIRED freight red.
+- Increases FreightLink posting cadence and adds late-day freight.
+- Preserves AV per-driver architecture and AV1 natural messaging/driver action hub.
+
+
+## AV2.1 — Communication Gate + Header Cleanup
+- End Day moved to Notifications drawer footer.
+- Pickup communication is gated: load brief → plan → route send → driver confirmation → dispatch message.
+- Delivery uses the same route-send → confirmation → dispatch message pattern.
+- Movement cannot be started by skipping required communication.
+
+## MASTER AV2.2 — Operational Documents + Email Workflow
+- Built from AV2.1.
+- Email gains a compose workflow with recipient selection and document attachments.
+- Metroline's signed agreement now enforces carrier approval before FreightLink acceptance.
+- Load approval is requested and returned through Email.
+- Agreement and POD receive artifact-style visual treatments.
+- Exception PODs can require formal correction through Email before approval.
+- LedgerDesk invoice drafts are submitted through Email with invoice + POD attachments.
+- Incorrect recipient/document combinations create documentation follow-up instead of silently succeeding.
+- Carrier yard marker is now a depot/garage icon.
+- AV2.1 driver communication/dispatch gates, puzzles, routing, queue ownership, and market cadence are unchanged.
+
+## MASTER AV2.3 — Relationship + Documents + Workflow Navigation
+- Relationship UI replaces COMMS RAPPORT number with qualitative bar/tier.
+- Relationship scoring now reacts to meaningful dispatcher-driver communication and deduplicates repeated events.
+- Agreement and POD gain reusable expanded document viewing outside the phone frame.
+- Documents archive becomes accordion folders for FreightLink Loads, PODs, Invoices, and Agreements.
+- Email attachments become compact paperclip file links.
+- Operational emails and Documents records gain direct related-record navigation.
+- FreightLink pending carrier approval can reopen the exact approval request email.
+
+## MASTER AV2.3.1 — Friction Cleanup + Native Documents
+- Built from AV2.3.
+- Sending a driver route now releases that driver into pickup/delivery movement; the redundant final Dispatch step is removed.
+- Email attachment selection is category-first using document-type + file dropdowns instead of a flat list.
+- Email attachments render as compact paperclip links and open directly into expanded document view.
+- Agreement and POD open directly outside the phone shell; Agreement signing and POD review actions live inside the expanded document workflow.
+- Agreement, POD, load-offer, invoice, and exception previews use native DOC OS document styling instead of generic paper styling.
+- Multi-load architecture, puzzles, routing, formal Email workflows, relationship system, and AV2.3 related-record navigation are preserved.
+
+## AV2.4 — Foundation Cleanup
+Built from AV2.3.4. Removes the retired assisted-flow scaffolding from runtime source, normalizes Day 1 into the standard operation loop, cleans daily closeout reporting, equalizes Agreement term styling, restrains purple attention surfaces, adds proximity-aware pickup communication, and finishes the active terminology cleanup. No Driver #2 or core lifecycle redesign.
+
+
+## AV2.4.1
+Foundation cleanup recovery. Rebased visual CSS on AV2.3.4 after AV2.4 test rejection.

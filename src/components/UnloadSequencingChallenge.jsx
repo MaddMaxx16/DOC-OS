@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 const CHALLENGE_SECONDS = 45
 const SLOT_COUNT = 8
@@ -110,7 +110,7 @@ function projectNextRequests(slots, staging, delivered, seed, step, currentReque
   return preview
 }
 
-export default function UnloadSequencingChallenge({ load, onComplete, onCancel }) {
+export default function UnloadSequencingChallenge({ load, onComplete, onCancel, onProgress }) {
   const manifest = useMemo(() => normalizeManifest(load), [load])
   const palletById = useMemo(() => Object.fromEntries(manifest.map((p) => [p.id, p])), [manifest])
   const initialSlots = useMemo(() => {
@@ -124,26 +124,33 @@ export default function UnloadSequencingChallenge({ load, onComplete, onCancel }
     return next
   }, [manifest])
   const seed = useMemo(() => seedNumber(String(load?.id || load?.loadNumber || 'DOCOS')), [load?.id, load?.loadNumber])
-  const [slots, setSlots] = useState(initialSlots)
-  const [staging, setStaging] = useState(Array(STAGING_COUNT).fill(null))
-  const [delivered, setDelivered] = useState([])
-  const [seconds, setSeconds] = useState(CHALLENGE_SECONDS)
-  const [moves, setMoves] = useState(0)
-  const [wrongMoves, setWrongMoves] = useState(0)
+  const savedState = load?.unloadChallengeState || {}
+  const [slots, setSlots] = useState(() => Array.isArray(savedState.slots) && savedState.slots.length === SLOT_COUNT ? [...savedState.slots] : initialSlots)
+  const [staging, setStaging] = useState(() => Array.isArray(savedState.staging) && savedState.staging.length === STAGING_COUNT ? [...savedState.staging] : Array(STAGING_COUNT).fill(null))
+  const [delivered, setDelivered] = useState(() => Array.isArray(savedState.delivered) ? [...savedState.delivered] : [])
+  const [seconds, setSeconds] = useState(() => Number.isFinite(savedState.seconds) ? savedState.seconds : CHALLENGE_SECONDS)
+  const [moves, setMoves] = useState(() => Number(savedState.moves || 0))
+  const [wrongMoves, setWrongMoves] = useState(() => Number(savedState.wrongMoves || 0))
   const [selected, setSelected] = useState(null)
   const [briefing, setBriefing] = useState(() => {
     try { return { active: true, full: sessionStorage.getItem('docos-unload-briefing-seen') !== '1', fading: false } }
     catch { return { active: true, full: true, fading: false } }
   })
-  const [firstMoveMade, setFirstMoveMade] = useState(false)
-  const [finished, setFinished] = useState(false)
-  const [requestStep, setRequestStep] = useState(0)
+  const [firstMoveMade, setFirstMoveMade] = useState(() => Boolean(savedState.firstMoveMade))
+  const [finished, setFinished] = useState(() => Boolean(savedState.finished))
+  const [requestStep, setRequestStep] = useState(() => Number(savedState.requestStep || 0))
+  const onProgressRef = useRef(onProgress)
 
   const loadedCount = manifest.filter((p) => p.loaded).length
   const missingCount = manifest.length - loadedCount
   const requestId = useMemo(() => chooseRequest(slots, staging, delivered, seed, requestStep), [slots, staging, delivered, seed, requestStep])
   const accessible = useMemo(() => accessibleTrailerIds(slots), [slots])
   const upcomingRequests = useMemo(() => projectNextRequests(slots, staging, delivered, seed, requestStep, requestId, 2), [slots, staging, delivered, seed, requestStep, requestId])
+
+  useEffect(() => { onProgressRef.current = onProgress }, [onProgress])
+  useEffect(() => {
+    onProgressRef.current?.({ slots, staging, delivered, seconds, moves, wrongMoves, firstMoveMade, finished, requestStep })
+  }, [slots, staging, delivered, seconds, moves, wrongMoves, firstMoveMade, finished, requestStep])
 
   useEffect(() => {
     if (!briefing.active || briefing.full) return undefined

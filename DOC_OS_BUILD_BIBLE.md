@@ -528,3 +528,99 @@ Live ORS truck routing remains authoritative when available. If unavailable, DOC
 
 ## AU3 — Day Integrity & Operational Cleanup
 Driver Fit is now review-only with explicit accept/assign commitment; appointment alerts are restricted to player-owned freight; legacy loading auto-completion is removed; mobile background saves flush immediately; idle return movement is smoothed; and active carrier yards are visible on the operations map.
+
+## AV architecture contract — multi-driver foundation
+
+DOC OS runtime state is driver-scoped. A driver owns a live position, runtime travel progress, one active load, an ordered queue, and idle repositioning state. Route geometry remains attached to the owned load. UI surfaces must resolve operational truth by `driverId`; they must not assume Marcus except for Marcus-specific authored dialogue/tutorial content.
+
+Returning to a carrier yard is idle repositioning, not a commitment. New work may interrupt that repositioning and must plan from the driver's current runtime position.
+
+Driver Fit projects against the driver's existing commitment chain. Drivers drawer exposes current load, next queued load, and projected availability.
+
+Operational alerts carry `driverId` + `loadId` + explicit resolution action. Driver message threads are driver-scoped and reading a message never mutates simulation state; explicit player commands may.
+
+Hands-on loading/unloading challenges are local real-time workflows. They do not pause the company-wide simulation clock. Challenge completion records the current simulation minute and must not add a duplicate global service-time jump.
+
+Critical lifecycle boundaries persist immediately. Routine state continues to use debounced autosave.
+
+## AV1 Interaction Ownership
+- Map: lightweight location/status surface. En-route status is hidden during normal travel and can be revealed temporarily by tapping the driver marker.
+- Driver drawer: status + current load + next load + the single primary action required to advance the driver's current operation.
+- Messages: human conversation and explicit driver commands. A normal Reply control opens contextual operational replies; command selections become natural-language outgoing messages.
+- Send load, Send route, and Dispatch are separate concepts. Reading a message never mutates simulation state; explicit player actions may.
+- Facilities own physical loading/unloading actions. Documents own POD review. Trip planners own route planning.
+- Driver/load action routing must resolve through driverId + loadId rather than a Marcus-specific path.
+
+## AV2 interaction rules
+- Pickup and delivery are windows. Fit/risk is judged against the END of the window.
+- Driver Fit: GOOD FIT when comfortably before close; TIGHT within 30 minutes of close; AT RISK after close.
+- Operations bar reports what matters now; schedule hamburger reports what is coming today.
+- The schedule drawer is a lightweight dispatcher planning surface, not a full Calendar app.
+- Driver facility communication should avoid spam: arrival + check-in/waiting normally becomes one natural message.
+- Driver communication is gameplay. Reply choices may affect per-driver communication rapport and later progression/events.
+- FreightLink is a live market. New freight should enter throughout the shift while valid freight remains until accepted or expired.
+- EXPIRED is a danger/invalid state and must use red visual language, never green.
+
+
+## AV2.1 — Communication Gate + Header Cleanup
+- End Day moved to Notifications drawer footer.
+- Pickup communication is gated: load brief → plan → route send → driver confirmation → dispatch message.
+- Delivery uses the same route-send → confirmation → dispatch message pattern.
+- Movement cannot be started by skipping required communication.
+
+## AV2.2 — Formal communication + document workflow contract
+
+DOC OS communication channels have distinct ownership:
+- **Messages** owns driver conversation and driver dispatch instructions.
+- **Email** owns formal carrier/business communication and document transmission.
+- **Documents** owns document review and source paperwork.
+- **LedgerDesk** owns invoices, receivables, payment terms, and collected cash.
+- **Carrier agreements** define persistent operating permissions that later workflows must enforce.
+
+Formal workflow pattern:
+`operational need -> compose email -> choose correct recipient -> attach matching documents -> send -> business response -> owned system state update`
+
+Opening or reading Email never moves a driver or changes physical trip progress. Formal Email may change business authorization/document/accounting state only after an explicit player send action and the corresponding workflow response.
+
+Metroline booking authority:
+- Metroline requires written load approval before FreightLink acceptance.
+- Driver Fit may be reviewed first, but `ACCEPT & ASSIGN` remains blocked until approval is on file for that exact load.
+- Approval requests must go to Carrier Operations and include the matching load offer.
+
+POD review:
+- Receiver paperwork and DOC OS shipment truth are separate concepts.
+- Pickup establishes shipment condition truth.
+- Delivery preserves that truth.
+- Receiver POD paperwork may contain a documentation discrepancy on exception loads.
+- A mismatched POD cannot be approved for billing.
+- Correction is a formal Email workflow using the matching POD and supporting exception record.
+
+Invoice submission:
+- `CREATE INVOICE` creates a draft only.
+- A draft becomes submitted only through Email to Accounting with the matching invoice + approved POD.
+- Payment terms begin only after a valid submission.
+- Wrong recipient or missing/mismatched attachments return a documentation-required response and do not start the payment clock.
+
+## AV2.3 Workflow / Presentation Rules
+- Driver relationship is a gameplay state. Store numeric value internally, but present it to the player as a relationship bar plus qualitative tier.
+- Relationship gains/losses come from contextually meaningful actions, not raw message volume. Repeated identical events must not be farmable.
+- Real-world documents may expand outside the phone shell using the shared document viewer. DOC OS remains the surrounding frame.
+- Documents is a categorized file center, not a flat archive. Current categories: FreightLink Loads, PODs, Invoices, Agreements.
+- Attachments use compact paperclip file-link language rather than large content cards.
+- Any operational email concerning a load must preserve a related-record link back to that exact FreightLink load.
+- Related-record navigation is bidirectional where useful: load ↔ approval email, email ↔ load/POD/invoice, Documents ↔ source record.
+- The game may challenge the player's decisions and memory; it should not make the player hunt through UI to rediscover the record they were just working on.
+
+## AV2.3.1 — Friction / Document Interaction Rules
+- A planned route becomes operational only when the dispatcher explicitly sends it to the driver in Messages.
+- **Send Route is the departure command.** Do not add a second ceremonial Dispatch action after route transmission.
+- Pickup communication sequence: `accept/assign -> send load information -> plan pickup -> send route -> driver departs`.
+- Delivery communication sequence: `plan delivery -> send route -> driver departs`.
+- The driver may acknowledge the route after it is sent, but that acknowledgement does not require another player command before movement.
+- Email attachment pickers must scale by category. Do not render the entire document library as one flat attachment list.
+- Composer pattern: `choose document type -> choose file -> attach as compact paperclip link`.
+- Tapping an attachment link opens the actual expanded document immediately. Do not insert a second detail screen whose only purpose is to expose an Expand button.
+- Agreement review and signature belong on the expanded agreement itself.
+- POD document inspection and DOC OS verification actions belong in one expanded review workflow.
+- Expanded operational documents must visually belong to DOC OS: dark charcoal/slate surfaces, DOC OS typography/hierarchy, subtle blue-gray labels, restrained purple action emphasis, and status colors only when semantically meaningful.
+- Formal document structure should remain recognizable, but generic white-paper styling is not the default DOC OS presentation language.

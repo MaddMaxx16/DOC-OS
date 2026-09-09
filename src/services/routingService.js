@@ -10,7 +10,7 @@ function toRadians(value) {
   return value * (Math.PI / 180)
 }
 
-function haversineMiles(origin, destination) {
+export function getLocationDistanceMiles(origin, destination) {
   const earthRadiusMiles = 3958.7613
   const lat1 = toRadians(origin.latitude)
   const lat2 = toRadians(destination.latitude)
@@ -21,8 +21,41 @@ function haversineMiles(origin, destination) {
   return earthRadiusMiles * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+function pointAsLocation(point) {
+  if (!Array.isArray(point) || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) return null
+  return { longitude: point[0], latitude: point[1] }
+}
+
+export function getRouteEndpointDistanceMiles(routeShape, endpoint) {
+  if (!Array.isArray(routeShape) || !routeShape.length || !endpoint) return Number.POSITIVE_INFINITY
+  const first = pointAsLocation(routeShape[0])
+  if (!first || !Number.isFinite(endpoint.longitude) || !Number.isFinite(endpoint.latitude)) return Number.POSITIVE_INFINITY
+  return getLocationDistanceMiles(first, endpoint)
+}
+
+// AV2.3.3: Routing providers/fallbacks must never decide movement direction.
+// Compare the COMPLETE endpoint error for both possible orientations and keep
+// the geometry whose first point belongs to origin and last point to destination.
+export function normalizeRouteGeometry(routeShape, origin, destination) {
+  if (!Array.isArray(routeShape) || routeShape.length < 2 || !origin || !destination) return routeShape
+  const first = pointAsLocation(routeShape[0])
+  const last = pointAsLocation(routeShape[routeShape.length - 1])
+  if (!first || !last) return routeShape
+
+  const normalError = getLocationDistanceMiles(first, origin) + getLocationDistanceMiles(last, destination)
+  const reversedError = getLocationDistanceMiles(first, destination) + getLocationDistanceMiles(last, origin)
+  if (reversedError + 0.001 < normalError) return [...routeShape].reverse()
+  return routeShape
+}
+
+function normalizeRoute(route, origin, destination) {
+  if (!route || !Array.isArray(route.routeShape)) return route
+  const routeShape = normalizeRouteGeometry(route.routeShape, origin, destination)
+  return routeShape === route.routeShape ? route : { ...route, routeShape }
+}
+
 function createFallbackRoute(origin, destination, reason = 'routing-unavailable') {
-  const straightLineMiles = haversineMiles(origin, destination)
+  const straightLineMiles = getLocationDistanceMiles(origin, destination)
   const distanceMiles = Math.max(0.1, straightLineMiles * ROAD_DISTANCE_MULTIPLIER)
   const durationMinutes = Math.max(1, Math.round((distanceMiles / FALLBACK_SPEED_MPH) * 60))
   return {
@@ -60,21 +93,21 @@ export async function calculateRoute(origin, destination) {
 
   const routePromise = (async () => {
     if (!import.meta.env.VITE_ORS_API_KEY) {
-      const fallback = createFallbackRoute(origin, destination, 'missing-api-key')
+      const fallback = normalizeRoute(createFallbackRoute(origin, destination, 'missing-api-key'), origin, destination)
       routeCache.set(key, fallback)
       console.warn('DOC OS ROUTE FALLBACK', { key, reason: fallback.fallbackReason })
       return fallback
     }
 
     try {
-      const route = await Promise.race([
+      const route = normalizeRoute(await Promise.race([
         requestRoute(origin, destination, key),
         hardTimeout(HARD_ROUTE_TIMEOUT_MS),
-      ])
+      ]), origin, destination)
       routeCache.set(key, route)
       return route
     } catch (error) {
-      const fallback = createFallbackRoute(origin, destination, error?.name || 'routing-error')
+      const fallback = normalizeRoute(createFallbackRoute(origin, destination, error?.name || 'routing-error'), origin, destination)
       routeCache.set(key, fallback)
       console.warn('DOC OS ROUTE FALLBACK', {
         key,
