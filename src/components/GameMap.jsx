@@ -10,28 +10,61 @@ import { getDriverPanelModel } from '../utils/driverOperationalState.js'
 
 setWorkerUrl(workerUrl)
 
+const routeMetricsCache = new WeakMap()
+
+function getRouteMetrics(route) {
+  if (!Array.isArray(route) || route.length < 2) return null
+  const cached = routeMetricsCache.get(route)
+  if (cached) return cached
+
+  const cumulative = [0]
+  let total = 0
+  for (let index = 1; index < route.length; index += 1) {
+    const a = route[index - 1]
+    const b = route[index]
+    total += Math.hypot(b[0] - a[0], b[1] - a[1])
+    cumulative.push(total)
+  }
+  const metrics = { cumulative, total }
+  routeMetricsCache.set(route, metrics)
+  return metrics
+}
+
 function routePosition(route, progress) {
-  if (!route?.length) return null
-  const distances = route.slice(1).map((point, i) => Math.hypot(point[0] - route[i][0], point[1] - route[i][1]))
-  const total = distances.reduce((sum, value) => sum + value, 0)
-  let remaining = total * Math.max(0, Math.min(1, progress))
-  let index = 0
-  while (index < distances.length - 1 && remaining > distances[index]) { remaining -= distances[index]; index += 1 }
-  const amount = distances[index] ? remaining / distances[index] : 0
-  const a = route[index]; const b = route[index + 1]
+  const metrics = getRouteMetrics(route)
+  if (!metrics) return null
+  if (metrics.total <= 0) return route[0] || null
+
+  const target = metrics.total * Math.max(0, Math.min(1, progress))
+  let low = 1
+  let high = metrics.cumulative.length - 1
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2)
+    if (metrics.cumulative[mid] < target) low = mid + 1
+    else high = mid
+  }
+  const endIndex = Math.max(1, low)
+  const startIndex = endIndex - 1
+  const segmentStart = metrics.cumulative[startIndex]
+  const segmentLength = metrics.cumulative[endIndex] - segmentStart
+  const amount = segmentLength > 0 ? (target - segmentStart) / segmentLength : 0
+  const a = route[startIndex]
+  const b = route[endIndex]
   return [a[0] + (b[0] - a[0]) * amount, a[1] + (b[1] - a[1]) * amount]
 }
 
-function GameMap({ driverFocusRequest = 0, driverFocusId = null, facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgressByDriver = {}, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, freightBrowseMode = false, freightBrowseLoads = [], freightBrowseSelectedLoadId = null, onFreightBrowseSelect }) {
+function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId = null, facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgressByDriver = {}, simulationSpeed = 1, isGameClockPaused = false, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, freightBrowseMode = false, freightBrowseLoads = [], freightBrowseSelectedLoadId = null, onFreightBrowseSelect }) {
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const markerRecords = useRef([])
   const animationFrame = useRef(null)
   const idleAnimationFrame = useRef(null)
-  const visualProgress = useRef(null)
+  const motionStateRef = useRef(null)
   const cameraInitialized = useRef(false)
   const activeTravelKey = useRef(null)
   const travelCameraKey = useRef(null)
+  const boardCameraKey = useRef(null)
+  const handledBoardViewRequest = useRef(0)
   const pickupMarkerRef = useRef(null)
   const deliveryMarkerRef = useRef(null)
   const driverMarkerRefs = useRef(new Map())
@@ -53,31 +86,109 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = null, facilityFocusRe
     ref.current = null
   }
 
+  // AV2.5.6: keep the latest simulation inputs in a ref so the animation loop
+  // does not restart on game-clock ticks, speed changes, or route progress updates.
+  motionStateRef.current = {
+    drivers,
+    loads,
+    runtimePositions,
+    runtimeProgressByDriver,
+    simulationSpeed,
+    isGameClockPaused,
+    gameTime,
+  }
+
   useEffect(() => {
-    // AV: marker movement is keyed by driver. Runtime positions are authoritative;
-    // this tween only smooths visual updates between simulation ticks.
+    // AV2.5.6: continuous driver render clock.
+    // The simulation remains authoritative for state transitions and arrival.
+    // The map marker advances every animation frame using fractional game time
+    // between the integer-minute simulation ticks.
     if (!mapReady) return undefined
-    const frames = []
-    drivers.forEach((driver) => {
-      const marker = driverMarkerRefs.current.get(driver.id)
-      const position = runtimePositions?.[driver.id]
-      if (!marker || !position) return
-      const from = marker.getLngLat()
-      const begin = performance.now()
-      const duration = 900
-      const animate = (now) => {
-        const t = Math.min(1, (now - begin) / duration)
-        const eased = 1 - Math.pow(1 - t, 3)
-        marker.setLngLat([
-          from.lng + (position.longitude - from.lng) * eased,
-          from.lat + (position.latitude - from.lat) * eased,
-        ])
-        if (t < 1) frames.push(requestAnimationFrame(animate))
+
+    let frameId = null
+    let lastFrame = performance.now()
+    let renderGameMinute = null
+    let lastAuthoritativeMinute = null
+
+    const absoluteMinuteFrom = (time) => (time?.gameDayIndex ?? 0) * 1440 + (time?.totalMinutesOfDay ?? 0)
+
+    const render = (now) => {
+      const dt = Math.max(0, Math.min(100, now - lastFrame))
+      lastFrame = now
+
+      const state = motionStateRef.current || {}
+      const currentDrivers = state.drivers || []
+      const currentLoads = state.loads || []
+      const currentRuntimePositions = state.runtimePositions || {}
+      const currentRuntimeProgress = state.runtimeProgressByDriver || {}
+      const speed = Math.max(0, Number(state.simulationSpeed) || 0)
+      const paused = Boolean(state.isGameClockPaused)
+      const authoritativeMinute = absoluteMinuteFrom(state.gameTime)
+
+      if (!Number.isFinite(renderGameMinute)) renderGameMinute = authoritativeMinute
+
+      // Large discontinuities are explicit simulation jumps (resume/dev/day change),
+      // not ordinary clock ticks. Snap the visual clock only for those cases.
+      if (lastAuthoritativeMinute !== null && Math.abs(authoritativeMinute - lastAuthoritativeMinute) > 2) {
+        renderGameMinute = authoritativeMinute
       }
-      frames.push(requestAnimationFrame(animate))
-    })
-    return () => frames.forEach((id) => cancelAnimationFrame(id))
-  }, [runtimePositions, drivers, mapReady])
+      lastAuthoritativeMinute = authoritativeMinute
+
+      if (!paused && speed > 0) {
+        // App.jsx advances one game minute every 3000ms / simulationSpeed.
+        renderGameMinute += (dt * speed) / 3000
+
+        // Reconcile gently with the authoritative integer clock without creating
+        // a visible once-per-tick marker jump. Between ticks the render clock is
+        // expected to lead the integer minute by up to roughly one minute.
+        const error = authoritativeMinute - renderGameMinute
+        if (error > 0.2) renderGameMinute += Math.min(error, (dt / 1000) * 0.35)
+        if (error < -1.25) renderGameMinute += Math.max(error + 1, -(dt / 1000) * 0.35)
+      } else if (renderGameMinute < authoritativeMinute) {
+        // Pausing immediately freezes visual motion, but never leaves the marker
+        // behind a simulation transition that already occurred.
+        renderGameMinute = authoritativeMinute
+      }
+
+      currentDrivers.forEach((driver) => {
+        const marker = driverMarkerRefs.current.get(driver.id)
+        if (!marker) return
+
+        const travelingLoad = currentLoads.find((load) => load.assignedDriverId === driver.id && ['en-route-pickup', 'en-route-delivery'].includes(load.tripStatus))
+        if (!travelingLoad) {
+          const position = currentRuntimePositions?.[driver.id]
+          if (position) marker.setLngLat([position.longitude, position.latitude])
+          return
+        }
+
+        const delivery = travelingLoad.tripStatus === 'en-route-delivery'
+        const route = delivery ? travelingLoad.plannedLoadedRouteGeometry : travelingLoad.plannedDeadheadRouteGeometry
+        const departure = delivery ? travelingLoad.deliveryDepartureGameMinute : travelingLoad.departureGameMinute
+        const duration = delivery ? travelingLoad.plannedLoadedDriveTimeMinutes : travelingLoad.plannedDeadheadDriveTimeMinutes
+        if (!Array.isArray(route) || route.length < 2 || !Number.isFinite(departure) || !Number.isFinite(duration) || duration <= 0) return
+
+        const fractionalProgress = Math.max(0, Math.min(1, (renderGameMinute - departure) / duration))
+        const authoritativeRuntimeProgress = currentRuntimeProgress?.[driver.id]
+
+        // Never visually trail behind persisted simulation progress, but otherwise
+        // let the fractional render clock provide the continuous road motion.
+        const boundedRuntimeProgress = Number.isFinite(authoritativeRuntimeProgress)
+          ? Math.max(0, Math.min(1, authoritativeRuntimeProgress))
+          : null
+        const progress = boundedRuntimeProgress !== null && boundedRuntimeProgress - fractionalProgress > 0.08
+          ? boundedRuntimeProgress
+          : fractionalProgress
+
+        const point = routePosition(route, progress)
+        if (point) marker.setLngLat(point)
+      })
+
+      frameId = requestAnimationFrame(render)
+    }
+
+    frameId = requestAnimationFrame(render)
+    return () => { if (frameId) cancelAnimationFrame(frameId) }
+  }, [mapReady])
 
   useEffect(() => {
     const map = mapRef.current
@@ -355,6 +466,62 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = null, facilityFocusRe
   }, [routeFocusMode])
 
   useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady || routeFocusMode || freightBrowseMode) return
+
+    const operationalLoads = loads.filter((load) => load.assignedDriverId && load.tripStatus !== 'queued' && !['delivered', 'completed'].includes(load.tripStatus))
+    const operationalDriverIds = new Set([
+      ...drivers.filter((driver) => driver.status !== 'unavailable').map((driver) => driver.id),
+      ...operationalLoads.map((load) => load.assignedDriverId),
+      ...drivers.filter((driver) => driver.idleRouteStatus === 'traveling').map((driver) => driver.id),
+    ])
+    const points = []
+    operationalDriverIds.forEach((driverId) => {
+      const driver = drivers.find((item) => item.id === driverId)
+      const runtime = runtimePositions?.[driverId]
+      const home = mapLocations.find((location) => location.id === driver?.homeBaseLocationId)
+      const location = runtime || (Number.isFinite(driver?.longitude) && Number.isFinite(driver?.latitude) ? driver : home)
+      if (Number.isFinite(location?.longitude) && Number.isFinite(location?.latitude)) points.push([location.longitude, location.latitude])
+    })
+    operationalLoads.forEach((load) => {
+      const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
+      const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
+      if (Number.isFinite(pickup?.longitude) && Number.isFinite(pickup?.latitude)) points.push([pickup.longitude, pickup.latitude])
+      if (Number.isFinite(delivery?.longitude) && Number.isFinite(delivery?.latitude)) points.push([delivery.longitude, delivery.latitude])
+    })
+    if (!points.length) return
+
+    const fitBoard = (duration = 520) => {
+      const lngs = points.map((point) => point[0])
+      const lats = points.map((point) => point[1])
+      if (points.length === 1) {
+        map.easeTo({ center: points[0], zoom: Math.min(map.getZoom(), 10.25), duration })
+        return
+      }
+      map.fitBounds(
+        [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+        { padding: { top: 120, right: 54, bottom: 150, left: 54 }, maxZoom: 10.45, duration },
+      )
+    }
+
+    // Explicit BOARD control always wins. The automatic board fit only activates
+    // once more than one driver is operational, so single-driver play keeps the
+    // familiar close camera while AV2.5 is ready for Driver #2.
+    if (boardViewRequest && handledBoardViewRequest.current !== boardViewRequest) {
+      handledBoardViewRequest.current = boardViewRequest
+      fitBoard(520)
+      return
+    }
+
+    if (operationalDriverIds.size < 2) return
+    const cameraKey = operationalLoads.map((load) => `${load.id}:${load.tripStatus}:${load.assignedDriverId}`).sort().join('|')
+      + `::${Array.from(operationalDriverIds).sort().join('|')}`
+    if (boardCameraKey.current === cameraKey) return
+    boardCameraKey.current = cameraKey
+    fitBoard(650)
+  }, [boardViewRequest, mapReady, routeFocusMode, freightBrowseMode, drivers, loads, runtimePositions])
+
+  useEffect(() => {
     if (!driverFocusRequest || !mapReady) return
     const map = mapRef.current
     const marker = driverMarkerRefs.current.get(driverFocusId)
@@ -483,12 +650,13 @@ function GameMap({ driverFocusRequest = 0, driverFocusId = null, facilityFocusRe
       [Math.max(...lngs), Math.max(...lats)],
     ]
 
+    const planningBottomPadding = Math.round(Math.min(430, Math.max(330, window.innerHeight * 0.46)))
     map.fitBounds(bounds, {
       padding: routeFocusMode === 'evaluation'
         ? { top: 68, right: 22, bottom: 285, left: 22 }
-        : { top: 68, right: 22, bottom: 245, left: 22 },
-      maxZoom: 11.35,
-      duration: 420,
+        : { top: 76, right: 30, bottom: planningBottomPadding, left: 30 },
+      maxZoom: routeFocusMode === 'planning' ? 10.7 : 11.35,
+      duration: 460,
     })
   }, [activeRouteGeometry, routeFocusMode, mapReady])
 

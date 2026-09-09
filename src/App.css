@@ -10518,3 +10518,119 @@
   border-color: rgba(181,154,203,.32);
   box-shadow: inset 2px 0 0 rgba(181,154,203,.52);
 }
+
+/* AV2.5 — Map & Planning Awareness */
+.board-view-control {
+  position: absolute;
+  z-index: 4;
+  top: 14px;
+  left: 14px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid rgba(76, 84, 99, .72);
+  border-radius: 10px;
+  background: rgba(15, 17, 21, .9);
+  color: #9ca7b5;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .11em;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .2);
+  -webkit-tap-highlight-color: transparent;
+}
+.board-view-control svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.board-view-control:active {
+  border-color: rgba(112, 126, 146, .92);
+  background: rgba(32, 38, 47, .96);
+  color: #eef2f6;
+}
+.map-area.operations-open .board-view-control {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+}
+
+
+/* AV2.5.1 — planning visibility + operations action hierarchy */
+.operations-drawer-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(47, 57, 71, .84);
+  display: grid;
+  gap: 8px;
+}
+.operations-drawer-actions .operations-drawer-end-day {
+  margin: 0;
+}
+.operations-market-action {
+  width: 100%;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid rgba(67, 78, 94, .78);
+  border-radius: 10px;
+  background: rgba(16, 20, 26, .92);
+  color: #b8c3d1;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .14em;
+  -webkit-tap-highlight-color: transparent;
+}
+.operations-market-action svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.operations-market-action:active {
+  border-color: rgba(112, 126, 146, .92);
+  background: rgba(28, 34, 43, .96);
+  color: #eef2f6;
+}
+/* The old persistent market control is intentionally retired in AV2.5.1. */
+.markets-button { display: none !important; }
+
+/* Keep BOARD map-specific, but smaller and calmer now that MARKET lives in Operations. */
+.board-view-control {
+  top: 18px;
+  left: 18px;
+  min-height: 34px;
+  gap: 6px;
+  padding: 0 9px;
+  border-radius: 9px;
+  font-size: 7.5px;
+}
+.board-view-control svg { width: 15px; height: 15px; }
+
+/* Planning cards keep all operational data while returning more map to the player. */
+.map-evaluation.trip-planning-v2 {
+  width: min(320px, calc(100% - 28px));
+}
+.trip-plan-v2-heading { padding: 7px 10px 6px; }
+.trip-plan-v2-driver-row,
+.trip-plan-v2-stop-row,
+.delivery-plan-v2-stops { padding: 6px 10px; }
+.trip-plan-v2-route-label { padding: 6px 10px 4px; }
+.trip-plan-v2-body { padding: 0 10px 6px; }
+.trip-plan-v2-metrics { gap: 4px !important; }
+.trip-plan-v2-metrics > div { padding: 5px 6px; }
+.trip-plan-v2-actions { padding: 6px 10px 8px; }
+.map-evaluation.trip-planning-v2 .trip-plan-v2-back,
+.map-evaluation.trip-planning-v2 .trip-plan-v2-confirm { min-height: 32px; }

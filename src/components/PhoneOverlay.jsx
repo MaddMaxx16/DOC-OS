@@ -33,6 +33,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
   const [emailReturnScreen, setEmailReturnScreen] = useState('email')
   const [emailComposeContext, setEmailComposeContext] = useState({})
   const [selectedDriverId, setSelectedDriverId] = useState(initialDriverId)
+  const [messageLoadContextId, setMessageLoadContextId] = useState(null)
   const [selectedBusinessDocumentId, setSelectedBusinessDocumentId] = useState(null)
   const [previewAttachment, setPreviewAttachment] = useState(null)
   const [documentReturnScreen, setDocumentReturnScreen] = useState('documents')
@@ -180,7 +181,9 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           driverPosition={runtimePositions[selectedDriverId] || null}
           messages={selectedDriverId ? driverMessages.filter((message) => message.driverId === selectedDriverId) : []}
           activeLoads={loads.filter((load) => !['available', 'expired', 'completed', 'delivered'].includes(load.status) && !['expired', 'completed', 'delivered'].includes(load.tripStatus))}
-          onBack={() => setScreen('messages')}
+          initialLoadId={messageLoadContextId || ''}
+          initialLoadPickerOpen={Boolean(messageLoadContextId)}
+          onBack={() => { setMessageLoadContextId(null); setScreen('messages') }}
           onRead={onReadDriverMessage}
           onSendLoadUpdate={(loadId) => selectedDriverId && onSendDriverLoadUpdate?.(loadId, selectedDriverId)}
           onSendQuickReply={(body, meta) => selectedDriverId && onSendDriverQuickReply?.(body, selectedDriverId, meta)}
@@ -230,7 +233,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           {screen === 'loadDetails' && <LoadDetailsScreen loads={loads} drivers={drivers} carriers={carriers} loadId={selectedLoadId} onCheckDriverFit={() => setScreen('driverFit')} onRequestCarrierApproval={(loadId) => { const load = loads.find((item) => item.id === loadId); const candidate = drivers.find((driver) => driver.id === load?.candidateDriverId); const carrier = carriers.find((item) => item.id === candidate?.carrierId) || carriers[0]; openComposer({ workflowType: 'carrier-approval', label: 'CARRIER LOAD APPROVAL', loadId, loadNumber: load?.loadNumber || loadId, suggestedRecipientId: `${carrier?.id || 'metroline'}-operations`, subject: `Load approval request · ${load?.loadNumber || loadId}`, body: `Hello,\n\nPlease review the attached load offer for ${load?.loadNumber || loadId}. Driver fit has been reviewed and I am requesting approval to book this freight.\n\nThank you,\nDOC OS Dispatch`, returnScreen: 'loadDetails' }) }} onViewCarrierApproval={(loadId) => { const load = loads.find((item) => item.id === loadId); const emailId = load?.carrierApprovalEmailId; if (emailId && emailMessages.some((message) => message.id === emailId)) { setSelectedEmailId(emailId); setEmailReturnScreen('loadDetails'); setScreen('emailDetail') } else { const fallback = [...emailMessages].reverse().find((message) => message.loadId === loadId && message.workflowType === 'carrier-approval'); if (fallback) { setSelectedEmailId(fallback.id); setEmailReturnScreen('loadDetails'); setScreen('emailDetail') } else setScreen('email') } }} onAccept={() => {
             const accepted = onAcceptCandidateAssignment?.(selectedLoadId)
             if (accepted !== false) setScreen('loadDetails')
-          }} onPlanRoute={() => { const load = loads.find((item) => item.id === selectedLoadId); if (load?.assignedDriverId && onPlanTrip) onPlanTrip(selectedLoadId, load.assignedDriverId); else setScreen('routePlanning') }} onBack={() => setScreen('loadBoard')} />}
+          }} onSendLoadDetails={(loadId, driverId) => { setSelectedLoadId(loadId); setSelectedDriverId(driverId); setMessageLoadContextId(loadId); setScreen('messageThread') }} onPlanRoute={() => { const load = loads.find((item) => item.id === selectedLoadId); if (load?.assignedDriverId && onPlanTrip) onPlanTrip(selectedLoadId, load.assignedDriverId); else setScreen('routePlanning') }} onBack={() => setScreen('loadBoard')} />}
           {screen === 'driverFit' && <DriverFitScreen load={loads.find((load) => load.id === selectedLoadId)} loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} candidateDriverId={loads.find((load) => load.id === selectedLoadId)?.candidateDriverId} onEvaluate={(driverId, fit) => {
             onEvaluateFit(selectedLoadId, driverId, fit)
             setScreen('loadDetails')

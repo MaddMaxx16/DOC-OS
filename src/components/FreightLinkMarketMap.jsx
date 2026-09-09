@@ -72,8 +72,6 @@ function FreightLinkMarketMap({ loadViews, onViewLoad }) {
 
     let cancelled = false
     const { pickup, delivery } = selectedView
-    const fallbackCoordinates = [[pickup.longitude, pickup.latitude], [delivery.longitude, delivery.latitude]]
-
     const drawRoute = (coordinates) => {
       if (cancelled || !mapRef.current) return
       if (map.getLayer(routeLayerId)) map.removeLayer(routeLayerId)
@@ -84,8 +82,23 @@ function FreightLinkMarketMap({ loadViews, onViewLoad }) {
 
     setRouteState('loading')
     calculateRoute(pickup, delivery)
-      .then((route) => { if (!cancelled) { drawRoute(route.routeShape); setRouteState('ready') } })
-      .catch(() => { if (!cancelled) { drawRoute(fallbackCoordinates); setRouteState('fallback') } })
+      .then((route) => {
+        if (cancelled) return
+        if (route.source === 'fallback') {
+          if (map.getLayer(routeLayerId)) map.removeLayer(routeLayerId)
+          if (map.getSource(routeSourceId)) map.removeSource(routeSourceId)
+          setRouteState('estimate')
+          return
+        }
+        drawRoute(route.routeShape)
+        setRouteState(route.source === 'cache' ? 'cached' : 'ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        if (map.getLayer(routeLayerId)) map.removeLayer(routeLayerId)
+        if (map.getSource(routeSourceId)) map.removeSource(routeSourceId)
+        setRouteState('estimate')
+      })
 
     return () => { cancelled = true }
   }, [mapReady, selectedView?.load.id])
@@ -110,7 +123,7 @@ function FreightLinkMarketMap({ loadViews, onViewLoad }) {
         <div className="freightlink-map-preview">
           <div className="freightlink-map-preview-top">
             <div><span>{selectedView.load.loadNumber || selectedView.load.id}</span><strong>${selectedView.load.rate}</strong></div>
-            <small>{routeState === 'loading' ? 'ROUTING…' : `${selectedView.load.listedMiles?.toFixed?.(1) || '—'} MI`}</small>
+            <small>{routeState === 'loading' ? 'ROUTING…' : routeState === 'estimate' ? 'ROUTE DATA LIMITED' : routeState === 'cached' ? 'CACHED ROAD' : `${selectedView.load.listedMiles?.toFixed?.(1) || '—'} MI`}</small>
           </div>
           <div className="freightlink-map-preview-lane"><span>{selectedView.pickup.name}</span><b>→</b><span>{selectedView.delivery.name}</span></div>
           <div className="freightlink-map-preview-meta"><span>PICKUP {formatCompactDate(selectedView.load.pickupDayIndex)} · {formatTime(selectedView.load.pickupWindowStartMinutes)}</span><span>DELIVERY {formatCompactDate(selectedView.load.deliveryDayIndex)} · {formatTime(selectedView.load.deliveryWindowStartMinutes)}</span></div>

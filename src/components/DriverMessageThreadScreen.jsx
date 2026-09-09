@@ -26,10 +26,10 @@ function loadRouteLabel(load) {
   return `${load.loadNumber || load.id} · ${pickup} → ${delivery}`
 }
 
-function DriverMessageThreadScreen({ driver, driverPosition = null, messages = [], activeLoads = [], onBack, onRead, onSendLoadUpdate, onSendQuickReply, onPlanDeliveryRoute }) {
-  const [replyOpen, setReplyOpen] = useState(false)
-  const [selectedLoadId, setSelectedLoadId] = useState('')
-  const [loadPickerOpen, setLoadPickerOpen] = useState(false)
+function DriverMessageThreadScreen({ driver, driverPosition = null, messages = [], activeLoads = [], initialLoadId = '', initialLoadPickerOpen = false, onBack, onRead, onSendLoadUpdate, onSendQuickReply, onPlanDeliveryRoute }) {
+  const [replyOpen, setReplyOpen] = useState(Boolean(initialLoadPickerOpen))
+  const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId || '')
+  const [loadPickerOpen, setLoadPickerOpen] = useState(Boolean(initialLoadPickerOpen))
   const historyRef = useRef(null)
   const sorted = useMemo(() => [...messages].sort((a, b) => (a.receivedGameMinute || 0) - (b.receivedGameMinute || 0)), [messages])
 
@@ -51,6 +51,7 @@ function DriverMessageThreadScreen({ driver, driverPosition = null, messages = [
   const currentLoad = activeLoads.find((load) => load.tripStatus !== 'queued' && !['delivered', 'completed'].includes(load.tripStatus)) || null
   const plannableDeliveryLoad = activeLoads.find((load) => load.tripStatus === 'loaded' && load.deliveryPlanningStatus !== 'route-ready')
   const briefableLoad = activeLoads.find((load) => load.tripStatus === 'assigned' && !Number.isFinite(load.pickupDriverBriefedGameMinute))
+  const otherLoadOptions = activeLoads.filter((load) => load.id !== briefableLoad?.id && !['delivered', 'completed'].includes(load.tripStatus))
   const pickupRouteSendableLoad = activeLoads.find((load) =>
     load.tripStatus === 'assigned'
     && load.planningStatus === 'route-ready'
@@ -146,8 +147,8 @@ function DriverMessageThreadScreen({ driver, driverPosition = null, messages = [
             </div>
 
             {briefableLoad && (
-              <button type="button" role="menuitem" onClick={() => { onSendLoadUpdate?.(briefableLoad.id); setReplyOpen(false) }}>
-                <strong>Send load</strong>
+              <button type="button" role="menuitem" onClick={() => { onSendLoadUpdate?.(briefableLoad.id); setReplyOpen(false); setLoadPickerOpen(false) }}>
+                <strong>Send load details</strong>
                 <small>Send {briefableLoad.loadNumber || briefableLoad.id} pickup and delivery details</small>
               </button>
             )}
@@ -159,10 +160,12 @@ function DriverMessageThreadScreen({ driver, driverPosition = null, messages = [
               </button>
             )}
 
-            <button type="button" role="menuitem" onClick={() => setLoadPickerOpen((open) => !open)}>
-              <strong>Send another load</strong>
-              <small>Choose from this driver’s active or queued freight</small>
-            </button>
+            {otherLoadOptions.length > 0 && (
+              <button type="button" role="menuitem" onClick={() => setLoadPickerOpen((open) => !open)}>
+                <strong>Send another load</strong>
+                <small>Choose from this driver’s other active or queued freight</small>
+              </button>
+            )}
 
             {waitingLoad && (
               <>
@@ -198,9 +201,9 @@ function DriverMessageThreadScreen({ driver, driverPosition = null, messages = [
             {loadPickerOpen && (
               <div className="driver-load-picker driver-load-picker-inline" role="dialog" aria-label="Choose active load">
                 <div className="driver-load-picker-list">
-                  {activeLoads.length === 0 ? (
-                    <div className="driver-load-picker-empty">No active loads available.</div>
-                  ) : activeLoads.map((load) => (
+                  {otherLoadOptions.length === 0 ? (
+                    <div className="driver-load-picker-empty">No other loads available.</div>
+                  ) : otherLoadOptions.map((load) => (
                     <button
                       type="button"
                       className={selectedLoadId === load.id ? 'selected' : ''}

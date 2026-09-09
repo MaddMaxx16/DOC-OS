@@ -371,3 +371,20 @@ Built from AV2.3.4. Removes the retired assisted-flow scaffolding from runtime s
 
 ## AV2.4.1
 Foundation cleanup recovery. Rebased visual CSS on AV2.3.4 after AV2.4 test rejection.
+
+## AV2.5 — Map & Planning Awareness
+Built from the promoted AV2.4.1 stable foundation. Adds an explicit BOARD camera fit, automatic multi-driver board framing, and full driver → pickup → delivery spatial context during pickup planning. Route movement and lifecycle ownership are unchanged.
+
+
+## AV2.5.1 — Planning Visibility Polish
+- MARKET moved into Operations drawer.
+- Planning camera made overlay-aware.
+- Planning cards tightened; BOARD remains map-specific.
+
+- AV2.5.4: Action-aware Operations alerts + continuous visual driver interpolation.
+
+## AV2.5.6 — Continuous Driver Render Clock
+- Built from AV2.5.5.
+- Driver markers use a stable animation-frame render clock with fractional game-time progress.
+- Route segment metrics are cached for smooth iPhone rendering.
+- Simulation state and arrival lifecycle remain authoritative and unchanged.

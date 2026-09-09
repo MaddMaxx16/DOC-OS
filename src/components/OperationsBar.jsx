@@ -5,7 +5,7 @@ const marketLabels = {
   'new-york': 'NEW YORK',
 }
 
-function OperationsBar({ selectedMarket, notificationCount = 0, notifications = [], scheduleEntries = [], nextScheduleItem = null, onOpenChange, onNotificationAction, showEndDay = false, endDayDisabled = false, onEndDay }) {
+function OperationsBar({ selectedMarket, notificationCount = 0, notifications = [], scheduleEntries = [], nextScheduleItem = null, onOpenChange, onNotificationAction, showEndDay = false, endDayDisabled = false, onEndDay, onOpenMarkets }) {
   const [open, setOpen] = useState(false)
   const [drawerMode, setDrawerMode] = useState('alerts')
   const marketName = marketLabels[selectedMarket] ?? selectedMarket?.toUpperCase() ?? 'MARKET OFFLINE'
@@ -32,6 +32,11 @@ function OperationsBar({ selectedMarket, notificationCount = 0, notifications = 
     if (endDayDisabled) return
     setDrawerOpen(false)
     onEndDay?.()
+  }
+
+  const activateMarkets = () => {
+    setDrawerOpen(false)
+    onOpenMarkets?.()
   }
 
   const toggleAlerts = () => {
@@ -129,8 +134,8 @@ function OperationsBar({ selectedMarket, notificationCount = 0, notifications = 
             </div>
           )}
 
-          {showEndDay && (
-            <div className="operations-drawer-end-day-wrap">
+          <div className="operations-drawer-actions">
+            {showEndDay && (
               <button
                 type="button"
                 className="operations-end-day operations-drawer-end-day"
@@ -140,8 +145,17 @@ function OperationsBar({ selectedMarket, notificationCount = 0, notifications = 
               >
                 END OPERATIONS DAY
               </button>
-            </div>
-          )}
+            )}
+            <button
+              type="button"
+              className="operations-market-action"
+              onClick={activateMarkets}
+              aria-label="Open freight market"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18V11M10 18V7M15 18v-5M20 18V4"/></svg>
+              <span>MARKET</span>
+            </button>
+          </div>
 
           <div className="operations-map-data">
             <span>MAP DATA</span>

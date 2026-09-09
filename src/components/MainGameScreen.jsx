@@ -263,6 +263,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [loadingChallengeLoadId, setLoadingChallengeLoadId] = useState(null)
   const [unloadSequenceLoadId, setUnloadSequenceLoadId] = useState(null)
   const [driverFocusRequest, setDriverFocusRequest] = useState(0)
+  const [boardViewRequest, setBoardViewRequest] = useState(0)
   const [facilityFocusRequest, setFacilityFocusRequest] = useState(0)
   const [facilityFocusRole, setFacilityFocusRole] = useState(null)
   const [driverFocusId, setDriverFocusId] = useState(null)
@@ -374,7 +375,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     if (load.tripStatus === 'checked-in-pickup') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-pickup-ready`, action: 'pickup', title: `${loadRef} · DOCK READY`, detail: `${driverName} has been called to a door at ${pickupName}.`, value: 'BEGIN LOADING' }]
     if (load.tripStatus === 'checked-in-delivery') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-delivery-ready`, action: 'delivery', title: `${loadRef} · DOCK READY`, detail: `${driverName} has been called to a door at ${deliveryName}.`, value: 'BEGIN UNLOADING' }]
     if (load.tripStatus === 'assigned' && !Number.isFinite(load.pickupDriverBriefedGameMinute)) return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-brief`, action: 'messages', title: `${loadRef} · SEND LOAD INFO REQUIRED`, detail: `Send ${driverName} the load information before planning the pickup route.`, value: 'MESSAGE DRIVER' }]
-    if (load.tripStatus === 'assigned' && load.planningStatus !== 'route-ready') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-pickup-plan`, action: 'driver', title: `${loadRef} · PICKUP PLAN REQUIRED`, detail: `Plan ${driverName}'s pickup trip.`, value: 'PLAN PICKUP' }]
+    if (load.tripStatus === 'assigned' && load.planningStatus !== 'route-ready') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-pickup-plan`, action: 'plan-pickup', title: `${loadRef} · PICKUP PLAN REQUIRED`, detail: `Plan ${driverName}'s pickup trip.`, value: 'PLAN PICKUP' }]
     if (load.tripStatus === 'assigned' && !Number.isFinite(load.pickupRouteSentGameMinute)) return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-route-pickup`, action: 'messages', title: `${loadRef} · ROUTE SEND REQUIRED`, detail: `Send ${driverName} the pickup route. Sending it releases the truck to depart.`, value: 'SEND ROUTE' }]
     if (load.tripStatus === 'assigned') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-route-pickup-recovery`, action: 'messages', title: `${loadRef} · ROUTE ACTION REQUIRED`, detail: `Open Messages and resend the pickup route to release ${driverName}.`, value: 'SEND ROUTE' }]
     if (load.tripStatus === 'loaded' && load.deliveryPlanningStatus === 'route-ready' && !Number.isFinite(load.deliveryRouteSentGameMinute)) return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-route-delivery`, action: 'messages', title: `${loadRef} · ROUTE SEND REQUIRED`, detail: `Send ${driverName} the delivery route. Sending it releases the truck to depart.`, value: 'SEND ROUTE' }]
@@ -486,7 +487,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     }] : []),
   ].sort((a, b) => {
     const priority = (item) => {
-      if (['driver', 'messages', 'plan-pickup', 'plan-delivery', 'facility'].includes(item?.action) || item?.tone === 'danger' || item?.tone === 'attention') return 0
+      if (['driver', 'messages', 'plan-pickup', 'plan-delivery', 'pickup', 'delivery', 'facility'].includes(item?.action) || item?.tone === 'danger' || item?.tone === 'attention') return 0
       if (['documents', 'ledger'].includes(item?.action)) return 1
       return 2
     }
@@ -564,12 +565,26 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         }),
       ]
     : null
-  const activeRouteGeometry = deliveryPlanning?.route?.routeShape
+  const combineRouteGeometry = (...shapes) => shapes.filter((shape) => Array.isArray(shape) && shape.length).reduce((combined, shape) => {
+    if (!combined.length) return [...shape]
+    const last = combined[combined.length - 1]
+    return [...combined, ...shape.filter((point, index) => index !== 0 || !last || last[0] !== point[0] || last[1] !== point[1])]
+  }, [])
+  const planningFullRouteGeometry = planningMode && planningMode.route && typeof planningMode.route === 'object'
+    ? combineRouteGeometry(planningMode.route.routeShape, planningMode.loadedRoute?.routeShape)
+    : null
+  // AV2.5.3: estimated fallback geometry is allowed to keep simulation timing
+  // resilient, but it is never rendered as a fake straight-line road on the map.
+  const deliveryPlanningGeometry = deliveryPlanning?.route?.source === 'fallback' ? null : deliveryPlanning?.route?.routeShape
+  const planningGeometry = planningMode?.route?.source === 'fallback'
+    ? (planningMode?.loadedRoute?.source === 'fallback' ? null : planningMode?.loadedRoute?.routeShape)
+    : planningFullRouteGeometry
+  const activeRouteGeometry = deliveryPlanningGeometry
     || (evaluationRouteGeometry?.length ? evaluationRouteGeometry : null)
-    || planningMode?.route?.routeShape
-    || (assignedLoad?.tripStatus === 'en-route-delivery' ? assignedLoad.plannedLoadedRouteGeometry : null)
-    || (assignedLoad?.tripStatus === 'en-route-pickup' ? assignedLoad.plannedDeadheadRouteGeometry : null)
-    || ((!assignedLoad?.tripStatus || assignedLoad.tripStatus === 'assigned') && assignedLoad?.planningStatus === 'route-ready' ? assignedLoad.plannedDeadheadRouteGeometry : null)
+    || (planningGeometry?.length ? planningGeometry : null)
+    || (assignedLoad?.tripStatus === 'en-route-delivery' && assignedLoad.plannedLoadedRouteSource !== 'fallback' ? assignedLoad.plannedLoadedRouteGeometry : null)
+    || (assignedLoad?.tripStatus === 'en-route-pickup' && assignedLoad.plannedDeadheadRouteSource !== 'fallback' ? assignedLoad.plannedDeadheadRouteGeometry : null)
+    || ((!assignedLoad?.tripStatus || assignedLoad.tripStatus === 'assigned') && assignedLoad?.planningStatus === 'route-ready' && assignedLoad.plannedDeadheadRouteSource !== 'fallback' ? assignedLoad.plannedDeadheadRouteGeometry : null)
   const startDeliveryPlanning = async (loadId) => {
     const load = loads.find((item) => item.id === loadId)
     const pickup = mapLocations.find((location) => location.id === load?.pickupLocationId)
@@ -592,8 +607,17 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     pauseClockForModal()
     setPlanningMode({ loadId, driverId, active: true, route: 'loading', selected: false })
     try {
-      const route = await calculateRoute(driver, pickup)
-      setPlanningMode((current) => current ? { ...current, route, selected: true } : current)
+      // AV2.5: planning is a full-load spatial review. Calculate the deadhead and
+      // loaded lane together so the map can frame driver → pickup → delivery while
+      // the operational plan still commits only the deadhead leg at this step.
+      const [deadheadResult, loadedResult] = await Promise.allSettled([
+        calculateRoute(driver, pickup),
+        calculateRoute(pickup, mapLocations.find((location) => location.id === load?.deliveryLocationId)),
+      ])
+      if (deadheadResult.status !== 'fulfilled') throw deadheadResult.reason
+      const route = deadheadResult.value
+      const loadedRoute = loadedResult.status === 'fulfilled' ? loadedResult.value : null
+      setPlanningMode((current) => current ? { ...current, route, loadedRoute, selected: true } : current)
     } catch (error) {
       console.error('Planning route unavailable:', error)
       setPlanningMode((current) => current ? { ...current, route: 'unavailable' } : current)
@@ -1082,8 +1106,24 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       return
     }
     if (action === 'driver') { setDriverFocusId(notification?.driverId || assignedLoad?.assignedDriverId || assignedLoad?.completedDriverId || null); setDriverFocusRequest((value) => value + 1); return }
-    if (action === 'pickup') { setFacilityFocusRole('pickup'); setFacilityFocusRequest((value) => value + 1); return }
-    if (action === 'delivery') { setFacilityFocusRole('delivery'); setFacilityFocusRequest((value) => value + 1); return }
+    if (action === 'plan-pickup') {
+      const loadId = notification?.loadId || assignedLoad?.id
+      const driverId = notification?.driverId || loads.find((item) => item.id === loadId)?.assignedDriverId || assignedLoad?.assignedDriverId
+      if (loadId && driverId) startPlanning(loadId, driverId)
+      return
+    }
+    if (action === 'pickup') {
+      const loadId = notification?.loadId || assignedLoad?.id
+      const driverId = notification?.driverId || loads.find((item) => item.id === loadId)?.assignedDriverId || assignedLoad?.assignedDriverId
+      if (loadId) handleDriverAction('BEGIN_LOADING', loadId, driverId)
+      return
+    }
+    if (action === 'delivery') {
+      const loadId = notification?.loadId || assignedLoad?.id
+      const driverId = notification?.driverId || loads.find((item) => item.id === loadId)?.assignedDriverId || assignedLoad?.assignedDriverId
+      if (loadId) handleDriverAction('BEGIN_UNLOADING', loadId, driverId)
+      return
+    }
     if (action === 'plan-delivery') {
       const loadId = notification?.loadId || assignedLoad?.id
       if (loadId) startDeliveryPlanning(loadId)
@@ -1117,9 +1157,16 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         showEndDay={showEndDay}
         endDayDisabled={endDayLockedForCloseout || isPhoneOpen || Boolean(planningMode) || Boolean(deliveryPlanning) || endDayOpen}
         onEndDay={() => { pauseClockForModal(); setEndDayOpen(true) }}
+        onOpenMarkets={onOpenMarkets}
       />
       <div className={`map-area ${operationsOpen ? 'operations-open' : ''}`}>
         {import.meta.env.DEV && <><button type="button" className="dev-button" onClick={() => setDevOpen((open) => !open)}>DEV</button>{devOpen && <div className="dev-menu"><div className="dev-menu-header"><strong>DEV TOOLS</strong><button type="button" onClick={() => setDevOpen(false)} aria-label="Close developer tools">×</button></div><div className="dev-presets"><strong>TIME</strong><span>DAY {gameTime.gameDayIndex + 1}<br />{formatCompactDate(gameTime.gameDayIndex)} • {formatTime(gameTime.totalMinutesOfDay)}</span>{[60, 360].map((minutes) => <button type="button" key={minutes} onClick={() => setGameTime((time) => { const total = time.gameDayIndex * 1440 + time.totalMinutesOfDay + minutes; return { gameDayIndex: Math.floor(total / 1440), totalMinutesOfDay: total % 1440 } })}>+{minutes === 60 ? '1 HR' : '6 HR'}</button>)}{[1, 3, 7].map((days) => <button type="button" key={days} onClick={() => setGameTime((time) => ({ ...time, gameDayIndex: time.gameDayIndex + days }))}>+{days} DAY{days > 1 ? 'S' : ''}</button>)}</div><button type="button" className="dev-reset" onClick={() => { onResetGame(); setDevOpen(false) }}>RESET GAME</button></div>}</>}
+        {!freightBrowseMode && !planningMode && !deliveryPlanning && (
+          <button type="button" className="board-view-control" onClick={() => setBoardViewRequest((value) => value + 1)} aria-label="Fit all active operations on map">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="2.4"/></svg>
+            <span>BOARD</span>
+          </button>
+        )}
         <div className="time-controls-wrap">
           <span className="time-state-label" aria-live="polite">{pauseActive ? 'PAUSED' : `${simulationSpeed}× SPEED`}</span>
           <div className="time-controls" aria-label="Simulation time controls">
@@ -1184,7 +1231,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             onComplete={completeUnloadSequence}
           />
         )}
-        <GameMap driverFocusRequest={driverFocusRequest} driverFocusId={driverFocusId} facilityFocusRequest={facilityFocusRequest} facilityFocusRole={facilityFocusRole} loads={loads} activeRouteGeometry={freightBrowseMode ? freightBrowseRouteGeometry : activeRouteGeometry} routeFocusMode={freightBrowseMode && freightBrowseRouteGeometry ? 'freight-browse' : planningMode || deliveryPlanning ? 'planning' : null} routeReviewLoad={planningLoad || deliveryPlanningLoad} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgressByDriver={runtimeProgressByDriver} assignedLoad={assignedLoad} evaluationLoad={null} isDriverFitEvaluation={false} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} freightBrowseMode={freightBrowseMode} freightBrowseLoads={freightBrowseLoads} freightBrowseSelectedLoadId={freightBrowseLoadId} onFreightBrowseSelect={selectFreightBrowseLoad} />
+        <GameMap boardViewRequest={boardViewRequest} driverFocusRequest={driverFocusRequest} driverFocusId={driverFocusId} facilityFocusRequest={facilityFocusRequest} facilityFocusRole={facilityFocusRole} loads={loads} activeRouteGeometry={freightBrowseMode ? freightBrowseRouteGeometry : activeRouteGeometry} routeFocusMode={freightBrowseMode && freightBrowseRouteGeometry ? 'freight-browse' : planningMode || deliveryPlanning ? 'planning' : null} routeReviewLoad={planningLoad || deliveryPlanningLoad} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgressByDriver={runtimeProgressByDriver} simulationSpeed={simulationSpeed} isGameClockPaused={isGameClockPaused} assignedLoad={assignedLoad} evaluationLoad={null} isDriverFitEvaluation={false} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} freightBrowseMode={freightBrowseMode} freightBrowseLoads={freightBrowseLoads} freightBrowseSelectedLoadId={freightBrowseLoadId} onFreightBrowseSelect={selectFreightBrowseLoad} />
         {freightBrowseMode && (
           <>
             <div className="freight-browse-mode-bar">
@@ -1217,7 +1264,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                 <strong>{loads.find((item) => item.id === deliveryPlanning.loadId)?.loadNumber || deliveryPlanning.loadId}</strong>
               </div>
               <span className={`trip-plan-v2-status ${deliveryPlanningRoute ? 'selected' : 'pending'}`}>
-                {deliveryPlanningRoute ? (deliveryPlanningRoute.source === 'fallback' ? 'FALLBACK READY' : 'RECOMMENDED') : 'CALCULATING'}
+                {deliveryPlanningRoute ? (deliveryPlanningRoute.source === 'fallback' ? 'ESTIMATED' : deliveryPlanningRoute.source === 'cache' ? 'CACHED ROAD' : 'RECOMMENDED') : 'CALCULATING'}
               </span>
             </div>
 
@@ -1244,8 +1291,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             </div>
 
             <div className="trip-plan-v2-route-label">
-              <span>{deliveryPlanningRoute?.source === 'fallback' ? 'ROUTE A — FALLBACK' : 'ROUTE A — RECOMMENDED'}</span>
-              <small>{deliveryPlanningRoute?.source === 'fallback' ? 'Routing service unavailable · safe estimated route' : 'Loaded route'}</small>
+              <span>{deliveryPlanningRoute?.source === 'fallback' ? 'ROUTE DATA LIMITED' : deliveryPlanningRoute?.source === 'cache' ? 'ROUTE A — CACHED ROAD' : 'ROUTE A — RECOMMENDED'}</span>
+              <small>{deliveryPlanningRoute?.source === 'fallback' ? 'Estimated timing only · road geometry unavailable' : deliveryPlanningRoute?.source === 'cache' ? 'Saved road route · available offline' : 'Loaded route'}</small>
             </div>
 
             <div className="trip-plan-v2-body">
@@ -1298,6 +1345,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                     plannedLoadedMiles: deliveryPlanningRoute.distanceMiles,
                     plannedLoadedDriveTimeMinutes: deliveryPlanningRoute.durationMinutes,
                     plannedLoadedRouteGeometry: deliveryPlanningRoute.routeShape,
+                    plannedLoadedRouteSource: deliveryPlanningRoute.source,
                     selectedLoadedRouteId: 'recommended',
                   } : load))
                   setDeliveryPlanning(null)
@@ -1317,7 +1365,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                 <strong>{loads.find((item) => item.id === planningMode.loadId)?.loadNumber || planningMode.loadId}</strong>
               </div>
               <span className={`trip-plan-v2-status ${planningRoute ? 'selected' : 'pending'}`}>
-                {planningRoute ? (planningRoute.source === 'fallback' ? 'FALLBACK READY' : 'RECOMMENDED') : 'CALCULATING'}
+                {planningRoute ? (planningRoute.source === 'fallback' ? 'ESTIMATED' : planningRoute.source === 'cache' ? 'CACHED ROAD' : 'RECOMMENDED') : 'CALCULATING'}
               </span>
             </div>
 
@@ -1336,8 +1384,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             </div>
 
             <div className="trip-plan-v2-route-label">
-              <span>{planningRoute?.source === 'fallback' ? 'ROUTE TO PICKUP — FALLBACK' : 'ROUTE TO PICKUP'}</span>
-              <small>{planningRoute?.source === 'fallback' ? 'Routing service unavailable · safe estimated route' : 'Timing and load decision'}</small>
+              <span>{planningRoute?.source === 'fallback' ? 'ROUTE DATA LIMITED' : planningRoute?.source === 'cache' ? 'ROUTE TO PICKUP — CACHED ROAD' : 'ROUTE TO PICKUP'}</span>
+              <small>{planningRoute?.source === 'fallback' ? 'Estimated timing only · road geometry unavailable' : planningRoute?.source === 'cache' ? 'Saved road route · available offline' : 'Timing and load decision'}</small>
             </div>
 
             <div className="trip-plan-v2-body">
@@ -1398,6 +1446,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                     plannedDeadheadMiles: planningRoute.distanceMiles,
                     plannedDeadheadDriveTimeMinutes: planningRoute.durationMinutes,
                     plannedDeadheadRouteGeometry: planningRoute.routeShape,
+                    plannedDeadheadRouteSource: planningRoute.source,
                     selectedDeadheadRouteId: 'recommended',
                   } : load))
                   setPlanningMode(null)
@@ -1559,15 +1608,6 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
           )
         })()}
 
-        <button
-          type="button"
-          className="markets-button"
-          onClick={onOpenMarkets}
-          aria-label="Open market selection"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18V11M10 18V7M15 18v-5M20 18V4"/></svg>
-          <span>MARKET</span>
-        </button>
         {!isPhoneOpen && !driverFitEvaluation && !planningMode && !deliveryPlanning && !freightBrowseMode && (
           <button
             type="button"

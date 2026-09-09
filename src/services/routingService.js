@@ -1,10 +1,49 @@
 const ROUTE_URL = 'https://api.heigit.org/openrouteservice/v2/directions/driving-hgv/geojson'
+const SECONDARY_ROUTE_URL = 'https://router.project-osrm.org/route/v1/driving'
+const PERSISTED_ROUTE_CACHE_KEY = 'docos-road-route-cache-v1'
+const PERSISTED_ROUTE_LIMIT = 80
 const REQUEST_TIMEOUT_MS = 8000
 const HARD_ROUTE_TIMEOUT_MS = 10000
 const FALLBACK_SPEED_MPH = 45
 const ROAD_DISTANCE_MULTIPLIER = 1.18
 const inFlightRoutes = new Map()
 const routeCache = new Map()
+
+function readPersistedRouteCache() {
+  if (typeof window === 'undefined' || !window.localStorage) return {}
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(PERSISTED_ROUTE_CACHE_KEY) || '{}')
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function getPersistedRoadRoute(key) {
+  const cached = readPersistedRouteCache()[key]
+  if (!cached || !Array.isArray(cached.routeShape) || cached.routeShape.length < 2) return null
+  return { ...cached, source: 'cache', cachedSource: cached.source || 'road' }
+}
+
+function persistRoadRoute(key, route) {
+  if (typeof window === 'undefined' || !window.localStorage) return
+  if (!route || !Array.isArray(route.routeShape) || route.routeShape.length < 2 || route.source === 'fallback') return
+  try {
+    const cache = readPersistedRouteCache()
+    cache[key] = {
+      distanceMiles: route.distanceMiles,
+      durationSeconds: route.durationSeconds,
+      durationMinutes: route.durationMinutes,
+      routeShape: route.routeShape,
+      source: route.source,
+      savedAt: Date.now(),
+    }
+    const entries = Object.entries(cache).sort((a, b) => (b[1]?.savedAt || 0) - (a[1]?.savedAt || 0)).slice(0, PERSISTED_ROUTE_LIMIT)
+    window.localStorage.setItem(PERSISTED_ROUTE_CACHE_KEY, JSON.stringify(Object.fromEntries(entries)))
+  } catch (error) {
+    console.warn('DOC OS ROUTE CACHE WRITE FAILED', error)
+  }
+}
 
 function toRadians(value) {
   return value * (Math.PI / 180)
@@ -84,35 +123,65 @@ function hardTimeout(ms) {
 export async function calculateRoute(origin, destination) {
   if (!origin || !destination) throw new Error('Route origin and destination are required')
 
-  const key = `ors-driving-hgv:${origin.latitude},${origin.longitude}:${destination.latitude},${destination.longitude}`
+  const key = `road:${origin.latitude},${origin.longitude}:${destination.latitude},${destination.longitude}`
   if (routeCache.has(key)) return routeCache.get(key)
+
+  const persisted = getPersistedRoadRoute(key)
+  if (persisted) {
+    const normalized = normalizeRoute(persisted, origin, destination)
+    routeCache.set(key, normalized)
+    console.debug('DOC OS ROUTE CACHE HIT', { key, source: normalized.cachedSource })
+    return normalized
+  }
+
   if (inFlightRoutes.has(key)) {
     console.debug('DOC OS ROUTE DEDUPED', key)
     return inFlightRoutes.get(key)
   }
 
   const routePromise = (async () => {
-    if (!import.meta.env.VITE_ORS_API_KEY) {
-      const fallback = normalizeRoute(createFallbackRoute(origin, destination, 'missing-api-key'), origin, destination)
-      routeCache.set(key, fallback)
-      console.warn('DOC OS ROUTE FALLBACK', { key, reason: fallback.fallbackReason })
-      return fallback
+    let primaryError = null
+    if (import.meta.env.VITE_ORS_API_KEY) {
+      try {
+        const route = normalizeRoute(await Promise.race([
+          requestRoute(origin, destination, key),
+          hardTimeout(HARD_ROUTE_TIMEOUT_MS),
+        ]), origin, destination)
+        routeCache.set(key, route)
+        persistRoadRoute(key, route)
+        return route
+      } catch (error) {
+        primaryError = error
+        console.warn('DOC OS PRIMARY ROUTER UNAVAILABLE', { key, message: error?.message })
+      }
+    } else {
+      primaryError = new Error('missing-api-key')
     }
 
+    // AV2.5.3: A primary routing outage should not degrade the board to a
+    // straight line. Try a second road router before using timing-only estimates.
     try {
-      const route = normalizeRoute(await Promise.race([
-        requestRoute(origin, destination, key),
+      const secondary = normalizeRoute(await Promise.race([
+        requestSecondaryRoute(origin, destination, key),
         hardTimeout(HARD_ROUTE_TIMEOUT_MS),
       ]), origin, destination)
-      routeCache.set(key, route)
-      return route
-    } catch (error) {
-      const fallback = normalizeRoute(createFallbackRoute(origin, destination, error?.name || 'routing-error'), origin, destination)
+      routeCache.set(key, secondary)
+      persistRoadRoute(key, secondary)
+      return secondary
+    } catch (secondaryError) {
+      const stale = getPersistedRoadRoute(key)
+      if (stale) {
+        const cached = normalizeRoute(stale, origin, destination)
+        routeCache.set(key, cached)
+        return cached
+      }
+
+      const fallback = normalizeRoute(createFallbackRoute(origin, destination, secondaryError?.name || primaryError?.name || 'routing-error'), origin, destination)
       routeCache.set(key, fallback)
-      console.warn('DOC OS ROUTE FALLBACK', {
+      console.warn('DOC OS ROUTE ESTIMATE ONLY', {
         key,
-        reason: fallback.fallbackReason,
-        message: error?.message,
+        primaryMessage: primaryError?.message,
+        secondaryMessage: secondaryError?.message,
       })
       return fallback
     }
@@ -192,4 +261,29 @@ async function requestRoute(origin, destination, key) {
   }
 
   throw new Error('ORS route unavailable')
+}
+
+async function requestSecondaryRoute(origin, destination, key) {
+  const coordinates = `${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}`
+  const url = `${SECONDARY_ROUTE_URL}/${coordinates}?overview=full&geometries=geojson&steps=false`
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  console.debug('DOC OS SECONDARY ROAD ROUTE ATTEMPT', { key })
+  try {
+    const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal })
+    if (!response.ok) throw new Error(`Secondary route failed (${response.status} ${response.statusText})`)
+    const data = await response.json()
+    const candidate = data.routes?.[0]
+    const shape = candidate?.geometry?.coordinates
+    if (!candidate || !Array.isArray(shape) || shape.length < 2) throw new Error('Secondary response missing route data')
+    return {
+      distanceMiles: candidate.distance / 1609.344,
+      durationSeconds: candidate.duration,
+      durationMinutes: Math.max(1, Math.round(candidate.duration / 60)),
+      routeShape: shape,
+      source: 'secondary-road',
+    }
+  } finally {
+    clearTimeout(timeout)
+  }
 }

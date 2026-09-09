@@ -12,7 +12,7 @@ function formatMiles(value) {
   return 'Unavailable'
 }
 
-function LoadDetailsScreen({ loads, drivers, carriers = [], loadId, onAccept, onCheckDriverFit, onRequestCarrierApproval, onViewCarrierApproval, onPlanRoute, onBack }) {
+function LoadDetailsScreen({ loads, drivers, carriers = [], loadId, onAccept, onCheckDriverFit, onRequestCarrierApproval, onViewCarrierApproval, onSendLoadDetails, onPlanRoute, onBack }) {
   const load = loads.find((item) => item.id === loadId)
   const pickup = load && mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = load && mapLocations.find((location) => location.id === load.deliveryLocationId)
@@ -113,7 +113,9 @@ function LoadDetailsScreen({ loads, drivers, carriers = [], loadId, onAccept, on
               <span className="driver-avatar-v2" aria-hidden="true">{(assignedDriver.fullName || assignedDriver.name || 'D').charAt(0)}</span>
               <div><strong>{assignedDriver.fullName || assignedDriver.name}</strong><small>{assignedDriver.equipment?.label || assignedDriver.trailerType || "53' Dry Van"}</small></div>
               {load.status === 'assigned' && load.tripStatus === 'assigned' ? (
-                <button type="button" onClick={onPlanRoute}>PLAN TRIP</button>
+                Number.isFinite(load.pickupDriverBriefedGameMinute)
+                  ? <button type="button" onClick={onPlanRoute}>PLAN TRIP</button>
+                  : <button type="button" onClick={() => onSendLoadDetails?.(load.id, assignedDriver.id)}>SEND LOAD DETAILS</button>
               ) : <span className="docos-status-text">{load.status === 'queued' ? 'PLANNED' : 'ASSIGNED'}</span>}
             </div>
           </section>
