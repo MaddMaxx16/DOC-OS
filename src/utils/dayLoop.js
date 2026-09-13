@@ -1,4 +1,5 @@
-export const STANDARD_OPERATION_START_MINUTES = 8 * 60
+import { getAgreementRules, getCarrierDayRelationshipChange, getCarrierRelationshipLabel } from './carrierAgreement.js'
+export const STANDARD_OPERATION_START_MINUTES = 6 * 60
 export const TARGET_OPERATION_CLOSE_MINUTES = 18 * 60
 export const XP_PER_LEVEL = 500
 
@@ -94,6 +95,7 @@ export function createDayReport({
   gameTime,
   loads = [],
   receivables = [],
+  carriers = [],
 }) {
   const closeAbsoluteMinute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
   const standardCloseAbsoluteMinute = currentStartGameDayIndex * 1440 + TARGET_OPERATION_CLOSE_MINUTES
@@ -142,6 +144,32 @@ export function createDayReport({
     return sum - 3
   }, 0)
 
+  const carrierBreakdown = carriers.filter((carrier) => carrier.status === 'active').map((carrier) => {
+    const carrierLoads = completedLoads.filter((load) => load.carrierId === carrier.id)
+    const carrierLoadIds = new Set(carrierLoads.map((load) => load.id))
+    const carrierReceivables = dayReceivables.filter((item) => carrierLoadIds.has(item.loadId))
+    const rules = getAgreementRules(carrier)
+    const relationshipChange = getCarrierDayRelationshipChange({ carrier, completedLoads: carrierLoads })
+    const onTimePickupCount = carrierLoads.filter((load) => appointmentLateMinutes(load, 'pickup') === 0).length
+    const onTimeDeliveryCount = carrierLoads.filter((load) => appointmentLateMinutes(load, 'delivery') === 0).length
+    return {
+      carrierId: carrier.id,
+      carrierName: carrier.name,
+      loadsCompleted: carrierLoads.length,
+      carrierGross: carrierLoads.reduce((sum, load) => sum + Number(load.rate || 0), 0),
+      dispatchFeePercent: rules.percentage,
+      dispatchRevenue: carrierReceivables.reduce((sum, item) => sum + Number(item.dispatchRevenue || 0), 0),
+      bookingAuthority: rules.loadApprovalRequired ? 'APPROVAL REQUIRED' : 'DISPATCHER AUTHORIZED',
+      preferredRegion: rules.preferredRegion,
+      onTimePickups: onTimePickupCount,
+      onTimeDeliveries: onTimeDeliveryCount,
+      relationshipBefore: Number(carrier.relationshipScore ?? 50),
+      relationshipChange,
+      relationshipAfter: Math.max(0, Math.min(100, Number(carrier.relationshipScore ?? 50) + relationshipChange)),
+      relationshipLabel: getCarrierRelationshipLabel(Math.max(0, Math.min(100, Number(carrier.relationshipScore ?? 50) + relationshipChange))),
+    }
+  })
+
   return {
     operationDay,
     closeGameDayIndex: gameTime.gameDayIndex,
@@ -157,6 +185,7 @@ export function createDayReport({
     onTimeDeliveries,
     exceptionLoads,
     reputationChange,
+    carrierBreakdown,
     xpGain,
     standardStartMinutes: STANDARD_OPERATION_START_MINUTES,
     lateCloseAdjustmentMinutes,

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { getFreightBusinessName, getFreightRouteName } from '../utils/freightIdentity.js'
 
 const CHALLENGE_SECONDS = 45
 const SLOT_COUNT = 8
@@ -250,7 +251,7 @@ export default function UnloadSequencingChallenge({ load, onComplete, onCancel, 
           </> : <><span>FACILITY OPS · DELIVERY</span><strong>UNLOAD SEQUENCE</strong></>}
         </div>}
         <header className="unload-sequence-header">
-          <div><span>UNLOAD SEQUENCING</span><strong>{load?.loadNumber || load?.id}</strong></div>
+          <div><span>FACILITY OPS · DELIVERY</span><strong>{getFreightBusinessName(load, 'delivery')}</strong><small>{getFreightRouteName(load)}</small></div>
           <div className={`unload-sequence-timer ${seconds <= 8 ? 'urgent' : ''}`}><small>DOCK TIMER</small><b>{seconds}s</b></div>
         </header>
 

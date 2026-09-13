@@ -1,3 +1,5 @@
+## Current build: AW1.6.7 — Stop Marker Integrity + Map Layer Hierarchy
+
 # DOC OS — Build Bible
 Baseline: 2026-09-05
 Canonical build: MASTER-2026-09-05-A
@@ -624,3 +626,48 @@ Invoice submission:
 - POD document inspection and DOC OS verification actions belong in one expanded review workflow.
 - Expanded operational documents must visually belong to DOC OS: dark charcoal/slate surfaces, DOC OS typography/hierarchy, subtle blue-gray labels, restrained purple action emphasis, and status colors only when semantically meaningful.
 - Formal document structure should remain recognizable, but generic white-paper styling is not the default DOC OS presentation language.
+
+## AV2.13 Communications rule
+Driver texts are human coordination; DOC OS alerts are operational attention. System errors do not belong in driver threads. Load IDs are secondary references, not primary conversation labels.
+
+## AV2.18 planning rule
+Planning must answer what adding freight does to the driver's whole day before carrier approval. Player-facing plan quality uses EFFICIENT / WORKABLE / TIGHT / CONFLICT rather than vague GOOD. FreightLink browsing should return to the market after ADD TO PLAN so the player can build several opportunities in one planning session. Load IDs remain reference data, not normal driver vocabulary.
+
+## AV2.19 locked visual/operations rules
+- Schedule is editable during planning. Tentative freight can be removed freely; pending approval can be withdrawn; booked freight can be canceled only before physical movement begins.
+- A driver owns a persistent map color. All freight and route visuals for that driver use shades of that color family; color supplements, never replaces, P/D labels and business names.
+- Route labels follow the bearing of the route segment and are flipped when needed so text never renders upside down.
+- Driver conversation uses customer/facility identity, never normal freight IDs. IDs remain secondary operational references and document/accounting identifiers.
+- Schedule changes alter operation first; UPDATE DRIVER communication reports only the delta from the last communicated schedule.
+
+
+## AW1.6.2
+Load Details CTA is anchored to the bottom action bar. Carrier approval returns to Today’s Plan. Approved schedule freight can be booked directly from the scheduler before the driver schedule is sent.
+
+
+## Current patch
+AW1.6.9 — Route Info Anchors. See `PATCH_NOTES.md`.
+
+AW1.6.10 — Compact Route Peek. See `PATCH_NOTES.md`.
+
+
+## AW1.6.10.3 — Route Label Shrink-Wrap Hotfix
+Route peek geometry only: shrink-wrap the compact route label without changing typography or interaction behavior.
+
+## AW1.6.12 Schedule Authority
+Planning quality must be derived from the same stop-first mental model used by operations. A multi-load day is evaluated as one chronological pickup/delivery itinerary, not as independent load scores. Each transition must account for travel from the prior stop, appointment-window feasibility, and facility service time. A route can only be called WORKABLE when the entire stop sequence remains feasible.
+
+## AW1.6.14 Scheduler Utility Contract
+Today’s Plan is not just a calendar. It must explain why a driver plan is efficient, workable, tight, or conflicting using the same stop-by-stop itinerary simulation that operational movement follows. A conflict must be visible at the offending stop and must block approval/booking until resolved. Load Details keeps its primary planning CTA visible at the bottom of the browser viewport.
+
+
+## AW1.7.1 stabilization note
+AW1.7.1 establishes the driver itinerary as the compatibility authority for active-load consumers, makes FreightLink inspection read-only, repairs Operational Alert action delivery, and aligns the operations-map future route display with Today’s Plan stop order.
+
+## AW1.7.3 — Map + Timeline Integrity Restore
+- Operations map must render one visible remaining stop marker per `loadId + stopRole`.
+- Shared facility coordinates must not collapse multiple scheduled stop events.
+- FreightLink browse mode retains its pickup/delivery map markers.
+- WKWebView resume/focus must rebuild DOM-backed operational markers without changing camera position.
+- Future route visualization uses each load's pickup-to-delivery road geometry; itinerary order controls visual priority. Do not draw straight inter-stop connectors as freight routes.
+- Scheduler stops within 75 minutes of adjacent stops use compact rendering so neighboring appointments remain independently readable.

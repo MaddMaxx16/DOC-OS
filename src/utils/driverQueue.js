@@ -1,4 +1,5 @@
 import mapLocations from '../data/mapLocations.js'
+import { buildDriverItinerary, getNextActionableDriverStop } from './driverItinerary.js'
 
 const TERMINAL_STATUSES = new Set(['completed', 'delivered'])
 const PICKUP_SERVICE_MINUTES = 10
@@ -12,6 +13,9 @@ export function getDriverAssignedLoads(loads = [], driverId) {
       const aQueue = Number.isFinite(a.queuePosition) ? a.queuePosition : 0
       const bQueue = Number.isFinite(b.queuePosition) ? b.queuePosition : 0
       if (aQueue !== bQueue) return aQueue - bQueue
+      const aSchedule = Number.isFinite(a.scheduleOrderIndex) ? a.scheduleOrderIndex : Number.POSITIVE_INFINITY
+      const bSchedule = Number.isFinite(b.scheduleOrderIndex) ? b.scheduleOrderIndex : Number.POSITIVE_INFINITY
+      if (aSchedule !== bSchedule) return aSchedule - bSchedule
       const aPickup = (a.pickupDayIndex || 0) * 1440 + (a.pickupWindowStartMinutes || 0)
       const bPickup = (b.pickupDayIndex || 0) * 1440 + (b.pickupWindowStartMinutes || 0)
       return aPickup - bPickup
@@ -19,7 +23,19 @@ export function getDriverAssignedLoads(loads = [], driverId) {
 }
 
 export function getDriverActiveLoad(loads = [], driverId) {
-  return getDriverAssignedLoads(loads, driverId).find((load) => load.tripStatus !== 'queued') || null
+  // AW1.7 compatibility bridge: there is only one operational authority now.
+  // Older callers may still ask for an "active load", but that load must be
+  // the owner of the next actionable itinerary stop whenever one exists.
+  const nextStop = getNextActionableDriverStop(loads, driverId)
+  if (nextStop) {
+    const authoritative = loads.find((load) => load.id === nextStop.loadId && load.assignedDriverId === driverId)
+    if (authoritative) return authoritative
+  }
+  return getDriverAssignedLoads(loads, driverId).find((load) => !['queued', 'onboard-hold'].includes(load.tripStatus)) || null
+}
+
+export function getDriverOnboardLoads(loads = [], driverId) {
+  return getDriverAssignedLoads(loads, driverId).filter((load) => load.tripStatus === 'onboard-hold')
 }
 
 export function getDriverQueue(loads = [], driverId) {
@@ -63,7 +79,8 @@ function projectCommitment(cursor, load, isFirst) {
   }
 
   if (isFirst && status === 'loaded') {
-    return Math.max(cursor + loaded, deliveryStart) + deliveryService
+    const departure = Number.isFinite(load.plannedDeliveryDepartureGameMinute) ? Math.max(cursor, load.plannedDeliveryDepartureGameMinute) : cursor
+    return Math.max(departure + loaded, deliveryStart) + deliveryService
   }
 
   if (isFirst && status === 'en-route-delivery' && Number.isFinite(load.deliveryDepartureGameMinute)) {
@@ -81,38 +98,73 @@ function projectCommitment(cursor, load, isFirst) {
 export function getProjectedDriverOrigin({ driver, loads = [], runtimePositions = {}, gameTime }) {
   if (!driver?.id) return { location: null, availableAbsoluteMinute: 0, queueLength: 0, afterLoadId: null }
   const assigned = getDriverAssignedLoads(loads, driver.id)
+  const itinerary = buildDriverItinerary(loads, driver.id).filter((stop) => stop.state !== 'completed')
   const currentAbsoluteMinute = (gameTime?.gameDayIndex || 0) * 1440 + (gameTime?.totalMinutesOfDay || 0)
   const runtime = runtimePositions[driver.id]
   const home = mapLocations.find((location) => location.id === (driver.lastKnownLocationId || driver.homeBaseLocationId))
 
-  if (!assigned.length) return { location: runtime || home || null, availableAbsoluteMinute: currentAbsoluteMinute, queueLength: 0, afterLoadId: null }
+  if (!assigned.length || !itinerary.length) {
+    return { location: runtime || home || null, availableAbsoluteMinute: currentAbsoluteMinute, queueLength: assigned.length, afterLoadId: assigned.at(-1)?.id || null }
+  }
 
+  // AV2.11.2: availability follows the same stop-first itinerary the Schedule
+  // and movement engine use. The legacy projection completed each load before
+  // considering the next one, which produced nonsense availability during
+  // pickup A -> pickup B -> delivery B -> delivery A operations.
   let cursor = currentAbsoluteMinute
   let location = runtime || home || null
-  assigned.forEach((load, index) => {
-    cursor = Math.max(cursor, projectCommitment(cursor, load, index === 0))
-    location = mapLocations.find((item) => item.id === load.deliveryLocationId) || location
+
+  itinerary.forEach((stop, index) => {
+    const load = stop.load
+    const status = load?.tripStatus || load?.status
+    const windowStart = Number(stop.dayIndex || 0) * 1440 + Number(stop.windowStartMinutes || 0)
+    const service = stop.type === 'pickup' ? pickupServiceMinutes(load) : deliveryServiceMinutes(load)
+    const plannedTravel = stop.type === 'pickup'
+      ? duration(load, 'plannedDeadheadDriveTimeMinutes', Number(load.assignmentProjection?.deadheadMinutes || 0))
+      : duration(load, 'plannedLoadedDriveTimeMinutes', Number(load.assignmentProjection?.loadedMinutes || 0))
+
+    let travel = plannedTravel
+    if (index === 0) {
+      const activelyAtStop = stop.type === 'pickup'
+        ? ['at-pickup', 'checking-in-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'pickup-issue'].includes(status)
+        : ['at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery'].includes(status)
+      if (activelyAtStop) travel = 0
+
+      const departure = stop.type === 'pickup' ? Number(load?.departureGameMinute) : Number(load?.deliveryDepartureGameMinute)
+      const activelyDriving = stop.type === 'pickup' ? status === 'en-route-pickup' : status === 'en-route-delivery'
+      if (activelyDriving && Number.isFinite(departure)) {
+        travel = Math.max(0, departure + plannedTravel - cursor)
+      }
+    }
+
+    const arrival = Math.max(cursor + Math.max(0, travel), windowStart)
+    cursor = arrival + service
+    location = mapLocations.find((item) => item.id === stop.locationId) || location
   })
 
-  const lastLoad = assigned[assigned.length - 1]
-  return { location, availableAbsoluteMinute: cursor, queueLength: assigned.length, afterLoadId: lastLoad?.id || null }
+  const lastStop = itinerary[itinerary.length - 1]
+  return { location, availableAbsoluteMinute: cursor, queueLength: assigned.length, afterLoadId: lastStop?.loadId || null }
 }
 
-export function sanitizePromotedLoad(load) {
+export function sanitizePromotedLoad(load, currentGameMinute = null) {
+  const wasBriefed = Number.isFinite(load?.pickupDriverBriefedGameMinute)
+  const wasAcknowledged = Number.isFinite(load?.driverAcknowledgedGameMinute)
+  const canAutoDepart = wasBriefed && wasAcknowledged && Number.isFinite(currentGameMinute)
   return {
     ...load,
-    tripStatus: 'assigned',
-    status: 'assigned',
+    tripStatus: canAutoDepart ? 'en-route-pickup' : 'assigned',
+    status: canAutoDepart ? 'en-route-pickup' : 'assigned',
     queuePosition: 0,
-    planningStatus: null,
-    deliveryPlanningStatus: null,
-    departureGameMinute: null,
+    planningStatus: load?.plannedDeadheadRouteGeometry ? 'route-ready' : load?.planningStatus ?? null,
+    deliveryPlanningStatus: load?.plannedLoadedRouteGeometry ? 'route-ready' : load?.deliveryPlanningStatus ?? null,
+    departureGameMinute: canAutoDepart ? currentGameMinute : null,
     pickupArrivalGameMinute: null,
     pickupCheckInStartGameMinute: null,
     pickupCheckInGameMinute: null,
     pickupDockReadyGameMinute: null,
-    pickupDriverBriefedGameMinute: null,
-    pickupDriverBriefedLoadId: null,
+    pickupDriverBriefedGameMinute: wasBriefed ? load.pickupDriverBriefedGameMinute : null,
+    pickupDriverBriefedLoadId: wasBriefed ? (load.pickupDriverBriefedLoadId || load.id) : null,
+    driverAcknowledgedGameMinute: wasAcknowledged ? load.driverAcknowledgedGameMinute : null,
     pickupRouteSentGameMinute: null,
     pickupDriverConfirmedRouteGameMinute: null,
     pickupDriverMessageRead: null,
@@ -122,6 +174,8 @@ export function sanitizePromotedLoad(load) {
     loadingResult: null,
     loadedGameMinute: null,
     loadedDriverMessageRead: null,
+    plannedDeliveryDepartureGameMinute: null,
+    waitingReason: null,
     deliveryDepartureGameMinute: null,
     deliveryArrivalGameMinute: null,
     deliveryCheckInStartGameMinute: null,
@@ -134,21 +188,14 @@ export function sanitizePromotedLoad(load) {
     deliveryCheckedInDriverMessageRead: null,
     unloadChallengeState: null,
     unloadResult: null,
-    plannedDeadheadRouteGeometry: null,
-    plannedDeadheadMiles: null,
-    plannedDeadheadDriveTimeMinutes: null,
-    selectedDeadheadRouteId: null,
-    plannedLoadedRouteGeometry: null,
-    plannedLoadedMiles: null,
-    plannedLoadedDriveTimeMinutes: null,
-    selectedLoadedRouteId: null,
     shipment: null,
     pod: null,
   }
 }
 
-export function promoteNextQueuedLoad(loads = [], driverId) {
+export function promoteNextQueuedLoad(loads = [], driverId, currentGameMinute = null) {
   const next = getDriverQueue(loads, driverId)[0]
   if (!next) return { loads, nextLoadId: null }
-  return { nextLoadId: next.id, loads: loads.map((load) => load.id === next.id ? sanitizePromotedLoad(load) : load) }
+  return { nextLoadId: next.id, loads: loads.map((load) => load.id === next.id ? sanitizePromotedLoad(load, currentGameMinute) : load) }
 }
+

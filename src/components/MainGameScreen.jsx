@@ -15,8 +15,11 @@ import { logDocOsEvent } from '../utils/debugLogger.js'
 import { getLedgerSummary, getReceivables } from '../utils/ledger.js'
 import { PICKUP_LOADING_MINUTES } from '../data/pickupConfig.js'
 import { getEndDayStatus } from '../utils/dayLoop.js'
-import { getDriverActiveLoad, getDriverQueue, getNextQueuePosition, getProjectedDriverOrigin } from '../utils/driverQueue.js'
+import { getDriverActiveLoad, getDriverOnboardLoads, getDriverQueue, getNextQueuePosition, getProjectedDriverOrigin, promoteNextQueuedLoad } from '../utils/driverQueue.js'
 import { getDriverPanelModel } from '../utils/driverOperationalState.js'
+import { buildDriverItinerary, getNextActionableDriverStop } from '../utils/driverItinerary.js'
+import { getFreightBusinessName, getFreightCommodity, getFreightRouteName } from '../utils/freightIdentity.js'
+import { getFreightHaulClass, getPlanningImpact } from '../utils/planningIntelligence.js'
 
 
 function getEvaluationBufferMinutes(evaluation) {
@@ -73,6 +76,12 @@ function formatPlanningBuffer(minutes) {
   return formatDurationLabel(minutes)
 }
 
+function getWindowEndAbsolute(dayIndex, startMinutes, endMinutes) {
+  if (![dayIndex, startMinutes, endMinutes].every(Number.isFinite)) return null
+  const rollover = endMinutes < startMinutes ? 1440 : 0
+  return dayIndex * 1440 + endMinutes + rollover
+}
+
 
 function formatStatusLabel(status = '') {
   const labels = {
@@ -83,7 +92,8 @@ function formatStatusLabel(status = '') {
     'waiting-at-pickup': 'WAITING FOR DOCK',
     'checked-in-pickup': 'DOCK READY',
     'loading-at-pickup': 'LOADING',
-    loaded: 'LOADED · PLAN DELIVERY',
+    loaded: 'LOADED · ROUTE READY',
+    'onboard-hold': 'ONBOARD · NEXT STOP PENDING',
     'en-route-delivery': 'EN ROUTE TO DELIVERY',
     'at-delivery': 'ARRIVED AT DELIVERY',
     'checking-in-delivery': 'CHECKING IN',
@@ -106,50 +116,67 @@ function getScheduleRisk({ windowEndAbsolute, projectedArrivalAbsolute, now }) {
 function buildDaySchedule(loads, drivers, gameTime) {
   const dayIndex = gameTime.gameDayIndex
   const now = dayIndex * 1440 + gameTime.totalMinutesOfDay
-  const driverNameById = Object.fromEntries(drivers.map((driver) => [driver.id, driver.fullName || driver.name || 'Driver']))
   const entries = []
 
-  loads.forEach((load) => {
-    const driverId = load.assignedDriverId || load.completedDriverId
-    if (!driverId) return
-    const loadRef = load.loadNumber || load.id
-    const pickupEndAbsolute = (load.pickupDayIndex ?? dayIndex) * 1440 + (load.pickupWindowEndMinutes ?? 0)
-    const deliveryEndAbsolute = (load.deliveryDayIndex ?? dayIndex) * 1440 + (load.deliveryWindowEndMinutes ?? 0)
-    const pickupProjected = Number.isFinite(load.pickupArrivalGameMinute)
-      ? load.pickupArrivalGameMinute
-      : Number.isFinite(load.departureGameMinute) && Number.isFinite(load.plannedDeadheadDriveTimeMinutes)
-        ? load.departureGameMinute + load.plannedDeadheadDriveTimeMinutes
-        : Number.isFinite(load.assignmentProjection?.arrivalMinutes)
-          ? (load.assignmentProjection.arrivalDay ?? load.pickupDayIndex ?? dayIndex) * 1440 + load.assignmentProjection.arrivalMinutes
-          : null
-    const deliveryProjected = Number.isFinite(load.deliveryArrivalGameMinute)
-      ? load.deliveryArrivalGameMinute
-      : Number.isFinite(load.deliveryDepartureGameMinute) && Number.isFinite(load.plannedLoadedDriveTimeMinutes)
-        ? load.deliveryDepartureGameMinute + load.plannedLoadedDriveTimeMinutes
-        : null
+  drivers.forEach((driver) => {
+    buildDriverItinerary(loads, driver.id).forEach((stop) => {
+      if (stop.dayIndex !== dayIndex) return
+      const load = stop.load
+      const location = mapLocations.find((item) => item.id === stop.locationId)?.name || (stop.type === 'pickup' ? 'Pickup' : 'Delivery')
+      const counterpart = mapLocations.find((item) => item.id === (stop.type === 'pickup' ? load.deliveryLocationId : load.pickupLocationId))?.name || ''
+      const windowEndAbsolute = getWindowEndAbsolute(stop.dayIndex, stop.windowStartMinutes, stop.windowEndMinutes)
+      const projectedArrival = stop.type === 'pickup'
+        ? (Number.isFinite(load.pickupArrivalGameMinute) ? load.pickupArrivalGameMinute : Number.isFinite(load.assignmentProjection?.arrivalMinutes) ? (load.assignmentProjection.arrivalDay ?? stop.dayIndex) * 1440 + load.assignmentProjection.arrivalMinutes : null)
+        : (Number.isFinite(load.deliveryArrivalGameMinute) ? load.deliveryArrivalGameMinute : Number.isFinite(load.deliveryDepartureGameMinute) && Number.isFinite(load.plannedLoadedDriveTimeMinutes) ? load.deliveryDepartureGameMinute + load.plannedLoadedDriveTimeMinutes : null)
+      const isCompleted = stop.state === 'completed'
+      const risk = isCompleted ? { label: 'COMPLETED', tone: 'completed' } : getScheduleRisk({ windowEndAbsolute, projectedArrivalAbsolute: projectedArrival, now })
+      let status = String(stop.state || 'planned').replaceAll('-', ' ').toUpperCase()
+      if (stop.type === 'pickup' && load.tripStatus === 'queued' && !Number.isFinite(load.pickupDriverBriefedGameMinute)) status = 'BOOKED'
+      else if (stop.type === 'pickup' && load.tripStatus === 'queued') status = 'BOOKED'
+      else if (stop.type === 'delivery' && load.tripStatus === 'onboard-hold') status = 'ONBOARD · DELIVERY PENDING'
+      else if (stop.type === 'delivery' && load.tripStatus === 'loaded' && load.waitingReason === 'appointment-protected' && Number.isFinite(load.plannedDeliveryDepartureGameMinute)) status = `LOADED · DEPART ${formatTime(load.plannedDeliveryDepartureGameMinute % 1440)}`
+      else if (isCompleted) status = stop.type === 'delivery' && load.pod?.approved ? 'COMPLETE · POD APPROVED' : 'COMPLETE'
 
-    if ((load.pickupDayIndex ?? dayIndex) === dayIndex && !['loaded','en-route-delivery','at-delivery','checking-in-delivery','waiting-at-delivery','checked-in-delivery','unloading-delivery','awaiting-pod','delivered','completed'].includes(load.tripStatus)) {
-      const risk = getScheduleRisk({ windowEndAbsolute: pickupEndAbsolute, projectedArrivalAbsolute: pickupProjected, now })
       entries.push({
-        id: `${load.id}-pickup`, loadId: load.id, driverId, driverName: driverNameById[driverId], loadRef,
-        kind: 'PICKUP', start: load.pickupWindowStartMinutes, end: load.pickupWindowEndMinutes,
-        sortMinute: (load.pickupDayIndex ?? dayIndex) * 1440 + load.pickupWindowStartMinutes,
-        status: load.tripStatus === 'queued' ? 'QUEUED' : formatStatusLabel(load.tripStatus), risk,
+        id: stop.id, entryType: 'stop', stopType: stop.type, loadId: load.id, driverId: driver.id,
+        driverName: driver.fullName || driver.name || 'Driver', loadRef: stop.loadRef, freightName: getFreightCommodity(load), locationName: location,
+        counterpartName: counterpart, pickupName: stop.type === 'pickup' ? location : counterpart, deliveryName: stop.type === 'delivery' ? location : counterpart,
+        start: stop.windowStartMinutes, end: stop.windowEndMinutes, pickupStart: stop.windowStartMinutes, pickupEnd: stop.windowEndMinutes,
+        deliveryStart: stop.windowStartMinutes, deliveryEnd: stop.windowEndMinutes, sortMinute: stop.sortMinute, itineraryOrder: stop.itineraryOrder, status, risk, isCompleted,
+        rate: load.rate, planningImpact: getPlanningImpact(load, loads, driver.id), haulClass: getFreightHaulClass(load),
+        travelMinutes: stop.type === 'pickup'
+          ? Number(load.plannedDeadheadDriveTimeMinutes ?? load.assignmentProjection?.deadheadMinutes ?? load.tripPlan?.legs?.deadhead?.minutes ?? 0)
+          : Number(load.plannedLoadedDriveTimeMinutes ?? load.assignmentProjection?.loadedMinutes ?? load.tripPlan?.legs?.loaded?.minutes ?? 0),
+        podPending: stop.type === 'delivery' && Boolean(load.pod && !load.pod.approved),
       })
-    }
-
-    if ((load.deliveryDayIndex ?? dayIndex) === dayIndex && !['delivered','completed'].includes(load.tripStatus)) {
-      const risk = getScheduleRisk({ windowEndAbsolute: deliveryEndAbsolute, projectedArrivalAbsolute: deliveryProjected, now })
-      entries.push({
-        id: `${load.id}-delivery`, loadId: load.id, driverId, driverName: driverNameById[driverId], loadRef,
-        kind: 'DELIVERY', start: load.deliveryWindowStartMinutes, end: load.deliveryWindowEndMinutes,
-        sortMinute: (load.deliveryDayIndex ?? dayIndex) * 1440 + load.deliveryWindowStartMinutes,
-        status: ['queued','assigned','en-route-pickup','at-pickup','checking-in-pickup','waiting-at-pickup','checked-in-pickup','loading-at-pickup'].includes(load.tripStatus) ? 'UPCOMING' : formatStatusLabel(load.tripStatus), risk,
-      })
-    }
+    })
   })
 
-  return entries.sort((a, b) => a.sortMinute - b.sortMinute)
+  // Carrier approval holds remain visible even before a load is actually booked into the itinerary.
+  loads.forEach((load) => {
+    if (!(load.status === 'available' && load.candidateDriverId && (load.scheduleApprovalQueued || ['PENDING','APPROVED','NEEDS_INFO'].includes(load.carrierApprovalStatus)))) return
+    const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)?.name || 'Pickup'
+    const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)?.name || 'Delivery'
+    entries.push({
+      id: `${load.id}-hold`, entryType: 'hold', loadId: load.id, driverId: load.candidateDriverId,
+      driverName: drivers.find((driver) => driver.id === load.candidateDriverId)?.fullName || 'Driver', loadRef: getFreightRouteName(load), freightName: getFreightCommodity(load),
+      pickupName: pickup, deliveryName: delivery, locationName: pickup, counterpartName: delivery,
+      pickupStart: load.pickupWindowStartMinutes, pickupEnd: load.pickupWindowEndMinutes, deliveryStart: load.deliveryWindowStartMinutes, deliveryEnd: load.deliveryWindowEndMinutes,
+      start: load.pickupWindowStartMinutes, end: load.deliveryWindowEndMinutes,
+      sortMinute: (load.pickupDayIndex ?? dayIndex) * 1440 + (load.pickupWindowStartMinutes ?? 0),
+      status: load.carrierApprovalStatus === 'APPROVED' ? 'READY TO BOOK' : load.carrierApprovalStatus === 'PENDING' ? 'WAITING ON CARRIER' : load.carrierApprovalStatus === 'NEEDS_INFO' ? 'PLANNING · NEEDS INFO' : 'PLANNING',
+      planningImpact: getPlanningImpact(load, loads, load.candidateDriverId), haulClass: getFreightHaulClass(load),
+      rate: load.rate,
+      risk: (() => { const impact = getPlanningImpact(load, loads, load.candidateDriverId); return impact ? { label: impact.label, tone: impact.tone } : { label: 'WORKABLE', tone: 'neutral' } })(), isCompleted: false,
+    })
+  })
+
+  return entries.sort((a, b) => {
+    if (a.driverId && a.driverId === b.driverId && Number.isFinite(a.itineraryOrder) && Number.isFinite(b.itineraryOrder)) {
+      return a.itineraryOrder - b.itineraryOrder
+    }
+    return a.sortMinute - b.sortMinute
+  })
 }
 
 function getActiveDriverMeta(load, gameTime, runtimeProgress) {
@@ -180,7 +207,7 @@ function getAppointmentResult(load, leg) {
   const end = isPickup ? load.pickupWindowEndMinutes : load.deliveryWindowEndMinutes
   if (![arrival, dayIndex, start, end].every(Number.isFinite)) return { status: 'unknown', label: '—', lateMinutes: 0, onTime: false }
   const windowStart = dayIndex * 1440 + start
-  const windowEnd = dayIndex * 1440 + end
+  const windowEnd = getWindowEndAbsolute(dayIndex, start, end)
   if (arrival > windowEnd) {
     const lateMinutes = Math.max(1, Math.round(arrival - windowEnd))
     return { status: 'late', label: `${lateMinutes} MIN LATE`, lateMinutes, onTime: false }
@@ -212,43 +239,47 @@ function getAppointmentAlerts(loads, now) {
   loads.forEach((load) => {
     const playerOwned = ['accepted', 'assigned', 'queued'].includes(load?.status) || Boolean(load?.assignedDriverId)
     if (!load || !playerOwned || ['available', 'expired', 'completed', 'delivered'].includes(load.tripStatus)) return
-    const loadRef = load.loadNumber || load.id
+    const pickupName = mapLocations.find((location) => location.id === load.pickupLocationId)?.name || 'Pickup'
+    const deliveryName = mapLocations.find((location) => location.id === load.deliveryLocationId)?.name || 'Delivery'
     const pickupArrival = load.pickupArrivalGameMinute
     const pickupStart = Number.isFinite(load.pickupDayIndex) && Number.isFinite(load.pickupWindowStartMinutes) ? load.pickupDayIndex * 1440 + load.pickupWindowStartMinutes : null
-    const pickupEnd = Number.isFinite(load.pickupDayIndex) && Number.isFinite(load.pickupWindowEndMinutes) ? load.pickupDayIndex * 1440 + load.pickupWindowEndMinutes : null
+    const pickupEnd = Number.isFinite(load.pickupDayIndex) && Number.isFinite(load.pickupWindowEndMinutes) ? getWindowEndAbsolute(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes) : null
     const pickupStillRelevant = !Number.isFinite(pickupArrival) && !PICKUP_COMPLETE_STATUSES.has(load.tripStatus)
 
     if (pickupStillRelevant && Number.isFinite(pickupStart) && Number.isFinite(pickupEnd)) {
       if (now > pickupEnd) {
         const late = now - pickupEnd
-        alerts.push({ id: `appt-pickup-${load.id}`, tone: 'danger', action: 'load', loadId: load.id, title: `${loadRef} · PICKUP LATE`, detail: `Pickup window has closed. ${formatMinutes(late)} late.`, value: `${formatMinutes(late)} LATE` })
+        alerts.push({ id: `appt-pickup-${load.id}`, alertClass: 'urgent', tone: 'danger', action: 'load', loadId: load.id, title: `${pickupName} · PICKUP LATE`, detail: `Pickup window has closed. ${formatMinutes(late)} late.`, value: `${formatMinutes(late)} LATE` })
       } else if (now >= pickupStart) {
-        alerts.push({ id: `appt-pickup-${load.id}`, tone: 'attention', action: 'load', loadId: load.id, title: `${loadRef} · PICKUP WINDOW OPEN`, detail: `Pickup window is open now. ${formatMinutes(pickupEnd - now)} remain.`, value: `${formatMinutes(pickupEnd - now)} LEFT` })
-      } else if (pickupStart - now <= 30) {
-        alerts.push({ id: `appt-pickup-${load.id}`, tone: 'attention', action: 'load', loadId: load.id, title: `${loadRef} · PICKUP APPROACHING`, detail: `Pickup window opens in ${formatMinutes(pickupStart - now)}.`, value: formatMinutes(pickupStart - now) })
+        alerts.push({ id: `appt-pickup-${load.id}`, alertClass: 'action', tone: 'attention', action: 'load', loadId: load.id, title: `${pickupName} · PICKUP WINDOW OPEN`, detail: `${formatMinutes(pickupEnd - now)} remain in the pickup window.`, value: `${formatMinutes(pickupEnd - now)} LEFT` })
       }
       return
     }
 
     const deliveryArrival = load.deliveryArrivalGameMinute
-    const deliveryStart = Number.isFinite(load.deliveryDayIndex) && Number.isFinite(load.deliveryWindowStartMinutes) ? load.deliveryDayIndex * 1440 + load.deliveryWindowStartMinutes : null
-    const deliveryEnd = Number.isFinite(load.deliveryDayIndex) && Number.isFinite(load.deliveryWindowEndMinutes) ? load.deliveryDayIndex * 1440 + load.deliveryWindowEndMinutes : null
+    let deliveryStart = Number.isFinite(load.deliveryDayIndex) && Number.isFinite(load.deliveryWindowStartMinutes) ? load.deliveryDayIndex * 1440 + load.deliveryWindowStartMinutes : null
+    let deliveryEnd = Number.isFinite(load.deliveryDayIndex) && Number.isFinite(load.deliveryWindowEndMinutes) ? getWindowEndAbsolute(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes) : null
+    // AV2.10.1: protect overnight appointments from stale day-index math. If an
+    // overnight window is rendered more than half a day behind the current clock,
+    // it belongs to the next service day rather than being 20+ hours late.
+    if (Number.isFinite(deliveryStart) && Number.isFinite(deliveryEnd) && deliveryEnd < now - 720) {
+      deliveryStart += 1440
+      deliveryEnd += 1440
+    }
     const deliveryRelevant = PICKUP_COMPLETE_STATUSES.has(load.tripStatus) && !Number.isFinite(deliveryArrival) && !DELIVERY_ARRIVED_STATUSES.has(load.tripStatus)
     if (!deliveryRelevant || !Number.isFinite(deliveryStart) || !Number.isFinite(deliveryEnd)) return
 
     if (now > deliveryEnd) {
       const late = now - deliveryEnd
-      alerts.push({ id: `appt-delivery-${load.id}`, tone: 'danger', action: 'load', loadId: load.id, title: `${loadRef} · DELIVERY LATE`, detail: `Delivery window has closed. ${formatMinutes(late)} late.`, value: `${formatMinutes(late)} LATE` })
+      alerts.push({ id: `appt-delivery-${load.id}`, alertClass: 'urgent', tone: 'danger', action: 'load', loadId: load.id, title: `${deliveryName} · DELIVERY LATE`, detail: `Delivery window has closed. ${formatMinutes(late)} late.`, value: `${formatMinutes(late)} LATE` })
     } else if (now >= deliveryStart) {
-      alerts.push({ id: `appt-delivery-${load.id}`, tone: 'attention', action: 'load', loadId: load.id, title: `${loadRef} · DELIVERY WINDOW OPEN`, detail: `Delivery window is open now. ${formatMinutes(deliveryEnd - now)} remain.`, value: `${formatMinutes(deliveryEnd - now)} LEFT` })
-    } else if (deliveryStart - now <= 30) {
-      alerts.push({ id: `appt-delivery-${load.id}`, tone: 'attention', action: 'load', loadId: load.id, title: `${loadRef} · DELIVERY APPROACHING`, detail: `Delivery window opens in ${formatMinutes(deliveryStart - now)}.`, value: formatMinutes(deliveryStart - now) })
+      alerts.push({ id: `appt-delivery-${load.id}`, alertClass: 'action', tone: 'attention', action: 'load', loadId: load.id, title: `${deliveryName} · DELIVERY WINDOW OPEN`, detail: `${formatMinutes(deliveryEnd - now)} remain in the delivery window.`, value: `${formatMinutes(deliveryEnd - now)} LEFT` })
     }
   })
   return alerts
 }
 
-function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, onActivateCarrier, carrierApplicationsById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp }) {
+function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp }) {
   const [devOpen, setDevOpen] = useState(false)
   const [isPhoneOpen, setIsPhoneOpen] = useState(false)
   const [phoneInitialScreen, setPhoneInitialScreen] = useState('home')
@@ -258,6 +289,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [planningMode, setPlanningMode] = useState(null)
   const [deliveryPlanning, setDeliveryPlanning] = useState(null)
   const modalPauseWasAlreadyPausedRef = useRef(false)
+  const loadingPauseWasAlreadyPausedRef = useRef(false)
+  const unloadingPauseWasAlreadyPausedRef = useRef(false)
   const [operationsOpen, setOperationsOpen] = useState(false)
   const [endDayOpen, setEndDayOpen] = useState(false)
   const [loadingChallengeLoadId, setLoadingChallengeLoadId] = useState(null)
@@ -268,6 +301,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [facilityFocusRole, setFacilityFocusRole] = useState(null)
   const [driverFocusId, setDriverFocusId] = useState(null)
   const [driverHubOpen, setDriverHubOpen] = useState(false)
+  const [expandedDriverScheduleId, setExpandedDriverScheduleId] = useState(null)
   const [seenLoadResultIds, setSeenLoadResultIds] = useState([])
   const [completionResultLoadId, setCompletionResultLoadId] = useState(null)
   const [freightBrowseMode, setFreightBrowseMode] = useState(false)
@@ -275,6 +309,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [freightBrowseRouteGeometry, setFreightBrowseRouteGeometry] = useState(null)
   const [freightBrowseRouteStatus, setFreightBrowseRouteStatus] = useState('idle')
   const freightBrowseRouteRequestRef = useRef(0)
+  const itineraryMovementSyncRef = useRef(new Map())
+  const itineraryMovementTokenRef = useRef(0)
 
   const receivables = getReceivables(loads, carriers, ledgerWorkflowByLoadId)
   const ledgerSummary = getLedgerSummary(receivables)
@@ -298,7 +334,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   // ownership is driver-independent. Prefer a traveling/attention load, then any
   // active driver load. No component assumes Marcus is the company.
   const activeDriverLoads = drivers.map((driver) => getDriverActiveLoad(loads, driver.id)).filter(Boolean)
-  const assignedLoad = activeDriverLoads.find((load) => ['en-route-pickup', 'en-route-delivery', 'checked-in-pickup', 'checked-in-delivery', 'loaded', 'awaiting-pod'].includes(load.tripStatus))
+  const assignedLoad = activeDriverLoads.find((load) => ['en-route-pickup', 'en-route-delivery', 'checked-in-pickup', 'checked-in-delivery', 'pickup-issue'].includes(load.tripStatus))
     || activeDriverLoads[0]
     || null
   const assignedDriverId = assignedLoad?.assignedDriverId || null
@@ -324,22 +360,10 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         sender: driverName,
         senderRole: 'Driver',
         direction: 'inbound',
-        body: `I'm at ${pickupFacility?.name || 'pickup'}. Checked in, paperwork's handled, and they've got me waiting on a door. I'll keep you posted.`,
+        body: `Checked in at ${getFreightBusinessName(load, 'pickup') || pickupFacility?.name || 'the pickup'}. They’re waiting on a door for me.`,
+        messageIntent: 'facility-delay',
         read: Boolean(load.pickupCheckedInDriverMessageRead),
         receivedGameMinute: load.pickupCheckInGameMinute,
-      })
-    }
-    if (['loaded', 'en-route-delivery', 'at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'].includes(load.tripStatus) && Number.isFinite(load.loadingStartGameMinute)) {
-      messages.push({
-        id: `${load.id}-loaded-ready`,
-        loadId: load.id,
-        driverId: messageDriverId,
-        sender: driverName,
-        senderRole: 'Driver',
-        direction: 'inbound',
-        body: 'Loaded. Got the paperwork. Ready to roll.',
-        read: Boolean(load.loadedDriverMessageRead),
-        receivedGameMinute: load.pickupLoadingCompleteGameMinute ?? (load.loadingStartGameMinute + PICKUP_LOADING_MINUTES),
       })
     }
     if (Number.isFinite(load.deliveryCheckInGameMinute)) {
@@ -351,7 +375,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         sender: driverName,
         senderRole: 'Driver',
         direction: 'inbound',
-        body: `I'm at ${deliveryFacility?.name || 'the receiver'}. Checked in and they've got me waiting on a door. I'll let you know when they call me in.`,
+        body: `Checked in at ${getFreightBusinessName(load, 'delivery') || deliveryFacility?.name || 'the receiver'}. Waiting on a door now.`,
+        messageIntent: 'facility-delay',
         read: Boolean(load.deliveryCheckedInDriverMessageRead),
         receivedGameMinute: load.deliveryCheckInGameMinute,
       })
@@ -370,18 +395,39 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     const driverName = driver?.fullName || driver?.name || 'Driver'
     const pickupName = mapLocations.find((location) => location.id === load.pickupLocationId)?.name || 'pickup'
     const deliveryName = mapLocations.find((location) => location.id === load.deliveryLocationId)?.name || 'delivery'
-    const loadRef = load.loadNumber || load.id
-    const base = { driverId: load.assignedDriverId, loadId: load.id, tone: 'attention' }
-    if (load.tripStatus === 'checked-in-pickup') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-pickup-ready`, action: 'pickup', title: `${loadRef} · DOCK READY`, detail: `${driverName} has been called to a door at ${pickupName}.`, value: 'BEGIN LOADING' }]
-    if (load.tripStatus === 'checked-in-delivery') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-delivery-ready`, action: 'delivery', title: `${loadRef} · DOCK READY`, detail: `${driverName} has been called to a door at ${deliveryName}.`, value: 'BEGIN UNLOADING' }]
-    if (load.tripStatus === 'assigned' && !Number.isFinite(load.pickupDriverBriefedGameMinute)) return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-brief`, action: 'messages', title: `${loadRef} · SEND LOAD INFO REQUIRED`, detail: `Send ${driverName} the load information before planning the pickup route.`, value: 'MESSAGE DRIVER' }]
-    if (load.tripStatus === 'assigned' && load.planningStatus !== 'route-ready') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-pickup-plan`, action: 'plan-pickup', title: `${loadRef} · PICKUP PLAN REQUIRED`, detail: `Plan ${driverName}'s pickup trip.`, value: 'PLAN PICKUP' }]
-    if (load.tripStatus === 'assigned' && !Number.isFinite(load.pickupRouteSentGameMinute)) return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-route-pickup`, action: 'messages', title: `${loadRef} · ROUTE SEND REQUIRED`, detail: `Send ${driverName} the pickup route. Sending it releases the truck to depart.`, value: 'SEND ROUTE' }]
-    if (load.tripStatus === 'assigned') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-route-pickup-recovery`, action: 'messages', title: `${loadRef} · ROUTE ACTION REQUIRED`, detail: `Open Messages and resend the pickup route to release ${driverName}.`, value: 'SEND ROUTE' }]
-    if (load.tripStatus === 'loaded' && load.deliveryPlanningStatus === 'route-ready' && !Number.isFinite(load.deliveryRouteSentGameMinute)) return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-route-delivery`, action: 'messages', title: `${loadRef} · ROUTE SEND REQUIRED`, detail: `Send ${driverName} the delivery route. Sending it releases the truck to depart.`, value: 'SEND ROUTE' }]
-    if (load.tripStatus === 'loaded' && load.deliveryPlanningStatus === 'route-ready') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-route-delivery-recovery`, action: 'messages', title: `${loadRef} · ROUTE ACTION REQUIRED`, detail: `Open Messages and resend the delivery route to release ${driverName}.`, value: 'SEND ROUTE' }]
-    if (load.tripStatus === 'loaded') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-delivery-plan`, action: 'plan-delivery', title: `${loadRef} · DELIVERY PLAN REQUIRED`, detail: `${driverName} is loaded and waiting for a delivery route.`, value: 'PLAN DELIVERY' }]
+    const base = { driverId: load.assignedDriverId, loadId: load.id, tone: 'attention', alertClass: 'action' }
+    if (load.tripStatus === 'checked-in-pickup') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-pickup-ready`, action: 'pickup', title: `${pickupName} · DOCK READY`, detail: `${driverName} has been called to a door.`, value: 'BEGIN LOADING' }]
+    if (load.tripStatus === 'checked-in-delivery') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-delivery-ready`, action: 'delivery', title: `${deliveryName} · DOCK READY`, detail: `${driverName} has been called to a door.`, value: 'BEGIN UNLOADING' }]
+    if (load.tripStatus === 'assigned' && !Number.isFinite(load.pickupDriverBriefedGameMinute)) return []
+    if (load.tripStatus === 'pickup-issue') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-pickup-issue`, action: 'resolve-pickup-issue', title: `${pickupName} · PICKUP ISSUE`, detail: `${driverName} is being held while the freight issue is corrected.`, value: 'REQUEST CORRECTION' }]
     return []
+  })
+  const driverCommunicationAlerts = activeDriverLoads.flatMap((load) => {
+    if (!['waiting-at-pickup', 'waiting-at-delivery'].includes(load.tripStatus)) return []
+    const driver = drivers.find((item) => item.id === load.assignedDriverId)
+    const driverName = driver?.fullName || driver?.name || 'Driver'
+    const atDelivery = load.tripStatus === 'waiting-at-delivery'
+    const facilityName = mapLocations.find((location) => location.id === (atDelivery ? load.deliveryLocationId : load.pickupLocationId))?.name || 'Facility'
+    const waitStart = atDelivery ? load.deliveryCheckInGameMinute : load.pickupCheckInGameMinute
+    if (!Number.isFinite(waitStart)) return []
+    const waited = Math.max(0, currentAbsoluteGameMinute - waitStart)
+    const appointmentStart = atDelivery
+      ? ((load.deliveryDayIndex ?? gameTime.gameDayIndex) * 1440 + (load.deliveryWindowStartMinutes ?? 0))
+      : ((load.pickupDayIndex ?? gameTime.gameDayIndex) * 1440 + (load.pickupWindowStartMinutes ?? 0))
+    // AV2.9.8: appointment-protected waiting is expected operational time, not a dispatcher failure.
+    if (Number.isFinite(appointmentStart) && currentAbsoluteGameMinute < appointmentStart) return []
+    if (waited < 20) return []
+    return [{
+      id: `driver-wait-${load.assignedDriverId}-${load.id}`,
+      driverId: load.assignedDriverId,
+      loadId: load.id,
+      alertClass: waited >= 30 ? 'urgent' : 'action',
+      tone: waited >= 30 ? 'danger' : 'attention',
+      action: 'messages',
+      title: `${driverName} · WAITING ${Math.round(waited)} MIN`,
+      detail: `${facilityName} · Check in with the driver and manage the delay.`,
+      value: 'MESSAGE',
+    }]
   })
 
   const openFreightBrowseMap = () => {
@@ -446,6 +492,186 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     setIsPhoneOpen(true)
   }
 
+  // AV2.11: appointment timers are no longer allowed to hijack the driver.
+  // A staged load may depart for its receiver only when that delivery is still
+  // the canonical next actionable stop on the driver's itinerary.
+  useEffect(() => {
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const ready = loads.filter((load) => {
+      if (!load.assignedDriverId
+        || load.tripStatus !== 'loaded'
+        || load.waitingReason !== 'appointment-protected'
+        || !Number.isFinite(load.plannedDeliveryDepartureGameMinute)
+        || now < load.plannedDeliveryDepartureGameMinute) return false
+      const nextStop = getNextActionableDriverStop(loads, load.assignedDriverId)
+      return nextStop?.loadId === load.id && nextStop?.type === 'delivery'
+    })
+    if (!ready.length) return
+    const readyIds = new Set(ready.map((load) => load.id))
+    setLoads((current) => current.map((load) => readyIds.has(load.id) ? {
+      ...load,
+      tripStatus: 'en-route-delivery',
+      deliveryDepartureGameMinute: now,
+      waitingReason: null,
+    } : load))
+    ready.forEach((load) => {
+      setDriverRuntimeProgress(load.assignedDriverId, 0)
+      const driverName = drivers.find((driver) => driver.id === load.assignedDriverId)?.fullName || 'Driver'
+      const deliveryName = mapLocations.find((location) => location.id === load.deliveryLocationId)?.name || 'the receiver'
+      setDriverMessages?.((current) => current.some((message) => message.id === `appointment-depart-${load.id}`) ? current : [...current, {
+        id: `appointment-depart-${load.id}`, driverId: load.assignedDriverId, sender: driverName, senderRole: 'Driver', direction: 'inbound', loadId: load.id,
+        body: `Timing looks good now. I’m heading to ${deliveryName}.`, receivedGameMinute: now + 0.01, read: false,
+      }])
+    })
+  }, [gameTime, loads, drivers, setDriverMessages])
+
+  // AV2.11 — authoritative itinerary movement reconciliation.
+  // The Schedule was already computing the correct stop order, but legacy load
+  // state still owned movement. This effect makes the driver's next actionable
+  // itinerary stop the movement authority. It can divert a truck away from a
+  // later delivery when a communicated earlier pickup becomes the next stop.
+  useEffect(() => {
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    drivers.forEach((driver) => {
+      const nextStop = getNextActionableDriverStop(loads, driver.id)
+      if (!nextStop) return
+      const nextLoad = loads.find((item) => item.id === nextStop.loadId)
+      if (!nextLoad) return
+
+      const liveLoad = getDriverActiveLoad(loads, driver.id)
+      const liveTrip = liveLoad?.tripStatus
+      const targetTravelStatus = nextStop.type === 'pickup' ? 'en-route-pickup' : 'en-route-delivery'
+      const alreadyOnTarget = nextLoad.tripStatus === targetTravelStatus
+
+      // AV2.12 invariant: one driver, one physical movement leg. Clean up stale
+      // travel states even when the correct target is already moving.
+      const staleTravelIds = loads.filter((item) => item.assignedDriverId === driver.id
+        && item.id !== nextLoad.id
+        && ['en-route-pickup', 'en-route-delivery'].includes(item.tripStatus)).map((item) => item.id)
+      if (staleTravelIds.length) {
+        const staleSet = new Set(staleTravelIds)
+        setLoads((current) => current.map((item) => {
+          if (!staleSet.has(item.id)) return item
+          if (item.tripStatus === 'en-route-delivery') return { ...item, tripStatus: 'onboard-hold', status: 'onboard', waitingReason: 'itinerary-next-stop', deliveryDepartureGameMinute: null }
+          return { ...item, tripStatus: 'queued', status: 'queued', departureGameMinute: null, waitingReason: 'itinerary-next-stop' }
+        }))
+      }
+      if (alreadyOnTarget) return
+
+      // Do not interrupt facility work. Reconciliation happens again immediately
+      // after that stop completes.
+      if (['at-pickup','checking-in-pickup','waiting-at-pickup','checked-in-pickup','loading-at-pickup','pickup-issue',
+        'at-delivery','checking-in-delivery','waiting-at-delivery','checked-in-delivery','unloading-delivery'].includes(liveTrip)) return
+
+      const destination = mapLocations.find((location) => location.id === (nextStop.type === 'pickup' ? nextLoad.pickupLocationId : nextLoad.deliveryLocationId))
+      if (!destination) return
+      const origin = runtimePositions[driver.id]
+        || mapLocations.find((location) => location.id === (liveLoad?.tripStatus === 'en-route-delivery' ? liveLoad.deliveryLocationId : liveLoad?.pickupLocationId))
+        || mapLocations.find((location) => location.id === driver.homeBaseLocationId)
+      if (!origin) return
+
+      const syncKey = `${driver.id}:${nextStop.id}`
+      const existingSync = itineraryMovementSyncRef.current.get(driver.id)
+      if (existingSync?.key === syncKey) return
+      const token = ++itineraryMovementTokenRef.current
+      itineraryMovementSyncRef.current.set(driver.id, { key: syncKey, token })
+
+      // AV2.11.1 — movement authority changes BEFORE route calculation.
+      // AV2.11 still left the current loaded/en-route delivery in control until an
+      // async routing request completed. If routing was slow or failed, a 9 PM
+      // delivery could remain the apparent active movement even though the
+      // canonical itinerary already said an earlier pickup was next.
+      // Demote the old delivery immediately. Routing is now an enhancement, not
+      // the gate that decides which stop owns Marcus.
+      if (nextStop.type === 'pickup' && liveLoad && liveLoad.id !== nextLoad.id
+        && ['loaded','en-route-delivery','onboard-hold'].includes(liveLoad.tripStatus)) {
+        setLoads((current) => current.map((item) => item.id === liveLoad.id ? {
+          ...item, tripStatus: 'onboard-hold', status: 'onboard', waitingReason: 'itinerary-next-stop',
+          deliveryDepartureGameMinute: null,
+        } : item))
+        setDrivers((current) => current.map((item) => item.id === driver.id ? {
+          ...item, assignedLoadId: nextLoad.id,
+        } : item))
+      }
+
+      ;(async () => {
+        try {
+          const storedGeometry = nextStop.type === 'pickup' ? nextLoad.plannedDeadheadRouteGeometry : nextLoad.plannedLoadedRouteGeometry
+          const storedSource = nextStop.type === 'pickup' ? nextLoad.plannedDeadheadRouteSource : nextLoad.plannedLoadedRouteSource
+          let route = null
+          let geometry = normalizeRouteGeometry(storedGeometry, origin, destination)
+          const storedStartsNearTruck = Array.isArray(geometry) && geometry.length > 1 && getRouteEndpointDistanceMiles(geometry, origin) <= 1.0
+          if (storedStartsNearTruck) {
+            route = {
+              routeShape: geometry,
+              distanceMiles: nextStop.type === 'pickup' ? nextLoad.plannedDeadheadMiles : nextLoad.plannedLoadedMiles,
+              durationMinutes: nextStop.type === 'pickup' ? nextLoad.plannedDeadheadDriveTimeMinutes : nextLoad.plannedLoadedDriveTimeMinutes,
+              source: storedSource || 'cached',
+            }
+          } else {
+            route = await calculateRoute(origin, destination)
+            geometry = normalizeRouteGeometry(route.routeShape, origin, destination)
+          }
+          const activeSync = itineraryMovementSyncRef.current.get(driver.id)
+          if (!activeSync || activeSync.token !== token || activeSync.key !== syncKey) return
+          const stopWindowStart = nextStop.dayIndex * 1440 + nextStop.windowStartMinutes
+          const driveMinutes = Number(route.durationMinutes || 0)
+          const departureMinute = Math.max(now, stopWindowStart - driveMinutes - 10)
+
+          // If this next stop is still well in the future, keep the truck staged,
+          // but keep the *next pickup* as the driver's authoritative assignment.
+          if (now + 1 < departureMinute) {
+            setLoads((current) => current.map((item) => {
+              if (item.id === nextLoad.id && nextStop.type === 'pickup') return {
+                ...item,
+                plannedPickupDepartureGameMinute: departureMinute,
+                plannedDeadheadMiles: route.distanceMiles,
+                plannedDeadheadDriveTimeMinutes: route.durationMinutes,
+                plannedDeadheadRouteGeometry: geometry,
+                plannedDeadheadRouteSource: route.source,
+              }
+              if (liveLoad && item.id === liveLoad.id && ['loaded','en-route-delivery','onboard-hold'].includes(item.tripStatus)) return {
+                ...item, tripStatus: 'onboard-hold', status: 'onboard', waitingReason: 'itinerary-next-stop', deliveryDepartureGameMinute: null,
+              }
+              return item
+            }))
+            return
+          }
+
+          setLoads((current) => current.map((item) => {
+            if (liveLoad && item.id === liveLoad.id && item.id !== nextLoad.id && ['loaded','en-route-delivery','onboard-hold'].includes(item.tripStatus)) return {
+              ...item, tripStatus: 'onboard-hold', status: 'onboard', waitingReason: 'itinerary-next-stop', deliveryDepartureGameMinute: null,
+            }
+            if (item.id !== nextLoad.id) return item
+            if (nextStop.type === 'pickup') return {
+              ...item, tripStatus: 'en-route-pickup', status: 'en-route-pickup', queuePosition: 0,
+              plannedDeadheadMiles: route.distanceMiles, plannedDeadheadDriveTimeMinutes: route.durationMinutes,
+              plannedDeadheadRouteGeometry: geometry, plannedDeadheadRouteSource: route.source,
+              departureGameMinute: now, pickupArrivalGameMinute: null, plannedPickupDepartureGameMinute: null, waitingReason: null,
+            }
+            return {
+              ...item, tripStatus: 'en-route-delivery', status: 'en-route-delivery',
+              plannedLoadedMiles: route.distanceMiles, plannedLoadedDriveTimeMinutes: route.durationMinutes,
+              plannedLoadedRouteGeometry: geometry, plannedLoadedRouteSource: route.source,
+              deliveryDepartureGameMinute: now, waitingReason: null,
+            }
+          }))
+          setDrivers((current) => current.map((item) => item.id === driver.id ? {
+            ...item, assignedLoadId: nextLoad.id, queuedLoadIds: (item.queuedLoadIds || []).filter((id) => id !== nextLoad.id),
+          } : item))
+          setDriverRuntimeProgress(driver.id, 0)
+        } catch (error) {
+          // Do not restore the old delivery as movement authority. The itinerary
+          // remains correct even if road geometry is temporarily unavailable.
+          console.error('DOC OS AUTHORITATIVE ITINERARY ROUTE FAILED', error)
+        } finally {
+          const activeSync = itineraryMovementSyncRef.current.get(driver.id)
+          if (activeSync?.token === token) itineraryMovementSyncRef.current.delete(driver.id)
+        }
+      })()
+    })
+  }, [gameTime, loads, drivers, runtimePositions])
+
   useEffect(() => {
     if (!onAwardLoadXp) return
     loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved).forEach((load) => {
@@ -461,16 +687,19 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     ...appointmentAlerts,
     ...unseenCompletedLoads.map((load) => ({
       id: `load-result-${load.id}`,
+      alertClass: 'info',
       tone: 'success',
-      title: `${load.loadNumber || load.id} COMPLETE`,
+      title: `${mapLocations.find((location) => location.id === load.deliveryLocationId)?.name || getFreightRouteName(load)} · COMPLETE`,
       detail: 'Load closed successfully. Tap to view results.',
       value: 'VIEW RESULTS',
       action: 'load-result',
       loadId: load.id,
     })),
+    ...driverCommunicationAlerts,
     ...driverOperationAlerts,
     ...(podNotificationCount > 0 ? [{
       id: 'pod-review',
+      alertClass: 'action',
       tone: 'attention',
       title: 'DOCUMENTS',
       detail: podNotificationCount === 1 ? '1 POD ready for review.' : `${podNotificationCount} PODs ready for review.`,
@@ -479,6 +708,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     }] : []),
     ...(ledgerNotificationCount > 0 ? [{
       id: 'ledgerdesk',
+      alertClass: 'info',
       tone: 'success',
       title: 'LEDGERDESK',
       detail: ledgerNotificationCount === 1 ? '1 payment or receivable update.' : `${ledgerNotificationCount} payment or receivable updates.`,
@@ -487,14 +717,15 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     }] : []),
   ].sort((a, b) => {
     const priority = (item) => {
-      if (['driver', 'messages', 'plan-pickup', 'plan-delivery', 'pickup', 'delivery', 'facility'].includes(item?.action) || item?.tone === 'danger' || item?.tone === 'attention') return 0
-      if (['documents', 'ledger'].includes(item?.action)) return 1
-      return 2
+      if (item?.alertClass === 'urgent') return 0
+      if (item?.alertClass === 'action' || ['driver', 'messages', 'plan-pickup', 'plan-delivery', 'pickup', 'delivery', 'facility'].includes(item?.action)) return 1
+      if (['documents', 'ledger'].includes(item?.action)) return 2
+      return 3
     }
     return priority(a) - priority(b)
   })
   // The badge is a true aggregate count: every unresolved actionable item counts.
-  const operationsNotificationCount = appointmentAlerts.length + podNotificationCount + ledgerNotificationCount + unseenCompletedLoads.length + driverOperationAlerts.length
+  const operationsNotificationCount = operationNotifications.filter((item) => ['action', 'urgent'].includes(item.alertClass)).length
 
   // Simulation safety rules:
   // - The phone is part of the live operation: opening it does NOT pause time.
@@ -519,33 +750,31 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   // of letting 10× carry the player past a decision point.
   useEffect(() => {
     if (!assignedLoad || isGameClockPaused) return
-    if (['checked-in-pickup', 'checked-in-delivery', 'loaded', 'awaiting-pod'].includes(assignedLoad.tripStatus) && simulationSpeed > 1) {
+    if (['checked-in-pickup', 'checked-in-delivery', 'pickup-issue'].includes(assignedLoad.tripStatus) && simulationSpeed > 1) {
       setSimulationSpeed(1)
     }
   }, [assignedLoad?.tripStatus, isGameClockPaused, setSimulationSpeed, simulationSpeed])
 
-  // AU1: Dock-ready is an attention state, not a global pause. With multiple
-  // drivers, one facility cannot freeze the entire operation. Fast-forward still
-  // normalizes to 1x so the player has a fair chance to react.
-
-  // AV resume safety: loading/unloading challenges are driver-owned workflows.
-  // Reopen them after hydration without freezing the rest of the simulation.
+  // AW1.6.11: Facility challenges are explicit player-owned workflows.
+  // Once loading/unloading begins, freeze the simulation so itinerary reconciliation
+  // cannot advance the load out from under the minigame.
   useEffect(() => {
     const interruptedLoading = loads.find((load) => load.tripStatus === 'loading-at-pickup' && load.assignedDriverId)
     if (!interruptedLoading || loadingChallengeLoadId) return
+    loadingPauseWasAlreadyPausedRef.current = isGameClockPaused
     if (simulationSpeed !== 1) setSimulationSpeed(1)
+    setGameClockPaused(true)
     setLoadingChallengeLoadId(interruptedLoading.id)
-  }, [loads, loadingChallengeLoadId, setSimulationSpeed, simulationSpeed])
+  }, [loads, loadingChallengeLoadId, isGameClockPaused, setGameClockPaused, setSimulationSpeed, simulationSpeed])
 
-  // Resume safety: unloading is an owned player workflow, not a timed simulation state.
-  // If the app is backgrounded/closed mid-challenge, hydration restores the load as
-  // `unloading-delivery`; reopen the challenge and keep the clock safely paused.
   useEffect(() => {
     const interruptedUnload = loads.find((load) => load.tripStatus === 'unloading-delivery' && load.assignedDriverId)
     if (!interruptedUnload || unloadSequenceLoadId) return
+    unloadingPauseWasAlreadyPausedRef.current = isGameClockPaused
     if (simulationSpeed !== 1) setSimulationSpeed(1)
+    setGameClockPaused(true)
     setUnloadSequenceLoadId(interruptedUnload.id)
-  }, [loads, unloadSequenceLoadId, setGameClockPaused, setSimulationSpeed, simulationSpeed])
+  }, [loads, unloadSequenceLoadId, isGameClockPaused, setGameClockPaused, setSimulationSpeed, simulationSpeed])
 
   const pauseClockForModal = () => {
     modalPauseWasAlreadyPausedRef.current = isGameClockPaused
@@ -624,13 +853,111 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     }
   }
 
+  const addLoadToSchedule = async (loadId) => {
+    const load = loads.find((item) => item.id === loadId)
+    const eligible = drivers.filter((driver) => driver.carrierId)
+    if (!load || !eligible.length) return false
+    // AV2.9: with one eligible driver, DOC OS evaluates the schedule automatically.
+    // Driver selection only returns when there is an actual staffing decision.
+    const driver = eligible.length === 1 ? eligible[0] : eligible[0]
+    const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
+    const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
+    const projection = getProjectedDriverOrigin({ driver, loads, runtimePositions, gameTime })
+    const activeLoad = getDriverActiveLoad(loads, driver.id)
+    const nowAbsolute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const activePickup = activeLoad ? mapLocations.find((location) => location.id === activeLoad.pickupLocationId) : null
+    const activeDelivery = activeLoad ? mapLocations.find((location) => location.id === activeLoad.deliveryLocationId) : null
+    const insertionEligibleStatuses = new Set(['en-route-pickup', 'at-pickup', 'checking-in-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'loaded', 'onboard-hold', 'en-route-delivery'])
+    const canConsiderInsertion = Boolean(activeLoad && insertionEligibleStatuses.has(activeLoad.tripStatus) && activePickup && activeDelivery)
+    const pickupWindowStartAbsolute = activeLoad ? (activeLoad.pickupDayIndex || 0) * 1440 + (activeLoad.pickupWindowStartMinutes || 0) : nowAbsolute
+    const remainingDeadhead = activeLoad?.tripStatus === 'en-route-pickup' && Number.isFinite(activeLoad.departureGameMinute) && Number.isFinite(activeLoad.plannedDeadheadDriveTimeMinutes)
+      ? Math.max(0, activeLoad.departureGameMinute + activeLoad.plannedDeadheadDriveTimeMinutes - nowAbsolute)
+      : 0
+    const projectedActivePickupArrival = Math.max(nowAbsolute + remainingDeadhead, pickupWindowStartAbsolute)
+    const pickupAlreadyComplete = ['loaded', 'onboard-hold', 'en-route-delivery'].includes(activeLoad?.tripStatus)
+    const projectedPickupServiceMinutes = activeLoad?.tripStatus === 'loading-at-pickup' ? 20 : pickupAlreadyComplete ? 0 : 35
+    // AV2.10.7: once freight is onboard, a new compatible pickup may divert the driver
+    // from a later delivery. Use the truck's live position and current game minute rather
+    // than pretending the driver must continue to the receiver first.
+    const insertionAvailableAbsolute = pickupAlreadyComplete
+      ? nowAbsolute
+      : Math.max(nowAbsolute, projectedActivePickupArrival + projectedPickupServiceMinutes)
+    const insertionOrigin = pickupAlreadyComplete ? (runtimePositions[driver.id] || activePickup) : activePickup
+    if (!pickup || !delivery || (!projection.location && !insertionOrigin)) return false
+    try {
+      let insertionPlan = null
+      let deadhead
+      let loaded
+      let arrivalAbsolute
+      if (canConsiderInsertion) {
+        const [toPickup, candidateLoaded, pickupToAnchorDelivery] = await Promise.all([
+          calculateRoute(insertionOrigin, pickup),
+          calculateRoute(pickup, delivery),
+          calculateRoute(pickup, activeDelivery),
+        ])
+        const pickupStart = load.pickupDayIndex * 1440 + load.pickupWindowStartMinutes
+        const pickupEnd = load.pickupDayIndex * 1440 + load.pickupWindowEndMinutes
+        const candidatePickupArrival = Math.max(insertionAvailableAbsolute + toPickup.durationMinutes, pickupStart)
+        const candidateServiceReserveMinutes = 35
+        const anchorDeliveryEnd = getWindowEndAbsolute(activeLoad.deliveryDayIndex, activeLoad.deliveryWindowStartMinutes, activeLoad.deliveryWindowEndMinutes)
+        const anchorDeliveryArrival = candidatePickupArrival + candidateServiceReserveMinutes + pickupToAnchorDelivery.durationMinutes
+        if (candidatePickupArrival <= pickupEnd && anchorDeliveryArrival <= anchorDeliveryEnd) {
+          const anchorRef = getFreightRouteName(activeLoad)
+          insertionPlan = {
+            type: 'pickup-before-delivery',
+            anchorLoadId: activeLoad.id,
+            anchorLoadRef: anchorRef,
+            status: anchorDeliveryEnd - anchorDeliveryArrival <= 30 ? 'TIGHT' : 'GOOD',
+            summary: `${Math.round(toPickup.durationMinutes)} min to pickup · ${candidateServiceReserveMinutes} min service reserve · ${Math.round(anchorDeliveryEnd - anchorDeliveryArrival)} min delivery buffer preserved`,
+            sequenceLabel: `PICKUP ${anchorRef} → PICKUP ${getFreightRouteName(load)} → DELIVER ${anchorRef} → DELIVER ${getFreightRouteName(load)}`,
+            sequenceSteps: [
+              { action: 'PICKUP', loadRef: anchorRef, loadId: activeLoad.id },
+              { action: 'PICKUP', loadRef: getFreightRouteName(load), loadId: load.id },
+              { action: 'DELIVERY', loadRef: anchorRef, loadId: activeLoad.id },
+              { action: 'DELIVERY', loadRef: getFreightRouteName(load), loadId: load.id },
+            ],
+            provisional: !['loaded', 'onboard-hold', 'en-route-delivery'].includes(activeLoad.tripStatus),
+            serviceReserveMinutes: candidateServiceReserveMinutes,
+            detourClass: toPickup.durationMinutes <= 20 ? 'ON ROUTE' : toPickup.durationMinutes <= 45 ? 'MINOR DETOUR' : 'MAJOR DETOUR',
+            detourMinutes: Math.round(toPickup.durationMinutes),
+          }
+          deadhead = toPickup
+          loaded = candidateLoaded
+          arrivalAbsolute = candidatePickupArrival
+        }
+      }
+      if (!deadhead) {
+        deadhead = await calculateRoute(projection.location, pickup)
+        loaded = await calculateRoute(pickup, delivery)
+        arrivalAbsolute = projection.availableAbsoluteMinute + deadhead.durationMinutes
+      }
+      const pickupEnd = load.pickupDayIndex * 1440 + load.pickupWindowEndMinutes
+      const buffer = pickupEnd - arrivalAbsolute
+      const status = buffer < 0 ? 'AT RISK' : buffer <= 30 ? 'TIGHT' : 'GOOD'
+      const fit = {
+        miles: deadhead.distanceMiles, minutes: deadhead.durationMinutes, routeShape: deadhead.routeShape, routeSource: deadhead.source,
+        arrivalDay: Math.floor(arrivalAbsolute / 1440), arrivalMinutes: arrivalAbsolute % 1440, status,
+        projectedOriginName: insertionPlan ? activePickup?.name || 'Current stop' : projection.location?.name || null,
+        afterLoadId: insertionPlan?.anchorLoadId || projection.afterLoadId || null, queueLength: projection.queueLength || 0,
+        insertionPlan,
+        loadedLeg: loaded,
+      }
+      startEvaluation(loadId, driver.id, fit)
+      return true
+    } catch (error) {
+      console.error('AV2.9 schedule evaluation failed', error)
+      return false
+    }
+  }
+
   const startEvaluation = (loadId, driverId, fit) => {
     const selectedDriver = drivers.find((driver) => driver.id === driverId)
     if (!selectedDriver || !fit) return false
 
-    // AU3: Driver Fit is a review step only. Selecting a driver must never
-    // commit freight. Keep the market load available until the player presses
-    // the explicit ACCEPT & ASSIGN action back on FreightLink.
+    // AV2.8: selecting a driver creates one provisional Trip Plan.
+    // Freight remains unbooked until carrier approval (when required) and BOOK LOAD.
+    // The route work is preserved so the player never has to re-plan the same trip.
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     setLoads((current) => current.map((load) => load.id === loadId ? {
       ...load,
       candidateDriverId: driverId,
@@ -642,8 +969,31 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         arrivalDay: fit.arrivalDay,
         arrivalMinutes: fit.arrivalMinutes,
         status: fit.status || fit.label || null,
+        projectedOriginName: fit.projectedOriginName || null,
         afterLoadId: fit.afterLoadId || null,
         queueLength: fit.queueLength || 0,
+        insertionPlan: fit.insertionPlan || null,
+      },
+      tripPlan: {
+        status: 'provisional',
+        driverId,
+        createdGameMinute: now,
+        projectedAfterLoadId: fit.afterLoadId || null,
+        insertionPlan: fit.insertionPlan || null,
+        legs: {
+          deadhead: {
+            miles: fit.miles,
+            minutes: fit.minutes,
+            routeGeometry: fit.routeShape || null,
+            routeSource: fit.routeSource || 'recommended',
+          },
+          loaded: fit.loadedLeg ? {
+            miles: fit.loadedLeg.distanceMiles,
+            minutes: fit.loadedLeg.durationMinutes,
+            routeGeometry: fit.loadedLeg.routeShape || null,
+            routeSource: fit.loadedLeg.source || 'recommended',
+          } : null,
+        },
       },
     } : load))
     return true
@@ -672,10 +1022,23 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         candidateDriverId: null,
         driverFitVerified: true,
         queuePosition,
-        planningStatus: null,
+        itineraryInsertion: load.tripPlan?.insertionPlan || load.assignmentProjection?.insertionPlan || null,
+        scheduleApprovalQueued: false,
+        tripPlan: load.tripPlan ? { ...load.tripPlan, status: 'booked', bookedGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay } : load.tripPlan,
+        planningStatus: load.tripPlan?.legs?.deadhead?.routeGeometry ? 'route-ready' : null,
+        plannedDeadheadMiles: load.tripPlan?.legs?.deadhead?.miles ?? load.plannedDeadheadMiles ?? null,
+        plannedDeadheadDriveTimeMinutes: load.tripPlan?.legs?.deadhead?.minutes ?? load.plannedDeadheadDriveTimeMinutes ?? null,
+        plannedDeadheadRouteGeometry: load.tripPlan?.legs?.deadhead?.routeGeometry ?? load.plannedDeadheadRouteGeometry ?? null,
+        plannedDeadheadRouteSource: load.tripPlan?.legs?.deadhead?.routeSource ?? load.plannedDeadheadRouteSource ?? null,
+        selectedDeadheadRouteId: load.tripPlan?.legs?.deadhead?.routeGeometry ? 'recommended' : load.selectedDeadheadRouteId ?? null,
+        deliveryPlanningStatus: load.tripPlan?.legs?.loaded?.routeGeometry ? 'route-ready' : null,
+        plannedLoadedMiles: load.tripPlan?.legs?.loaded?.miles ?? load.plannedLoadedMiles ?? null,
+        plannedLoadedDriveTimeMinutes: load.tripPlan?.legs?.loaded?.minutes ?? load.plannedLoadedDriveTimeMinutes ?? null,
+        plannedLoadedRouteGeometry: load.tripPlan?.legs?.loaded?.routeGeometry ?? load.plannedLoadedRouteGeometry ?? null,
+        plannedLoadedRouteSource: load.tripPlan?.legs?.loaded?.routeSource ?? load.plannedLoadedRouteSource ?? null,
+        selectedLoadedRouteId: load.tripPlan?.legs?.loaded?.routeGeometry ? 'recommended' : load.selectedLoadedRouteId ?? null,
         loadingChallengeState: null,
         unloadChallengeState: null,
-        deliveryPlanningStatus: null,
       } : load)
     })
 
@@ -695,6 +1058,43 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
           idleRouteDurationMinutes: null,
         }
       : driver))
+    const fitStatus = String(currentLoad.assignmentProjection?.status || '').toUpperCase()
+    const deadheadMiles = Number(currentLoad.assignmentProjection?.deadheadMiles)
+    const queued = Boolean(existingActive)
+    const relationshipDelta = fitStatus.includes('AT RISK') ? -2 : fitStatus.includes('TIGHT') ? 0 : (queued && Number.isFinite(deadheadMiles) && deadheadMiles <= 15 ? 2 : 1)
+    adjustDriverRelationship(driverId, relationshipDelta, `assignment-quality:${loadId}`)
+    return true
+  }
+
+  const launchLoadingChallenge = (loadId) => {
+    const load = loads.find((item) => item.id === loadId)
+    if (!load || !['waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup'].includes(load.tripStatus)) return false
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    if (loadingChallengeLoadId !== loadId) loadingPauseWasAlreadyPausedRef.current = isGameClockPaused
+    if (simulationSpeed !== 1) setSimulationSpeed(1)
+    setGameClockPaused(true)
+    setLoads((current) => current.map((item) => item.id === loadId ? {
+      ...item,
+      tripStatus: 'loading-at-pickup',
+      loadingStartGameMinute: Number.isFinite(item.loadingStartGameMinute) ? item.loadingStartGameMinute : now,
+    } : item))
+    setLoadingChallengeLoadId(loadId)
+    return true
+  }
+
+  const launchUnloadingChallenge = (loadId) => {
+    const load = loads.find((item) => item.id === loadId)
+    if (!load || !['waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery'].includes(load.tripStatus)) return false
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    if (unloadSequenceLoadId !== loadId) unloadingPauseWasAlreadyPausedRef.current = isGameClockPaused
+    if (simulationSpeed !== 1) setSimulationSpeed(1)
+    setGameClockPaused(true)
+    setLoads((current) => current.map((item) => item.id === loadId ? {
+      ...item,
+      tripStatus: 'unloading-delivery',
+      deliveryUnloadStartGameMinute: Number.isFinite(item.deliveryUnloadStartGameMinute) ? item.deliveryUnloadStartGameMinute : now,
+    } : item))
+    setUnloadSequenceLoadId(loadId)
     return true
   }
 
@@ -713,124 +1113,232 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       setPhoneInitialDriverId(driverId || load.assignedDriverId || null)
       setIsPhoneOpen(true)
     } else if (actionType === 'PLAN_DELIVERY_TRIP' && load.tripStatus === 'loaded') startDeliveryPlanning(loadId)
-    else if (actionType === 'BEGIN_UNLOADING' && load.tripStatus === 'checked-in-delivery') {
-      // AV: hands-on challenges are local workflows. Other drivers and appointments keep running.
-      if (simulationSpeed !== 1) setSimulationSpeed(1)
-      setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'unloading-delivery', deliveryUnloadStartGameMinute: now } : item))
-      setUnloadSequenceLoadId(loadId)
-    }
-    else if (actionType === 'BEGIN_LOADING' && load.tripStatus === 'checked-in-pickup') {
-      // AV: hands-on challenges are local workflows. Other drivers and appointments keep running.
-      if (simulationSpeed !== 1) setSimulationSpeed(1)
-      setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'loading-at-pickup', loadingStartGameMinute: now } : item))
-      setLoadingChallengeLoadId(loadId)
-    }
+    else if (actionType === 'BEGIN_UNLOADING') launchUnloadingChallenge(loadId)
+    else if (actionType === 'BEGIN_LOADING') launchLoadingChallenge(loadId)
   }
 
-  const completeLoadingChallenge = (result) => {
+  const completeLoadingChallenge = async (result) => {
     const loadId = loadingChallengeLoadId
     if (!loadId || !result) return
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    setLoads((current) => current.map((item) => item.id === loadId ? {
+    const sourceLoad = loads.find((item) => item.id === loadId)
+    const driverId = sourceLoad?.assignedDriverId
+    const driverName = drivers.find((driver) => driver.id === driverId)?.fullName || 'Driver'
+    const hasIssue = Number(result.missingPallets || 0) > 0 || Number(result.damagedPallets || 0) > 0
+
+    // AV2.11.2: pickup completion never chooses a destination. It only records
+    // shipment truth and moves the freight into the onboard/issue state. The
+    // authoritative itinerary reconciliation effect decides the next stop.
+    const projectedLoads = loads.map((item) => item.id === loadId ? {
       ...item,
-      tripStatus: 'loaded',
+      tripStatus: hasIssue ? 'pickup-issue' : 'onboard-hold',
+      status: hasIssue ? item.status : 'onboard',
       loadingStartGameMinute: Number.isFinite(item.loadingStartGameMinute) ? item.loadingStartGameMinute : now,
       pickupLoadingCompleteGameMinute: now,
+      plannedDeliveryDepartureGameMinute: null,
+      deliveryDepartureGameMinute: null,
+      waitingReason: hasIssue ? 'pickup-issue' : 'itinerary-next-stop',
       loadingChallengeState: null,
-      facilityOps: {
-        ...(item.facilityOps || {}),
-        pickup: { ...result, completedGameMinute: now },
-      },
+      facilityOps: { ...(item.facilityOps || {}), pickup: { ...result, completedGameMinute: now } },
       shipment: {
-        expectedPallets: result.expectedPallets,
-        loadedPallets: result.loadedPallets,
-        missingPallets: result.missingPallets,
-        damagedPallets: result.damagedPallets || 0,
-        misplacedPallets: result.misplacedPallets || 0,
-        palletManifest: result.palletManifest || [],
+        expectedPallets: result.expectedPallets, loadedPallets: result.loadedPallets, missingPallets: result.missingPallets,
+        damagedPallets: result.damagedPallets || 0, misplacedPallets: result.misplacedPallets || 0, palletManifest: result.palletManifest || [],
       },
-      deliveryPlanningStatus: null,
-      plannedLoadedRouteGeometry: null,
-      plannedLoadedMiles: null,
-      plannedLoadedDriveTimeMinutes: null,
-      selectedLoadedRouteId: null,
-    } : item))
+    } : item)
+
+    setLoads(projectedLoads)
+
+    if (driverId && setDriverMessages) {
+      let messageBody = ''
+      if (Number(result.damagedPallets || 0) > 0) {
+        messageBody = `I’m loaded, but we’ve got a problem. ${result.damagedPallets} pallet${Number(result.damagedPallets) === 1 ? '' : 's'} were damaged during loading. I’m holding here until we get it corrected.`
+      } else if (Number(result.missingPallets || 0) > 0) {
+        messageBody = `I’m loaded, but the count is short by ${result.missingPallets}. I’m holding here until they correct it.`
+      } else {
+        const nextStop = getNextActionableDriverStop(projectedLoads, driverId)
+        const nextLoad = nextStop ? projectedLoads.find((item) => item.id === nextStop.loadId) : null
+        const nextFacility = nextStop && nextLoad
+          ? mapLocations.find((location) => location.id === (nextStop.type === 'pickup' ? nextLoad.pickupLocationId : nextLoad.deliveryLocationId))
+          : null
+        const sourceName = getFreightBusinessName(sourceLoad, 'pickup')
+        const nextName = nextStop && nextLoad ? getFreightBusinessName(nextLoad, nextStop.type === 'delivery' ? 'delivery' : 'pickup') : null
+        messageBody = nextStop && nextName
+          ? `All loaded at ${sourceName}. Next is ${nextStop.type === 'pickup' ? 'pickup' : 'delivery'} at ${nextName}.`
+          : `All loaded at ${sourceName}. Everything looks good.`
+      }
+      setDriverMessages((current) => [...current, {
+        id: `pickup-outcome-${loadId}-${now}`, driverId, sender: driverName, senderRole: 'Driver', direction: 'inbound', loadId,
+        body: messageBody, receivedGameMinute: now + 0.01, read: false,
+      }])
+    }
+
+    if (!hasIssue && driverId) setDriverRuntimeProgress(driverId, 0)
     setLoadingChallengeLoadId(null)
+    setGameClockPaused(loadingPauseWasAlreadyPausedRef.current)
   }
 
-  const completeUnloadSequence = (result) => {
+  const completeUnloadSequence = async (result) => {
     const loadId = unloadSequenceLoadId
     if (!loadId || !result) return
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     const completeMinute = now
-    setLoads((current) => current.map((item) => {
-      if (item.id !== loadId) return item
+    const deliveredLoad = loads.find((item) => item.id === loadId)
+    const releasedDriverId = deliveredLoad?.assignedDriverId
+    const onboardNext = releasedDriverId ? getDriverOnboardLoads(loads, releasedDriverId).find((item) => item.id !== loadId) || null : null
+    const nextQueued = releasedDriverId && !onboardNext ? getDriverQueue(loads, releasedDriverId)[0] || null : null
+    const delivery = mapLocations.find((location) => location.id === deliveredLoad?.deliveryLocationId)
+    const nextPickup = nextQueued ? mapLocations.find((location) => location.id === nextQueued.pickupLocationId) : null
+    const nextWasBriefed = Number.isFinite(nextQueued?.pickupDriverBriefedGameMinute) && Number.isFinite(nextQueued?.driverAcknowledgedGameMinute)
 
-      // Shipment condition is established at pickup and follows the freight through delivery.
-      // Delivery/POD report that existing truth instead of inventing a new condition.
-      const shipment = item.shipment || {}
-      const manifest = Array.isArray(shipment.palletManifest) ? shipment.palletManifest : []
-      const shipmentExpected = Number(shipment.expectedPallets)
-      const resultExpected = Number(result.expectedPallets)
-      const shipmentLoaded = Number(shipment.loadedPallets)
-      const resultReceived = Number(result.actualReceivedPallets)
-      const piecesExpected = Number.isFinite(shipmentExpected)
-        ? shipmentExpected
-        : Number.isFinite(resultExpected)
-          ? resultExpected
-          : manifest.length
-      const piecesReceived = Number.isFinite(shipmentLoaded)
-        ? shipmentLoaded
-        : Number.isFinite(resultReceived)
-          ? resultReceived
-          : manifest.filter((pallet) => pallet?.loaded !== false).length
-      const missingPallets = Number.isFinite(Number(shipment.missingPallets))
-        ? Number(shipment.missingPallets)
-        : Math.max(0, piecesExpected - piecesReceived)
-      const damagedPallets = Number.isFinite(Number(shipment.damagedPallets))
-        ? Number(shipment.damagedPallets)
-        : manifest.filter((pallet) => pallet?.loaded !== false && pallet?.damaged).length
-      const damageLabel = damagedPallets > 0 ? `${damagedPallets} pallet${damagedPallets === 1 ? '' : 's'} noted` : 'None'
-      // AV2.2: exception freight can produce paperwork that needs real review.
-      // The shipment record remains authoritative; the receiver POD may contain a
-      // documentation error that must be corrected through Email before approval.
-      const podPiecesReceived = missingPallets > 0 ? piecesExpected : piecesReceived
-      const podDamageLabel = damagedPallets > 0 ? 'None' : damageLabel
+    // Close the delivered load and promote the queued load without departing yet.
+    // AV2.9.6 recalculates the deadhead from the driver's ACTUAL receiver position
+    // before movement begins. This prevents a queued projection from ever teleporting
+    // the driver to the next pickup when the prior delivery completes.
+    setLoads((current) => {
+      const updated = current.map((item) => {
+        if (item.id !== loadId) return item
 
-      return {
-        ...item,
-        tripStatus: 'awaiting-pod',
-        unloadChallengeState: null,
-        deliveryUnloadCompleteGameMinute: completeMinute,
-        facilityOps: {
-          ...(item.facilityOps || {}),
-          delivery: {
-            ...result,
-            expectedPallets: piecesExpected,
-            actualReceivedPallets: piecesReceived,
-            missingPallets,
-            damagedPallets,
-            completedGameMinute: completeMinute,
+        const shipment = item.shipment || {}
+        const manifest = Array.isArray(shipment.palletManifest) ? shipment.palletManifest : []
+        const shipmentExpected = Number(shipment.expectedPallets)
+        const resultExpected = Number(result.expectedPallets)
+        const shipmentLoaded = Number(shipment.loadedPallets)
+        const resultReceived = Number(result.actualReceivedPallets)
+        const piecesExpected = Number.isFinite(shipmentExpected)
+          ? shipmentExpected
+          : Number.isFinite(resultExpected)
+            ? resultExpected
+            : manifest.length
+        const piecesReceived = Number.isFinite(shipmentLoaded)
+          ? shipmentLoaded
+          : Number.isFinite(resultReceived)
+            ? resultReceived
+            : manifest.filter((pallet) => pallet?.loaded !== false).length
+        const missingPallets = Number.isFinite(Number(shipment.missingPallets))
+          ? Number(shipment.missingPallets)
+          : Math.max(0, piecesExpected - piecesReceived)
+        const damagedPallets = Number.isFinite(Number(shipment.damagedPallets))
+          ? Number(shipment.damagedPallets)
+          : manifest.filter((pallet) => pallet?.loaded !== false && pallet?.damaged).length
+        const damageLabel = damagedPallets > 0 ? `${damagedPallets} pallet${damagedPallets === 1 ? '' : 's'} noted` : 'None'
+        const podPiecesReceived = missingPallets > 0 ? piecesExpected : piecesReceived
+        const podDamageLabel = damagedPallets > 0 ? 'None' : damageLabel
+
+        return {
+          ...item,
+          tripStatus: 'awaiting-pod',
+          status: 'delivered',
+          completedDriverId: releasedDriverId || item.completedDriverId || null,
+          assignedDriverId: null,
+          queuePosition: null,
+          driverReleasedGameMinute: completeMinute,
+          unloadChallengeState: null,
+          deliveryUnloadCompleteGameMinute: completeMinute,
+          facilityOps: {
+            ...(item.facilityOps || {}),
+            delivery: {
+              ...result,
+              expectedPallets: piecesExpected,
+              actualReceivedPallets: piecesReceived,
+              missingPallets,
+              damagedPallets,
+              completedGameMinute: completeMinute,
+            },
           },
-        },
-        pod: {
-          status: 'complete', receivedGameMinute: completeMinute, viewedGameMinute: null, signedBy: 'Jordan Rivera',
-          piecesExpected, piecesReceived: podPiecesReceived, damage: podDamageLabel,
-          correctionStatus: null,
-          freightCondition: {
-            source: 'pickup-shipment',
-            expectedPallets: piecesExpected,
-            loadedAtPickup: piecesReceived,
-            missingAtPickup: missingPallets,
-            damagedAtPickup: damagedPallets,
+          pod: {
+            status: 'complete', receivedGameMinute: completeMinute, viewedGameMinute: null, signedBy: 'Jordan Rivera',
+            piecesExpected, piecesReceived: podPiecesReceived, damage: podDamageLabel,
+            correctionStatus: null,
+            freightCondition: {
+              source: 'pickup-shipment',
+              expectedPallets: piecesExpected,
+              loadedAtPickup: piecesReceived,
+              missingAtPickup: missingPallets,
+              damagedAtPickup: damagedPallets,
+            },
+            verification: { signature: false, pieceCount: false, damage: false, deliveryInfo: false },
+            verified: false, verifiedGameMinute: null,
           },
-          verification: { signature: false, pieceCount: false, damage: false, deliveryInfo: false },
-          verified: false, verifiedGameMinute: null,
-        },
+        }
+      })
+      if (releasedDriverId && onboardNext) return updated
+      return releasedDriverId ? promoteNextQueuedLoad(updated, releasedDriverId, null).loads : updated
+    })
+
+    if (!releasedDriverId) setUnloadSequenceLoadId(null)
+    if (releasedDriverId) {
+      setDrivers((current) => current.map((driver) => driver.id === releasedDriverId ? {
+        ...driver,
+        status: onboardNext || nextQueued ? 'unavailable' : 'available',
+        assignedLoadId: onboardNext?.id || nextQueued?.id || null,
+        queuedLoadIds: (driver.queuedLoadIds || []).filter((id) => id !== nextQueued?.id),
+        longitude: delivery?.longitude ?? driver.longitude,
+        latitude: delivery?.latitude ?? driver.latitude,
+        lastKnownLocationId: deliveredLoad?.deliveryLocationId || driver.lastKnownLocationId,
+      } : driver))
+      if (delivery) setRuntimePositions((current) => ({ ...current, [releasedDriverId]: { longitude: delivery.longitude, latitude: delivery.latitude } }))
+      setDriverRuntimeProgress(releasedDriverId, 0)
+      setUnloadSequenceLoadId(null)
+
+      if (onboardNext && delivery) {
+        const onboardDelivery = mapLocations.find((location) => location.id === onboardNext.deliveryLocationId)
+        if (onboardDelivery) {
+          try {
+            const route = await calculateRoute(delivery, onboardDelivery)
+            const geometry = normalizeRouteGeometry(route.routeShape, delivery, onboardDelivery)
+            setLoads((current) => current.map((item) => item.id === onboardNext.id ? {
+              ...item,
+              tripStatus: 'en-route-delivery', status: 'en-route-delivery', waitingReason: null,
+              plannedLoadedMiles: route.distanceMiles, plannedLoadedDriveTimeMinutes: route.durationMinutes,
+              plannedLoadedRouteGeometry: geometry, plannedLoadedRouteSource: route.source,
+              deliveryDepartureGameMinute: completeMinute,
+            } : item))
+            setDriverRuntimeProgress(releasedDriverId, 0)
+            setDriverMessages?.((current) => [...current, {
+              id: `multistop-delivery-${loadId}-${now}`, driverId: releasedDriverId, sender: drivers.find((driver) => driver.id === releasedDriverId)?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId: onboardNext.id,
+              body: `${getFreightBusinessName(deliveredLoad, 'delivery')} is finished. I still have the ${getFreightBusinessName(onboardNext, 'pickup')} freight onboard, heading to ${onboardDelivery.name}.`, receivedGameMinute: now + 0.01, read: false,
+            }])
+          } catch (error) { console.error('DOC OS ONBOARD DELIVERY HANDOFF FAILED', error) }
+        }
+      } else if (nextQueued && nextWasBriefed && delivery && nextPickup) {
+        try {
+          const handoffRoute = await calculateRoute(delivery, nextPickup)
+          const routeGeometry = normalizeRouteGeometry(handoffRoute.routeShape, delivery, nextPickup)
+          setLoads((current) => current.map((item) => item.id === nextQueued.id ? {
+            ...item,
+            tripStatus: 'en-route-pickup',
+            status: 'en-route-pickup',
+            planningStatus: Array.isArray(routeGeometry) && routeGeometry.length >= 2 ? 'route-ready' : item.planningStatus,
+            plannedDeadheadMiles: handoffRoute.distanceMiles,
+            plannedDeadheadDriveTimeMinutes: handoffRoute.durationMinutes,
+            plannedDeadheadRouteGeometry: routeGeometry,
+            plannedDeadheadRouteSource: handoffRoute.source,
+            selectedDeadheadRouteId: Array.isArray(routeGeometry) && routeGeometry.length >= 2 ? 'handoff-road' : item.selectedDeadheadRouteId,
+            departureGameMinute: completeMinute,
+            pickupArrivalGameMinute: null,
+          } : item))
+          setDriverRuntimeProgress(releasedDriverId, 0)
+          setDriverMessages?.((current) => [...current, {
+            id: `delivery-release-${loadId}-${now}`, driverId: releasedDriverId, sender: drivers.find((driver) => driver.id === releasedDriverId)?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId,
+            body: `Empty and paperwork is signed. I’m heading to ${nextPickup.name || 'the next pickup'} now.`, receivedGameMinute: now + 0.01, read: false,
+          }])
+        } catch (error) {
+          console.error('DOC OS NEXT-LOAD HANDOFF ROUTE FAILED', error)
+          setDriverMessages?.((current) => [...current, {
+            id: `delivery-release-${loadId}-${now}`, driverId: releasedDriverId, sender: drivers.find((driver) => driver.id === releasedDriverId)?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId,
+            body: 'Empty and paperwork is signed. I’m ready for the next one.', receivedGameMinute: now + 0.01, read: false,
+          }])
+        }
+      } else {
+        setDriverMessages?.((current) => [...current, {
+          id: `delivery-release-${loadId}-${now}`, driverId: releasedDriverId, sender: drivers.find((driver) => driver.id === releasedDriverId)?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId,
+          body: 'Empty and paperwork is signed. What’s next?', receivedGameMinute: now + 0.01, read: false,
+        }])
       }
-    }))
-    setUnloadSequenceLoadId(null)
+    }
+    setGameClockPaused(unloadingPauseWasAlreadyPausedRef.current)
   }
+
 
   const markDriverMessageRead = (message) => {
     if (!message?.id) return
@@ -864,70 +1372,224 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     }))
   }
 
-  const sendDriverLoadUpdate = (loadId, driverIdArg = null) => {
+  const removeScheduleLoad = (loadId) => {
+    const target = loads.find((item) => item.id === loadId)
+    if (!target) return false
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const preMovementBooked = target.status !== 'available' && ['queued', 'assigned'].includes(target.tripStatus) && !Number.isFinite(target.departureGameMinute) && !Number.isFinite(target.pickupArrivalGameMinute)
+    if (target.status === 'available') {
+      setLoads((current) => current.map((item) => item.id === loadId ? {
+        ...item,
+        scheduleApprovalQueued: false,
+        carrierApprovalStatus: null,
+        carrierApprovalRequestedGameMinute: null,
+        carrierApprovalEmailId: null,
+        approvalWithdrawnGameMinute: now,
+      } : item))
+      return true
+    }
+    if (preMovementBooked) {
+      setLoads((current) => current.map((item) => item.id === loadId ? {
+        ...item,
+        status: 'available', tripStatus: null, assignedDriverId: null,
+        scheduleApprovalQueued: false, carrierApprovalStatus: null,
+        pickupDriverBriefedGameMinute: null, driverAcknowledgedGameMinute: null,
+        scheduleCommunicatedGameMinute: null, departureGameMinute: null, pickupArrivalGameMinute: null,
+        deliveryDepartureGameMinute: null, deliveryArrivalGameMinute: null, waitingReason: null,
+      } : item))
+      return true
+    }
+    return false
+  }
+
+  // AV2.14 — the Schedule owns the workday. Messages communicate the plan;
+  // they do not advance load state. Send the current itinerary as one natural
+  // pre-shift / revised schedule message and remember which loads Marcus has seen.
+  const sendDriverSchedule = (driverId) => {
+    if (!driverId || !setDriverMessages) return
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const driver = drivers.find((item) => item.id === driverId)
+    const firstName = String(driver?.fullName || driver?.name || 'Driver').split(' ')[0]
+    const itinerary = buildDriverItinerary(loads, driverId).filter((stop) => !stop.completed)
+    if (!itinerary.length) return
+    const seenLoadIds = [...new Set(itinerary.map((stop) => stop.loadId).filter(Boolean))]
+    const stopLines = itinerary.slice(0, 8).map((stop) => {
+      const load = loads.find((item) => item.id === stop.loadId)
+      const place = load ? getFreightBusinessName(load, stop.type) : (stop.locationName || 'the stop')
+      const at = Number.isFinite(stop.windowStartAbsolute) ? formatTime(stop.windowStartAbsolute % 1440) : ''
+      return `${stop.type === 'pickup' ? 'Pickup' : 'Delivery'} · ${place}${at ? ` · ${at}` : ''}`
+    })
+    const signature = itinerary.map((stop) => `${stop.loadId}:${stop.type}:${stop.windowStartAbsolute ?? stop.sortMinute ?? ''}`).join('|')
+    const currentStops = itinerary.map((stop) => ({ loadId: stop.loadId, type: stop.type, at: stop.windowStartAbsolute ?? stop.sortMinute ?? null }))
+    const previousStops = Array.isArray(driver?.lastCommunicatedScheduleStops) ? driver.lastCommunicatedScheduleStops : []
+    const isRevision = Boolean(driver?.lastCommunicatedScheduleSignature)
+    const previousKeys = new Set(previousStops.map((stop) => `${stop.loadId}:${stop.type}:${stop.at ?? ''}`))
+    const currentKeys = new Set(currentStops.map((stop) => `${stop.loadId}:${stop.type}:${stop.at ?? ''}`))
+    const addedStops = itinerary.filter((stop) => !previousKeys.has(`${stop.loadId}:${stop.type}:${stop.windowStartAbsolute ?? stop.sortMinute ?? ''}`))
+    const removedStops = previousStops.filter((stop) => !currentKeys.has(`${stop.loadId}:${stop.type}:${stop.at ?? ''}`))
+    let outboundBody = `Here’s today’s schedule:\n${stopLines.join('\n')}`
+    if (isRevision) {
+      const changes = []
+      addedStops.forEach((stop) => { const load = loads.find((item) => item.id === stop.loadId); const place = load ? getFreightBusinessName(load, stop.type) : 'the stop'; changes.push(`Added ${stop.type} · ${place}${Number.isFinite(stop.windowStartAbsolute) ? ` · ${formatTime(stop.windowStartAbsolute % 1440)}` : ''}`) })
+      removedStops.forEach((stop) => { const load = loads.find((item) => item.id === stop.loadId); const place = load ? getFreightBusinessName(load, stop.type) : 'that stop'; changes.push(`Removed ${stop.type} · ${place}`) })
+      outboundBody = `Quick update — ${changes.length ? changes.join('\n') : 'the timing changed on today’s schedule.'}`
+    }
+    const replyBody = isRevision ? `Got it. I see the change.` : `Got it. I have the schedule. I’m ready to go.`
+    const token = `${now}-${Math.random().toString(36).slice(2, 8)}`
+    setDriverMessages((current) => [...current,
+      { id: `schedule-out-${driverId}-${token}`, driverId, sender: 'You', senderRole: 'Coordinator', direction: 'outbound', body: outboundBody, messageIntent: isRevision ? 'schedule-update' : 'day-schedule', receivedGameMinute: now, read: true },
+      { id: `schedule-ack-${driverId}-${token}`, driverId, sender: driver?.fullName || driver?.name || firstName, senderRole: 'Driver', direction: 'inbound', body: replyBody, messageIntent: 'schedule-ack', receivedGameMinute: now + 0.01, read: false },
+    ])
+    const seen = new Set(seenLoadIds)
+    setLoads((current) => current.map((item) => item.assignedDriverId === driverId && seen.has(item.id) ? {
+      ...item,
+      scheduleCommunicatedGameMinute: now,
+      pickupDriverBriefedGameMinute: Number.isFinite(item.pickupDriverBriefedGameMinute) ? item.pickupDriverBriefedGameMinute : now,
+      driverAcknowledgedGameMinute: Number.isFinite(item.driverAcknowledgedGameMinute) ? item.driverAcknowledgedGameMinute : now + 0.01,
+    } : item))
+    setDrivers((current) => current.map((item) => item.id === driverId ? { ...item, lastCommunicatedScheduleSignature: signature, lastCommunicatedScheduleStops: currentStops, scheduleCommunicatedGameMinute: now } : item))
+    adjustDriverRelationship(driverId, isRevision ? 0 : 1, `day-schedule:${gameTime.gameDayIndex}:${driverId}`)
+  }
+
+  // AV2.17 — one carrier approval request per planned schedule batch.
+  // FreightLink only adds fitted freight to the proposed plan; the Schedule is the
+  // single place that actually contacts the carrier. One email can cover many loads.
+  const requestScheduleApproval = (driverId) => {
+    if (!driverId) return false
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const driver = drivers.find((item) => item.id === driverId)
+    const carrier = carriers.find((item) => item.id === driver?.carrierId)
+    const candidates = loads
+      .filter((load) => load.status === 'available' && load.candidateDriverId === driverId && load.driverFitVerified && load.scheduleApprovalQueued && !['PENDING','APPROVED'].includes(load.carrierApprovalStatus))
+      .sort((a, b) => ((a.pickupDayIndex || 0) * 1440 + (a.pickupWindowStartMinutes || 0)) - ((b.pickupDayIndex || 0) * 1440 + (b.pickupWindowStartMinutes || 0)))
+    if (!candidates.length) return false
+
+    const batch = `${now}-${Math.random().toString(36).slice(2, 7)}`
+    const messageId = `email-out-schedule-${batch}`
+    const firstName = (driver?.fullName || driver?.name || 'Driver').split(' ')[0]
+    const lines = candidates.map((load) => `${formatTime(load.pickupWindowStartMinutes)} — ${getFreightBusinessName(load, 'pickup')} → ${getFreightBusinessName(load, 'delivery')}`)
+    const email = {
+      id: messageId,
+      type: 'operational-email',
+      direction: 'outbound',
+      recipientId: `${carrier?.id || 'metroline'}-operations`,
+      recipientLabel: `${carrier?.name || 'Metroline Transport'} · Operations`,
+      carrierId: carrier?.id || driver?.carrierId || null,
+      subject: `Approval request · ${firstName} · ${candidates.length} load${candidates.length === 1 ? '' : 's'}`,
+      bodyOverride: `Morning,\n\nPlease review the following freight for ${firstName}'s planned schedule:\n\n${lines.join('\n')}\n\nDOC OS has checked the schedule fit for the full plan. Please confirm which loads are approved.\n\nThank you.`,
+      attachments: candidates.map((load) => ({ id: `load-offer:${load.id}`, type: 'load-offer', title: `${getFreightBusinessName(load, 'pickup')} → ${getFreightBusinessName(load, 'delivery')}`, meta: 'FreightLink offer', loadId: load.id })),
+      workflowType: 'carrier-approval',
+      workflowValid: true,
+      loadId: candidates[0].id,
+      loadIds: candidates.map((load) => load.id),
+      driverId,
+      receivedGameMinute: now,
+      responseGameMinute: now + 5,
+      read: true,
+    }
+    setEmailMessages?.((current) => [...current, email])
+    const ids = new Set(candidates.map((load) => load.id))
+    setLoads((current) => current.map((load) => ids.has(load.id) ? { ...load, carrierApprovalStatus: 'PENDING', carrierApprovalRequestedGameMinute: now, carrierApprovalEmailId: messageId } : load))
+    return true
+  }
+
+  const bookApprovedScheduleLoads = (driverId) => {
+    const approvedLoads = loads
+      .filter((load) => load.status === 'available' && load.candidateDriverId === driverId && load.driverFitVerified && load.carrierApprovalStatus === 'APPROVED')
+      .sort((a, b) => ((a.pickupDayIndex || 0) * 1440 + (a.pickupWindowStartMinutes || 0)) - ((b.pickupDayIndex || 0) * 1440 + (b.pickupWindowStartMinutes || 0)))
+    if (!approvedLoads.length) return false
+
+    const approvedIds = new Set(approvedLoads.map((load) => load.id))
+    const approvedOrder = new Map(approvedLoads.map((load, index) => [load.id, index]))
+    const bookedMinute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+
+    setLoads((current) => {
+      const activeAtCommit = getDriverActiveLoad(current, driverId)
+      const firstActiveId = activeAtCommit?.id || approvedLoads[0].id
+      const existingQueueStart = activeAtCommit ? getNextQueuePosition(current, driverId) : 1
+
+      return current.map((load) => {
+        if (!approvedIds.has(load.id) || load.status !== 'available') return load
+        const scheduleOrderIndex = approvedOrder.get(load.id) ?? 0
+        const isActive = load.id === firstActiveId
+        // AW1.6.3: queue order is derived once from the approved Today’s Plan and
+        // is never rebuilt from array order while booking. Booking changes state,
+        // not sequence.
+        const queuePosition = isActive ? 0 : existingQueueStart + (activeAtCommit ? scheduleOrderIndex : Math.max(0, scheduleOrderIndex - 1))
+        const nextTripStatus = isActive ? 'assigned' : 'queued'
+        return {
+          ...load,
+          status: nextTripStatus,
+          tripStatus: nextTripStatus,
+          assignedDriverId: driverId,
+          candidateDriverId: null,
+          driverFitVerified: true,
+          queuePosition,
+          scheduleOrderIndex,
+          scheduleBookedGameMinute: bookedMinute,
+          itineraryInsertion: load.tripPlan?.insertionPlan || load.assignmentProjection?.insertionPlan || null,
+          scheduleApprovalQueued: false,
+          tripPlan: load.tripPlan ? { ...load.tripPlan, status: 'booked', bookedGameMinute: bookedMinute } : load.tripPlan,
+          planningStatus: load.tripPlan?.legs?.deadhead?.routeGeometry ? 'route-ready' : null,
+          plannedDeadheadMiles: load.tripPlan?.legs?.deadhead?.miles ?? load.plannedDeadheadMiles ?? null,
+          plannedDeadheadDriveTimeMinutes: load.tripPlan?.legs?.deadhead?.minutes ?? load.plannedDeadheadDriveTimeMinutes ?? null,
+          plannedDeadheadRouteGeometry: load.tripPlan?.legs?.deadhead?.routeGeometry ?? load.plannedDeadheadRouteGeometry ?? null,
+          plannedDeadheadRouteSource: load.tripPlan?.legs?.deadhead?.routeSource ?? load.plannedDeadheadRouteSource ?? null,
+          selectedDeadheadRouteId: load.tripPlan?.legs?.deadhead?.routeGeometry ? 'recommended' : load.selectedDeadheadRouteId ?? null,
+          deliveryPlanningStatus: load.tripPlan?.legs?.loaded?.routeGeometry ? 'route-ready' : null,
+          plannedLoadedMiles: load.tripPlan?.legs?.loaded?.miles ?? load.plannedLoadedMiles ?? null,
+          plannedLoadedDriveTimeMinutes: load.tripPlan?.legs?.loaded?.minutes ?? load.plannedLoadedDriveTimeMinutes ?? null,
+          plannedLoadedRouteGeometry: load.tripPlan?.legs?.loaded?.routeGeometry ?? load.plannedLoadedRouteGeometry ?? null,
+          plannedLoadedRouteSource: load.tripPlan?.legs?.loaded?.routeSource ?? load.plannedLoadedRouteSource ?? null,
+          selectedLoadedRouteId: load.tripPlan?.legs?.loaded?.routeGeometry ? 'recommended' : load.selectedLoadedRouteId ?? null,
+          loadingChallengeState: null,
+          unloadChallengeState: null,
+        }
+      })
+    })
+
+    const existingActive = getDriverActiveLoad(loads, driverId)
+    const queueIds = existingActive ? approvedLoads.map((load) => load.id) : approvedLoads.slice(1).map((load) => load.id)
+    setDrivers((current) => current.map((driver) => driver.id === driverId ? {
+      ...driver,
+      status: 'unavailable',
+      assignedLoadId: existingActive?.id || approvedLoads[0].id,
+      queuedLoadIds: Array.from(new Set([...(driver.queuedLoadIds || []), ...queueIds])),
+      idleSinceGameMinute: null,
+      idleTargetLocationId: null,
+      idleRouteStatus: null,
+      idleRouteGeometry: null,
+      idleRouteStartGameMinute: null,
+      idleRouteDurationMinutes: null,
+    } : driver))
+
+    approvedLoads.forEach((load, index) => {
+      const fitStatus = String(load.assignmentProjection?.status || '').toUpperCase()
+      const deadheadMiles = Number(load.assignmentProjection?.deadheadMiles)
+      const queued = Boolean(existingActive) || index > 0
+      const relationshipDelta = fitStatus.includes('AT RISK') ? -2 : fitStatus.includes('TIGHT') ? 0 : (queued && Number.isFinite(deadheadMiles) && deadheadMiles <= 15 ? 2 : 1)
+      adjustDriverRelationship(driverId, relationshipDelta, `assignment-quality:${load.id}`)
+    })
+    return true
+  }
+
+  const sendDriverLoadUpdate = async (loadId, driverIdArg = null) => {
     const load = loads.find((item) => item.id === loadId)
     const driverId = driverIdArg || load?.assignedDriverId
     if (!load || !driverId || !setDriverMessages) return
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
-    const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
-    const loadRef = load.loadNumber || load.id
-    const pickupWindow = `${formatCompactDate(load.pickupDayIndex)} ${formatTime(load.pickupWindowStartMinutes)}–${formatTime(load.pickupWindowEndMinutes)}`
-    const deliveryWindow = `${formatCompactDate(load.deliveryDayIndex)} ${formatTime(load.deliveryWindowStartMinutes)}–${formatTime(load.deliveryWindowEndMinutes)}`
-    const deadhead = Number.isFinite(load.plannedDeadheadMiles) ? `\nDeadhead: ${load.plannedDeadheadMiles.toFixed(1)} mi` : ''
-    const body = `${loadRef}\nPickup: ${pickup?.name || 'Pickup'} · ${pickupWindow}\nDelivery: ${delivery?.name || 'Delivery'} · ${deliveryWindow}${deadhead}`
-    const activeDriverLoad = getDriverActiveLoad(loads, driverId)
-    const isCurrentLoad = activeDriverLoad?.id === load.id
-    const isQueuedLoad = load.tripStatus === 'queued' && load.assignedDriverId === driverId
-    const briefingReady = isCurrentLoad && load.tripStatus === 'assigned'
+    const driver = drivers.find((item) => item.id === driverId)
+    const nextStop = getNextActionableDriverStop(loads, driverId)
+    const pickupName = getFreightBusinessName(load, 'pickup')
+    const deliveryName = getFreightBusinessName(load, 'delivery')
+    const body = `Quick update — I added ${pickupName} to today’s schedule. Pickup is ${formatTime(load.pickupWindowStartMinutes)}, then ${deliveryName}.`
     const token = `${now}-${Math.random().toString(36).slice(2, 8)}`
-
     setDriverMessages((current) => [...current,
-      {
-        id: `driver-out-${driverId}-${load.id}-${token}`,
-        driverId,
-        sender: 'You',
-        senderRole: 'Dispatcher',
-        direction: 'outbound',
-        loadId: load.id,
-        body,
-        receivedGameMinute: now,
-        read: true,
-      },
-      {
-        id: `driver-reply-${driverId}-${load.id}-${token}`,
-        driverId,
-        sender: drivers.find((item) => item.id === driverId)?.fullName || drivers.find((item) => item.id === driverId)?.name || 'Driver',
-        senderRole: 'Driver',
-        direction: 'inbound',
-        loadId: load.id,
-        body: briefingReady
-          ? 'Got it.'
-          : isQueuedLoad
-            ? `Got it. I’ll keep ${loadRef} next on my board after ${activeDriverLoad?.loadNumber || activeDriverLoad?.id || 'this load'}.`
-            : isCurrentLoad
-              ? 'I’ve got that one. Send me the plan once you’ve got it locked in.'
-              : activeDriverLoad
-                ? `Hold up — I thought I was on ${activeDriverLoad.loadNumber || activeDriverLoad.id}. You want me on this one instead?`
-                : 'I don’t have that one on my board. You want me on it?',
-        receivedGameMinute: now + 0.01,
-        read: false,
-      },
+      { id: `schedule-change-out-${driverId}-${load.id}-${token}`, driverId, sender: 'You', senderRole: 'Coordinator', direction: 'outbound', loadId: load.id, body, communicationType: 'schedule-change', messageIntent: 'schedule-update', receivedGameMinute: now, read: true },
+      { id: `schedule-change-ack-${driverId}-${load.id}-${token}`, driverId, sender: driver?.fullName || driver?.name || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId: load.id, body: nextStop?.loadId === load.id ? `Got it. ${pickupName} is next.` : `Got it. I see ${pickupName} on the schedule.`, messageIntent: 'schedule-ack', receivedGameMinute: now + 0.01, read: false },
     ])
-
-    if (briefingReady) {
-      const firstBriefing = !Number.isFinite(load.pickupDriverBriefedGameMinute)
-      setLoads((current) => current.map((item) => item.id === load.id ? {
-        ...item,
-        pickupDriverBriefedGameMinute: Number.isFinite(item.pickupDriverBriefedGameMinute) ? item.pickupDriverBriefedGameMinute : now,
-        pickupDriverBriefedLoadId: load.id,
-      } : item))
-      if (firstBriefing) adjustDriverRelationship(driverId, 1, `briefing:${load.id}`)
-    } else if (!isQueuedLoad && activeDriverLoad && activeDriverLoad.id !== load.id) {
-      adjustDriverRelationship(driverId, -2, `wrong-load:${load.id}:${activeDriverLoad.id}`)
-    }
+    setLoads((current) => current.map((item) => item.id === load.id ? { ...item, scheduleCommunicatedGameMinute: now, pickupDriverBriefedGameMinute: Number.isFinite(item.pickupDriverBriefedGameMinute) ? item.pickupDriverBriefedGameMinute : now, driverAcknowledgedGameMinute: Number.isFinite(item.driverAcknowledgedGameMinute) ? item.driverAcknowledgedGameMinute : now + 0.01 } : item))
   }
-
 
   const sendDriverQuickReply = (body, driverId = null, meta = null) => {
     if (!body?.trim() || !driverId) return
@@ -993,26 +1655,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         originEndpointMiles,
         directDistanceMiles,
       })
-      setDriverMessages((current) => {
-        const duplicateRecently = current.some((message) => message.driverId === driverId
-          && message.loadId === (meta?.loadId || null)
-          && message.senderRole === 'System'
-          && message.body === 'Route verification failed. Re-plan the route before sending it to the driver.'
-          && Number.isFinite(message.receivedGameMinute)
-          && now - message.receivedGameMinute < 15)
-        if (duplicateRecently) return current
-        return [...current, {
-          id: `route-verify-${driverId}-${meta?.loadId}-${token}`,
-          driverId,
-          sender: 'DOC OS',
-          senderRole: 'System',
-          direction: 'inbound',
-          body: 'Route verification failed. Re-plan the route before sending it to the driver.',
-          receivedGameMinute: now,
-          read: false,
-          loadId: meta?.loadId || null,
-        }]
-      })
+      // System routing failures stay out of human driver conversations.
       return
     }
 
@@ -1112,16 +1755,52 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       if (loadId && driverId) startPlanning(loadId, driverId)
       return
     }
+    if (action === 'resolve-pickup-issue' && notification?.loadId) {
+      const load = loads.find((item) => item.id === notification.loadId)
+      const driverId = load?.assignedDriverId
+      const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+      if (load && driverId) {
+        // AV2.11.2: correcting a pickup exception resolves the facility problem;
+        // it does NOT choose that load's delivery. Put the freight onboard, then
+        // let the same canonical itinerary authority used by clean pickups decide
+        // Marcus's next stop.
+        const projectedLoads = loads.map((item) => item.id === load.id ? {
+          ...item,
+          tripStatus: 'onboard-hold', status: 'onboard', pickupIssueResolvedGameMinute: now,
+          deliveryDepartureGameMinute: null, plannedDeliveryDepartureGameMinute: null,
+          waitingReason: 'itinerary-next-stop',
+        } : item)
+        const nextStop = getNextActionableDriverStop(projectedLoads, driverId)
+        const nextLoad = nextStop ? projectedLoads.find((item) => item.id === nextStop.loadId) : null
+        const nextFacility = nextStop && nextLoad
+          ? mapLocations.find((location) => location.id === (nextStop.type === 'pickup' ? nextLoad.pickupLocationId : nextLoad.deliveryLocationId))
+          : null
+        const nextName = nextStop && nextLoad ? getFreightBusinessName(nextLoad, nextStop.type === 'delivery' ? 'delivery' : 'pickup') : null
+        const nextText = nextStop && nextName
+          ? ` Next is ${nextStop.type === 'pickup' ? 'pickup' : 'delivery'} at ${nextName}.`
+          : ''
+
+        setLoads(projectedLoads)
+        setDriverRuntimeProgress(driverId, 0)
+        setDriverMessages?.((current) => [...current, {
+          id: `pickup-corrected-${load.id}-${now}`, driverId,
+          sender: drivers.find((driver) => driver.id === driverId)?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId: load.id,
+          body: `They got it corrected and everything is secured now.${nextText}`,
+          receivedGameMinute: now + 0.01, read: false,
+        }])
+      }
+      return
+    }
     if (action === 'pickup') {
       const loadId = notification?.loadId || assignedLoad?.id
       const driverId = notification?.driverId || loads.find((item) => item.id === loadId)?.assignedDriverId || assignedLoad?.assignedDriverId
-      if (loadId) handleDriverAction('BEGIN_LOADING', loadId, driverId)
+      if (loadId) launchLoadingChallenge(loadId)
       return
     }
     if (action === 'delivery') {
       const loadId = notification?.loadId || assignedLoad?.id
       const driverId = notification?.driverId || loads.find((item) => item.id === loadId)?.assignedDriverId || assignedLoad?.assignedDriverId
-      if (loadId) handleDriverAction('BEGIN_UNLOADING', loadId, driverId)
+      if (loadId) launchUnloadingChallenge(loadId)
       return
     }
     if (action === 'plan-delivery') {
@@ -1152,8 +1831,18 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         notifications={operationNotifications}
         scheduleEntries={daySchedule}
         nextScheduleItem={nextScheduleItem}
+        drivers={drivers}
         onOpenChange={setOperationsOpen}
         onNotificationAction={openOperationNotification}
+        onSendSchedule={sendDriverSchedule}
+        onRequestScheduleApproval={requestScheduleApproval}
+        onBookApprovedSchedule={bookApprovedScheduleLoads}
+        onRemoveScheduleLoad={removeScheduleLoad}
+        scheduleCommunicationByDriver={Object.fromEntries(drivers.map((driver) => {
+          const itinerary = buildDriverItinerary(loads, driver.id).filter((stop) => !stop.completed)
+          const signature = itinerary.map((stop) => `${stop.loadId}:${stop.type}:${stop.windowStartAbsolute ?? stop.sortMinute ?? ''}`).join('|')
+          return [driver.id, { lastSignature: driver.lastCommunicatedScheduleSignature || '', currentSignature: signature }]
+        }))}
         showEndDay={showEndDay}
         endDayDisabled={endDayLockedForCloseout || isPhoneOpen || Boolean(planningMode) || Boolean(deliveryPlanning) || endDayOpen}
         onEndDay={() => { pauseClockForModal(); setEndDayOpen(true) }}
@@ -1213,7 +1902,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         {loadingChallengeLoadId && (
           <LoadingChallenge
             load={loads.find((item) => item.id === loadingChallengeLoadId)}
-            onCancel={() => { const loadId = loadingChallengeLoadId; setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'checked-in-pickup', loadingStartGameMinute: null } : item)); setLoadingChallengeLoadId(null) }}
+            onCancel={() => { const loadId = loadingChallengeLoadId; setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'checked-in-pickup', loadingStartGameMinute: null } : item)); setLoadingChallengeLoadId(null); setGameClockPaused(loadingPauseWasAlreadyPausedRef.current) }}
             onProgress={(state) => { const loadId = loadingChallengeLoadId; if (!loadId) return; setLoads((current) => current.map((item) => item.id === loadId ? { ...item, loadingChallengeState: state } : item)) }}
             onComplete={completeLoadingChallenge}
           />
@@ -1226,6 +1915,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
               const loadId = unloadSequenceLoadId
               setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'checked-in-delivery', deliveryUnloadStartGameMinute: null } : item))
               setUnloadSequenceLoadId(null)
+              setGameClockPaused(unloadingPauseWasAlreadyPausedRef.current)
             }}
             onProgress={(state) => { const loadId = unloadSequenceLoadId; if (!loadId) return; setLoads((current) => current.map((item) => item.id === loadId ? { ...item, unloadChallengeState: state } : item)) }}
             onComplete={completeUnloadSequence}
@@ -1245,7 +1935,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             {freightBrowseLoad && (
               <div className="freight-browse-preview-sheet">
                 <div className="freight-browse-preview-heading">
-                  <div><span>{freightBrowseLoad.loadNumber || freightBrowseLoad.id}</span><small>{freightBrowseRouteStatus === 'loading' ? 'CALCULATING ROUTE…' : freightBrowseRouteStatus === 'unavailable' ? 'ROUTE UNAVAILABLE' : `LOAD ${freightBrowseLoad.listedMiles?.toFixed?.(1) || '—'} MI`}</small></div>
+                  <div><span>{getFreightRouteName(freightBrowseLoad)}</span><small>{freightBrowseRouteStatus === 'loading' ? 'CALCULATING ROUTE…' : freightBrowseRouteStatus === 'unavailable' ? 'ROUTE UNAVAILABLE' : `ROUTE ${freightBrowseLoad.listedMiles?.toFixed?.(1) || '—'} MI`}</small></div>
                   <strong>${freightBrowseLoad.rate}</strong>
                 </div>
                 <div className="freight-browse-preview-route"><span>{freightBrowsePickup?.name || 'Pickup'}</span><b>→</b><span>{freightBrowseDelivery?.name || 'Delivery'}</span></div>
@@ -1261,7 +1951,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             <div className="trip-plan-v2-heading">
               <div>
                 <span className="trip-plan-v2-kicker">DELIVERY PLANNING</span>
-                <strong>{loads.find((item) => item.id === deliveryPlanning.loadId)?.loadNumber || deliveryPlanning.loadId}</strong>
+                <strong>{getFreightRouteName(loads.find((item) => item.id === deliveryPlanning.loadId))}</strong>
               </div>
               <span className={`trip-plan-v2-status ${deliveryPlanningRoute ? 'selected' : 'pending'}`}>
                 {deliveryPlanningRoute ? (deliveryPlanningRoute.source === 'fallback' ? 'ESTIMATED' : deliveryPlanningRoute.source === 'cache' ? 'CACHED ROAD' : 'RECOMMENDED') : 'CALCULATING'}
@@ -1362,7 +2052,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             <div className="trip-plan-v2-heading">
               <div>
                 <span className="trip-plan-v2-kicker">TRIP PLANNING</span>
-                <strong>{loads.find((item) => item.id === planningMode.loadId)?.loadNumber || planningMode.loadId}</strong>
+                <strong>{getFreightRouteName(loads.find((item) => item.id === planningMode.loadId))}</strong>
               </div>
               <span className={`trip-plan-v2-status ${planningRoute ? 'selected' : 'pending'}`}>
                 {planningRoute ? (planningRoute.source === 'fallback' ? 'ESTIMATED' : planningRoute.source === 'cache' ? 'CACHED ROAD' : 'RECOMMENDED') : 'CALCULATING'}
@@ -1480,14 +2170,17 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                 </header>
                 <div className="driver-hub-list">
                   {drivers.map((driver) => {
-                    const driverLoad = getDriverActiveLoad(loads, driver.id)
-                      || loads.find((load) => load.assignedDriverId === driver.id && load.tripStatus !== 'queued' && !['delivered', 'completed'].includes(load.tripStatus))
+                    const nextActionableStop = getNextActionableDriverStop(loads, driver.id)
+                    const nextActionableLoad = nextActionableStop ? loads.find((load) => load.id === nextActionableStop.loadId) : null
+                    const driverLoad = nextActionableLoad
+                      || getDriverActiveLoad(loads, driver.id)
+                      || loads.find((load) => load.assignedDriverId === driver.id && !['queued', 'onboard-hold'].includes(load.tripStatus) && !['delivered', 'completed'].includes(load.tripStatus))
                     const driverQueue = getDriverQueue(loads, driver.id)
                     const projected = getProjectedDriverOrigin({ driver, loads, runtimePositions, gameTime })
                     const driverName = driver.fullName || driver.name || 'Driver'
                     const panel = driverLoad ? getDriverPanelModel({ driver, assignedLoad: driverLoad, gameTime, runtimeProgress: runtimeProgressByDriver?.[driver.id] ?? 0, pickup: mapLocations.find((location) => location.id === driverLoad.pickupLocationId), delivery: mapLocations.find((location) => location.id === driverLoad.deliveryLocationId) }) : null
                     const driverStatus = panel?.statusLabel?.toUpperCase() || (driver.status === 'available' ? 'AVAILABLE' : String(driver.status || 'OFF DUTY').replaceAll('-', ' ').toUpperCase())
-                    const nextLoad = driverQueue[0]
+                    const nextLoad = driverQueue.find((item) => item.id !== driverLoad?.id) || null
                     const availableLabel = Number.isFinite(projected.availableAbsoluteMinute)
                       ? `${formatCompactDate(Math.floor(projected.availableAbsoluteMinute / 1440))} · ${formatTime(projected.availableAbsoluteMinute % 1440)}`
                       : '—'
@@ -1496,54 +2189,19 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                         type="button"
                         className={`driver-hub-row state-${driverLoad?.tripStatus || driver.status || 'idle'}`}
                         key={driver.id}
-                        onClick={() => {
-                          const actionType = panel?.actionType
-                          setDriverHubOpen(false)
-                          if (actionType === 'PLAN_TRIP' && driverLoad) {
-                            startPlanning(driverLoad.id, driver.id)
-                            return
-                          }
-                          if (actionType === 'PLAN_DELIVERY_TRIP' && driverLoad) {
-                            startDeliveryPlanning(driverLoad.id)
-                            return
-                          }
-                          if (actionType === 'MESSAGE_DRIVER') {
-                            setPhoneInitialScreen('messageThread')
-                            setPhoneInitialDriverId(driver.id)
-                            setPhoneLoadId(driverLoad?.id || null)
-                            setIsPhoneOpen(true)
-                            return
-                          }
-                          if (actionType === 'OPEN_PICKUP') {
-                            setFacilityFocusRole('pickup')
-                            setFacilityFocusRequest((value) => value + 1)
-                            return
-                          }
-                          if (actionType === 'OPEN_DELIVERY') {
-                            setFacilityFocusRole('delivery')
-                            setFacilityFocusRequest((value) => value + 1)
-                            return
-                          }
-                          if (actionType === 'REVIEW_POD') {
-                            setPhoneInitialScreen('documents')
-                            setPhoneLoadId(driverLoad?.id || null)
-                            setIsPhoneOpen(true)
-                            return
-                          }
-                          setDriverFocusId(driver.id)
-                          setDriverFocusRequest((value) => value + 1)
-                        }}
+                        onClick={() => { setExpandedDriverScheduleId((current) => current === driver.id ? null : driver.id); setDriverFocusId(driver.id); setDriverFocusRequest((value) => value + 1) }}
                       >
                         <span className="driver-hub-avatar">{driverName.charAt(0).toUpperCase()}</span>
                         <span className="driver-hub-copy">
-                          <strong>{driverName}{driverLoad ? <small> · {driverLoad.id}</small> : null}</strong>
+                          <strong>{driverName}{driverLoad ? <small> · {getFreightRouteName(driverLoad)}</small> : null}</strong>
                           <span>{driverStatus}</span>
                           {driverLoad ? <small>{getActiveDriverMeta(driverLoad, gameTime, runtimeProgressByDriver?.[driver.id] ?? null)}</small> : null}
-                          {nextLoad ? <small>NEXT · {nextLoad.loadNumber || nextLoad.id} · {formatTime(nextLoad.pickupWindowStartMinutes)}–{formatTime(nextLoad.pickupWindowEndMinutes)}</small> : null}
+                          {nextLoad ? <small>NEXT · {getFreightRouteName(nextLoad)} · {formatTime(nextLoad.pickupWindowStartMinutes)}–{formatTime(nextLoad.pickupWindowEndMinutes)}</small> : null}
                           <small>AVAILABLE · {availableLabel}</small>
+                          {expandedDriverScheduleId === driver.id && <span className="driver-card-full-schedule"><b>TODAY'S SCHEDULE</b>{daySchedule.filter((entry) => entry.driverId === driver.id && !entry.isCompleted).sort((a,b) => (a.sortMinute || 0) - (b.sortMinute || 0)).map((entry) => <span className="driver-card-schedule-stop" key={entry.id}><strong>{entry.pickupName} → {entry.deliveryName}</strong><small>{entry.status} · {formatTime(entry.start)}{Number.isFinite(entry.end) ? `–${formatTime(entry.end)}` : ''}</small></span>)}{!daySchedule.some((entry) => entry.driverId === driver.id && !entry.isCompleted) ? <small>NO ROUTES SCHEDULED</small> : null}</span>}
                           <span className="driver-relationship"><span className="driver-relationship-label"><small>RELATIONSHIP</small><small>{Number(driver.communicationRapport ?? 50) >= 80 ? 'STRONG' : Number(driver.communicationRapport ?? 50) >= 65 ? 'TRUSTED' : Number(driver.communicationRapport ?? 50) >= 45 ? 'PROFESSIONAL' : Number(driver.communicationRapport ?? 50) >= 25 ? 'STRAINED' : 'POOR'}</small></span><span className="driver-relationship-track"><i style={{ width: `${Math.max(4, Math.min(100, Number(driver.communicationRapport ?? 50)))}%` }} /></span></span>
                         </span>
-                        <span className="driver-hub-jump">{panel?.actionLabel ? `${panel.actionLabel} →` : 'VIEW →'}</span>
+                        <span className="driver-hub-jump">{expandedDriverScheduleId === driver.id ? 'COLLAPSE ↑' : 'SCHEDULE ↑'}</span>
                       </button>
                     )
                   })}
@@ -1568,12 +2226,12 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
           const relationshipValue = Number(resultDriver?.communicationRapport ?? 50)
           const relationshipLabel = relationshipValue >= 80 ? 'STRONG' : relationshipValue >= 65 ? 'TRUSTED' : relationshipValue >= 45 ? 'PROFESSIONAL' : relationshipValue >= 25 ? 'STRAINED' : 'POOR'
           return (
-            <div className="load-result-backdrop" role="dialog" aria-modal="true" aria-label={`${resultLoad.id} load result`}>
+            <div className="load-result-backdrop" role="dialog" aria-modal="true" aria-label={`${getFreightRouteName(resultLoad)} route result`}>
               <section className="load-result-card load-result-card-v2">
                 <header className="load-result-header-v2">
                   <div>
-                    <span className="load-result-kicker">LOAD RESULT</span>
-                    <h2>{resultLoad.id}</h2>
+                    <span className="load-result-kicker">ROUTE RESULT</span>
+                    <h2>{getFreightRouteName(resultLoad)}</h2>
                     <p>{resultPickup?.name || 'Pickup'} → {resultDelivery?.name || 'Delivery'}</p>
                   </div>
                   <button className="load-result-close" type="button" aria-label="Close results" onClick={() => setCompletionResultLoadId(null)}>×</button>
@@ -1626,6 +2284,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             operationDay={operationDay}
             drivers={drivers}
             carriers={carriers}
+            dispatcherProfile={dispatcherProfile}
+            onSaveDispatcherProfile={onSaveDispatcherProfile}
             onActivateCarrier={onActivateCarrier}
             carrierApplicationsById={carrierApplicationsById}
             onApplyCarrier={onApplyCarrier}
@@ -1655,16 +2315,21 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             driverMessageUnreadCount={driverMessageUnreadCount}
             onReadDriverMessage={markDriverMessageRead}
             onSendDriverLoadUpdate={sendDriverLoadUpdate}
+            onSendDriverSchedule={sendDriverSchedule}
             onSendDriverQuickReply={sendDriverQuickReply}
             onPlanDeliveryRoute={(loadId) => { setIsPhoneOpen(false); startDeliveryPlanning(loadId) }}
             onOpenLedger={onOpenLedger}
             ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}
             setLedgerWorkflowByLoadId={setLedgerWorkflowByLoadId}
-            onEvaluateFit={startEvaluation}
+            onEvaluateFit={startEvaluation} onAddToSchedule={addLoadToSchedule}
             onAcceptCandidateAssignment={acceptCandidateAssignment}
             onPlanTrip={(loadId, driverId) => { setIsPhoneOpen(false); startPlanning(loadId, driverId) }}
-            onOpenFreightMap={openFreightBrowseMap}
             onResetGame={onResetGame}
+            onResetDayAfterCarrierApproval={onResetDayAfterCarrierApproval}
+            onOpenDriverSchedule={(driverId) => { setIsPhoneOpen(false); setDriverHubOpen(true); if (driverId) { setDriverFocusId(driverId); setDriverFocusRequest((value) => value + 1) } }}
+            onRequestScheduleApproval={requestScheduleApproval}
+            onBookApprovedSchedule={bookApprovedScheduleLoads}
+            onRemoveScheduleLoad={removeScheduleLoad}
             onClose={() => setIsPhoneOpen(false)}
           />
         )}

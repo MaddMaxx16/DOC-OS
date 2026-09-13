@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import mapLocations from '../data/mapLocations.js'
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
+import { getFreightRouteName } from '../utils/freightIdentity.js'
 
 function formatGameTimestamp(minutes) {
   if (!Number.isFinite(minutes)) return ''
@@ -60,7 +61,7 @@ function DocumentsScreen({ loads, businessDocuments = [], ledgerWorkflowByLoadId
             const deliveredAt = formatGameTimestamp(load.pod?.receivedGameMinute)
             return (
               <button className={`document-card document-card-v2 status-${status.toLowerCase().replace(/\s+/g, '-')}`} type="button" key={load.id} onClick={() => onOpenPod(load.id)}>
-                <div className="document-card-topline"><div><span className="document-card-eyebrow">Proof of Delivery</span><strong className="document-card-id">{load.loadNumber || load.id}</strong></div><span className="document-card-status">{status}</span></div>
+                <div className="document-card-topline"><div><span className="document-card-eyebrow">Proof of Delivery</span><strong className="document-card-id">{getFreightRouteName(load)}</strong></div><span className="document-card-status">{status}</span></div>
                 <div className="document-card-route"><span>Receiver</span><strong>{deliveryName}</strong></div>
                 <div className="document-card-footer"><span>{deliveredAt ? `Delivered ${deliveredAt}` : 'Delivery received'}</span><span className="document-card-open" aria-hidden="true">›</span></div>
               </button>
@@ -78,9 +79,9 @@ function DocumentsScreen({ loads, businessDocuments = [], ledgerWorkflowByLoadId
                   <span><strong>{group.label}</strong><small>{group.count} file{group.count === 1 ? '' : 's'}</small></span><b>{isOpen ? '⌃' : '⌄'}</b>
                 </button>
                 {isOpen && <div className="document-folder-rows">
-                  {group.id === 'freight' && trackedLoads.map((load) => <button type="button" className="document-file-row" key={load.id} onClick={() => onOpenLoad?.(load.id)}><span className="document-file-icon">↗</span><span><strong>{load.loadNumber || load.id}</strong><small>{load.carrierApprovalStatus === 'PENDING' ? 'Awaiting carrier approval' : load.carrierApprovalStatus === 'APPROVED' ? 'Approved to book' : String(load.tripStatus || load.status || 'Load').replace(/-/g, ' ')}</small></span><b>View load</b></button>)}
-                  {group.id === 'pods' && archivedPODs.map((load) => { const receiver = mapLocations.find((location) => location.id === load.deliveryLocationId)?.name || 'Receiver'; return <button type="button" className="document-file-row" key={load.id} onClick={() => onOpenPod(load.id)}><span className="document-file-icon">POD</span><span><strong>{load.loadNumber || load.id}</strong><small>{receiver} · Approved {formatApproval(load.pod?.approvedGameMinute)}</small></span><b>Open</b></button> })}
-                  {group.id === 'invoices' && invoices.map(({ loadId, workflow, load }) => <button type="button" className="document-file-row" key={loadId} onClick={() => onOpenInvoice?.(loadId)}><span className="document-file-icon">$</span><span><strong>{workflow.invoiceNumber}</strong><small>{load.loadNumber || loadId} · {workflow.submissionStatus || workflow.financialStatus || 'Draft'}</small></span><b>Open</b></button>)}
+                  {group.id === 'freight' && trackedLoads.map((load) => <button type="button" className="document-file-row" key={load.id} onClick={() => onOpenLoad?.(load.id)}><span className="document-file-icon">↗</span><span><strong>{getFreightRouteName(load)}</strong><small>{load.carrierApprovalStatus === 'PENDING' ? 'Awaiting carrier approval' : load.carrierApprovalStatus === 'APPROVED' ? 'Approved to book' : String(load.tripStatus || load.status || 'Load').replace(/-/g, ' ')}</small></span><b>View route</b></button>)}
+                  {group.id === 'pods' && archivedPODs.map((load) => { const receiver = mapLocations.find((location) => location.id === load.deliveryLocationId)?.name || 'Receiver'; return <button type="button" className="document-file-row" key={load.id} onClick={() => onOpenPod(load.id)}><span className="document-file-icon">POD</span><span><strong>{getFreightRouteName(load)}</strong><small>{receiver} · Approved {formatApproval(load.pod?.approvedGameMinute)}</small></span><b>Open</b></button> })}
+                  {group.id === 'invoices' && invoices.map(({ loadId, workflow, load }) => <button type="button" className="document-file-row" key={loadId} onClick={() => onOpenInvoice?.(loadId)}><span className="document-file-icon">$</span><span><strong>{workflow.invoiceNumber}</strong><small>{getFreightRouteName(load)} · {workflow.submissionStatus || workflow.financialStatus || 'Draft'}</small></span><b>Open</b></button>)}
                   {group.id === 'agreements' && businessDocuments.map((document) => <button type="button" className="document-file-row" key={document.id} onClick={() => onOpenBusinessDocument?.(document.id)}><span className="document-file-icon">DOC</span><span><strong>{document.carrierName || 'Carrier'} Agreement</strong><small>{Number.isFinite(document.signedGameMinute) ? `Signed ${formatGameTimestamp(document.signedGameMinute)}` : 'Signed agreement'}</small></span><b>Open</b></button>)}
                   {group.count === 0 && <div className="document-folder-empty">No files in this folder yet.</div>}
                 </div>}

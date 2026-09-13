@@ -18,9 +18,10 @@ export function getPickupDockWaitMinutes(load, checkInGameMinute) {
 
   if (!Number.isFinite(windowStart) || !Number.isFinite(windowEnd)) return 12
 
-  // Early arrivals may be accepted before the appointment. Keep the facility wait
-  // short enough to preserve game pace; appointment timing still matters for scoring.
-  if (checkInGameMinute < windowStart) return 15
+  // AV2.9.7: appointment windows are hard service gates. Drivers may arrive and
+  // check in early, but the dock cannot become actionable before the window opens.
+  // Preserve a short normal facility wait when arrival is on time.
+  if (checkInGameMinute < windowStart) return Math.max(0, windowStart - checkInGameMinute)
 
   // On-time arrivals keep their slot and usually get a door quickly.
   if (checkInGameMinute <= windowEnd) return 12
@@ -43,7 +44,8 @@ export function getDeliveryDockWaitMinutes(load, checkInGameMinute) {
     : null
 
   if (!Number.isFinite(windowStart) || !Number.isFinite(windowEnd)) return 10
-  if (checkInGameMinute < windowStart) return 12
+  // AV2.9.7: early delivery arrival is allowed, early unloading is not.
+  if (checkInGameMinute < windowStart) return Math.max(0, windowStart - checkInGameMinute)
   if (checkInGameMinute <= windowEnd) return 10
   return 30
 }

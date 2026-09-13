@@ -1,1 +1,30 @@
-export default [{ id: 'metroline', name: 'Metroline Transport', status: 'prospect', marketId: 'new-york', serviceArea: 'Northeast', fleetSize: 1, driverIds: ['marcus'], equipment: ["53' Dry Van"], homeBaseLocationId: 'metroline-yard', experienceRequirement: 'Entry Level', dispatchAgreement: { type: 'percentage', percentage: 8, loadApprovalRequired: true, paymentTermsDays: 1 } }]
+export default [{
+  id: 'metroline',
+  name: 'Metroline Transport',
+  status: 'prospect',
+  marketId: 'new-york',
+  city: 'Brooklyn',
+  state: 'NY',
+  serviceArea: 'Northeast',
+  fleetSize: 1,
+  driverIds: ['marcus'],
+  equipment: ["53' Dry Van"],
+  homeBaseLocationId: 'metroline-yard',
+  experienceRequirement: 'Entry Level',
+  relationshipScore: 50,
+  dispatchAgreement: {
+    type: 'percentage',
+    percentage: 8,
+    loadApprovalRequired: true,
+    paymentTermsDays: 1,
+    equipmentScope: ["53' Dry Van"],
+    preferredRegion: 'Northeast',
+    minimumRatePerLoadedMile: 2,
+    driverAssignmentAuthority: true,
+    serviceExpectations: {
+      onTimeWindows: true,
+      cleanPaperwork: true,
+      driverCommunication: true,
+    },
+  },
+}]

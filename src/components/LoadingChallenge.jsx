@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { getFreightBusinessName, getFreightRouteName } from '../utils/freightIdentity.js'
 
 const CHALLENGE_SECONDS = 28
 const PALLET_COUNT = 8
@@ -241,7 +242,7 @@ export default function LoadingChallenge({ load, onComplete, onCancel, onProgres
           </div>
         )}
         <header className="loading-challenge-header">
-          <div><span>FACILITY OPS · PICKUP</span><strong>{load?.loadNumber || load?.id}</strong></div>
+          <div><span>FACILITY OPS · PICKUP</span><strong>{getFreightBusinessName(load, 'pickup')}</strong><small>{getFreightRouteName(load)}</small></div>
           <div className={`loading-challenge-timer ${seconds <= 7 ? 'urgent' : ''}`}><small>DOCK TIMER</small><b>{seconds}s</b></div>
         </header>
 

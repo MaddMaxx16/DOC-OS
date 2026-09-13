@@ -1,91 +1,19 @@
-function CarrierOpportunityScreen({ carrier, driver, onApply, onOpenOffer, application }) {
+import { getAgreementRules, getCarrierRelationshipLabel } from '../utils/carrierAgreement.js'
+function CarrierOpportunityScreen({ carrier, driver, onApply, onOpenOffer, application, dispatcherProfile }) {
   if (!carrier) return <div className="phone-page carrier-detail-screen"><p>Carrier opportunity unavailable.</p></div>
-
   const status = application?.status
-  const isAccepted = status === 'ACCEPTED'
-  const isOffer = status === 'OFFER_RECEIVED'
-  const isPending = status === 'PENDING'
-  const equipmentLabel = carrier.equipment?.[0] || driver?.equipment?.label || 'Not listed'
-  const fee = carrier.dispatchAgreement?.percentage
-
-  const statusLabel = isAccepted ? 'ACTIVE CLIENT' : isOffer ? 'OFFER RECEIVED' : isPending ? 'APPLICATION PENDING' : 'OPEN POSTING'
-  const actionLabel = isOffer ? 'OPEN AGREEMENT EMAIL' : 'APPLY FOR ACCOUNT'
-
-  return (
-    <div className="phone-page carrier-detail-screen carrier-posting-v2">
-      <header className="docos-page-hero carrier-posting-hero">
-        <span className="docos-page-kicker">{isAccepted ? 'CARRIER ACCOUNT' : 'CARRIER POSTING'}</span>
-        <div className="carrier-posting-company">
-          <div className="carrier-job-logo large" aria-hidden="true">MT</div>
-          <div>
-            <h2>{carrier.name}</h2>
-            <p>Brooklyn, NY · Independent dispatch account</p>
-          </div>
-        </div>
-        <span className={`carrier-job-status ${isAccepted ? 'active' : isOffer ? 'offer' : isPending ? 'pending' : 'prospect'}`}>{statusLabel}</span>
-      </header>
-
-      <div className="docos-page-body">
-        <section className="docos-section">
-          <div className="docos-section-heading"><span>ABOUT THE ACCOUNT</span></div>
-          <div className="docos-panel">
-            <p className="carrier-posting-description">
-              Metroline is looking for a dispatcher to source freight, coordinate pickup and delivery windows, plan trips and support daily driver operations.
-            </p>
-            <div className="docos-fact-list">
-              <div><span>Fleet</span><strong>{carrier.fleetSize || 0} {carrier.fleetSize === 1 ? 'driver' : 'drivers'}</strong></div>
-              <div><span>Equipment</span><strong>{equipmentLabel}</strong></div>
-              <div><span>Service Area</span><strong>{carrier.serviceArea || 'Not listed'}</strong></div>
-              <div><span>Home Base</span><strong>Brooklyn, NY</strong></div>
-            </div>
-          </div>
-        </section>
-
-        <section className="docos-section">
-          <div className="docos-section-heading"><span>COMPENSATION & TERMS</span></div>
-          <div className="docos-panel docos-fact-list">
-            <div><span>Dispatch Fee</span><strong>{Number.isFinite(fee) ? `${fee}% of carrier gross` : '—'}</strong></div>
-            <div><span>Payment Terms</span><strong>1 day</strong></div>
-            <div><span>Relationship</span><strong>{isAccepted ? 'Active client' : isPending ? 'Under review' : isOffer ? 'Offer ready' : 'Prospective client'}</strong></div>
-          </div>
-        </section>
-
-        <section className="docos-section">
-          <div className="docos-section-heading"><span>DRIVER ROSTER</span></div>
-          <div className="docos-panel carrier-driver-row-v2">
-            <span className="driver-avatar-v2" aria-hidden="true">M</span>
-            <div><strong>{driver?.fullName || driver?.name || 'Marcus Reed'}</strong><small>{driver?.equipment?.label || equipmentLabel}</small></div>
-            <span className="docos-status-text">{isAccepted ? 'ACTIVE' : '1 DRIVER'}</span>
-          </div>
-        </section>
-
-        {isAccepted ? (
-          <div className="docos-state-card success">
-            <span>ACCOUNT ACTIVE</span>
-            <strong>Metroline is ready for operations.</strong>
-            <p>{driver?.fullName || driver?.name || 'Marcus Reed'} is available in your driver roster.</p>
-          </div>
-        ) : isPending ? (
-          <div className="docos-state-card pending">
-            <span>APPLICATION SUBMITTED</span>
-            <strong>Metroline is reviewing your application.</strong>
-            <p>You can leave this page and continue using DOC OS.</p>
-          </div>
-        ) : isOffer ? (
-          <>
-            <div className="docos-state-card offer">
-              <span>OFFER RECEIVED</span>
-              <strong>Metroline sent your dispatch service agreement by email.</strong>
-              <p>Review the agreement attachment from your inbox before accepting the account.</p>
-            </div>
-            <div className="docos-sticky-actions"><button type="button" className="docos-primary-action" onClick={onOpenOffer}>{actionLabel}</button></div>
-          </>
-        ) : (
-          <div className="docos-sticky-actions"><button type="button" className="docos-primary-action" onClick={onApply}>{actionLabel}</button></div>
-        )}
-      </div>
+  const active = status === 'ACCEPTED' || carrier.status === 'active'
+  const offer = status === 'OFFER_RECEIVED'
+  const pending = status === 'PENDING'
+  const rules = getAgreementRules(carrier)
+  return <div className="phone-page carrier-detail-screen carrier-posting-v2">
+    <header className="docos-page-hero carrier-posting-hero"><span className="docos-page-kicker">{active?'MY CARRIER':'CARRIER OPPORTUNITY'}</span><div className="carrier-posting-company"><div className="carrier-job-logo large">MT</div><div><h2>{carrier.name}</h2><p>Brooklyn, NY · Independent dispatch account</p></div></div><span className={`carrier-job-status ${active?'active':offer?'offer':pending?'pending':'prospect'}`}>{active?'ACTIVE AGREEMENT':offer?'OFFER RECEIVED':pending?'APPLICATION PENDING':'OPEN OPPORTUNITY'}</span></header>
+    <div className="docos-page-body">
+      <section className="docos-section"><div className="docos-section-heading"><span>{active?'ACCOUNT OVERVIEW':'ABOUT THE CARRIER'}</span></div><div className="docos-panel"><p className="carrier-posting-description">Metroline operates regional dry-van freight across the Northeast and is looking for day-to-day dispatch support.</p><div className="docos-fact-list"><div><span>Fleet</span><strong>{carrier.fleetSize} driver</strong></div><div><span>Equipment</span><strong>{rules.equipmentScope.join(', ')}</strong></div><div><span>Preferred Region</span><strong>{rules.preferredRegion}</strong></div><div><span>Home Base</span><strong>Brooklyn, NY</strong></div></div></div></section>
+      <section className="docos-section"><div className="docos-section-heading"><span>LIVE AGREEMENT TERMS</span></div><div className="docos-panel docos-fact-list"><div><span>Dispatch Fee</span><strong>{rules.percentage}% of carrier gross</strong></div><div><span>Booking Authority</span><strong>{rules.loadApprovalRequired?'Carrier approval required':'Dispatcher authorized'}</strong></div><div><span>Rate Preference</span><strong>{rules.minimumRatePerLoadedMile?`$${rules.minimumRatePerLoadedMile.toFixed(2)}+ / loaded mi`:'Flexible'}</strong></div><div><span>Payment Terms</span><strong>{rules.paymentTermsDays} day</strong></div></div></section>
+      {active && <section className="docos-section"><div className="docos-section-heading"><span>RELATIONSHIP & ROSTER</span></div><div className="docos-panel docos-fact-list"><div><span>Carrier Relationship</span><strong>{getCarrierRelationshipLabel(carrier.relationshipScore)}</strong></div><div><span>Dispatcher</span><strong>{dispatcherProfile?.displayName || 'Independent Dispatcher'}</strong></div></div><div className="docos-panel carrier-driver-row-v2"><span className="driver-avatar-v2">M</span><div><strong>{driver?.fullName || 'Marcus Reed'}</strong><small>{driver?.equipment?.label || rules.equipmentScope[0]}</small></div><span className="docos-status-text">ACTIVE</span></div></section>}
+      {!active && (pending ? <div className="docos-state-card pending"><span>APPLICATION SUBMITTED</span><strong>Metroline is reviewing your profile.</strong><p>{dispatcherProfile?.displayName} will be notified when an agreement is ready.</p></div> : offer ? <><div className="docos-state-card offer"><span>AGREEMENT READY</span><strong>Metroline sent your dispatch agreement.</strong><p>Review the live operating terms before activating the carrier.</p></div><div className="docos-sticky-actions"><button className="docos-primary-action" onClick={onOpenOffer}>OPEN AGREEMENT EMAIL</button></div></> : <div className="docos-sticky-actions"><button className="docos-primary-action" onClick={onApply}>APPLY WITH PROFILE</button></div>)}
     </div>
-  )
+  </div>
 }
-
 export default CarrierOpportunityScreen

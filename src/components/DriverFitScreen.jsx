@@ -3,6 +3,7 @@ import mapLocations from '../data/mapLocations.js'
 import { calculateRoute } from '../services/routingService.js'
 import { formatAppointment, formatCompactDate, formatTime } from '../utils/gameTime.js'
 import { getProjectedDriverOrigin } from '../utils/driverQueue.js'
+import { getFreightRouteName } from '../utils/freightIdentity.js'
 
 function evaluateTiming(load, projectedStartMinute, fit) {
   const arrival = projectedStartMinute + fit.minutes
@@ -15,7 +16,7 @@ function evaluateTiming(load, projectedStartMinute, fit) {
   // opens can still be a perfectly good fit.
   const buffer = end - arrival
 
-  let label = 'GOOD FIT'
+  let label = 'GOOD'
   let tone = 'good'
   if (arrival > end) { label = 'AT RISK'; tone = 'poor' }
   else if (buffer <= 30) { label = 'TIGHT'; tone = 'tight' }
@@ -33,9 +34,11 @@ function DriverFitScreen({
   onEvaluate,
 }) {
   const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
+  const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
   const candidates = useMemo(() => drivers.filter((driver) => driver.carrierId), [drivers])
   const [fits, setFits] = useState({})
   const [selectedDriverId, setSelectedDriverId] = useState(candidateDriverId || null)
+  const [loadedLeg, setLoadedLeg] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -57,9 +60,11 @@ function DriverFitScreen({
             miles: route.distanceMiles,
             minutes: route.durationMinutes,
             routeShape: route.routeShape,
+            routeSource: route.source,
             projectedStartMinute: projection.availableAbsoluteMinute,
             queueLength: projection.queueLength,
             afterLoadId: projection.afterLoadId,
+            projectedOriginName: projection.location?.name || null,
           },
         }))
       } catch (error) {
@@ -71,6 +76,17 @@ function DriverFitScreen({
     return () => { active = false }
   }, [candidates, loads, runtimePositions, gameTime, load?.id, pickup?.id])
 
+
+  useEffect(() => {
+    let active = true
+    setLoadedLeg(null)
+    if (!pickup || !delivery) return () => { active = false }
+    calculateRoute(pickup, delivery)
+      .then((route) => { if (active) setLoadedLeg(route) })
+      .catch((error) => { console.error(error); if (active) setLoadedLeg('unavailable') })
+    return () => { active = false }
+  }, [pickup?.id, delivery?.id])
+
   const selectedFit = selectedDriverId && fits[selectedDriverId]
     ? evaluateTiming(load, fits[selectedDriverId].projectedStartMinute, fits[selectedDriverId])
     : null
@@ -78,20 +94,20 @@ function DriverFitScreen({
   return (
     <div className="phone-page driver-fit-screen driver-select-v3">
       <header className="docos-page-hero">
-        <span className="docos-page-kicker">FREIGHTLINK · {load.loadNumber || load.id}</span>
+        <span className="docos-page-kicker">FREIGHTLINK · SELECT DRIVER</span>
         <div className="docos-page-title-row">
           <div>
-            <h2>Driver Select</h2>
-            <p>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</p>
+            <h2>{pickup?.name || 'Pickup'}</h2>
+            <p>{getFreightRouteName(load)} · {formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</p>
           </div>
-          <span className="docos-count-chip">FIT REVIEW · NOT ACCEPTED</span>
+          <span className="docos-count-chip">BUILD TRIP</span>
         </div>
       </header>
 
       <div className="docos-page-body">
         <section className="docos-section">
           <div className="docos-section-heading">
-            <span>AVAILABLE ROSTER</span>
+            <span>DRIVER</span>
             <small>SELECT ONE</small>
           </div>
 
@@ -121,7 +137,7 @@ function DriverFitScreen({
 
                   {selected && fit && (
                     <div className="driver-select-card-details">
-                      <div><span>Next opening</span><strong>{fit.afterLoadId ? `After ${fit.afterLoadId}` : 'Now'}</strong></div>
+                      <div><span>Projected position</span><strong>{fit.projectedOriginName || (fit.afterLoadId ? 'After current work' : 'Current location')}</strong></div>
                       <div><span>Deadhead</span><strong>{fit.miles.toFixed(1)} mi · {fit.minutes} min</strong></div>
                       <div><span>Projected arrival</span><strong>{formatCompactDate(fit.arrivalDay)} · {formatTime(fit.arrivalMinutes)}</strong></div>
                       <div><span>Pickup window</span><strong>{formatTime(load.pickupWindowStartMinutes)}–{formatTime(load.pickupWindowEndMinutes)}</strong></div>
@@ -135,12 +151,13 @@ function DriverFitScreen({
 
         {selectedDriverId && selectedFit && (
           <section className="docos-section">
-            <div className="docos-section-heading"><span>ASSIGNMENT IMPACT</span></div>
+            <div className="docos-section-heading"><span>TRIP PREVIEW</span></div>
             <div className="docos-panel assignment-impact-v2">
               <div><span>Deadhead</span><strong>{selectedFit.miles.toFixed(1)} mi</strong></div>
               <div><span>Drive time</span><strong>{selectedFit.minutes} min</strong></div>
               <div><span>Arrival</span><strong>{formatTime(selectedFit.arrivalMinutes)}</strong></div>
               <div><span>Queue</span><strong>{selectedFit.queueLength ? `${selectedFit.queueLength} ahead` : 'Next up'}</strong></div>
+              <div><span>Loaded leg</span><strong>{loadedLeg && loadedLeg !== 'unavailable' ? `${loadedLeg.distanceMiles.toFixed(1)} mi · ${loadedLeg.durationMinutes} min` : loadedLeg === 'unavailable' ? 'Route unavailable' : 'Calculating…'}</strong></div>
             </div>
           </section>
         )}
@@ -149,10 +166,10 @@ function DriverFitScreen({
           <button
             type="button"
             className="docos-primary-action"
-            disabled={!selectedDriverId || !selectedFit}
-            onClick={() => selectedDriverId && selectedFit && onEvaluate(selectedDriverId, selectedFit)}
+            disabled={!selectedDriverId || !selectedFit || !loadedLeg || loadedLeg === 'unavailable'}
+            onClick={() => selectedDriverId && selectedFit && loadedLeg && loadedLeg !== 'unavailable' && onEvaluate(selectedDriverId, { ...selectedFit, loadedLeg })}
           >
-            USE THIS DRIVER
+            BUILD TRIP PLAN
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-function BrowserScreen({ page, children, onOpenFreightLink, onOpenCarrierSource, onBack, onHome, siteTitle = 'FREIGHTLINK', siteSubtitle = 'Load Board', showSiteBranding = true }) {
+function BrowserScreen({ page, children, onOpenFreightLink, onOpenCarrierSource, onBack, onHome, siteTitle = 'FREIGHTLINK', siteSubtitle = 'Load Board', showSiteBranding = true, freightLinkLocked = false }) {
   return (
     <div className="phone-page browser-screen">
       <div className="browser-header"><span>Browser</span></div>
@@ -33,13 +33,13 @@ function BrowserScreen({ page, children, onOpenFreightLink, onOpenCarrierSource,
                 </span>
                 <span className="browser-bookmark-open" aria-hidden="true">›</span>
               </button>
-              <button type="button" className="site-link browser-bookmark-card" onClick={onOpenFreightLink}>
+              <button type="button" className={`site-link browser-bookmark-card${freightLinkLocked ? ' locked' : ''}`} onClick={freightLinkLocked ? undefined : onOpenFreightLink} disabled={freightLinkLocked}>
                 <span className="browser-bookmark-icon freight" aria-hidden="true">FL</span>
                 <span className="browser-bookmark-copy">
                   <strong>FreightLink</strong>
-                  <small>Freight market</small>
+                  <small>{freightLinkLocked ? 'Available after a carrier joins your operation' : 'Freight market'}</small>
                 </span>
-                <span className="browser-bookmark-open" aria-hidden="true">›</span>
+                <span className="browser-bookmark-open" aria-hidden="true">{freightLinkLocked ? 'LOCKED' : '›'}</span>
               </button>
             </div>
           </section>

@@ -1,157 +1,100 @@
 import mapLocations from '../data/mapLocations.js'
 import { formatAppointment } from '../utils/gameTime.js'
-
-function formatStatus(status = '') {
-  return status.split('-').filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
-}
+import { getAgreementRules } from '../utils/carrierAgreement.js'
+import { getFreightCommodity, getFreightRouteName } from '../utils/freightIdentity.js'
+import { getFreightHaulClass } from '../utils/planningIntelligence.js'
 
 function formatMiles(value) {
-  if (value === null || value === undefined) return 'Not listed'
-  if (value === 'unavailable') return 'Unavailable'
   if (Number.isFinite(value)) return `${value.toFixed(1)} mi`
-  return 'Unavailable'
+  return value === 'unavailable' ? 'Unavailable' : 'Not listed'
 }
 
-function LoadDetailsScreen({ loads, drivers, carriers = [], loadId, onAccept, onCheckDriverFit, onRequestCarrierApproval, onViewCarrierApproval, onSendLoadDetails, onPlanRoute, onBack }) {
+function LoadDetailsScreen({ loads, drivers, carriers = [], loadId, onAddToSchedule, onOpenScheduler, onSendLoadDetails, onBack }) {
   const load = loads.find((item) => item.id === loadId)
   const pickup = load && mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = load && mapLocations.find((location) => location.id === load.deliveryLocationId)
+  const eligibleDrivers = drivers.filter((driver) => driver.carrierId)
+  const candidateDriver = load ? drivers.find((driver) => driver.id === load.candidateDriverId) : null
 
-  if (!load || !pickup || !delivery) {
-    return (
-      <div className="phone-page load-details-screen load-details-v2">
-        <div className="load-detail-empty">
-          <strong>Load unavailable</strong>
-          <span>This load can no longer be opened.</span>
-          <button type="button" onClick={onBack}>RETURN TO LOAD BOARD</button>
-        </div>
-      </div>
-    )
-  }
+  // AW1.7: viewing a FreightLink load is read-only. The plan is only mutated
+  // after the dispatcher explicitly taps ADD TO PLAN.
+
+  if (!load || !pickup || !delivery) return <div className="phone-page load-details-screen"><div className="load-detail-empty"><strong>Route unavailable</strong><button type="button" onClick={onBack}>RETURN TO FREIGHTLINK</button></div></div>
 
   const isAvailable = load.status === 'available'
-  const isAccepted = load.status === 'accepted' && !load.assignedDriverId
   const assignedDriver = drivers.find((driver) => driver.id === load.assignedDriverId)
-  const candidateDriver = drivers.find((driver) => driver.id === load.candidateDriverId)
-  const eligibleDrivers = drivers.filter((driver) => driver.carrierId)
-  const sameDay = load.pickupDayIndex === load.deliveryDayIndex
-  const statusLabel = formatStatus(load.status)
+  const candidateCarrier = candidateDriver ? carriers.find((carrier) => carrier.id === candidateDriver.carrierId) : carriers.find((carrier) => carrier.id === load.carrierId)
+  const rules = getAgreementRules(candidateCarrier || carriers[0])
   const rpm = Number.isFinite(load.listedMiles) && load.listedMiles > 0 ? load.rate / load.listedMiles : null
+  const rateFit = !Number.isFinite(rules.minimumRatePerLoadedMile) || !Number.isFinite(rpm) || rpm >= rules.minimumRatePerLoadedMile
+  const haulClass = getFreightHaulClass(load)
 
-  const candidateCarrier = candidateDriver ? carriers.find((carrier) => carrier.id === candidateDriver.carrierId) : null
-  const approvalRequired = Boolean(candidateCarrier?.dispatchAgreement?.loadApprovalRequired)
-  const approvalStatus = load.carrierApprovalStatus || null
-  const approvalReady = !approvalRequired || approvalStatus === 'APPROVED'
+  const addToPlan = async () => {
+    if (!candidateDriver) {
+      const ok = await onAddToSchedule?.(load.id)
+      if (ok === false) return
+    }
+    onOpenScheduler?.(load.id)
+  }
+
+  const driverLabel = candidateDriver ? 'AVAILABLE' : eligibleDrivers.length ? 'CHECKING' : 'NONE'
+  const driverName = candidateDriver?.fullName || candidateDriver?.name || (eligibleDrivers.length ? `${eligibleDrivers.length} ON ROSTER` : 'NO DRIVER')
+  const bookingLabel = rules.loadApprovalRequired ? 'APPROVAL REQUIRED' : 'AUTHORIZED'
+  const rateLabel = rateFit ? 'RATE MATCH' : 'RATE REVIEW'
 
   return (
-    <div className="phone-page load-details-screen load-details-v2 phase2-load-details">
-      <header className="docos-page-hero docos-page-hero-compact freightlink-load-hero">
-        <span className="docos-page-kicker">FREIGHTLINK · LOAD</span>
-        <div className="docos-page-title-row">
-          <div>
-            <h2>{load.loadNumber || load.id}</h2>
-            <p>{pickup.name} → {delivery.name}</p>
-          </div>
-          <span className={`load-detail-v2-status ${isAvailable ? 'available' : ''}`}>{statusLabel}</span>
+    <div className="phone-page load-details-screen freight-route-detail-sheet freight-route-detail-compact">
+      <header className="freight-route-detail-header">
+        <button type="button" onClick={onBack} aria-label="Back to FreightLink">‹</button>
+        <div className="freight-route-title-block">
+          <span>ROUTE</span>
+          <h2>{getFreightRouteName(load)}</h2>
+          <p>{getFreightCommodity(load)}</p>
         </div>
+        <em className={`freight-haul-tag ${haulClass.tone}`}>{haulClass.label}</em>
       </header>
 
-      <div className="docos-page-body">
-        <section className="load-detail-summary-compact">
-          <div className="load-detail-appointment-row">
-            <div><span>PICKUP</span><strong>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</strong><small>{pickup.name}</small></div>
-            <span aria-hidden="true">→</span>
-            <div><span>DELIVERY</span><strong>{formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)}</strong><small>{delivery.name}</small></div>
+      <div className="freight-route-detail-body">
+        <section className="freight-route-window-card" aria-label="Pickup and delivery windows">
+          <div>
+            <span>PICKUP</span>
+            <strong>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</strong>
+            <small>{pickup.name}</small>
           </div>
-          <div className="load-detail-metric-strip">
-            <div><span>RATE</span><strong>${load.rate}</strong></div>
-            <div><span>LOAD MILES</span><strong>{formatMiles(load.listedMiles)}</strong></div>
-            {Number.isFinite(rpm) && <div><span>RATE / MI</span><strong>${rpm.toFixed(2)}</strong></div>}
-            <div><span>SCHEDULE</span><strong>{sameDay ? 'SAME DAY' : 'MULTI-DAY'}</strong></div>
+          <i>→</i>
+          <div>
+            <span>DELIVERY</span>
+            <strong>{formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)}</strong>
+            <small>{delivery.name}</small>
           </div>
         </section>
 
-        {isAvailable && (
-          <section className="docos-section freightlink-driver-coverage">
-            <div className="docos-section-heading"><span>DRIVER COVERAGE</span></div>
-            <div className={`freightlink-driver-coverage-row ${eligibleDrivers.length ? 'ready' : 'none'}`}>
-              <div><strong>{eligibleDrivers.length ? `${eligibleDrivers.length} DRIVER${eligibleDrivers.length === 1 ? '' : 'S'} ON ROSTER` : 'NO DRIVER AVAILABLE'}</strong><small>Check driver fit before committing to this load.</small></div>
-              <span>{eligibleDrivers.length ? 'CHECK FIT' : 'BLOCKED'}</span>
-            </div>
-          </section>
-        )}
+        <section className="freight-route-metrics" aria-label="Route economics">
+          <div><span>RATE</span><strong>${load.rate}</strong></div>
+          <div><span>MILES</span><strong>{formatMiles(load.listedMiles)}</strong></div>
+          <div><span>RATE / MI</span><strong>{Number.isFinite(rpm) ? `$${rpm.toFixed(2)}` : '—'}</strong></div>
+        </section>
 
+        {isAvailable && <section className="freight-route-initial-check freight-route-check-strip">
+          <div className="freight-route-section-title"><span>INITIAL CHECK</span></div>
+          <div className="freight-route-check-row">
+            <span><b>DRIVER</b><strong>{driverLabel}</strong><small>{driverName}</small></span>
+            <span><b>RATE</b><strong>{rateLabel}</strong></span>
+            <span><b>BOOKING</b><strong>{bookingLabel}</strong></span>
+            <span><b>HAUL</b><strong>{haulClass.label}</strong></span>
+          </div>
+          {haulClass.label === 'LONG HAUL' && <p className="freight-route-commitment-note">Major travel commitment — review the full day in Today’s Plan before requesting approval.</p>}
+        </section>}
 
-        {isAvailable && candidateDriver && load.driverFitVerified && (
-          <section className="docos-section freightlink-commit-review">
-            <div className="docos-section-heading"><span>FIT REVIEW</span><small>LOAD NOT ACCEPTED</small></div>
-            <div className="freightlink-driver-assignment-row candidate">
-              <span className="driver-avatar-v2" aria-hidden="true">{(candidateDriver.fullName || candidateDriver.name || 'D').charAt(0)}</span>
-              <div>
-                <strong>{candidateDriver.fullName || candidateDriver.name}</strong>
-                <small>{Number.isFinite(load.assignmentProjection?.deadheadMiles) ? `${load.assignmentProjection.deadheadMiles.toFixed(1)} mi deadhead · ` : ''}{load.assignmentProjection?.status || 'FIT REVIEWED'}</small>
-              </div>
-              <span className="docos-status-text">READY</span>
-            </div>
-          </section>
-        )}
+        {assignedDriver && <section className="freight-route-assigned"><span>ASSIGNED DRIVER</span><strong>{assignedDriver.fullName || assignedDriver.name}</strong><button type="button" onClick={() => onSendLoadDetails?.(load.id, assignedDriver.id)}>OPEN DRIVER THREAD</button></section>}
+      </div>
 
-        {isAvailable && candidateDriver && load.driverFitVerified && approvalRequired && (
-          <section className="docos-section carrier-approval-panel">
-            <div className="docos-section-heading"><span>CARRIER APPROVAL</span><small>{candidateCarrier?.name || 'Carrier'}</small></div>
-            <div className={`carrier-approval-state ${String(approvalStatus || 'required').toLowerCase()}`}>
-              <div><strong>{approvalStatus === 'APPROVED' ? 'APPROVED TO BOOK' : approvalStatus === 'PENDING' ? 'AWAITING EMAIL APPROVAL' : approvalStatus === 'NEEDS_INFO' ? 'RESEND REQUIRED' : 'APPROVAL REQUIRED'}</strong><small>{approvalStatus === 'APPROVED' ? 'Carrier approval is on file for this load.' : 'Your agreement requires written approval before FreightLink acceptance.'}</small></div>
-              <span>{approvalStatus === 'APPROVED' ? '✓' : approvalStatus === 'PENDING' ? '···' : 'EMAIL'}</span>
-            </div>
-          </section>
-        )}
-
-        {assignedDriver && (
-          <section className="docos-section">
-            <div className="docos-section-heading"><span>DRIVER ASSIGNMENT</span></div>
-            <div className="freightlink-driver-assignment-row">
-              <span className="driver-avatar-v2" aria-hidden="true">{(assignedDriver.fullName || assignedDriver.name || 'D').charAt(0)}</span>
-              <div><strong>{assignedDriver.fullName || assignedDriver.name}</strong><small>{assignedDriver.equipment?.label || assignedDriver.trailerType || "53' Dry Van"}</small></div>
-              {load.status === 'assigned' && load.tripStatus === 'assigned' ? (
-                Number.isFinite(load.pickupDriverBriefedGameMinute)
-                  ? <button type="button" onClick={onPlanRoute}>PLAN TRIP</button>
-                  : <button type="button" onClick={() => onSendLoadDetails?.(load.id, assignedDriver.id)}>SEND LOAD DETAILS</button>
-              ) : <span className="docos-status-text">{load.status === 'queued' ? 'PLANNED' : 'ASSIGNED'}</span>}
-            </div>
-          </section>
-        )}
-
-        <div className="docos-sticky-actions load-actions-phase2">
-          {isAvailable && candidateDriver && load.driverFitVerified ? (
-            <>
-              {approvalReady ? (
-                <button type="button" className="docos-primary-action" onClick={onAccept}>ACCEPT &amp; ASSIGN {candidateDriver.name?.toUpperCase() || 'DRIVER'}</button>
-              ) : approvalStatus === 'PENDING' ? (
-                <>
-                  <button type="button" className="docos-primary-action" disabled>AWAITING CARRIER APPROVAL</button>
-                  <button type="button" className="docos-secondary-action" onClick={() => onViewCarrierApproval?.(load.id)}>VIEW APPROVAL REQUEST</button>
-                </>
-              ) : (
-                <button type="button" className="docos-primary-action" onClick={() => onRequestCarrierApproval?.(load.id)}>REQUEST CARRIER APPROVAL</button>
-              )}
-              <button type="button" className="docos-secondary-action" onClick={onCheckDriverFit}>CHANGE DRIVER</button>
-            </>
-          ) : isAvailable ? (
-            <button type="button" className="docos-primary-action" disabled={!eligibleDrivers.length} onClick={onCheckDriverFit}>CHECK DRIVER FIT</button>
-          ) : isAccepted ? (
-            <>
-              <button type="button" className="docos-primary-action" onClick={onCheckDriverFit}>SELECT DRIVER</button>
-              <button type="button" className="docos-secondary-action" onClick={onBack}>ASSIGN LATER</button>
-            </>
-          ) : load.status === 'queued' && assignedDriver ? (
-            <button type="button" className="docos-secondary-action" onClick={onBack}>BACK TO FREIGHTLINK</button>
-          ) : load.status === 'assigned' && load.assignedDriverId && load.tripStatus === 'assigned' ? null : load.assignedDriverId && ['en-route-pickup', 'at-pickup', 'checking-in-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'loaded', 'en-route-delivery', 'at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'].includes(load.tripStatus) ? (
-            <button type="button" className="docos-secondary-action" onClick={onBack}>ACTIVE TRIP · BACK TO FREIGHTLINK</button>
-          ) : null}
-        </div>
+      <div className="freight-route-primary-action">
+        {isAvailable ? <button type="button" onClick={addToPlan}>{load.scheduleApprovalQueued ? 'VIEW IN SCHEDULER' : 'ADD TO PLAN'}</button> : <button type="button" onClick={() => onOpenScheduler?.(load.id)}>VIEW SCHEDULE</button>}
       </div>
     </div>
   )
+
 }
 
 export default LoadDetailsScreen

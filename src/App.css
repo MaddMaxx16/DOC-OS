@@ -228,7 +228,7 @@
 .game-marker.driver {
   width: 24px;
   height: 24px;
-  background: #6A5A82;
+  background: var(--driver-color, #6A5A82);
   border-radius: 8px;
 }
 
@@ -1949,7 +1949,7 @@
 
 /* --------------------------------------------------------------------------
    iPhone development reset shortcut
-   Hold the DOC OS brand in the phone status bar for ~0.9s to open reset.
+   Hold the DOC OS brand in the phone status bar for ~0.9s to open iPhone dev tools.
    This keeps the locked Phone Home v2 layout visually unchanged.
    -------------------------------------------------------------------------- */
 .phone-reset-trigger {
@@ -2050,6 +2050,72 @@
   border-color: rgba(214, 139, 69, .65);
   background: #30231d;
   color: #f0c39a;
+}
+
+.phone-dev-dialog {
+  width: min(100%, 268px);
+}
+
+.phone-dev-tool-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 15px;
+}
+
+.phone-dev-tool-row {
+  display: grid;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid #303945;
+  border-radius: 12px;
+  background: #10151b;
+}
+
+.phone-dev-tool-row > div {
+  display: grid;
+  gap: 4px;
+}
+
+.phone-dev-tool-row span {
+  color: #818b99;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .16em;
+}
+
+.phone-dev-tool-row b {
+  color: #e6eaf0;
+  font-size: 10px;
+  letter-spacing: .04em;
+}
+
+.phone-dev-tool-row small {
+  color: #7e8895;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.phone-dev-tool-row button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(172, 114, 197, .55);
+  border-radius: 10px;
+  background: #292031;
+  color: #e0c4eb;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.phone-dev-tool-row button:disabled {
+  border-color: #303945;
+  background: #191f27;
+  color: #65707d;
+}
+
+.phone-dev-actions {
+  margin-top: 12px;
 }
 
 /* --------------------------------------------------------------------------
@@ -10634,3 +10700,1049 @@
 .trip-plan-v2-actions { padding: 6px 10px 8px; }
 .map-evaluation.trip-planning-v2 .trip-plan-v2-back,
 .map-evaluation.trip-planning-v2 .trip-plan-v2-confirm { min-height: 32px; }
+
+/* AV2.6 CarrierSource identity + live agreements */
+.cs-public-landing { background:#f5f6f7; color:#17212b; min-height:100%; }
+.cs-public-top { display:flex; align-items:center; justify-content:space-between; padding:22px 20px 14px; background:#fff; border-bottom:1px solid #dce1e6; }
+.cs-docos-brand { display:grid; gap:3px; }
+.cs-docos-brand strong { font-size:22px; font-weight:900; letter-spacing:.12em; color:#17212b; }
+.cs-docos-brand span { font-size:8px; font-weight:900; letter-spacing:.16em; color:#6e58a6; }
+.cs-signup-button { border:0; border-radius:14px; padding:11px 18px; background:#6e58a6; color:white; font-weight:900; letter-spacing:.08em; }
+.cs-search-panel { display:grid; gap:8px; padding:18px 16px; background:#fff; }
+.cs-search-panel>div { min-height:54px; border:1px solid #aeb7c0; border-radius:14px; display:flex; align-items:center; gap:12px; padding:0 14px; }
+.cs-search-panel p { margin:0; color:#5e6872; }
+.cs-search-panel button { min-height:48px; border:0; border-radius:12px; background:#6e58a6; color:#fff; font-weight:900; }
+.cs-public-hero { padding:42px 24px; text-align:center; background:#fff; border-top:1px solid #e5e8eb; border-bottom:1px solid #e5e8eb; }
+.cs-service-label { display:block; margin-bottom:8px; font-size:10px; font-weight:900; letter-spacing:.22em; color:#6e58a6; }
+.cs-public-hero .cs-docos-hero { display:block; font-size:36px; font-weight:900; letter-spacing:.14em; color:#17212b; }
+.cs-public-hero h2{font-size:24px;margin:18px 0 8px}.cs-public-hero p{color:#66717b;line-height:1.5}.cs-public-hero .docos-primary-action{margin-top:18px}
+.cs-preview { margin:18px; padding:18px; background:#fff; border:1px solid #dce1e6; border-radius:16px; display:grid; gap:5px; }.cs-preview span{font-size:10px;letter-spacing:.18em;color:#7c8792;font-weight:900}.cs-preview strong{font-size:18px}.cs-preview p{margin:0;color:#6b7580}
+.cs-signup-header { display:flex; gap:12px; padding:22px 18px; border-bottom:1px solid #28333e; }.cs-signup-header button{width:38px;height:38px;border-radius:12px;border:1px solid #3c4854;background:#192029;color:#dce5ee;font-size:24px}.cs-signup-header span,.cs-account-header span{font-size:10px;letter-spacing:.2em;color:#8798aa;font-weight:900}.cs-signup-header h2,.cs-account-header h2{margin:4px 0}.cs-signup-header p,.cs-account-header p{margin:0;color:#8fa0b0}
+.cs-profile-form { display:grid; gap:16px; padding:20px; }.cs-profile-form label{display:grid;gap:7px}.cs-profile-form label>span{font-size:10px;letter-spacing:.16em;color:#8798aa;font-weight:900}.cs-profile-form input,.cs-profile-form select{width:100%;box-sizing:border-box;border:1px solid #35424f;background:#151b22;color:#edf3f8;border-radius:12px;padding:14px;font:inherit}.cs-input-suffix{display:flex;align-items:center;gap:8px}.cs-input-suffix input{flex:1}.cs-input-suffix b{color:#aab7c4}
+.cs-account-header { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; padding:20px 18px; border-bottom:1px solid #28333e; }.cs-profile-chip{border:1px solid #4b5663;background:#171e26;color:#dce5ee;border-radius:999px;padding:9px 12px;font-size:10px;font-weight:900;letter-spacing:.12em}.cs-tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #28333e}.cs-tabs button{padding:14px 8px;border:0;background:#11171d;color:#778897;font-weight:900;font-size:10px;letter-spacing:.12em}.cs-tabs button.active{color:#ece8f7;border-bottom:2px solid #8d73bf}.cs-content{padding:18px}.cs-empty{padding:30px 18px;text-align:center;border:1px dashed #394653;border-radius:16px}.cs-empty p{color:#8c9ba9}.cs-empty button{border:0;border-radius:12px;background:#30283a;color:#eee8f7;padding:12px 16px;font-weight:900}.cs-carrier-dashboard-card{width:100%;text-align:left;border:1px solid #3a4652;border-radius:16px;background:#151c23;color:#edf3f8;padding:0;overflow:hidden}.cs-carrier-title{display:flex;gap:12px;align-items:center;padding:16px}.cs-carrier-title>div:last-child{display:grid;gap:4px}.cs-carrier-title span{font-size:9px;color:#8798aa;letter-spacing:.11em}.cs-carrier-metrics{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #2c3742;border-bottom:1px solid #2c3742}.cs-carrier-metrics div{padding:14px;border-right:1px solid #2c3742;border-bottom:1px solid #2c3742;display:grid;gap:4px}.cs-carrier-metrics span{font-size:9px;color:#7f91a2;letter-spacing:.12em}.cs-carrier-metrics b{font-size:13px}.carrier-closeout-section h2{letter-spacing:.12em}
+
+/* AV2.6.2 — CarrierSource dark theme polish */
+.cs-public-landing {
+  background: #0f141a;
+  color: #e8eef5;
+}
+.cs-public-top {
+  background: #11171d;
+  border-bottom-color: #2a3540;
+}
+.cs-docos-brand strong { color: #f0f4f8; }
+.cs-docos-brand span { color: #9a83c7; }
+.cs-signup-button {
+  background: #69539a;
+  color: #f7f3ff;
+  box-shadow: inset 0 0 0 1px rgba(180,153,229,.18);
+}
+.cs-search-panel {
+  background: #0f141a;
+  border-bottom: 1px solid #242e38;
+}
+.cs-search-panel > div {
+  background: #151c23;
+  border-color: #3a4652;
+  color: #edf3f8;
+}
+.cs-search-panel > div svg,
+.cs-search-panel > div span:first-child { color: #aeb9c5; }
+.cs-search-panel p { color: #c3cdd6; }
+.cs-search-panel button {
+  background: #69539a;
+  color: #f7f3ff;
+  box-shadow: inset 0 0 0 1px rgba(180,153,229,.16);
+}
+.cs-public-hero {
+  background: #11171d;
+  border-top-color: #242e38;
+  border-bottom-color: #242e38;
+}
+.cs-service-label { color: #9a83c7; }
+.cs-public-hero .cs-docos-hero { color: #f0f4f8; }
+.cs-public-hero h2 { color: #edf3f8; }
+.cs-public-hero p { color: #98a7b5; }
+.cs-preview {
+  background: #151c23;
+  border-color: #35414c;
+  color: #edf3f8;
+}
+.cs-preview span { color: #8fa0af; }
+.cs-preview p { color: #9aa9b7; }
+
+/* AV2.7 — Dispatch Workflow Foundation
+   FreightLink market planning, facility-first load language, communications hierarchy,
+   and INFO / ACTION / URGENT alert semantics. Surgical overrides only. */
+.freightlink-v2.map-mode{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.freightlink-v2.map-mode .freightlink-page-heading{flex:0 0 auto;padding-bottom:7px!important}
+.freightlink-v2.map-mode .freightlink-filter-row,.freightlink-v2.map-mode .freightlink-view-row{flex:0 0 auto}
+.freightlink-v2.map-mode .freightlink-market-map-shell.av27-map{flex:1 1 auto;min-height:0;height:auto;margin:0 12px 10px;border-radius:12px}
+.freightlink-v2.map-mode .freightlink-market-map{height:100%;min-height:430px}
+.freightlink-market-pin small{max-width:94px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:uppercase}
+.freightlink-driver-map-pin{display:grid;justify-items:center;gap:3px;pointer-events:none}
+.freightlink-driver-map-pin>span{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;border:2px solid #9aaaba;background:#1b2731;color:#f2f5f8;font-size:11px;font-weight:950;box-shadow:0 3px 9px #000a}
+.freightlink-driver-map-pin>small{padding:2px 5px;border:1px solid #384652;border-radius:5px;background:#11161bea;color:#aab7c3;font-size:6px;font-weight:900;letter-spacing:.1em}
+.freightlink-map-hint{display:grid;gap:3px;text-align:left}
+.freightlink-map-hint strong{color:#edf2f6;font-size:8px;letter-spacing:.12em}.freightlink-map-hint span{font-size:9px;line-height:1.25}
+.freightlink-map-preview.av27-preview{gap:7px;padding:10px 11px}
+.freightlink-map-preview.av27-preview .freightlink-map-preview-top>div{display:grid;gap:2px;min-width:0}
+.freightlink-map-preview.av27-preview .freightlink-map-preview-top span{max-width:235px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.freightlink-map-preview.av27-preview .freightlink-map-preview-top strong{font-size:15px}
+.freightlink-map-preview.av27-preview .freightlink-map-preview-top>small{align-self:start;padding-top:2px}
+.freightlink-chain-fit{display:grid;grid-template-columns:1.4fr .72fr .95fr;gap:6px;padding:7px;border:1px solid #34404a;border-radius:8px;background:#151b21}
+.freightlink-chain-fit>div{min-width:0;display:grid;gap:2px}.freightlink-chain-fit span{color:#758593;font-size:6px;font-weight:900;letter-spacing:.1em}.freightlink-chain-fit strong{color:#eef2f5;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.freightlink-chain-fit small{color:#8b9aa7;font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.freightlink-chain-fit.good{border-color:#355746}.freightlink-chain-fit.tight{border-color:#675b3d}.freightlink-chain-fit.poor{border-color:#684149}
+.freightlink-chain-fit.good>div:last-child strong{color:#99c6ad}.freightlink-chain-fit.tight>div:last-child strong{color:#d6c18c}.freightlink-chain-fit.poor>div:last-child strong{color:#d9a0a8}
+.freightlink-map-route-state{color:#6f7e8b;font-size:6px;font-weight:900;letter-spacing:.1em}
+.freight-decision-row.av27 .freight-decision-id{display:grid;gap:2px;min-width:0}.freight-decision-row.av27 .freight-decision-id strong{max-width:200px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.freight-decision-row.av27 .freight-decision-id small{color:#667584;font-size:7px;font-weight:900;letter-spacing:.08em}
+.freightlink-load-hero h2{font-size:19px!important;max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.freightlink-load-hero p{color:#758493!important;font-size:9px!important;letter-spacing:.08em}
+.freightlink-agreement-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.freightlink-agreement-grid>div{display:grid;gap:2px;padding:8px;border:1px solid #303943;border-radius:8px;background:#141a20}.freightlink-agreement-grid span{color:#70808e;font-size:6px;font-weight:900;letter-spacing:.12em}.freightlink-agreement-grid strong{color:#e9eef2;font-size:9px}.freightlink-agreement-grid small{color:#8594a1;font-size:7px;line-height:1.2}.freightlink-agreement-grid .good{border-color:#33483f}.freightlink-agreement-grid .risk{border-color:#69444a}.freightlink-agreement-grid .risk strong{color:#d7a0a8}
+.driver-reply-menu-heading span{font-size:7px!important;letter-spacing:.11em!important}.driver-reply-context-label{margin-top:4px;padding-top:7px;border-top:1px solid #303943;color:#8998a6!important}
+.driver-reply-menu>button strong{font-size:10px}.driver-reply-menu>button small{line-height:1.25}
+.operations-drawer-item.info .operations-drawer-source{color:#8394a3}.operations-drawer-item.action .operations-drawer-source{color:#b7a8c4}.operations-drawer-item.urgent .operations-drawer-source{color:#d29aa3}.operations-drawer-item.urgent{border-left:2px solid #8d525c}.operations-drawer-item.action{border-left:2px solid #665d72}.operations-drawer-item.info{border-left:2px solid #36434e}
+
+
+/* AV2.7.1 — FreightLink full-screen market workspace. Surgical override only. */
+.freightlink-map-workspace{
+  position:fixed; inset:0; z-index:5000; display:flex; flex-direction:column;
+  background:#0d1115; color:#eef2f5; overflow:hidden;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.freightlink-map-workspace-header{
+  flex:0 0 58px; min-height:58px; display:grid; grid-template-columns:46px 1fr 46px; align-items:center;
+  border-bottom:1px solid #2d353e; background:#11171d; padding:0 8px;
+}
+.freightlink-map-workspace-header>div{display:grid;gap:1px;text-align:center;line-height:1}
+.freightlink-map-workspace-header span{font-size:7px;font-weight:900;letter-spacing:.16em;color:#80758d}
+.freightlink-map-workspace-header strong{font-size:13px;font-weight:950;letter-spacing:.08em;color:#eef2f5}
+.freightlink-map-workspace-back,.freightlink-map-workspace-close{
+  width:38px;height:38px;border:1px solid #343d46;border-radius:10px;background:#171e25;color:#e9edf1;
+  font-size:27px;line-height:1;display:grid;place-items:center;padding:0;
+}
+.freightlink-map-workspace-close{font-size:22px;justify-self:end}
+.freightlink-map-workspace-body{flex:1 1 auto;min-height:0;position:relative;padding:8px;background:#0d1115}
+.freightlink-map-workspace-body .freightlink-market-map-shell.av27-map{height:100%;min-height:0;margin:0;border-radius:13px}
+.freightlink-map-workspace-body .freightlink-market-map{height:100%;min-height:0}
+.freightlink-map-workspace-body .freightlink-map-preview.av27-preview{left:10px;right:10px;bottom:10px}
+.freightlink-map-workspace-body .freightlink-map-hint{left:10px;right:10px;bottom:10px}
+@media (max-height:700px){
+  .freightlink-map-workspace-header{flex-basis:50px;min-height:50px}
+  .freightlink-map-workspace-body{padding:6px}
+}
+
+/* AV2.8.1 — player-facing Trip Plan UX. Surgical additions only. */
+.trip-plan-screen { background:#10151b; color:#edf3f8; min-height:100%; }
+.trip-plan-body { padding-bottom:150px; }
+.trip-plan-state { align-self:flex-start; border:1px solid #40505d; border-radius:999px; padding:6px 9px; font-size:9px; letter-spacing:.1em; color:#cfd8df; }
+.trip-plan-state.booked { border-color:#586a60; }
+.trip-plan-state.pending { border-color:#6c5d8f; color:#d8cdf5; }
+.trip-plan-driver-card,.freightlink-trip-plan-open { width:100%; box-sizing:border-box; display:flex; align-items:center; gap:10px; background:#151c23; border:1px solid #303c47; border-radius:14px; padding:12px; color:#edf3f8; text-align:left; }
+.freightlink-trip-plan-open { appearance:none; font:inherit; }
+.trip-plan-driver-card > div,.freightlink-trip-plan-open > div { min-width:0; flex:1; display:flex; flex-direction:column; gap:3px; }
+.trip-plan-driver-card strong,.freightlink-trip-plan-open strong { font-size:12px; }
+.trip-plan-driver-card small,.freightlink-trip-plan-open small { color:#95a3ae; font-size:9px; line-height:1.35; }
+.trip-plan-driver-card > span:last-child,.freightlink-trip-plan-open > span:last-child { font-size:8px; letter-spacing:.08em; color:#b8a7e8; white-space:nowrap; }
+.trip-leg-stack { display:flex; flex-direction:column; gap:8px; }
+.trip-leg-card { display:grid; grid-template-columns:28px minmax(0,1fr) auto; align-items:center; gap:9px; background:#151c23; border:1px solid #303c47; border-radius:14px; padding:11px; }
+.trip-leg-index { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#212b34; color:#b8a7e8; font-size:10px; font-weight:700; }
+.trip-leg-copy { min-width:0; display:flex; flex-direction:column; gap:3px; }
+.trip-leg-copy > span { color:#8695a1; font-size:8px; letter-spacing:.09em; }
+.trip-leg-copy strong { font-size:11px; line-height:1.25; }
+.trip-leg-copy small { color:#9aa7b1; font-size:8.5px; line-height:1.35; }
+.trip-leg-ready { color:#a9b8b0; font-size:8px; letter-spacing:.08em; }
+.trip-plan-approval-row { display:flex; align-items:center; justify-content:space-between; gap:10px; background:#151c23; border:1px solid #303c47; border-radius:14px; padding:12px; }
+.trip-plan-approval-row > div { display:flex; flex-direction:column; gap:3px; }
+.trip-plan-approval-row strong { font-size:10px; }
+.trip-plan-approval-row small { color:#96a3ad; font-size:8.5px; line-height:1.35; }
+.trip-plan-approval-row > span { font-size:15px; color:#b8a7e8; }
+.trip-plan-actions { gap:8px; }
+
+/* AV2.9.4 — handoff sync, multi-driver schedule foundation, DOC OS reply dropdown */
+.operations-schedule-header{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+}
+.operations-schedule-header>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.operations-driver-filter{display:grid;gap:3px;min-width:132px}
+.operations-driver-filter>span{color:#708396;font-size:7px;font-weight:900;letter-spacing:.14em}
+.operations-driver-filter select{
+  width:100%;height:30px;padding:0 28px 0 9px;border:1px solid rgba(92,105,119,.58);border-radius:7px;
+  background:#151b21;color:#dbe5ed;font-size:8px;font-weight:900;letter-spacing:.06em;outline:none;
+}
+.operations-driver-filter select:focus{border-color:rgba(181,154,203,.72);box-shadow:0 0 0 1px rgba(181,154,203,.16)}
+.operations-driver-overview-list{display:grid;gap:7px}
+.operations-driver-overview{
+  position:relative;display:grid;gap:5px;width:100%;padding:10px 76px 10px 11px;border:1px solid rgba(80,94,108,.44);
+  border-radius:8px;background:rgba(20,24,29,.96);color:#d2dce5;text-align:left;
+}
+.operations-driver-overview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.operations-driver-overview-head strong{font-size:11px;color:#dce6ee}
+.operations-driver-overview-head span{font-size:7px;font-weight:900;letter-spacing:.08em;color:#879aac;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.operations-driver-overview-route{font-size:10px;font-weight:800;color:#c4d0da;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.operations-driver-overview>small{font-size:7px;font-weight:800;letter-spacing:.06em;color:#71869a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.operations-driver-overview>.operations-schedule-risk{position:absolute;right:10px;bottom:10px}
+
+.driver-thread-composer-v3{position:relative;display:grid;gap:8px}
+.driver-thread-reply-control{position:relative}
+.driver-thread-reply-toggle{
+  width:100%;min-height:42px;padding:0 12px;border:1px solid #39434e;border-radius:8px;background:#171d23;color:#d9e3eb;
+  display:flex;align-items:center;justify-content:space-between;font-size:9px;font-weight:900;letter-spacing:.14em;
+}
+.driver-thread-reply-toggle strong{font-size:12px;color:#8195a8}
+.driver-thread-reply-toggle.open{border-color:rgba(181,154,203,.7);background:rgba(37,30,44,.98);color:#efe5f5}
+.driver-thread-reply-dropdown{
+  position:absolute;left:0;right:0;bottom:calc(100% + 7px);z-index:30;padding:7px;border:1px solid rgba(75,88,101,.82);
+  border-radius:9px;background:rgba(16,20,25,.99);box-shadow:0 -12px 32px rgba(0,0,0,.38);display:grid;gap:5px;
+}
+.driver-thread-reply-dropdown-heading{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 5px;border-bottom:1px solid rgba(55,66,77,.72)}
+.driver-thread-reply-dropdown-heading span{font-size:7px;font-weight:950;letter-spacing:.16em;color:#9eb0c0}
+.driver-thread-reply-dropdown-heading small{font-size:7px;font-weight:900;letter-spacing:.12em;color:#745d82}
+.driver-thread-reply-dropdown>button{
+  width:100%;padding:9px 10px;border:1px solid transparent;border-radius:6px;background:#1b2229;color:#dbe4eb;text-align:left;
+  font-size:9px;font-weight:760;line-height:1.35;
+}
+.driver-thread-reply-dropdown>button:active{border-color:rgba(181,154,203,.72);background:rgba(47,37,56,.98)}
+.driver-thread-context-action small{font-size:8px;line-height:1.25;color:#8ea3b7}
+
+@media (max-width:520px){
+  .operations-schedule-header{align-items:stretch;flex-direction:column}
+  .operations-driver-filter{width:100%}
+  .operations-driver-overview{padding-right:68px}
+}
+
+/* AV2.9.5 — Day Flow Polish: schedule history, phone-first CarrierSource, stable FreightLink camera */
+.operations-schedule-item.completed{
+  border-color:rgba(72,82,91,.28)!important;
+  background:rgba(15,19,23,.72)!important;
+  opacity:.62;
+}
+.operations-schedule-item.completed .operations-schedule-copy>strong,
+.operations-schedule-item.completed .operations-schedule-time strong{color:#8a969f!important}
+.operations-schedule-item.completed .operations-schedule-copy>span,
+.operations-schedule-item.completed small{color:#66737d!important}
+.operations-schedule-risk.completed{
+  color:#87939c!important;border-color:#424c54!important;background:#171c21!important;
+}
+
+/* CarrierSource is a DOC OS phone app: one column, compact vertical rhythm, no desktop-page proportions. */
+.carriersource-screen{width:100%;max-width:100%;overflow-x:hidden;box-sizing:border-box}
+.cs-public-top{padding:12px 12px 10px!important;gap:8px!important}
+.cs-docos-brand strong{font-size:13px!important}.cs-docos-brand span{font-size:7px!important;letter-spacing:.11em!important}
+.cs-signup-button{padding:7px 9px!important;font-size:8px!important}
+.cs-search-panel{padding:10px 12px!important;gap:6px!important}
+.cs-search-panel>div{min-height:40px!important;border-radius:9px!important;padding:0 10px!important;gap:8px!important}
+.cs-search-panel p{font-size:10px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs-search-panel button{min-height:38px!important;border-radius:8px!important;font-size:9px!important}
+.cs-public-hero{padding:20px 15px!important;text-align:left!important}
+.cs-public-hero .cs-docos-hero{font-size:24px!important;letter-spacing:.1em!important}
+.cs-public-hero h2{font-size:18px!important;margin:9px 0 5px!important}.cs-public-hero p{font-size:11px!important;line-height:1.4!important;margin:0!important}
+.cs-public-hero .docos-primary-action{margin-top:12px!important;min-height:40px!important;font-size:9px!important}
+.cs-preview{margin:10px 12px!important;padding:12px!important;border-radius:10px!important}.cs-preview strong{font-size:13px!important}.cs-preview p{font-size:9px!important}
+.cs-account-header{padding:12px!important;gap:8px!important}.cs-account-header h2{font-size:16px!important}.cs-account-header p{font-size:9px!important}
+.cs-profile-chip{padding:7px 9px!important;font-size:8px!important}.cs-tabs button{padding:10px 6px!important;font-size:8px!important}.cs-content{padding:10px!important}
+.cs-carrier-title{padding:11px!important}.cs-carrier-metrics{grid-template-columns:1fr!important}.cs-carrier-metrics div{padding:9px 11px!important;border-right:0!important}
+.cs-carrier-metrics b{font-size:11px!important}.cs-carrier-metrics span{font-size:7px!important}
+.carrier-job-card-summary{padding:11px!important}.carrier-job-card-summary .carrier-job-top{display:grid!important;grid-template-columns:40px minmax(0,1fr)!important;gap:9px!important}
+.carrier-job-card-summary .carrier-job-logo{width:40px!important;height:40px!important;min-width:40px!important}.carrier-job-card-summary .carrier-job-status{grid-column:1/-1;justify-self:start!important}
+.carrier-job-card-summary .carrier-job-title strong{font-size:13px!important}.carrier-job-card-summary .carrier-job-title span{font-size:9px!important}.carrier-job-card-summary .carrier-job-summary{font-size:10px!important;line-height:1.4!important;margin:9px 0!important}
+.carrier-posting-v2 .carrier-posting-hero{padding:12px!important}.carrier-posting-company{gap:9px!important}.carrier-posting-company .carrier-job-logo.large{width:42px!important;height:42px!important;min-width:42px!important}
+.carrier-posting-company h2{font-size:16px!important;margin:0!important}.carrier-posting-company p{font-size:9px!important}.carrier-posting-v2 .docos-page-body{padding:10px!important;padding-bottom:88px!important}
+.carrier-posting-v2 .docos-section{margin-bottom:10px!important}.carrier-posting-v2 .docos-panel{padding:10px!important;border-radius:10px!important}.carrier-posting-v2 .carrier-posting-description{font-size:10px!important;line-height:1.4!important}
+.carrier-posting-v2 .docos-fact-list>div{padding:8px 0!important;gap:8px!important}.carrier-posting-v2 .docos-fact-list span{font-size:8px!important}.carrier-posting-v2 .docos-fact-list strong{font-size:9px!important;text-align:right!important}
+
+/* AV2.9.8 — Messages separates operational updates from conversational replies. */
+.driver-thread-dual-controls{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.driver-thread-dual-controls>.driver-thread-reply-dropdown{grid-column:1 / -1}
+@media (max-width:380px){.driver-thread-dual-controls{grid-template-columns:1fr}}
+
+
+/* AV2.10.3 · readable multi-stop itinerary preview */
+.freightlink-stop-order ol { list-style:none; margin:10px 0 12px; padding:0; display:grid; gap:8px; }
+.freightlink-stop-order li { display:flex; align-items:center; gap:10px; padding:9px 10px; border:1px solid rgba(120,139,160,.22); border-radius:12px; background:rgba(15,20,27,.52); }
+.freightlink-stop-order li > b { width:26px; height:26px; border-radius:9px; display:grid; place-items:center; background:rgba(173,126,214,.14); color:#c7a5df; font-size:11px; }
+.freightlink-stop-order li > div { display:grid; gap:2px; min-width:0; }
+.freightlink-stop-order li strong { font-size:10px; letter-spacing:.16em; color:#e5ebf2; }
+.freightlink-stop-order li small { font-size:11px; color:#8fa0b3; letter-spacing:.04em; }
+
+/* AV2.10.5 — secondary itinerary stops stay visible while another stop owns interaction. */
+.game-marker.itinerary-stop-marker {
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+  opacity: .82;
+  border-width: 1px;
+  box-shadow: 0 2px 7px rgba(0,0,0,.34);
+}
+
+.game-marker.itinerary-stop-marker { background: var(--driver-color, #6A5A82); border-color: color-mix(in srgb, var(--driver-color, #6A5A82) 76%, white); }
+.itinerary-route-label { background: transparent; border: 0; box-shadow: none; padding: 0; }
+.itinerary-route-label-text { display:block; min-width:42px; padding:4px 7px; border-radius:999px; border:1px solid var(--route-label-color); background:rgba(10,13,18,.92); color:#f2f4f7; box-shadow:0 3px 10px rgba(0,0,0,.38); font:700 9px/1.05 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; letter-spacing:.08em; text-align:center; white-space:nowrap; transform-origin:center center; }
+.operations-driver-overview { box-shadow: inset 3px 0 0 var(--driver-accent, #756D80); }
+.operations-schedule-list { border-left: 2px solid color-mix(in srgb, var(--driver-accent, #756D80) 68%, transparent); padding-left: 8px; }
+.operations-schedule-window { display:grid; grid-template-columns:64px minmax(0,1fr); gap:10px; align-items:center; padding:8px 9px; border:1px dashed #34404b; border-radius:10px; background:rgba(16,21,27,.66); color:#91a0ad; }
+.operations-schedule-window>div:last-child { display:grid; gap:2px; }
+.operations-schedule-window strong { font-size:9px; letter-spacing:.08em; color:#9aacbc; }
+.operations-schedule-window small { font-size:8px; line-height:1.3; color:#6f8192; }
+.operations-schedule-remove { justify-self:start; margin-top:7px; min-height:28px; padding:0 9px; border:1px solid #493e50; border-radius:8px; background:#211c26; color:#d7c8df; font-size:7px; font-weight:900; letter-spacing:.08em; }
+.operations-completed-toggle { width:100%; min-height:34px; border:1px solid #2d3741; border-radius:9px; background:#141a20; color:#8495a5; font-size:8px; font-weight:900; letter-spacing:.1em; }
+
+
+/* AV2.10.6 — route identity: pickup legs dashed, delivery legs solid, each load labeled on-map. */
+.itinerary-route-label {
+  --route-label-color: #A978D6;
+  pointer-events: none;
+}
+
+
+/* AV2.11.1 — map UI stacking contract.
+   MapLibre markers/route labels stay inside the map stacking context and can
+   never float over controls or the opened operations device. Inside the map,
+   facility markers remain above Marcus, Marcus above route labels/lines. */
+.main-game-screen .map-area > .game-map { z-index: 1; }
+.main-game-screen .map-area > .board-view-control { z-index: 60; }
+.main-game-screen .map-area > .time-controls-wrap { z-index: 60; }
+.main-game-screen .map-area > .phone-button { z-index: 70; }
+.main-game-screen .map-area > .phone-overlay { z-index: 1000; }
+.main-game-screen .map-area > .operations-drawer,
+.main-game-screen .map-area > .driver-schedule-drawer { z-index: 900; }
+
+/* AV2.13 communications/dev-tool cleanup */
+.phone-dev-tool-row-stack { align-items: stretch; }
+.phone-dev-inline-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; width:100%; }
+.phone-dev-inline-actions button { min-width:0; }
+
+/* AV2.15 — FreightLink stays unavailable until a carrier relationship is active. */
+.browser-bookmark-card.locked,
+.browser-bookmark-card:disabled {
+  opacity: .58;
+  cursor: default;
+}
+.browser-bookmark-card.locked .browser-bookmark-open {
+  font-size: 7px;
+  letter-spacing: .12em;
+  color: #8e97a3;
+}
+
+/* AV2.15 — FreightLink stays unavailable until a carrier relationship is active. */
+.browser-bookmark-card.locked,
+.browser-bookmark-card:disabled {
+  opacity: .58;
+  cursor: default;
+}
+.browser-bookmark-card.locked .browser-bookmark-open {
+  font-size: 7px;
+  letter-spacing: .12em;
+  color: #8e97a3;
+}
+
+
+/* AV2.17 â DOC OS schedule action surface */
+.operations-schedule-send{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;
+  padding:13px 14px;margin:0 0 10px;border:1px solid rgba(82,96,110,.48);border-radius:10px;
+  background:linear-gradient(180deg,rgba(22,27,32,.98),rgba(17,21,26,.98));box-shadow:inset 0 1px 0 rgba(255,255,255,.018);
+}
+.operations-schedule-send-copy{display:grid;gap:4px;min-width:0}.operations-schedule-send-copy>span{color:#8da0b2;font-size:8px;font-weight:950;letter-spacing:.16em}.operations-schedule-send-copy>small{color:#a6b4c0;font-size:9px;line-height:1.35}
+.operations-schedule-primary{
+  min-width:180px;min-height:50px;padding:9px 13px;border:1px solid rgba(181,154,203,.58);border-radius:8px;
+  background:linear-gradient(180deg,rgba(48,38,57,.96),rgba(36,29,44,.98));color:#eee7f3;
+  display:grid;align-content:center;gap:3px;text-align:left;box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+}
+.operations-schedule-primary>span{font-size:9px;font-weight:950;letter-spacing:.12em}.operations-schedule-primary>small{font-size:7px;font-weight:850;letter-spacing:.09em;color:#b8a7c5}.operations-schedule-primary:active:not(:disabled){transform:translateY(1px);border-color:rgba(202,178,220,.78);background:rgba(58,44,68,.98)}
+.operations-schedule-primary:disabled{opacity:.55;border-color:rgba(83,95,107,.52);background:#171d22;color:#95a3af}.operations-schedule-primary:disabled>small{color:#6f7e8b}
+@media(max-width:520px){.operations-schedule-send{grid-template-columns:1fr}.operations-schedule-primary{width:100%;min-width:0}}
+
+/* AV2.18 — planning intelligence */
+.freightlink-plan-impact{display:grid;gap:10px}
+.freightlink-plan-verdict{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:12px;border:1px solid rgba(82,96,110,.48);border-radius:10px;background:#12171c}
+.freightlink-plan-verdict>div{display:grid;gap:4px}.freightlink-plan-verdict span,.freightlink-plan-metrics span{font-size:7px;font-weight:900;letter-spacing:.14em;color:#8293a3}.freightlink-plan-verdict strong{font-size:16px;letter-spacing:.04em}.freightlink-plan-verdict small{color:#9dacb8;line-height:1.35}.freightlink-plan-verdict>b{font-size:20px;color:#d7dee5}.freightlink-plan-verdict.good{border-color:rgba(76,151,121,.5)}.freightlink-plan-verdict.attention{border-color:rgba(181,137,53,.58)}.freightlink-plan-verdict.danger{border-color:rgba(181,77,88,.65)}
+.freightlink-plan-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.freightlink-plan-metrics>div{display:grid;gap:3px;padding:10px;border:1px solid rgba(72,84,96,.38);border-radius:8px;background:rgba(17,22,27,.82)}.freightlink-plan-metrics strong{font-size:11px;color:#d5dde4}
+.operations-plan-snapshot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;margin:-2px 0 10px;border:1px solid rgba(74,88,101,.42);border-radius:9px;background:rgba(14,19,23,.86)}.operations-plan-snapshot>div{display:grid;gap:3px}.operations-plan-snapshot span{font-size:7px;font-weight:950;letter-spacing:.15em;color:#8495a5}.operations-plan-snapshot strong{font-size:11px;color:#d9e0e5}.operations-plan-snapshot small{font-size:8px;color:#92a2af}.operations-plan-snapshot>b{padding:5px 7px;border:1px solid rgba(95,111,124,.5);border-radius:999px;font-size:8px;letter-spacing:.1em;color:#c8d2da}.operations-plan-snapshot>b.good{border-color:rgba(76,151,121,.55);color:#83caaa}.operations-plan-snapshot>b.attention{border-color:rgba(181,137,53,.58);color:#d6b66e}.operations-plan-snapshot>b.danger{border-color:rgba(181,77,88,.65);color:#e08f98}
+
+
+/* AV2.18.2 — freight haul identity */
+.freight-haul-tag {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  margin-top: 6px;
+  padding: 3px 7px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 999px;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: .09em;
+  line-height: 1;
+  color: rgba(255,255,255,.78);
+  background: rgba(255,255,255,.04);
+}
+.freight-haul-tag.regional {
+  border-color: rgba(179,163,255,.28);
+  color: rgba(215,207,255,.9);
+  background: rgba(125,101,214,.10);
+}
+.freight-haul-tag.long-haul {
+  border-color: rgba(176,145,255,.5);
+  color: #e2d9ff;
+  background: rgba(127,90,220,.18);
+}
+.freight-haul-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+  padding: 10px 11px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.025);
+}
+.freight-haul-callout > span {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+.freight-haul-callout > small {
+  color: rgba(255,255,255,.62);
+  text-align: right;
+  line-height: 1.3;
+}
+.freight-haul-callout.long-haul {
+  border-color: rgba(176,145,255,.35);
+  background: rgba(127,90,220,.08);
+}
+.freight-haul-callout.long-haul > span { color: #d9ceff; }
+.long-haul-warning {
+  border-color: rgba(176,145,255,.3) !important;
+}
+.operations-schedule-statusline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.operations-schedule-statusline .freight-haul-tag { margin-top: 0; }
+.operations-schedule-travel { display:grid; grid-template-columns:64px minmax(0,1fr); gap:10px; align-items:center; padding:8px 9px; border:1px solid color-mix(in srgb, var(--driver-accent, #756D80) 35%, #29333d); border-radius:10px; background:rgba(19,25,31,.82); }
+.operations-schedule-travel>div:last-child { display:grid; gap:2px; }
+.operations-schedule-travel strong { font-size:9px; letter-spacing:.08em; color:var(--driver-accent, #a8b6c3); }
+.operations-schedule-travel small { font-size:8px; line-height:1.3; color:#7d8f9f; }
+.freightlink-plan-change { margin-top:8px; padding:10px 11px; display:grid; gap:3px; border:1px solid #35414c; border-radius:10px; background:#141a20; }
+.freightlink-plan-change>span { color:#8193a4; font-size:7px; font-weight:950; letter-spacing:.13em; }
+.freightlink-plan-change>strong { color:#edf3f8; font-size:11px; }
+.freightlink-plan-change>small { color:#8ea0af; font-size:8px; line-height:1.35; }
+.freightlink-route-compatibility { margin-top:8px; padding:9px 10px; display:grid; grid-template-columns:1fr auto; gap:3px 10px; border:1px solid #35414c; border-radius:10px; background:#151b21; }
+.freightlink-route-compatibility>span { font-size:7px; font-weight:950; letter-spacing:.12em; color:#8294a5; }
+.freightlink-route-compatibility>strong { font-size:9px; color:#dfe8ef; }
+.freightlink-route-compatibility>small { grid-column:1/-1; font-size:8px; line-height:1.3; color:#8798a8; }
+.freightlink-route-compatibility.on-route { border-color:#315848; }
+.freightlink-route-compatibility.minor-detour { border-color:#665331; }
+.freightlink-route-compatibility.major-detour { border-color:#674149; }
+
+
+/* AW1 — Map Clarity & Operational Focus */
+/* AW1.6.6 — MapLibre owns the marker root transform. Never animate or override it. */
+.game-marker.itinerary-stop-marker { opacity:.68; transition:opacity .16s ease; }
+.itinerary-route-label-text {
+  min-width:0; padding:3px 6px; border-color:color-mix(in srgb,var(--route-label-color) 62%,transparent);
+  background:rgba(10,13,18,.78); box-shadow:0 2px 7px rgba(0,0,0,.28);
+  font-size:8px; letter-spacing:.055em; opacity:.88;
+}
+
+/* AW1.1 — simplified operations header, route identity, inline scheduler */
+.operations-bar-row{grid-template-columns:1fr!important}
+.operations-bar{width:100%!important}
+.route-name-popup .maplibregl-popup-content{background:rgba(13,18,24,.96);border:1px solid #394653;border-radius:10px;padding:8px 10px;color:#e8eef4;display:grid;gap:2px;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.route-name-popup strong{font-size:10px;line-height:1.3}.route-name-popup small{font-size:7px;letter-spacing:.1em;color:#91a4b6}
+.freightlink-inline-scheduler{border-top:1px solid #313b45}.freightlink-schedule-route{display:grid;gap:4px;padding:11px 12px;border:1px solid #33404b;border-radius:10px;background:#151b21;margin-bottom:8px}.freightlink-schedule-route strong{font-size:10px}.freightlink-schedule-route small{font-size:8px;color:#93a4b3}.freightlink-inline-approval{margin-top:10px;width:100%}
+
+.driver-card-full-schedule{display:grid;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid #34404a}.driver-card-full-schedule>b{font-size:8px;letter-spacing:.09em;color:#91a5b7}.driver-card-schedule-stop{display:grid;gap:2px;padding:7px 8px;border-radius:8px;background:rgba(255,255,255,.035)}.driver-card-schedule-stop strong{font-size:8.5px!important;line-height:1.3}.driver-card-schedule-stop small{font-size:7.5px!important;color:#8fa0af}
+
+/* AW1.2 — FreightLink + Scheduler rebuild */
+.freightlink-title-actions{display:flex;align-items:center;gap:8px;margin-left:auto}.freightlink-scheduler-shortcut{border:1px solid rgba(155,178,205,.35);background:rgba(16,21,28,.85);color:#dfe9f5;border-radius:999px;padding:7px 10px;font-size:9px;font-weight:800;letter-spacing:.1em}.freight-route-detail-sheet{background:#0b0e13}.freight-route-detail-header{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:start;padding:18px 18px 12px;border-bottom:1px solid rgba(135,154,177,.18)}.freight-route-detail-header>button{width:34px;height:34px;border:1px solid rgba(137,160,186,.32);border-radius:11px;background:#111720;color:#dfe9f5;font-size:25px}.freight-route-detail-header span,.freight-route-section-title span{display:block;color:#8292a7;font-size:9px;font-weight:800;letter-spacing:.16em}.freight-route-detail-header h2{margin:4px 0 3px;color:#f2f5f9;font-size:18px;line-height:1.15}.freight-route-detail-header p{margin:0;color:#8f9caf;font-size:11px}.freight-route-detail-body{padding:14px 16px 100px;display:grid;gap:12px}.freight-route-window-card{display:grid;grid-template-columns:1fr 18px 1fr;gap:8px;align-items:center;padding:14px;border:1px solid rgba(132,156,184,.22);border-radius:18px;background:rgba(17,23,32,.88)}.freight-route-window-card>div{min-width:0}.freight-route-window-card span,.freight-route-metrics span,.initial-check-grid span,.freight-route-assigned>span{color:#75869c;font-size:8px;font-weight:800;letter-spacing:.14em}.freight-route-window-card strong{display:block;margin:5px 0 3px;color:#f4f6f9;font-size:12px}.freight-route-window-card small{display:block;color:#99a6b7;font-size:9px;line-height:1.3}.freight-route-window-card>i{font-style:normal;color:#617189}.freight-route-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.freight-route-metrics>div{padding:11px;border-radius:14px;background:#111720;border:1px solid rgba(132,156,184,.16)}.freight-route-metrics strong{display:block;margin-top:5px;color:#eef3f9;font-size:14px}.freight-route-initial-check{padding:14px;border-radius:18px;background:rgba(14,19,27,.9);border:1px solid rgba(132,156,184,.2)}.freight-route-section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.freight-route-section-title small{color:#67778c;font-size:8px}.initial-check-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.initial-check-grid>div{padding:10px;border-radius:12px;background:#0b1017;border:1px solid rgba(132,156,184,.14)}.initial-check-grid strong{display:block;margin:4px 0;color:#e9eef5;font-size:11px}.initial-check-grid small{display:block;color:#7f8da0;font-size:8px;line-height:1.25}.freight-route-assigned{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:13px;border:1px solid rgba(132,156,184,.18);border-radius:16px;background:#111720}.freight-route-assigned>span{grid-column:1/-1}.freight-route-assigned strong{color:#edf2f8}.freight-route-assigned button{border:0;background:transparent;color:#90b9ee;font-size:9px;font-weight:800}.freight-route-primary-action{position:sticky;bottom:0;padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(11,14,19,0),#0b0e13 30%);z-index:10}.freight-route-primary-action button{width:100%;min-height:48px;border:1px solid #5f8fc7;border-radius:15px;background:#1b2d42;color:#f5f8fc;font-size:11px;font-weight:900;letter-spacing:.1em}
+
+.fleet-scheduler-screen{background:#090d12;color:#eaf0f7;overflow:hidden}.scheduler-header{display:flex;justify-content:space-between;gap:10px;padding:15px 16px 10px;border-bottom:1px solid rgba(135,154,177,.16)}.scheduler-header span{color:#7f90a7;font-size:8px;font-weight:800;letter-spacing:.16em}.scheduler-header h2{margin:4px 0 2px;font-size:20px}.scheduler-header p{margin:0;color:#748398;font-size:9px}.scheduler-header>button{align-self:center;border:1px solid rgba(135,154,177,.28);border-radius:12px;background:#111720;color:#dce7f3;padding:9px 10px;font-size:8px;font-weight:900;letter-spacing:.08em}.scheduler-driver-tabs{display:flex;gap:8px;padding:10px 12px;overflow-x:auto;border-bottom:1px solid rgba(135,154,177,.14)}.scheduler-driver-tabs button{min-width:112px;text-align:left;border:1px solid rgba(135,154,177,.18);border-radius:13px;background:#0e141d;color:#93a1b4;padding:9px 10px}.scheduler-driver-tabs button.active{background:#172536;border-color:#547ca8;color:#f1f5fa}.scheduler-driver-tabs strong{display:block;font-size:10px}.scheduler-driver-tabs small{display:block;margin-top:2px;font-size:8px;opacity:.7}.scheduler-summary-strip{display:grid;grid-template-columns:1.6fr 1fr .7fr;gap:1px;background:rgba(135,154,177,.12);border-bottom:1px solid rgba(135,154,177,.12)}.scheduler-summary-strip>div{background:#0d1219;padding:9px 12px}.scheduler-summary-strip span{display:block;color:#6f7f94;font-size:7px;font-weight:800;letter-spacing:.14em}.scheduler-summary-strip strong{display:block;margin-top:3px;font-size:10px}.scheduler-scroll{position:relative;overflow-y:auto;height:calc(100% - 195px);padding-bottom:160px}.scheduler-time-canvas{position:relative;min-height:820px;margin:10px 10px 20px}.scheduler-hour-line{position:absolute;left:0;right:0;height:1px;display:grid;grid-template-columns:46px 1fr;align-items:center}.scheduler-hour-line span{color:#65758b;font-size:8px;transform:translateY(-6px)}.scheduler-hour-line i{height:1px;background:rgba(125,147,174,.12)}.scheduler-route-column{position:absolute;top:0;bottom:0;left:50px;right:2px}.scheduler-route-block{position:absolute;left:0;right:0;width:100%;overflow:hidden;text-align:left;border-radius:15px;padding:10px 11px;border:1px solid rgba(110,157,211,.28);background:rgba(20,30,43,.96);color:#eaf0f7;box-shadow:0 7px 16px rgba(0,0,0,.2)}.scheduler-route-block.proposed{border-left:3px solid #7f6aa8}.scheduler-route-block.pending{border-left:3px solid #a0784a}.scheduler-route-block.approved{border-left:3px solid #5f9279}.scheduler-route-block.booked{border-left:3px solid #5e87b8}.scheduler-route-block.selected{outline:2px solid rgba(132,177,229,.6);z-index:6}.scheduler-route-state{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}.scheduler-route-state span{color:#94a6ba;font-size:7px;font-weight:900;letter-spacing:.13em}.scheduler-route-state b{padding:2px 5px;border-radius:999px;background:#6e5a91;color:white;font-size:7px}.scheduler-route-block>strong{display:block;margin-bottom:8px;font-size:10px;line-height:1.25}.scheduler-stop-row{display:grid;grid-template-columns:22px 1fr;align-items:center;gap:7px}.scheduler-stop-row>span{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#24364c;color:#d9e7f6;font-size:9px;font-weight:900}.scheduler-stop-row b{display:block;font-size:9px}.scheduler-stop-row small{display:block;color:#8494a8;font-size:7.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.scheduler-route-travel{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:7px;margin:5px 0 5px 10px;color:#64758b;font-size:7px}.scheduler-route-travel i{height:1px;background:rgba(130,153,180,.16)}.scheduler-route-block em{display:inline-block;margin-top:6px;font-style:normal;font-size:7px;font-weight:900;letter-spacing:.07em}.scheduler-route-block em.good{color:#78a98e}.scheduler-route-block em.tight{color:#c59a60}.scheduler-route-block em.late{color:#c97878}.scheduler-open-day{position:absolute;top:90px;left:12px;right:12px;text-align:center;border:1px dashed rgba(129,150,175,.22);border-radius:16px;padding:24px 12px;color:#7e8da0}.scheduler-open-day strong{display:block;color:#a9b6c5;font-size:11px}.scheduler-open-day span{display:block;margin-top:5px;font-size:9px}.scheduler-selection-panel{position:absolute;left:10px;right:10px;bottom:58px;z-index:20;border:1px solid rgba(134,165,199,.32);border-radius:18px;background:rgba(13,18,25,.97);box-shadow:0 -10px 30px rgba(0,0,0,.35);padding:12px}.scheduler-selection-copy>span{color:#8394aa;font-size:7px;font-weight:900;letter-spacing:.14em}.scheduler-selection-copy>strong{display:block;margin:4px 0;color:#f1f5fa;font-size:11px}.scheduler-selection-copy>small{display:block;color:#8291a4;font-size:8px}.scheduler-selection-actions{display:flex;gap:7px;margin-top:10px}.scheduler-selection-actions button{flex:1;min-height:38px;border:1px solid rgba(132,156,184,.28);border-radius:11px;background:#111820;color:#b8c6d7;font-size:8px;font-weight:900;letter-spacing:.08em}.scheduler-selection-actions button.primary{background:#1d3046;border-color:#628ebd;color:#f3f7fb}.scheduler-selection-actions button:disabled{opacity:.55}.scheduler-bottom-hint{position:absolute;left:16px;right:16px;bottom:66px;padding:10px;text-align:center;border-radius:12px;background:rgba(15,21,29,.94);color:#8191a5;font-size:8px}
+
+/* AW1.3 — FreightLink Header + Scheduler Polish */
+.freightlink-home-compact.aw13{padding:12px 16px 9px;border-bottom:1px solid rgba(135,154,177,.16)}
+.freightlink-home-compact.aw13 .freightlink-title-row{align-items:center;gap:10px}
+.freightlink-title-copy{display:flex;align-items:center;gap:8px;min-width:0}
+.freightlink-home-compact.aw13 h2{margin:0;font-size:19px;line-height:1}
+.freightlink-home-compact.aw13 .freightlink-new-loads{margin:0;padding:3px 6px;border-radius:999px;font-size:7px;white-space:nowrap}
+.freightlink-scheduler-shortcut.aw13{display:grid;gap:1px;min-width:112px;padding:7px 10px;border-radius:13px;text-align:left;border-color:rgba(108,153,203,.58);background:#18283a;box-shadow:inset 0 0 0 1px rgba(119,167,222,.08)}
+.freightlink-scheduler-shortcut.aw13 span{color:#85a0bc;font-size:6.5px;font-weight:900;letter-spacing:.15em}
+.freightlink-scheduler-shortcut.aw13 strong{color:#f1f6fb;font-size:9px;font-weight:900;letter-spacing:.06em}
+.freightlink-loads-toolbar.aw13{justify-content:flex-end;min-height:34px;padding-top:4px;padding-bottom:4px}
+.freightlink-loads-toolbar.aw13 .freightlink-sort-dropdown{margin-left:auto}
+.scheduler-header.aw13{padding-top:12px;padding-bottom:9px}
+.scheduler-header.aw13 h2{margin-top:3px}
+.scheduler-top-hint{margin:8px 12px 0;padding:8px 10px;border:1px solid rgba(122,151,184,.18);border-radius:10px;background:rgba(15,21,29,.88);color:#8ea0b4;font-size:8px;line-height:1.35;text-align:center}
+.scheduler-selection-panel{padding-top:14px}
+.scheduler-selection-close{position:absolute;top:8px;right:9px;width:28px;height:28px;border:1px solid rgba(132,156,184,.23);border-radius:9px;background:#111820;color:#a9b7c8;font-size:17px;line-height:1;z-index:2}
+.scheduler-selection-copy{padding-right:34px}
+
+
+/* AW1.4 — Scheduler Density + FreightLink Tab Polish */
+.freightlink-filter-row.aw14{display:flex!important;gap:18px;padding:8px 20px 3px;border-bottom:1px solid rgba(135,154,177,.14);background:transparent}
+.freightlink-filter-row.aw14 button{position:relative;min-height:30px;padding:0 1px;border:0!important;border-radius:0!important;background:transparent!important;color:#7f8d9e;font-size:8px;font-weight:900;letter-spacing:.12em}
+.freightlink-filter-row.aw14 button span{margin-left:4px;color:#637183}
+.freightlink-filter-row.aw14 button.active{color:#edf2f8!important}
+.freightlink-filter-row.aw14 button.active::after{content:'';position:absolute;left:0;right:0;bottom:-4px;height:2px;border-radius:2px;background:#8b7898}
+.scheduler-header.aw13{padding-bottom:7px}
+.scheduler-top-hint.aw14{margin:0;padding:6px 16px 7px;border:0;border-bottom:1px solid rgba(122,151,184,.14);border-radius:0;background:transparent;text-align:left;font-size:7.5px}
+.scheduler-driver-tabs.aw14{gap:18px;padding:0 16px;border-bottom:1px solid rgba(135,154,177,.14)}
+.scheduler-driver-tabs.aw14 button{position:relative;min-width:max-content;padding:9px 1px 8px;border:0;border-radius:0;background:transparent;color:#7e8da0}
+.scheduler-driver-tabs.aw14 button.active{border:0;background:transparent;color:#f1f5fa}
+.scheduler-driver-tabs.aw14 button.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:#6f9bca}
+.scheduler-driver-tabs.aw14 strong{font-size:9px}
+.scheduler-driver-tabs.aw14 small{display:inline;margin-left:6px;font-size:7px}
+.scheduler-summary-strip.aw14{display:flex;align-items:center;gap:7px;padding:7px 16px;border-bottom:1px solid rgba(135,154,177,.12);background:#0d1219}
+.scheduler-summary-strip.aw14 strong{margin:0;color:#b7c4d2;font-size:8px;letter-spacing:.08em}
+.scheduler-summary-strip.aw14 span{color:#526173;font-size:8px}
+.fleet-scheduler-screen:has(.scheduler-summary-strip.aw14) .scheduler-scroll{height:calc(100% - 154px)}
+
+
+/* AW1.5 — Timeline Stops + FreightLink Sort Consolidation */
+.freightlink-filter-row.aw15{display:flex!important;align-items:stretch;gap:18px;padding:8px 20px 3px;border-bottom:1px solid rgba(135,154,177,.14);background:transparent;position:relative;overflow:visible}
+.freightlink-filter-row.aw15>button,.freightlink-sort-tab>button{position:relative;min-height:30px;padding:0 1px;border:0!important;border-radius:0!important;background:transparent!important;color:#7f8d9e;font-size:8px;font-weight:900;letter-spacing:.12em;white-space:nowrap}
+.freightlink-filter-row.aw15>button span,.freightlink-sort-tab>button span{margin-left:4px;color:#637183}
+.freightlink-filter-row.aw15>button.active,.freightlink-sort-tab>button.active{color:#edf2f8!important}
+.freightlink-filter-row.aw15>button.active::after{content:'';position:absolute;left:0;right:0;bottom:-4px;height:2px;border-radius:2px;background:#8b7898}
+.freightlink-sort-tab{position:relative;margin-left:auto;display:flex;align-items:stretch}
+.freightlink-sort-menu.aw15{top:34px;right:0;left:auto;min-width:142px;z-index:50}
+.freightlink-loads:has(.decision-load-list){padding-top:8px}
+
+.scheduler-stop-event{position:absolute;left:0;right:0;width:100%;min-height:58px;padding:8px 11px 9px;text-align:left;border:1px solid color-mix(in srgb,var(--scheduler-event-color) 50%,#2a3440);border-left:4px solid var(--scheduler-event-color);border-radius:13px;background:color-mix(in srgb,var(--scheduler-event-color) 17%,#0e141c);color:#eaf0f7;box-shadow:0 5px 13px rgba(0,0,0,.2);overflow:hidden}
+.scheduler-stop-event.delivery{background:color-mix(in srgb,var(--scheduler-event-color) 24%,#0b1016)}
+.scheduler-stop-event.unbooked{box-shadow:none}
+.scheduler-stop-event.selected{outline:2px solid rgba(156,184,217,.55);z-index:8}
+.scheduler-stop-event-kind{display:block;color:color-mix(in srgb,var(--scheduler-event-color) 75%,#dce6f1);font-size:6.8px;font-weight:900;letter-spacing:.14em}
+.scheduler-stop-event-main{display:flex;align-items:baseline;gap:9px;margin-top:3px;min-width:0}
+.scheduler-stop-event-main b{flex:0 0 auto;font-size:9px;color:#f2f6fa}
+.scheduler-stop-event-main strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:#eef3f8}
+.scheduler-stop-event>small{display:block;margin-top:3px;color:#7d8c9e;font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scheduler-stop-event>em{position:absolute;right:9px;top:7px;padding:2px 5px;border-radius:999px;background:#6e5a91;color:white;font-size:6px;font-style:normal;font-weight:900}
+
+/* AW1.6 — Load Detail Compression: one-screen review target */
+.freight-route-detail-compact .freight-route-detail-header{
+  grid-template-columns:32px minmax(0,1fr) auto;
+  gap:9px;
+  padding:12px 16px 10px;
+  align-items:start;
+}
+.freight-route-detail-compact .freight-route-detail-header>button{
+  width:32px;
+  height:32px;
+  border-radius:10px;
+  font-size:22px;
+}
+.freight-route-detail-compact .freight-route-title-block{min-width:0}
+.freight-route-detail-compact .freight-route-detail-header h2{
+  margin:3px 0 2px;
+  font-size:15px;
+  line-height:1.12;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.freight-route-detail-compact .freight-route-detail-header p{
+  font-size:9px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.freight-route-detail-compact .freight-haul-tag{
+  margin-top:1px;
+  padding:5px 8px;
+  font-size:8px;
+  white-space:nowrap;
+}
+.freight-route-detail-compact .freight-route-detail-body{
+  padding:10px 16px 72px;
+  gap:8px;
+}
+.freight-route-detail-compact .freight-route-window-card{
+  padding:10px 11px;
+  border-radius:14px;
+  gap:6px;
+}
+.freight-route-detail-compact .freight-route-window-card span,
+.freight-route-detail-compact .freight-route-metrics span,
+.freight-route-detail-compact .freight-route-section-title span,
+.freight-route-detail-compact .freight-route-assigned>span{
+  font-size:7px;
+}
+.freight-route-detail-compact .freight-route-window-card strong{
+  margin:3px 0 2px;
+  font-size:10px;
+  line-height:1.25;
+}
+.freight-route-detail-compact .freight-route-window-card small{
+  font-size:8px;
+  line-height:1.2;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.freight-route-detail-compact .freight-route-metrics{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:0;
+  border-top:1px solid rgba(132,156,184,.18);
+  border-bottom:1px solid rgba(132,156,184,.18);
+}
+.freight-route-detail-compact .freight-route-metrics>div{
+  padding:8px 9px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  text-align:center;
+  border-right:1px solid rgba(132,156,184,.16);
+}
+.freight-route-detail-compact .freight-route-metrics>div:last-child{border-right:0}
+.freight-route-detail-compact .freight-route-metrics strong{
+  margin-top:2px;
+  font-size:12px;
+}
+.freight-route-detail-compact .freight-route-check-strip{
+  padding:9px 10px;
+  border-radius:14px;
+}
+.freight-route-detail-compact .freight-route-section-title{
+  margin-bottom:6px;
+}
+.freight-route-detail-compact .freight-route-check-row{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px 10px;
+}
+.freight-route-detail-compact .freight-route-check-row>span{
+  min-width:0;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:2px 6px;
+  align-items:baseline;
+}
+.freight-route-detail-compact .freight-route-check-row b{
+  color:#75869c;
+  font-size:6px;
+  font-weight:900;
+  letter-spacing:.11em;
+}
+.freight-route-detail-compact .freight-route-check-row strong{
+  min-width:0;
+  color:#e9eef5;
+  font-size:8px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.freight-route-detail-compact .freight-route-check-row small{
+  grid-column:1/-1;
+  color:#7f8da0;
+  font-size:7px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.freight-route-detail-compact .freight-route-commitment-note{
+  margin:7px 0 0;
+  padding-top:6px;
+  border-top:1px solid rgba(132,156,184,.12);
+  color:#8a99aa;
+  font-size:7px;
+  line-height:1.3;
+}
+.freight-route-detail-compact .freight-route-assigned{
+  padding:9px 10px;
+  border-radius:12px;
+}
+.freight-route-detail-compact .freight-route-primary-action{
+  position:sticky;
+  bottom:0;
+  padding:8px 16px calc(9px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,rgba(11,14,19,0),#0b0e13 22%);
+}
+.freight-route-detail-compact .freight-route-primary-action button{
+  min-height:44px;
+  border-radius:14px;
+  font-size:10px;
+}
+
+
+/* AW1.6.1 — Schedule send / approval actions */
+.scheduler-header.aw161{align-items:flex-start}
+.scheduler-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap;max-width:68%}
+.scheduler-header.aw161 .scheduler-header-actions>button{border:1px solid rgba(135,154,177,.28);border-radius:10px;background:#111720;color:#dce7f3;padding:8px 9px;font-size:7px;font-weight:900;letter-spacing:.07em;white-space:nowrap}
+.scheduler-header.aw161 .scheduler-header-actions>button.primary{background:#24364d;border-color:#6d94be;color:#f5f8fc}
+.scheduler-header.aw161 .scheduler-header-actions>button:disabled{opacity:.55}
+
+
+/* AW1.6.2 — Booking + Scheduler Return Flow */
+.freight-route-detail-compact{
+  height:100%;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.freight-route-detail-compact .freight-route-detail-header{
+  flex:0 0 auto;
+}
+.freight-route-detail-compact .freight-route-detail-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding-bottom:10px;
+}
+.freight-route-detail-compact .freight-route-primary-action{
+  position:relative;
+  bottom:auto;
+  flex:0 0 auto;
+  padding:9px 16px calc(10px + env(safe-area-inset-bottom));
+  border-top:1px solid rgba(132,156,184,.18);
+  background:#0b0e13;
+  z-index:12;
+}
+.scheduler-header.aw161 .scheduler-header-actions>button.primary:not(:disabled){cursor:pointer}
+
+
+/* AW1.6.4 — Map Marker Stability */
+.game-marker.facility-action-anchor {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.game-marker.itinerary-stop-marker.current-itinerary-stop {
+  opacity: 1 !important;
+  border-width: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--driver-color, #6A5A82) 22%, transparent), 0 3px 10px rgba(0,0,0,.48);
+}
+
+/* AW1.6.7 — Stop Marker Integrity + Map Layer Hierarchy */
+/* Popups and readable route cards must always win over map markers. */
+.maplibregl-popup { z-index: 90 !important; }
+.route-name-popup { z-index: 88 !important; }
+.game-marker.driver { z-index: 60; }
+.game-marker.itinerary-stop-marker.current-itinerary-stop { z-index: 52; }
+.game-marker.itinerary-stop-marker { z-index: 40; }
+.game-marker.itinerary-stop-marker.popup-obscured-stop {
+  opacity: .28 !important;
+  filter: saturate(.65) brightness(.82);
+}
+
+/* AW1.6.8 — Route Tap Discoverability */
+.route-detail-popup { z-index: 92 !important; }
+.route-detail-popup .maplibregl-popup-content {
+  min-width: 238px;
+  max-width: min(292px, calc(100vw - 44px));
+  padding: 0;
+  overflow: hidden;
+}
+.route-tap-card { display:grid; gap:8px; padding:10px 11px 11px; }
+.route-tap-kicker { font-size:7px; font-weight:850; letter-spacing:.13em; color:#aebdca; }
+.route-tap-card > strong { font-size:11px; line-height:1.3; color:#f2f5f8; }
+.route-tap-stop { display:grid; grid-template-columns:58px 1fr; column-gap:8px; row-gap:2px; padding-top:7px; border-top:1px solid rgba(151,171,189,.18); }
+.route-tap-stop > span { grid-row:1 / span 2; align-self:start; font-size:7px; font-weight:850; letter-spacing:.12em; color:#8fa3b5; }
+.route-tap-stop > b { font-size:9px; line-height:1.25; color:#e5ebf0; }
+.route-tap-stop > small { font-size:7px; line-height:1.25; color:#9aacbc; }
+
+/* AW1.6.10 — Compact toggleable route peek */
+.route-peek-popup { z-index: 92 !important; }
+.route-peek-popup .maplibregl-popup-content {
+  min-width: 0;
+  width: min(236px, calc(100vw - 54px));
+  max-width: min(236px, calc(100vw - 54px));
+  padding: 0;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.route-peek-popup .maplibregl-popup-close-button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  top: 4px;
+  right: 4px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255,255,255,.035);
+  color: #9fb0c0;
+  font-size: 16px;
+  line-height: 1;
+  z-index: 2;
+}
+.route-peek-popup .maplibregl-popup-close-button:hover { background: rgba(255,255,255,.06); }
+.route-tap-card-compact {
+  display: grid;
+  gap: 6px;
+  padding: 9px 34px 9px 10px;
+}
+.route-tap-card-compact > strong {
+  font-size: 10px;
+  line-height: 1.28;
+  color: #f2f5f8;
+}
+.route-tap-times {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
+  align-items: center;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(151,171,189,.15);
+}
+.route-tap-times > span { display: grid; gap: 2px; min-width: 0; }
+.route-tap-times b {
+  color: #8fa3b5;
+  font-size: 6.5px;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+.route-tap-times small {
+  color: #c8d2dc;
+  font-size: 7px;
+  line-height: 1.25;
+}
+.route-tap-times i { color: #627282; font-size: 9px; font-style: normal; }
+
+
+/* AW1.6.10.3 — Route Label Shrink-Wrap Hotfix
+   Keep the existing type scale; only reduce the popup geometry so it reads
+   like a map annotation instead of a wide card. */
+.route-label-popup { z-index: 92 !important; }
+.route-label-popup .maplibregl-popup-content {
+  min-width: 0;
+  width: max-content;
+  max-width: min(232px, calc(100vw - 72px));
+  padding: 0;
+  overflow: hidden;
+  border-radius: 9px;
+}
+.route-label-popup .maplibregl-popup-close-button {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  top: 3px;
+  right: 3px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #8fa0af;
+  font-size: 15px;
+  line-height: 1;
+  z-index: 2;
+}
+.route-label-popup .maplibregl-popup-close-button:hover { background: rgba(255,255,255,.05); }
+.route-label-peek {
+  display: grid;
+  gap: 3px;
+  padding: 7px 28px 7px 9px;
+}
+.route-label-title {
+  color: #f2f5f8;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: normal;
+}
+.route-label-meta {
+  color: #9fb0bf;
+  font-size: 7px;
+  font-weight: 750;
+  letter-spacing: .035em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  white-space: normal;
+}
+
+/* AW1.6.10.4 — Stacked Route Label Final Polish
+   Preserve typography; reduce width by stacking status, pickup, and delivery. */
+.route-label-popup .maplibregl-popup-content {
+  width: max-content;
+  max-width: min(202px, calc(100vw - 90px));
+}
+.route-label-peek {
+  gap: 2px;
+  padding: 7px 27px 7px 9px;
+}
+.route-label-status {
+  color: #9fb0bf;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+.route-label-stop {
+  display: grid;
+  grid-template-columns: 46px auto;
+  align-items: baseline;
+  column-gap: 5px;
+  min-width: 0;
+}
+.route-label-stop > span {
+  color: #8fa3b5;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .055em;
+  line-height: 1.2;
+}
+.route-label-stop > strong {
+  color: #cbd5de;
+  font-size: 7px;
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+
+/* AW1.6.12 — itinerary schedule validation + dense-stop legibility */
+.scheduler-summary-strip.aw14.danger strong:first-child{color:#d78383}
+.scheduler-summary-strip.aw14.attention strong:first-child{color:#d2a86c}
+.scheduler-summary-strip.aw14.good strong:first-child{color:#80b99a}
+.scheduler-stop-event.compact{min-height:38px;padding-top:6px;padding-bottom:6px}
+.scheduler-stop-event.compact .scheduler-stop-event-kind{font-size:6.4px}
+.scheduler-stop-event.compact .scheduler-stop-event-main{margin-top:2px}
+.scheduler-stop-event.compact>small{display:none}
+
+/* AW1.6.13 — Scheduler Utility + Load Detail Layout */
+/* Keep Load Details inside the browser viewport so the primary CTA is always visible. */
+.browser-site-content:has(> .freight-route-detail-compact){
+  overflow:hidden;
+}
+.browser-site-content > .freight-route-detail-compact{
+  flex:1 1 auto;
+  width:100%;
+  height:100%;
+  min-height:0;
+}
+.freight-route-detail-compact .freight-route-detail-body{
+  min-height:0;
+  overflow-y:auto;
+  padding-bottom:8px;
+}
+.freight-route-detail-compact .freight-route-primary-action{
+  position:relative;
+  flex:0 0 auto;
+  margin-top:auto;
+  bottom:auto;
+  padding:8px 16px calc(9px + env(safe-area-inset-bottom));
+  border-top:1px solid rgba(132,156,184,.18);
+  background:#0b0e13;
+  z-index:30;
+}
+
+/* Surface the planning intelligence instead of hiding it behind one verdict word. */
+.scheduler-summary-strip.aw14{
+  flex-wrap:wrap;
+  row-gap:3px;
+}
+.scheduler-summary-strip.aw14 > small{
+  flex:1 1 100%;
+  color:#7f90a3;
+  font-size:6.6px;
+  font-weight:800;
+  letter-spacing:.055em;
+  line-height:1.25;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.scheduler-summary-strip.aw14.danger > small{color:#c98787}
+.scheduler-summary-strip.aw14.attention > small{color:#c8a16d}
+.scheduler-summary-strip.aw14.good > small{color:#7faa91}
+.scheduler-header.aw161 .scheduler-header-actions>button.scheduler-conflict-action{
+  border-color:rgba(193,101,101,.5);
+  background:rgba(87,37,37,.46);
+  color:#d9aaaa;
+}
+
+.scheduler-stop-event.conflict-stop{
+  border-color:rgba(194,103,103,.78);
+  box-shadow:inset 0 0 0 1px rgba(194,103,103,.2);
+}
+.scheduler-stop-event.tight-stop{
+  border-color:rgba(201,157,91,.72);
+  box-shadow:inset 0 0 0 1px rgba(201,157,91,.16);
+}
+.scheduler-stop-intel{
+  display:block;
+  margin-top:2px;
+  color:#8797aa;
+  font-size:6.5px;
+  font-weight:800;
+  letter-spacing:.045em;
+  line-height:1.15;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.scheduler-stop-event.conflict-stop .scheduler-stop-intel{color:#d58f8f}
+.scheduler-stop-event.tight-stop .scheduler-stop-intel{color:#d1aa71}
+
+/* Dense appointments remain legible without overlapping each other. */
+.scheduler-stop-event.compact{
+  min-height:34px;
+  padding:4px 10px 5px;
+}
+.scheduler-stop-event.compact .scheduler-stop-event-kind{font-size:6px}
+.scheduler-stop-event.compact .scheduler-stop-event-main{margin-top:1px;gap:7px}
+.scheduler-stop-event.compact .scheduler-stop-event-main b{font-size:8px}
+.scheduler-stop-event.compact .scheduler-stop-event-main strong{font-size:8.7px}
+.scheduler-stop-event.compact>small{
+  display:inline-block;
+  max-width:58%;
+  margin-top:1px;
+  vertical-align:top;
+  font-size:6.2px;
+  line-height:1.05;
+}
+.scheduler-stop-event.compact .scheduler-stop-intel{
+  display:inline-block;
+  max-width:40%;
+  margin:1px 0 0 5px;
+  vertical-align:top;
+  font-size:6.1px;
+  line-height:1.05;
+}
+
+
+/* AW1.6.14 — Workflow Handoff Fix */
+.freight-plan-hint{margin-left:auto;padding:2px 6px;border-radius:999px;font-style:normal;font-size:7px;font-weight:900;letter-spacing:.08em;border:1px solid rgba(130,153,180,.28)}
+.freight-plan-hint.fit{color:#9bc8b0;background:rgba(46,91,70,.18);border-color:rgba(92,151,118,.38)}
+.freight-plan-hint.tight{color:#e0b878;background:rgba(111,79,34,.2);border-color:rgba(180,134,72,.42)}
+.freight-plan-hint.conflict{color:#e69a9a;background:rgba(113,48,48,.22);border-color:rgba(188,91,91,.45)}
+.freight-decision-meta{align-items:center;gap:8px}
+.scheduler-selection-impact{display:block;margin-top:7px;font-style:normal;font-size:7px;font-weight:900;letter-spacing:.07em}
+.scheduler-selection-impact.fit{color:#85b79a}
+.scheduler-selection-impact.tight{color:#d0a15f}
+.scheduler-selection-impact.conflict{color:#d57b7b}
+
+/* AW1.7.4 — Map continuity + driver layering */
+.game-marker.driver {
+  z-index: 45 !important;
+}
+.game-marker.itinerary-stop-marker {
+  z-index: 52;
+}
+.game-marker.itinerary-stop-marker.current-itinerary-stop {
+  z-index: 58;
+}
+.game-marker.itinerary-stop-marker.completed-itinerary-stop {
+  opacity: .30;
+  filter: saturate(.45) brightness(.78);
+  z-index: 48;
+}

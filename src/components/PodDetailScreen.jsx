@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 import DocumentZoomOverlay from './DocumentZoomOverlay.jsx'
+import { getFreightRouteName } from '../utils/freightIdentity.js'
 
 function formatGameTimestamp(minutes) {
   if (!Number.isFinite(minutes)) return 'Unavailable'
@@ -47,10 +48,10 @@ function PodDetailScreen({ load, driver, delivery, onBack, onUpdateVerification,
   )
 
   return (
-    <DocumentZoomOverlay title={`POD · ${load.loadNumber || load.id}`} eyebrow="DOC OS · DELIVERY DOCUMENT" onClose={onBack} footer={footer}>
+    <DocumentZoomOverlay title={`POD · ${getFreightRouteName(load)}`} eyebrow="DOC OS · DELIVERY DOCUMENT" onClose={onBack} footer={footer}>
       <div className="pod-expanded-layout">
         <article className="pod-paper docos-document-surface" aria-label="Proof of delivery document">
-          <div className="pod-paper-masthead"><span>DOC OS · PROOF OF DELIVERY</span><strong>{load.loadNumber || load.id}</strong><small>{delivery?.name || 'Receiver'} · {formatGameTimestamp(pod.receivedGameMinute)}</small></div>
+          <div className="pod-paper-masthead"><span>DOC OS · PROOF OF DELIVERY</span><strong>{getFreightRouteName(load)}</strong><small>{delivery?.name || 'Receiver'} · {formatGameTimestamp(pod.receivedGameMinute)}</small></div>
           <div className="pod-paper-route"><div><span>DRIVER</span><strong>{driverName}</strong></div><div><span>RECEIVER</span><strong>{delivery?.name || 'Unknown'}</strong></div></div>
           <div className="pod-paper-freight">
             <div><span>PIECES RECEIVED</span><strong>{pod.piecesReceived} / {pod.piecesExpected}</strong></div>

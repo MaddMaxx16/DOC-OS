@@ -4,6 +4,7 @@ export function getDriverPanelModel({ driver, assignedLoad, gameTime, runtimePro
   if (!driver || !assignedLoad || assignedLoad.assignedDriverId !== driver.id) return null
 
   const trip = assignedLoad.tripStatus
+  const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
   let operationalState = 'ASSIGNED'
 
   if (trip === 'completed' || trip === 'delivered') operationalState = 'COMPLETED'
@@ -13,6 +14,7 @@ export function getDriverPanelModel({ driver, assignedLoad, gameTime, runtimePro
   else if (trip === 'waiting-at-delivery') operationalState = 'WAITING_DELIVERY'
   else if (trip === 'checking-in-delivery' || trip === 'at-delivery') operationalState = 'CHECKING_IN_DELIVERY'
   else if (trip === 'en-route-delivery') operationalState = 'EN_ROUTE_DELIVERY'
+  else if (trip === 'loaded' && assignedLoad.waitingReason === 'appointment-protected' && Number.isFinite(assignedLoad.plannedDeliveryDepartureGameMinute) && now < assignedLoad.plannedDeliveryDepartureGameMinute) operationalState = 'STAGED_LOADED'
   else if (trip === 'loaded' && assignedLoad.deliveryPlanningStatus === 'route-ready') operationalState = 'DELIVERY_ROUTE_SEND_REQUIRED'
   else if (trip === 'loaded') operationalState = 'LOADED'
   else if (trip === 'loading-at-pickup') operationalState = 'LOADING'
@@ -23,7 +25,6 @@ export function getDriverPanelModel({ driver, assignedLoad, gameTime, runtimePro
   else if (trip === 'assigned' && !Number.isFinite(assignedLoad.pickupDriverBriefedGameMinute)) operationalState = 'BRIEFING_REQUIRED'
   else if (trip === 'assigned' && assignedLoad.planningStatus === 'route-ready') operationalState = 'PICKUP_ROUTE_SEND_REQUIRED'
 
-  const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
   const eta = operationalState === 'EN_ROUTE_PICKUP' && Number.isFinite(assignedLoad.departureGameMinute)
     ? Math.round(assignedLoad.departureGameMinute + (assignedLoad.plannedDeadheadDriveTimeMinutes || 0))
     : operationalState === 'EN_ROUTE_DELIVERY' && Number.isFinite(assignedLoad.deliveryDepartureGameMinute)
@@ -31,21 +32,21 @@ export function getDriverPanelModel({ driver, assignedLoad, gameTime, runtimePro
       : null
 
   const labels = {
-    ASSIGNED: 'Assigned', BRIEFING_REQUIRED: 'Send Load Info Required', PICKUP_ROUTE_SEND_REQUIRED: 'Route Send Required', TRIP_PLANNED: 'Route Send Required',
+    ASSIGNED: 'Booked', BRIEFING_REQUIRED: 'Send Load to Driver', PICKUP_ROUTE_SEND_REQUIRED: 'Ready to Move', TRIP_PLANNED: 'Ready to Move',
     EN_ROUTE_PICKUP: 'En Route to Pickup', CHECKING_IN_PICKUP: 'Checking In', WAITING_PICKUP: 'Waiting for Dock',
-    DOCK_READY_PICKUP: 'Dock Ready', LOADING: 'Loading', LOADED: 'Loaded', DELIVERY_ROUTE_SEND_REQUIRED: 'Route Send Required', READY_FOR_DISPATCH: 'Route Send Required',
+    DOCK_READY_PICKUP: 'Dock Ready', LOADING: 'Loading', LOADED: 'Loaded', STAGED_LOADED: 'Loaded · Holding for Appointment', DELIVERY_ROUTE_SEND_REQUIRED: 'En Route Ready', READY_FOR_DISPATCH: 'En Route Ready',
     EN_ROUTE_DELIVERY: 'En Route to Delivery', CHECKING_IN_DELIVERY: 'Checking In', WAITING_DELIVERY: 'Waiting for Dock',
     DOCK_READY_DELIVERY: 'Dock Ready', UNLOADING: 'Unloading', AWAITING_POD: 'Awaiting POD', COMPLETED: 'Completed',
   }
 
   const driverName = driver.fullName || driver.name || 'Driver'
   const actions = {
-    ASSIGNED: ['PLAN_TRIP', 'PLAN PICKUP'],
+    ASSIGNED: ['MESSAGE_DRIVER', 'SEND LOAD'],
     BRIEFING_REQUIRED: ['MESSAGE_DRIVER', `MESSAGE ${String(driver.name || 'DRIVER').toUpperCase()}`],
-    PICKUP_ROUTE_SEND_REQUIRED: ['MESSAGE_DRIVER', 'SEND ROUTE'],
-    TRIP_PLANNED: ['MESSAGE_DRIVER', 'SEND ROUTE'],
+    PICKUP_ROUTE_SEND_REQUIRED: ['MESSAGE_DRIVER'],
+    TRIP_PLANNED: ['MESSAGE_DRIVER'],
     EN_ROUTE_PICKUP: [null, null], CHECKING_IN_PICKUP: [null, null], WAITING_PICKUP: [null, null], DOCK_READY_PICKUP: ['OPEN_PICKUP', 'OPEN PICKUP'], LOADING: [null, null],
-    LOADED: ['PLAN_DELIVERY_TRIP', 'PLAN DELIVERY'], DELIVERY_ROUTE_SEND_REQUIRED: ['MESSAGE_DRIVER', 'SEND ROUTE'], READY_FOR_DISPATCH: ['MESSAGE_DRIVER', 'SEND ROUTE'],
+    LOADED: ['MONITOR_ETA'], STAGED_LOADED: ['MESSAGE_DRIVER', 'MESSAGE DRIVER'], DELIVERY_ROUTE_SEND_REQUIRED: ['MESSAGE_DRIVER'], READY_FOR_DISPATCH: ['MESSAGE_DRIVER'],
     EN_ROUTE_DELIVERY: [null, null], CHECKING_IN_DELIVERY: [null, null], WAITING_DELIVERY: [null, null], DOCK_READY_DELIVERY: ['OPEN_DELIVERY', 'OPEN RECEIVER'], UNLOADING: [null, null], AWAITING_POD: ['REVIEW_POD', 'REVIEW POD'], COMPLETED: [null, null],
   }
   const [actionType, actionLabel] = actions[operationalState]
@@ -59,8 +60,8 @@ export function getDriverPanelModel({ driver, assignedLoad, gameTime, runtimePro
   const disabled = ['EN_ROUTE_PICKUP', 'CHECKING_IN_PICKUP', 'WAITING_PICKUP', 'DOCK_READY_PICKUP', 'LOADING', 'EN_ROUTE_DELIVERY', 'CHECKING_IN_DELIVERY', 'WAITING_DELIVERY', 'DOCK_READY_DELIVERY', 'UNLOADING'].includes(operationalState)
   const nextStop = ['ASSIGNED', 'BRIEFING_REQUIRED', 'PICKUP_ROUTE_SEND_REQUIRED', 'TRIP_PLANNED', 'EN_ROUTE_PICKUP'].includes(operationalState)
     ? pickup?.name
-    : ['LOADED', 'DELIVERY_ROUTE_SEND_REQUIRED', 'READY_FOR_DISPATCH', 'EN_ROUTE_DELIVERY'].includes(operationalState) ? delivery?.name : null
-  const locationLabel = ['CHECKING_IN_PICKUP', 'WAITING_PICKUP', 'DOCK_READY_PICKUP', 'LOADING', 'LOADED', 'READY_FOR_DISPATCH'].includes(operationalState)
+    : ['LOADED', 'STAGED_LOADED', 'DELIVERY_ROUTE_SEND_REQUIRED', 'READY_FOR_DISPATCH', 'EN_ROUTE_DELIVERY'].includes(operationalState) ? delivery?.name : null
+  const locationLabel = ['CHECKING_IN_PICKUP', 'WAITING_PICKUP', 'DOCK_READY_PICKUP', 'LOADING', 'LOADED', 'STAGED_LOADED', 'READY_FOR_DISPATCH'].includes(operationalState)
     ? pickup?.name
     : ['CHECKING_IN_DELIVERY', 'WAITING_DELIVERY', 'DOCK_READY_DELIVERY', 'UNLOADING', 'AWAITING_POD'].includes(operationalState) ? delivery?.name : null
 
@@ -82,7 +83,7 @@ export function getDriverPanelModel({ driver, assignedLoad, gameTime, runtimePro
     actionType,
     actionLabel,
     actionDisabled: disabled,
-    attentionRequired: ['BRIEFING_REQUIRED', 'PICKUP_ROUTE_SEND_REQUIRED', 'DOCK_READY_PICKUP', 'LOADED', 'DELIVERY_ROUTE_SEND_REQUIRED', 'READY_FOR_DISPATCH', 'DOCK_READY_DELIVERY', 'AWAITING_POD'].includes(operationalState),
+    attentionRequired: ['BRIEFING_REQUIRED', 'PICKUP_ROUTE_SEND_REQUIRED', 'DOCK_READY_PICKUP', 'DELIVERY_ROUTE_SEND_REQUIRED', 'READY_FOR_DISPATCH', 'DOCK_READY_DELIVERY', 'AWAITING_POD'].includes(operationalState),
     remainingMinutes,
     plannedDeadheadMiles: assignedLoad.plannedDeadheadMiles,
     plannedDeadheadDriveTimeMinutes: assignedLoad.plannedDeadheadDriveTimeMinutes,

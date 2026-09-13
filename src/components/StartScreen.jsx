@@ -41,7 +41,7 @@ function StartScreen({ saveSlots = [], activeSaveSlotId = null, onResumeSave, on
 
               const state = slot.state || {}
               const market = marketNames[state.selectedMarket] || 'Operation'
-              const time = state.gameTime || { gameDayIndex: 0, totalMinutesOfDay: 420 }
+              const time = state.gameTime || { gameDayIndex: 0, totalMinutesOfDay: 360 }
 
               return (
                 <div className={`start-save-slot saved ${activeSaveSlotId === slotId ? 'active' : ''}`} key={slotId}>

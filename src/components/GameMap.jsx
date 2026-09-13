@@ -3,14 +3,50 @@ import { Map as MapLibreMap, Marker, Popup, setWorkerUrl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import mapLocations from '../data/mapLocations.js'
+import { getFreightRouteName } from '../utils/freightIdentity.js'
 import { DELIVERY_UNLOAD_DURATION_MINUTES } from '../data/pickupConfig.js'
 import { formatAppointment } from '../utils/gameTime.js'
 import { logDocOsState } from '../utils/debugLogger.js'
 import { getDriverPanelModel } from '../utils/driverOperationalState.js'
+import { getAuthoritativeDriverTravelLoad, getDriverItineraryState } from '../utils/driverItinerary.js'
 
 setWorkerUrl(workerUrl)
 
 const routeMetricsCache = new WeakMap()
+const DRIVER_COLOR_FAMILIES = [
+  ['#8BB8F7', '#6EA2E8', '#4F86D4', '#3C6DB8'],
+  ['#F0BE69', '#DEA650', '#C98E35', '#A87025'],
+  ['#65C3B2', '#4EAC9C', '#3B9385', '#2D776D'],
+  ['#C99AE7', '#B27BD5', '#975EC0', '#7948A0'],
+  ['#E38EA5', '#CD718C', '#B55375', '#93405E'],
+]
+
+function stableHash(value = '') {
+  let hash = 0
+  for (const char of String(value)) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0
+  return Math.abs(hash)
+}
+
+function getDriverColorFamily(driverId) {
+  return DRIVER_COLOR_FAMILIES[stableHash(driverId) % DRIVER_COLOR_FAMILIES.length]
+}
+
+function routeLabelBearing(route, progress = 0.5) {
+  const before = routePosition(route, Math.max(0, progress - 0.025))
+  const after = routePosition(route, Math.min(1, progress + 0.025))
+  if (!before || !after) return 0
+  const avgLat = ((before[1] + after[1]) / 2) * Math.PI / 180
+  const dx = (after[0] - before[0]) * Math.cos(avgLat)
+  const dy = after[1] - before[1]
+  let angle = Math.atan2(dy, dx) * 180 / Math.PI
+  // Screen y runs downward, so invert geographic bearing for CSS rotation.
+  angle = -angle
+  while (angle > 180) angle -= 360
+  while (angle < -180) angle += 360
+  if (angle > 90) angle -= 180
+  if (angle < -90) angle += 180
+  return angle
+}
 
 function getRouteMetrics(route) {
   if (!Array.isArray(route) || route.length < 2) return null
@@ -65,17 +101,29 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
   const travelCameraKey = useRef(null)
   const boardCameraKey = useRef(null)
   const handledBoardViewRequest = useRef(0)
+  const handledDriverFocusRequest = useRef(0)
+  const handledFacilityFocusRequest = useRef(0)
+  const handledRouteFocusKey = useRef(null)
+  const handledFreightBrowseFitKey = useRef(null)
   const pickupMarkerRef = useRef(null)
   const deliveryMarkerRef = useRef(null)
   const driverMarkerRefs = useRef(new Map())
   const driverLabelRevealTimers = useRef(new Map())
+  const routeInfoPopupRef = useRef({ loadId: null, popup: null })
   const yardMarkerRefs = useRef(new Map())
   const freightBrowseMarkerRefs = useRef(new Map())
   const freightBrowseDeliveryMarkerRef = useRef(null)
+  const itineraryStopMarkerRefs = useRef(new Map())
+  const itineraryRouteLabelRefs = useRef(new Map())
   const [mapReady, setMapReady] = useState(false)
   const [markerRefreshToken, setMarkerRefreshToken] = useState(0)
   const [facilityPopupOpen, setFacilityPopupOpen] = useState(false)
-  const runtimeRoute = assignedLoad?.tripStatus === 'en-route-delivery' ? assignedLoad.plannedLoadedRouteGeometry : assignedLoad?.tripStatus === 'en-route-pickup' ? assignedLoad.plannedDeadheadRouteGeometry : null
+  // AW1 — operational focus. A tapped driver becomes the visual authority on the map.
+  const [focusedDriverId, setFocusedDriverId] = useState(null)
+  const travelingLoad = drivers.map((driver) => getAuthoritativeDriverTravelLoad(loads, driver.id)).find(Boolean) || null
+  const mapOperationalLoad = travelingLoad || assignedLoad || null
+  const runtimeRoute = mapOperationalLoad?.tripStatus === 'en-route-delivery' ? mapOperationalLoad.plannedLoadedRouteGeometry : mapOperationalLoad?.tripStatus === 'en-route-pickup' ? mapOperationalLoad.plannedDeadheadRouteGeometry : null
+  const resolvedActiveRouteGeometry = activeRouteGeometry?.length ? activeRouteGeometry : (Array.isArray(runtimeRoute) && runtimeRoute.length >= 2 ? runtimeRoute : null)
 
   const getDriver = (driverId) => drivers.find((driver) => driver.id === driverId)
   const removeLocationMarker = (ref) => {
@@ -97,6 +145,72 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     isGameClockPaused,
     gameTime,
   }
+
+  // AW1.7.1 — restore the MapLibre mount lifecycle accidentally removed in AW1.7.
+  useEffect(() => {
+    if (!mapContainer.current || mapRef.current) return undefined
+
+    const map = new MapLibreMap({
+      container: mapContainer.current,
+      style: 'https://tiles.openfreemap.org/styles/dark',
+      center: [-73.9857, 40.7484],
+      zoom: 10,
+      attributionControl: false,
+    })
+    mapRef.current = map
+
+    map.on('movestart', (event) => {
+      console.debug('[CAMERA] MOVE_START', { source: event.originalEvent ? 'USER_GESTURE' : 'PROGRAMMATIC' })
+    })
+
+    map.resize()
+
+    map.on('load', () => {
+      if (!cameraInitialized.current) {
+        const initialRoute = resolvedActiveRouteGeometry?.length ? { routeShape: resolvedActiveRouteGeometry } : null
+        if (initialRoute) {
+          map.addSource('active-route', {
+            type: 'geojson',
+            data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: initialRoute.routeShape } },
+          })
+          map.addLayer({
+            id: 'active-route-line',
+            type: 'line',
+            source: 'active-route',
+            paint: {
+              'line-color': mapOperationalLoad?.assignedDriverId ? getDriverColorFamily(mapOperationalLoad.assignedDriverId)[0] : '#E4D7EC',
+              'line-width': 5.2,
+              'line-opacity': 0.96,
+            },
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+          })
+        }
+        cameraInitialized.current = true
+      }
+      setMapReady(true)
+    })
+
+    return () => {
+      driverMarkerRefs.current.forEach((marker) => marker.remove())
+      driverMarkerRefs.current.clear()
+      freightBrowseMarkerRefs.current.forEach((marker) => marker.remove())
+      freightBrowseMarkerRefs.current.clear()
+      freightBrowseDeliveryMarkerRef.current?.remove()
+      freightBrowseDeliveryMarkerRef.current = null
+      itineraryStopMarkerRefs.current.forEach((marker) => marker.remove())
+      itineraryStopMarkerRefs.current.clear()
+      itineraryRouteLabelRefs.current.forEach((marker) => marker.remove())
+      itineraryRouteLabelRefs.current.clear()
+      pickupMarkerRef.current?.remove()
+      deliveryMarkerRef.current?.remove()
+      pickupMarkerRef.current = null
+      deliveryMarkerRef.current = null
+      markerRecords.current = []
+      map.remove()
+      mapRef.current = null
+      setMapReady(false)
+    }
+  }, [])
 
   useEffect(() => {
     // AV2.5.6: continuous driver render clock.
@@ -150,11 +264,19 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
         renderGameMinute = authoritativeMinute
       }
 
+      // AW1.6.4 — a paused operations map is visually frozen. State may still
+      // reconcile in the background, but no DOM-backed marker is allowed to jump
+      // while the player has the clock paused.
+      if (paused) {
+        frameId = requestAnimationFrame(render)
+        return
+      }
+
       currentDrivers.forEach((driver) => {
         const marker = driverMarkerRefs.current.get(driver.id)
         if (!marker) return
 
-        const travelingLoad = currentLoads.find((load) => load.assignedDriverId === driver.id && ['en-route-pickup', 'en-route-delivery'].includes(load.tripStatus))
+        const travelingLoad = getAuthoritativeDriverTravelLoad(currentLoads, driver.id)
         if (!travelingLoad) {
           const position = currentRuntimePositions?.[driver.id]
           if (position) marker.setLngLat([position.longitude, position.latitude])
@@ -215,8 +337,15 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       element.className = `game-marker ${role}`
       element.dataset.role = role
       element.textContent = role === 'pickup' ? 'P' : 'D'
+      // AW1.6.4 — normal operations use the permanent itinerary stop marker as
+      // the only visible P/D marker. This hidden marker remains only as the
+      // popup/facility-focus anchor for the currently actionable stop.
+      if (!isDriverFitEvaluation && routeFocusMode !== 'planning') {
+        element.classList.add('facility-action-anchor')
+      }
       const popup = new Popup({ offset: 20 }).setDOMContent(document.createElement('div'))
       const position = { longitude: location.longitude, latitude: location.latitude }
+      element.style.zIndex = '40'
       const marker = new Marker({ element }).setLngLat([position.longitude, position.latitude]).setPopup(popup).addTo(map)
       let facilityAutoCloseTimer = null
       popup.on('open', () => {
@@ -242,7 +371,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     }
     // During assignment evaluation, the evaluation load is the map's source of truth.
     // Otherwise an older active load can leak its facility markers into the new route review.
-    const activeLoad = isDriverFitEvaluation ? evaluationLoad : (routeFocusMode === 'planning' && routeReviewLoad ? routeReviewLoad : assignedLoad)
+    const activeLoad = isDriverFitEvaluation ? evaluationLoad : (routeFocusMode === 'planning' && routeReviewLoad ? routeReviewLoad : mapOperationalLoad)
     const trip = activeLoad?.tripStatus
     const active = !freightBrowseMode && Boolean(activeLoad?.assignedDriverId) && !['queued', 'delivered', 'completed'].includes(trip)
     const showPickup = isDriverFitEvaluation || (active && !['loaded', 'en-route-delivery', 'at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'].includes(trip))
@@ -281,10 +410,11 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       const home = mapLocations.find((location) => location.id === driver.homeBaseLocationId)
       const position = runtimePositions[driver.id] || home
       if (!position) return
-      const element = document.createElement('div'); element.className = 'game-marker driver'; element.textContent = driver.name?.charAt(0)?.toUpperCase() || 'D'
+      const element = document.createElement('div'); element.className = 'game-marker driver'; element.textContent = driver.name?.charAt(0)?.toUpperCase() || 'D'; element.style.setProperty('--driver-color', getDriverColorFamily(driver.id)[1])
       element.setAttribute('aria-label', `${driver.fullName || driver.name || 'Driver'} map position`)
       element.addEventListener('click', (event) => {
         event.stopPropagation()
+        setFocusedDriverId((current) => current === driver.id ? null : driver.id)
         element.classList.add('status-revealed')
         const existingTimer = driverLabelRevealTimers.current.get(driver.id)
         if (existingTimer) window.clearTimeout(existingTimer)
@@ -296,6 +426,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
         driverLabelRevealTimers.current.set(driver.id, timer)
         setMarkerRefreshToken((value) => value + 1)
       })
+      element.style.zIndex = '60'
       const marker = new Marker({ element }).setLngLat([position.longitude, position.latitude]).addTo(map)
       driverMarkerRefs.current.set(driver.id, marker); markerRecords.current.push({ location: { id: driver.id, name: driver.name, type: 'driver' }, marker, markerElement: element, popup: null })
     })
@@ -303,11 +434,315 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     else removeLocationMarker(pickupMarkerRef)
     if (showDelivery && delivery) createLocationMarker(delivery, deliveryMarkerRef, 'delivery')
     else removeLocationMarker(deliveryMarkerRef)
+
+    // AV2.10.5: the operations map reflects the driver's full active itinerary,
+    // not only whichever load currently owns the primary facility interaction.
+    // Every unfinished assigned/queued/onboard load keeps its remaining stops visible.
+    // AW1.7.2 — restore one persistent visual marker per remaining load stop.
+    const pickupDoneStates = new Set([
+      'loaded', 'onboard-hold', 'en-route-delivery', 'at-delivery', 'checking-in-delivery',
+      'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod',
+      'delivered', 'completed',
+    ])
+    const finishedStates = new Set(['delivered', 'completed'])
+    const desiredItineraryMarkers = new Map()
+    loads.forEach((load) => {
+      if (!load?.assignedDriverId) return
+      const loadLabel = getFreightRouteName(load)
+      const isCompletedLoad = finishedStates.has(load.tripStatus)
+      if (isCompletedLoad || !pickupDoneStates.has(load.tripStatus)) {
+        const location = mapLocations.find((item) => item.id === load.pickupLocationId)
+        if (location) desiredItineraryMarkers.set(`${load.id}:pickup`, { load, location, role: 'pickup', label: 'P', loadLabel, completed: isCompletedLoad })
+      }
+      const location = mapLocations.find((item) => item.id === load.deliveryLocationId)
+      if (location) desiredItineraryMarkers.set(`${load.id}:delivery`, { load, location, role: 'delivery', label: 'D', loadLabel, completed: isCompletedLoad })
+    })
+
+    itineraryStopMarkerRefs.current.forEach((marker, key) => {
+      if (!desiredItineraryMarkers.has(key)) {
+        marker.remove()
+        itineraryStopMarkerRefs.current.delete(key)
+      }
+    })
+
+    // Preserve distinct stop events when multiple loads share the same facility.
+    const stopCollisionGroups = new Map()
+    desiredItineraryMarkers.forEach((stop, key) => {
+      const collisionKey = `${Number(stop.location.longitude).toFixed(5)}:${Number(stop.location.latitude).toFixed(5)}`
+      if (!stopCollisionGroups.has(collisionKey)) stopCollisionGroups.set(collisionKey, [])
+      stopCollisionGroups.get(collisionKey).push(key)
+    })
+    const stopOffsets = new Map()
+    const collisionOffsets = [[0, 0], [-15, -10], [15, -10], [-15, 10], [15, 10], [0, -18], [0, 18], [-22, 0], [22, 0]]
+    stopCollisionGroups.forEach((keys) => {
+      keys.sort()
+      keys.forEach((key, index) => stopOffsets.set(key, collisionOffsets[index] || [0, index * 10]))
+    })
+
+    desiredItineraryMarkers.forEach(({ load, location, role, label, loadLabel, completed }, key) => {
+      const isPrimaryPickup = !completed && role === 'pickup' && load.id === activeLoad?.id && showPickup
+      const isPrimaryDelivery = !completed && role === 'delivery' && load.id === activeLoad?.id && showDelivery
+      const isPrimaryStop = isPrimaryPickup || isPrimaryDelivery
+      const existing = itineraryStopMarkerRefs.current.get(key)
+      const markerOpacity = completed
+        ? '0.30'
+        : (focusedDriverId && focusedDriverId !== load.assignedDriverId ? '0.22' : (isPrimaryStop ? '1' : '0.76'))
+      const stopOffset = stopOffsets.get(key) || [0, 0]
+      // AW1.7.4 layer contract: route lines < Marcus < every P/D stop.
+      const stopZIndex = isPrimaryStop ? '58' : (completed ? '48' : '52')
+      if (existing) {
+        const existingElement = existing.getElement?.()
+        if (!existingElement?.isConnected) {
+          existing.remove()
+          itineraryStopMarkerRefs.current.delete(key)
+        } else {
+          existingElement.style.opacity = isPrimaryStop && facilityPopupOpen ? '0.28' : markerOpacity
+          existingElement.style.zIndex = stopZIndex
+          existingElement.classList.toggle('current-itinerary-stop', isPrimaryStop)
+          existingElement.classList.toggle('completed-itinerary-stop', Boolean(completed))
+          existingElement.classList.toggle('popup-obscured-stop', isPrimaryStop && facilityPopupOpen)
+          existing.setOffset?.(stopOffset)
+          return
+        }
+      }
+      const element = document.createElement('div')
+      element.className = `game-marker ${role} itinerary-stop-marker${isPrimaryStop ? ' current-itinerary-stop' : ''}${completed ? ' completed-itinerary-stop' : ''}`
+      const family = getDriverColorFamily(load.assignedDriverId)
+      const driverLoads = loads.filter((item) => item.assignedDriverId === load.assignedDriverId && !finishedStates.has(item.tripStatus))
+      const shadeIndex = Math.max(0, driverLoads.findIndex((item) => item.id === load.id)) % family.length
+      element.style.setProperty('--driver-color', family[shadeIndex])
+      element.style.opacity = isPrimaryStop && facilityPopupOpen ? '0.28' : markerOpacity
+      element.textContent = label
+      element.dataset.stopKey = key
+      element.dataset.loadId = String(load.id)
+      element.dataset.stopRole = role
+      element.title = `${loadLabel} · ${role === 'pickup' ? 'Pickup' : 'Delivery'} · ${location.name}`
+      element.setAttribute('aria-label', element.title)
+      element.style.zIndex = stopZIndex
+      element.classList.toggle('popup-obscured-stop', isPrimaryStop && facilityPopupOpen)
+      element.addEventListener('click', (event) => {
+        if (!isPrimaryStop) return
+        event.stopPropagation()
+        const actionMarker = role === 'pickup' ? pickupMarkerRef.current : deliveryMarkerRef.current
+        if (actionMarker?.getPopup?.() && !actionMarker.getPopup().isOpen()) actionMarker.togglePopup()
+      })
+      const marker = new Marker({ element, offset: stopOffset }).setLngLat([location.longitude, location.latitude]).addTo(map)
+      itineraryStopMarkerRefs.current.set(key, marker)
+    })
+
     const deliveryRecord = markerRecords.current.find(({ marker }) => marker === deliveryMarkerRef.current)
     if (deliveryRecord) deliveryRecord.markerElement.style.pointerEvents = ''
     logDocOsState({ isDriverFitEvaluation, hasActiveAcceptedLoad: active, showPickupMarker: showPickup, showDeliveryMarker: showDelivery, pickupMarkerExists: Boolean(pickupMarkerRef.current), deliveryMarkerExists: Boolean(deliveryMarkerRef.current) })
-  }, [mapReady, markerRefreshToken, drivers, runtimePositions, assignedLoad?.id, assignedLoad?.assignedDriverId, assignedLoad?.tripStatus, assignedLoad?.pickupLocationId, assignedLoad?.deliveryLocationId, routeFocusMode, routeReviewLoad?.id, routeReviewLoad?.pickupLocationId, routeReviewLoad?.deliveryLocationId, isDriverFitEvaluation, evaluationLoad?.id, carriers])
 
+    // AW1.7.2 — one stable freight route per load. The authoritative itinerary
+    // controls priority/order, while each load's pickup→delivery geometry controls
+    // the road shape. This avoids both stale deadhead webs and straight-line
+    // connectors across the city. The live active-route layer remains authoritative
+    // for Marcus's current movement leg.
+    const loadOrder = []
+    const loadPriority = new Map()
+    drivers.forEach((driver) => {
+      const itinerary = getDriverItineraryState(loads, driver.id).itinerary.filter((stop) => !stop.completed)
+      itinerary.forEach((stop, stopIndex) => {
+        if (!loadOrder.includes(stop.loadId)) loadOrder.push(stop.loadId)
+        const previous = loadPriority.get(stop.loadId)
+        if (!previous || stopIndex < previous.stopIndex) loadPriority.set(stop.loadId, { stopIndex, driverId: driver.id })
+      })
+    })
+
+    const features = []
+    loads.forEach((load) => {
+      if (!load?.assignedDriverId) return
+      const pickupLocation = mapLocations.find((location) => location.id === load.pickupLocationId)
+      const deliveryLocation = mapLocations.find((location) => location.id === load.deliveryLocationId)
+      if (!pickupLocation || !deliveryLocation) return
+
+      const driverFamily = getDriverColorFamily(load.assignedDriverId)
+      const sameDriverLoadIds = loadOrder.filter((id) => loads.find((item) => item.id === id)?.assignedDriverId === load.assignedDriverId)
+      const loadIndex = Math.max(0, sameDriverLoadIds.indexOf(load.id))
+      const color = driverFamily[loadIndex % driverFamily.length]
+      const priorityInfo = loadPriority.get(load.id) || { stopIndex: 99, driverId: load.assignedDriverId }
+      const focusPenalty = focusedDriverId && focusedDriverId !== load.assignedDriverId ? 1 : 0
+      const priority = Math.min(3, priorityInfo.stopIndex)
+      const isCompletedRoute = finishedStates.has(load.tripStatus)
+      // AW1.7.4 — completed freight remains as muted day history so Marcus never
+      // appears to teleport across already-traveled legs.
+      const opacity = isCompletedRoute ? 0.24 : (focusPenalty ? 0.24 : priority === 0 ? 0.94 : priority === 1 ? 0.78 : 0.62)
+      const width = isCompletedRoute ? 2.5 : (priority === 0 ? 4.4 : priority === 1 ? 3.7 : 3.1)
+      const pickupWindow = formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)
+      const deliveryWindow = formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)
+      const routeStatus = String(load.tripStatus || load.status || 'planned').replaceAll('-', ' ').toUpperCase()
+      const routedGeometry = Array.isArray(load.plannedLoadedRouteGeometry) && load.plannedLoadedRouteGeometry.length >= 2
+        ? load.plannedLoadedRouteGeometry
+        : [[pickupLocation.longitude, pickupLocation.latitude], [deliveryLocation.longitude, deliveryLocation.latitude]]
+
+      features.push({
+        type: 'Feature',
+        properties: {
+          key: `itinerary:${load.assignedDriverId}:${load.id}`,
+          legType: 'delivery',
+          loadId: load.id,
+          loadLabel: getFreightRouteName(load),
+          color, opacity, width, priority, driverId: load.assignedDriverId,
+          pickupName: pickupLocation.name || 'Pickup',
+          deliveryName: deliveryLocation.name || 'Delivery',
+          pickupWindow, deliveryWindow, routeStatus, completed: isCompletedRoute ? 1 : 0,
+        },
+        geometry: { type: 'LineString', coordinates: routedGeometry },
+      })
+    })
+
+    const data = { type: 'FeatureCollection', features }
+    const source = map.getSource('itinerary-routes')
+    if (!source) {
+      map.addSource('itinerary-routes', { type: 'geojson', data })
+      const before = map.getLayer('active-route-line') ? 'active-route-line' : undefined
+      // AW1.7.3 — add a subtle casing under every scheduled route, then the
+      // driver-color line above it. The casing keeps routes visible over roads,
+      // water, labels, and other dark-map geometry without making the map noisy.
+      map.addLayer({
+        id: 'itinerary-routes-delivery-casing', type: 'line', source: 'itinerary-routes', filter: ['==', ['get', 'legType'], 'delivery'],
+        paint: {
+          'line-color': '#08111C',
+          'line-width': ['+', ['get', 'width'], 2.6],
+          'line-opacity': ['min', 0.88, ['+', ['get', 'opacity'], 0.12]],
+        },
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+      }, before)
+      map.addLayer({
+        id: 'itinerary-routes-delivery', type: 'line', source: 'itinerary-routes', filter: ['==', ['get', 'legType'], 'delivery'],
+        paint: { 'line-color': ['get', 'color'], 'line-width': ['get', 'width'], 'line-opacity': ['get', 'opacity'] },
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+      }, before)
+      map.addLayer({
+        id: 'itinerary-routes-pickup', type: 'line', source: 'itinerary-routes', filter: ['==', ['get', 'legType'], 'pickup'],
+        paint: { 'line-color': ['get', 'color'], 'line-width': ['get', 'width'], 'line-opacity': ['get', 'opacity'], 'line-dasharray': [1.5, 1.5] },
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+      }, before)
+      // AW1.6.9 — route info anchors. Route lines are intentionally non-interactive.
+      // Each scheduled load gets one obvious midpoint dot with an iPhone-friendly hit target.
+    } else source.setData(data)
+
+    const anchorByLoad = new Map()
+    features.forEach((feature) => {
+      const loadId = feature?.properties?.loadId
+      if (!loadId) return
+      const existing = anchorByLoad.get(loadId)
+      // Prefer the loaded/delivery leg because that is the actual freight route.
+      if (!existing || feature.properties.legType === 'delivery') anchorByLoad.set(loadId, feature)
+    })
+    const anchorFeatures = Array.from(anchorByLoad.values()).map((feature) => {
+      const point = routePosition(feature.geometry.coordinates, 0.5)
+      if (!point) return null
+      return {
+        type: 'Feature',
+        properties: { ...feature.properties, anchorKey: `route-anchor:${feature.properties.loadId}` },
+        geometry: { type: 'Point', coordinates: point },
+      }
+    }).filter(Boolean)
+    const anchorData = { type: 'FeatureCollection', features: anchorFeatures }
+    const anchorSource = map.getSource('itinerary-route-anchors')
+    if (!anchorSource) map.addSource('itinerary-route-anchors', { type: 'geojson', data: anchorData })
+    else anchorSource.setData(anchorData)
+
+    if (!map.getLayer('itinerary-route-anchor-dot')) {
+      map.addLayer({
+        id: 'itinerary-route-anchor-dot', type: 'circle', source: 'itinerary-route-anchors',
+        paint: {
+          'circle-radius': 5,
+          'circle-color': ['get', 'color'],
+          'circle-opacity': 0.98,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#F8FAFC',
+          'circle-stroke-opacity': 0.96,
+        },
+      })
+    }
+    if (!map.getLayer('itinerary-route-anchor-hit')) {
+      map.addLayer({
+        id: 'itinerary-route-anchor-hit', type: 'circle', source: 'itinerary-route-anchors',
+        paint: { 'circle-radius': 17, 'circle-color': '#ffffff', 'circle-opacity': 0.001 },
+      })
+    }
+
+    let anchorResetTimer = null
+    const closeRouteInfoPopup = () => {
+      const current = routeInfoPopupRef.current
+      if (current?.popup) current.popup.remove()
+      routeInfoPopupRef.current = { loadId: null, popup: null }
+    }
+    const onRouteAnchorTap = (event) => {
+      const feature = event.features?.[0]
+      if (!feature?.properties?.loadId) return
+      if (event.originalEvent) event.originalEvent.__docosRouteAnchorTap = true
+      event.originalEvent?.stopPropagation?.()
+      const props = feature.properties || {}
+      const coordinates = feature.geometry?.coordinates
+      if (!Array.isArray(coordinates)) return
+
+      // AW1.6.10 — the route dot is a toggle. Tapping the same dot again closes its peek.
+      if (routeInfoPopupRef.current?.loadId === props.loadId && routeInfoPopupRef.current?.popup) {
+        closeRouteInfoPopup()
+        return
+      }
+      closeRouteInfoPopup()
+
+      // Visible tap feedback without moving the map or changing route state.
+      map.setPaintProperty('itinerary-route-anchor-dot', 'circle-radius', [
+        'case', ['==', ['get', 'loadId'], props.loadId], 7, 5,
+      ])
+      if (anchorResetTimer) clearTimeout(anchorResetTimer)
+      anchorResetTimer = setTimeout(() => {
+        if (map.getLayer('itinerary-route-anchor-dot')) map.setPaintProperty('itinerary-route-anchor-dot', 'circle-radius', 5)
+      }, 520)
+
+      const safe = (value) => String(value ?? '')
+        .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;').replaceAll("'", '&#039;')
+      const compactWindow = (value) => String(value ?? '')
+        .replace(/^[A-Za-z]{3}\s+\d{1,2}\s*[·•]\s*/i, '')
+        .trim()
+      const popup = new Popup({ closeButton: true, closeOnClick: false, offset: 14, className: 'route-name-popup route-detail-popup route-peek-popup route-label-popup', maxWidth: '210px' })
+        .setLngLat(coordinates)
+        .setHTML(`
+          <div class="route-label-peek">
+            <div class="route-label-title">${safe(props.loadLabel)}</div>
+            <div class="route-label-status">${safe(props.routeStatus)}</div>
+            <div class="route-label-stop"><span>PICKUP</span><strong>${safe(compactWindow(props.pickupWindow))}</strong></div>
+            <div class="route-label-stop"><span>DELIVERY</span><strong>${safe(compactWindow(props.deliveryWindow))}</strong></div>
+          </div>`)
+        .addTo(map)
+      popup.on('close', () => {
+        if (routeInfoPopupRef.current?.popup === popup) routeInfoPopupRef.current = { loadId: null, popup: null }
+      })
+      routeInfoPopupRef.current = { loadId: props.loadId, popup }
+    }
+    const onMapTapCloseRouteInfo = (event) => {
+      // AW1.6.10.1 — MapLibre can dispatch both the layer click and the generic map
+      // click for the same physical tap. Never treat a tap that intersects a route
+      // anchor as an empty-map dismissal.
+      if (event.originalEvent?.__docosRouteAnchorTap) return
+      const point = event.point
+      if (point && map.getLayer('itinerary-route-anchor-hit')) {
+        const hits = map.queryRenderedFeatures(point, { layers: ['itinerary-route-anchor-hit'] })
+        if (hits?.length) return
+      }
+      closeRouteInfoPopup()
+    }
+    map.off('click', 'itinerary-route-anchor-hit', onRouteAnchorTap)
+    map.on('click', 'itinerary-route-anchor-hit', onRouteAnchorTap)
+    map.on('click', onMapTapCloseRouteInfo)
+    return () => {
+      if (anchorResetTimer) clearTimeout(anchorResetTimer)
+      map.off('click', 'itinerary-route-anchor-hit', onRouteAnchorTap)
+      map.off('click', onMapTapCloseRouteInfo)
+      // AW1.6.10.1 — do not destroy an open route peek just because React rebuilt
+      // the itinerary source after a driver-focus or status refresh. The popup owns
+      // its own close lifecycle (same-dot toggle, another dot, X, or empty map tap).
+    }
+  }, [mapReady, markerRefreshToken, drivers, loads, runtimePositions, mapOperationalLoad?.id, mapOperationalLoad?.assignedDriverId, mapOperationalLoad?.tripStatus, mapOperationalLoad?.pickupLocationId, mapOperationalLoad?.deliveryLocationId, routeFocusMode, routeReviewLoad?.id, routeReviewLoad?.pickupLocationId, routeReviewLoad?.deliveryLocationId, isDriverFitEvaluation, evaluationLoad?.id, carriers, focusedDriverId, freightBrowseMode])
+
+  // AW1.7.2 — restore FreightLink browse markers removed during the authority cleanup.
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
@@ -325,14 +760,12 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       const element = document.createElement('button')
       element.type = 'button'
       element.className = `freight-main-map-pin ${freightBrowseSelectedLoadId === load.id ? 'selected' : ''}`
-      element.setAttribute('aria-label', `${load.loadNumber || load.id} pickup at ${pickup.name}`)
+      element.setAttribute('aria-label', `${getFreightRouteName(load)} pickup at ${pickup.name}`)
       const pin = document.createElement('span')
-      // FreightLink browse mode uses the exact same facility marker language as
-      // the operational map. Browse mode changes meaning/context, not icon design.
       pin.className = 'game-marker pickup'
       pin.textContent = 'P'
       const label = document.createElement('small')
-      label.textContent = load.loadNumber || load.id
+      label.textContent = getFreightRouteName(load)
       element.append(pin, label)
       element.onclick = (event) => {
         event.preventDefault()
@@ -347,25 +780,29 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     const delivery = mapLocations.find((location) => location.id === selected?.deliveryLocationId)
     if (delivery) {
       const element = document.createElement('div')
-      // Reuse the operational delivery marker instead of maintaining a second
-      // FreightLink-only pin design.
       element.className = 'game-marker delivery freight-main-map-delivery-pin'
       element.textContent = 'D'
       freightBrowseDeliveryMarkerRef.current = new Marker({ element }).setLngLat([delivery.longitude, delivery.latitude]).addTo(map)
     }
 
-    if (!freightBrowseSelectedLoadId && freightBrowseLoads.length) {
+    const freightBrowseFitKey = freightBrowseMode && !freightBrowseSelectedLoadId ? 'browse-board' : null
+    if (!freightBrowseMode) handledFreightBrowseFitKey.current = null
+    if (freightBrowseFitKey && handledFreightBrowseFitKey.current !== freightBrowseFitKey && freightBrowseLoads.length) {
+      handledFreightBrowseFitKey.current = freightBrowseFitKey
       const points = freightBrowseLoads
         .map((load) => mapLocations.find((location) => location.id === load.pickupLocationId))
         .filter(Boolean)
       if (points.length) {
         const lngs = points.map((point) => point.longitude)
         const lats = points.map((point) => point.latitude)
+        console.debug('[CAMERA] FREIGHTLINK_BOARD')
         map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 70, maxZoom: 11, duration: 420 })
       }
     }
   }, [mapReady, freightBrowseMode, freightBrowseLoads, freightBrowseSelectedLoadId, onFreightBrowseSelect])
 
+  // AW1.7.2 — rebuild DOM-backed markers after WKWebView resume/focus while
+  // preserving the exact camera.
   useEffect(() => {
     let retryTimer = null
     let settleTimer = null
@@ -374,28 +811,32 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       const map = mapRef.current
       if (!map) return
 
-      // iOS/WebView can keep the MapLibre canvas/route layer while detaching or
-      // invalidating DOM-backed markers. Treat marker DOM as disposable and
-      // recreate it from game state whenever the game becomes visible again.
       pickupMarkerRef.current?.remove()
       deliveryMarkerRef.current?.remove()
       pickupMarkerRef.current = null
       deliveryMarkerRef.current = null
       driverMarkerRefs.current.forEach((marker) => marker.remove())
       driverMarkerRefs.current.clear()
+      itineraryStopMarkerRefs.current.forEach((marker) => marker.remove())
+      itineraryStopMarkerRefs.current.clear()
       markerRecords.current = markerRecords.current.filter(({ location }) => location?.type === 'freight-browse')
 
+      const center = map.getCenter()
+      const camera = {
+        center: [center.lng, center.lat],
+        zoom: map.getZoom(),
+        bearing: map.getBearing(),
+        pitch: map.getPitch(),
+      }
       map.resize()
+      map.jumpTo(camera)
+      console.debug('[CAMERA] RESIZE_PRESERVE', camera)
       setMarkerRefreshToken((value) => value + 1)
     }
 
     const refreshMarkers = () => {
       if (document.visibilityState === 'hidden') return
       rebuildOperationalMarkers()
-
-      // Capacitor/WKWebView resume can finish layout/style hydration one or two
-      // frames after visibilitychange/pageshow. Retry after layout settles so a
-      // single race cannot strand the route without its markers.
       window.clearTimeout(retryTimer)
       window.clearTimeout(settleTimer)
       retryTimer = window.setTimeout(rebuildOperationalMarkers, 90)
@@ -415,47 +856,12 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
   }, [])
 
   useEffect(() => {
-    const map = new MapLibreMap({
-      container: mapContainer.current,
-      style: 'https://tiles.openfreemap.org/styles/dark',
-      center: [-73.9857, 40.7484],
-      zoom: 10,
-      attributionControl: false,
-    })
-    mapRef.current = map
-    // Map attribution is surfaced in the Operations drawer so it remains accessible
-    // without competing with the primary map HUD.
-    map.resize()
-
-    const markers = []
-    map.on('load', () => {
-      if (!cameraInitialized.current) {
-      const initialRoute = activeRouteGeometry?.length ? { routeShape: activeRouteGeometry } : null
-      if (initialRoute) {
-        map.addSource('active-route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: initialRoute.routeShape } } })
-        map.addLayer({ id: 'active-route-line', type: 'line', source: 'active-route', paint: { 'line-color': '#756D80', 'line-width': 4 }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
-      }
-      setMapReady(true)
-        cameraInitialized.current = true
-      }
-    })
-
-    return () => {
-      markers.forEach((marker) => marker.remove())
-      driverMarkerRefs.current.forEach((marker) => marker.remove())
-      driverMarkerRefs.current.clear()
-      freightBrowseMarkerRefs.current.forEach((marker) => marker.remove())
-      freightBrowseMarkerRefs.current.clear()
-      freightBrowseDeliveryMarkerRef.current?.remove()
-      freightBrowseDeliveryMarkerRef.current = null
-      pickupMarkerRef.current?.remove()
-      deliveryMarkerRef.current?.remove()
-      pickupMarkerRef.current = null
-      deliveryMarkerRef.current = null
-      markerRecords.current = []
-      map.remove()
-    }
-  }, [])
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    const clearDriverFocus = () => setFocusedDriverId(null)
+    map.on('click', clearDriverFocus)
+    return () => map.off('click', clearDriverFocus)
+  }, [mapReady])
 
   useEffect(() => {
     if (!routeFocusMode) return
@@ -469,7 +875,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     const map = mapRef.current
     if (!map || !mapReady || routeFocusMode || freightBrowseMode) return
 
-    const operationalLoads = loads.filter((load) => load.assignedDriverId && load.tripStatus !== 'queued' && !['delivered', 'completed'].includes(load.tripStatus))
+    const operationalLoads = loads.filter((load) => load.assignedDriverId && !['queued', 'onboard-hold'].includes(load.tripStatus) && !['delivered', 'completed'].includes(load.tripStatus))
     const operationalDriverIds = new Set([
       ...drivers.filter((driver) => driver.status !== 'unavailable').map((driver) => driver.id),
       ...operationalLoads.map((load) => load.assignedDriverId),
@@ -509,79 +915,50 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     // familiar close camera while AV2.5 is ready for Driver #2.
     if (boardViewRequest && handledBoardViewRequest.current !== boardViewRequest) {
       handledBoardViewRequest.current = boardViewRequest
+      console.debug('[CAMERA] BOARD', { request: boardViewRequest })
       fitBoard(520)
       return
     }
 
-    if (operationalDriverIds.size < 2) return
-    const cameraKey = operationalLoads.map((load) => `${load.id}:${load.tripStatus}:${load.assignedDriverId}`).sort().join('|')
-      + `::${Array.from(operationalDriverIds).sort().join('|')}`
-    if (boardCameraKey.current === cameraKey) return
-    boardCameraKey.current = cameraKey
-    fitBoard(650)
+    // AW1.6.4 — ordinary schedule/status refreshes never own the camera. The
+    // player can request BOARD explicitly; multi-driver state changes no longer
+    // trigger an automatic refit.
+    return
   }, [boardViewRequest, mapReady, routeFocusMode, freightBrowseMode, drivers, loads, runtimePositions])
 
   useEffect(() => {
     if (!driverFocusRequest || !mapReady) return
+    if (handledDriverFocusRequest.current === driverFocusRequest) return
     const map = mapRef.current
     const marker = driverMarkerRefs.current.get(driverFocusId)
     if (!map || !marker) return
+
+    handledDriverFocusRequest.current = driverFocusRequest
     const lngLat = marker.getLngLat()
+    console.debug('[CAMERA] DRIVER_FOCUS', { request: driverFocusRequest, driverFocusId })
     map.easeTo({ center: [lngLat.lng, lngLat.lat], zoom: Math.max(map.getZoom(), 11.2), duration: 420 })
-  }, [driverFocusRequest, driverFocusId, mapReady, assignedLoad?.tripStatus])
+  }, [driverFocusRequest, driverFocusId, mapReady])
 
 
   useEffect(() => {
-    if (!['en-route-pickup', 'en-route-delivery'].includes(tripStatus)) {
+    // AW1.6.4 — departing for pickup/delivery no longer moves or refits the map.
+    // Route/state changes update line and marker styling only. Camera motion is
+    // reserved for explicit BOARD, driver-focus, facility-focus, and route-review
+    // actions initiated by the player.
+    if (!['en-route-pickup', 'en-route-delivery'].includes(mapOperationalLoad?.tripStatus)) {
       travelCameraKey.current = null
-      return
     }
-    const map = mapRef.current
-    if (!map || !mapReady || !runtimeRoute?.length || runtimeRoute.length < 2 || !assignedLoad) return
-    const departureMinute = tripStatus === 'en-route-pickup'
-      ? assignedLoad.departureGameMinute
-      : assignedLoad.deliveryDepartureGameMinute
-    const key = `${assignedLoad.id}:${tripStatus}:${departureMinute ?? 'departed'}`
-    if (travelCameraKey.current === key) return
-
-    const lngs = runtimeRoute.map((point) => point[0]).filter(Number.isFinite)
-    const lats = runtimeRoute.map((point) => point[1]).filter(Number.isFinite)
-    if (!lngs.length || !lats.length) return
-
-    travelCameraKey.current = key
-
-    // AV2.3.3: delivery planning already showed the full route. On departure,
-    // preserve spatial continuity at the pickup instead of snapping the camera
-    // across the entire pickup→delivery corridor again.
-    if (tripStatus === 'en-route-delivery') {
-      const driverMarker = driverMarkerRefs.current.get(assignedLoad.assignedDriverId)
-      const driverLngLat = driverMarker?.getLngLat?.()
-      if (driverLngLat) {
-        map.easeTo({ center: [driverLngLat.lng, driverLngLat.lat], zoom: Math.max(map.getZoom(), 10.9), duration: 320 })
-        return
-      }
-    }
-
-    map.fitBounds(
-      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-      {
-        padding: { top: 125, right: 42, bottom: 155, left: 42 },
-        maxZoom: 10.85,
-        duration: 650,
-      },
-    )
-  }, [tripStatus, assignedLoad?.id, assignedLoad?.departureGameMinute, assignedLoad?.deliveryDepartureGameMinute, runtimeRoute, mapReady])
+  }, [mapOperationalLoad?.tripStatus])
 
   useEffect(() => {
     if (!facilityFocusRequest || !mapReady || !facilityFocusRole) return
+    if (handledFacilityFocusRequest.current === facilityFocusRequest) return
     const map = mapRef.current
     if (!map) return
 
-    // Camera ownership rule:
-    // Facilities only own the camera once Marcus is physically at that facility.
-    // Before arrival (assigned, planned, en route, loaded/route-ready), the driver
-    // remains the operational focus. This prevents stale/early facility navigation
-    // from pulling the camera away from Marcus.
+    // AW1.6.5 — a facility camera request is consumed exactly once. Later trip
+    // status changes may change marker styling/popups, but they cannot replay an
+    // old camera command.
     const pickupOwnedStates = new Set(['at-pickup', 'checking-in-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup'])
     const deliveryOwnedStates = new Set(['at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'])
     const facilityOwnsCamera = facilityFocusRole === 'pickup'
@@ -591,6 +968,8 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     if (!facilityOwnsCamera) {
       const driverMarker = driverMarkerRefs.current.get(driverFocusId) || driverMarkerRefs.current.values().next().value
       if (!driverMarker) return
+      handledFacilityFocusRequest.current = facilityFocusRequest
+      console.debug('[CAMERA] FACILITY_FOCUS', { request: facilityFocusRequest, role: facilityFocusRole, facilityOwnsCamera })
       const lngLat = driverMarker.getLngLat()
       map.easeTo({ center: [lngLat.lng, lngLat.lat], zoom: Math.max(map.getZoom(), 10.9), duration: 420 })
       return
@@ -598,12 +977,14 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
 
     const marker = facilityFocusRole === 'pickup' ? pickupMarkerRef.current : deliveryMarkerRef.current
     if (!marker) return
+    handledFacilityFocusRequest.current = facilityFocusRequest
+    console.debug('[CAMERA] FACILITY_FOCUS', { request: facilityFocusRequest, role: facilityFocusRole, facilityOwnsCamera })
     const lngLat = marker.getLngLat()
     map.easeTo({ center: [lngLat.lng, lngLat.lat], zoom: Math.max(map.getZoom(), 11.2), duration: 420 })
     window.setTimeout(() => {
       if (!marker.getPopup()?.isOpen()) marker.togglePopup()
     }, 440)
-  }, [facilityFocusRequest, facilityFocusRole, mapReady, assignedLoad?.tripStatus, driverFocusId])
+  }, [facilityFocusRequest, facilityFocusRole, mapReady, driverFocusId])
 
   useEffect(() => {
     // If the load transitions back into a driver-owned state, close any facility
@@ -622,26 +1003,39 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
   useEffect(() => {
     const map = mapRef.current
     if (!map || !map.isStyleLoaded()) return
-    const route = activeRouteGeometry?.length ? { routeShape: activeRouteGeometry } : null
+    const route = resolvedActiveRouteGeometry?.length ? { routeShape: resolvedActiveRouteGeometry } : null
     const source = map.getSource('active-route')
     if (!source) {
       if (!route) return
       map.addSource('active-route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route.routeShape } } })
-      map.addLayer({ id: 'active-route-line', type: 'line', source: 'active-route', paint: { 'line-color': '#756D80', 'line-width': 4 }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
+      map.addLayer({ id: 'active-route-line', type: 'line', source: 'active-route', paint: { 'line-color': mapOperationalLoad?.assignedDriverId ? getDriverColorFamily(mapOperationalLoad.assignedDriverId)[0] : '#E4D7EC', 'line-width': 5.2, 'line-opacity': 0.96 }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
     } else if (route) source.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route.routeShape } })
-    else if (!['en-route-pickup', 'en-route-delivery'].includes(tripStatus)) source.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } })
+    else if (!['en-route-pickup', 'en-route-delivery'].includes(mapOperationalLoad?.tripStatus)) source.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } })
 
     if (map.getLayer('active-route-line')) {
-      map.setPaintProperty('active-route-line', 'line-color', isDriverFitEvaluation ? '#756D80' : '#756D80')
-      map.setPaintProperty('active-route-line', 'line-width', isDriverFitEvaluation ? 5 : 4)
+      map.setPaintProperty('active-route-line', 'line-color', isDriverFitEvaluation ? '#D0B8DF' : (mapOperationalLoad?.assignedDriverId ? getDriverColorFamily(mapOperationalLoad.assignedDriverId)[0] : '#E4D7EC'))
+      map.setPaintProperty('active-route-line', 'line-width', isDriverFitEvaluation ? 5.5 : 5.2)
+      map.setPaintProperty('active-route-line', 'line-opacity', 0.96)
     }
 
-    console.debug('ROUTE SOURCE UPDATE', { tripStatus, geometryType: route ? 'active' : 'null', coordinateCount: route?.routeShape?.length || 0 })
-  }, [activeRouteGeometry, tripStatus, isDriverFitEvaluation])
+    console.debug('ROUTE SOURCE UPDATE', { tripStatus: mapOperationalLoad?.tripStatus, geometryType: route ? 'active' : 'null', coordinateCount: route?.routeShape?.length || 0 })
+  }, [resolvedActiveRouteGeometry, mapOperationalLoad?.tripStatus, mapOperationalLoad?.assignedDriverId, isDriverFitEvaluation])
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !mapReady || !routeFocusMode || !activeRouteGeometry?.length) return
+    if (!routeFocusMode) {
+      handledRouteFocusKey.current = null
+      return
+    }
+    if (!map || !mapReady || !activeRouteGeometry?.length) return
+
+    // AW1.6.5 — fit a route once when its review/planning session opens. Geometry
+    // objects can be rebuilt many times during status updates; those refreshes do
+    // not get to refit the camera. Closing route focus resets the lock so reopening
+    // the same route still behaves normally.
+    const routeFocusKey = `${routeFocusMode}:${routeReviewLoad?.id || freightBrowseSelectedLoadId || 'route'}`
+    if (handledRouteFocusKey.current === routeFocusKey) return
+    handledRouteFocusKey.current = routeFocusKey
 
     const lngs = activeRouteGeometry.map((point) => point[0])
     const lats = activeRouteGeometry.map((point) => point[1])
@@ -651,6 +1045,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     ]
 
     const planningBottomPadding = Math.round(Math.min(430, Math.max(330, window.innerHeight * 0.46)))
+    console.debug('[CAMERA] ROUTE_REVIEW', { routeFocusKey })
     map.fitBounds(bounds, {
       padding: routeFocusMode === 'evaluation'
         ? { top: 68, right: 22, bottom: 285, left: 22 }
@@ -658,7 +1053,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       maxZoom: routeFocusMode === 'planning' ? 10.7 : 11.35,
       duration: 460,
     })
-  }, [activeRouteGeometry, routeFocusMode, mapReady])
+  }, [activeRouteGeometry, routeFocusMode, routeReviewLoad?.id, freightBrowseSelectedLoadId, mapReady])
 
   useEffect(() => {
     const pickupRecord = markerRecords.current.find(({ marker }) => marker === pickupMarkerRef.current)
@@ -668,7 +1063,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       content.className = 'docos-facility-popup pickup-facility-popup'
       const heading = document.createElement('strong'); heading.textContent = 'PICKUP'
       const name = document.createElement('span'); name.textContent = mapLocations.find((location) => location.id === popupLoad.pickupLocationId)?.name || 'Pickup location'
-      const load = document.createElement('span'); load.textContent = `Load: ${popupLoad.id}`
+      const load = document.createElement('span'); load.textContent = getFreightRouteName(popupLoad)
       const window = document.createElement('span'); window.textContent = `Pickup Window: ${formatAppointment(popupLoad.pickupDayIndex, popupLoad.pickupWindowStartMinutes, popupLoad.pickupWindowEndMinutes)}`
       content.append(heading, name, load, window)
       if (['at-pickup', 'checking-in-pickup'].includes(popupLoad.tripStatus)) {
@@ -709,7 +1104,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       content.className = 'docos-facility-popup delivery-facility-popup'
       const heading = document.createElement('strong'); heading.textContent = 'DELIVERY'
       const name = document.createElement('span'); name.textContent = mapLocations.find((location) => location.id === popupLoad.deliveryLocationId)?.name || 'Delivery location'
-      const load = document.createElement('span'); load.textContent = `Load: ${popupLoad.id}`
+      const load = document.createElement('span'); load.textContent = getFreightRouteName(popupLoad)
       const window = document.createElement('span'); window.textContent = `Delivery Window: ${formatAppointment(popupLoad.deliveryDayIndex, popupLoad.deliveryWindowStartMinutes, popupLoad.deliveryWindowEndMinutes)}`
       content.append(heading, name, load, window)
       if (['at-delivery', 'checking-in-delivery'].includes(popupLoad.tripStatus)) {
@@ -757,7 +1152,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       const marker = driverMarkerRefs.current.get(driver.id)
       const element = marker?.getElement?.()
       if (!marker || !element) return
-      const driverLoad = loads.find((load) => load.assignedDriverId === driver.id && load.tripStatus !== 'queued' && !['delivered', 'completed'].includes(load.tripStatus)) || null
+      const driverLoad = getDriverItineraryState(loads, driver.id).operationalLoad
       element.style.pointerEvents = ''
       element.classList.toggle('unavailable', driver.status === 'unavailable')
       element.classList.toggle('attention', false)
@@ -782,7 +1177,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       const transientEnRoute = ['EN_ROUTE_PICKUP', 'EN_ROUTE_DELIVERY'].includes(panel?.operationalState)
       const revealedLabel = transientEnRoute && !element.classList.contains('status-revealed') ? '' : (panel?.mapLabel || '')
       pill.textContent = suppressAttention && panel?.attentionRequired ? '' : revealedLabel
-      if (!pill.textContent && driverLoad.tripStatus === 'loaded' && !suppressAttention) pill.textContent = driverLoad.deliveryPlanningStatus === 'route-ready' ? 'ROUTE READY · SEND ROUTE' : 'LOADED'
+      if (!pill.textContent && driverLoad.tripStatus === 'loaded' && !suppressAttention) pill.textContent = driverLoad.waitingReason === 'appointment-protected' ? 'LOADED · HOLDING' : 'LOADED'
       if (!pill.textContent && driverLoad.tripStatus === 'awaiting-pod' && !suppressAttention) pill.textContent = 'POD READY'
     })
 

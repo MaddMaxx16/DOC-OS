@@ -42,6 +42,20 @@ function DayResultsScreen({ report, progression, onContinue }) {
           </div>
         </section>
 
+        {Array.isArray(report.carrierBreakdown) && report.carrierBreakdown.map((carrier) => (
+          <section className="day-report-section carrier-closeout-section" key={carrier.carrierId}>
+            <h2>{carrier.carrierName.toUpperCase()}</h2>
+            <div className="day-report-rows">
+              <div><span>Agreement</span><strong>{carrier.dispatchFeePercent}% · {carrier.bookingAuthority}</strong></div>
+              <div><span>Carrier Gross</span><strong>{money(carrier.carrierGross)}</strong></div>
+              <div><span>Dispatch Revenue</span><strong>{money(carrier.dispatchRevenue)}</strong></div>
+              <div><span>Loads Completed</span><strong>{carrier.loadsCompleted}</strong></div>
+              <div><span>Service Windows</span><strong>{carrier.onTimePickups + carrier.onTimeDeliveries} / {carrier.loadsCompleted * 2}</strong></div>
+              <div><span>Carrier Relationship</span><strong className={carrier.relationshipChange >= 0 ? 'positive' : 'attention'}>{carrier.relationshipLabel} · {carrier.relationshipChange >= 0 ? '+' : ''}{carrier.relationshipChange}</strong></div>
+            </div>
+          </section>
+        ))}
+
         <section className="day-report-section">
           <h2>SERVICE & PERFORMANCE</h2>
           <div className="day-report-rows">
@@ -77,7 +91,7 @@ function DayResultsScreen({ report, progression, onContinue }) {
       </div>
 
       <div className="day-loop-actions">
-        <button type="button" className="day-loop-primary" onClick={onContinue}>CONTINUE TO DAY {String(nextOperationDay).padStart(2, '0')}</button>
+        <button type="button" className="day-loop-primary" onClick={onContinue}>BEGIN DAY {String(nextOperationDay).padStart(2, '0')}</button>
       </div>
     </section>
   )

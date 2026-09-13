@@ -63,7 +63,7 @@ function EmailComposeScreen({ contacts = [], attachments = [], context = {}, onB
 
       <div className="email-compose-scroll">
         {context.label && <div className="email-compose-context"><span>WORKFLOW</span><strong>{context.label}</strong>{context.loadNumber && <small>{context.loadNumber}</small>}</div>}
-        {context.loadId && <div className="email-related-record"><span>RELATED LOAD</span><strong>{context.loadNumber || context.loadId}</strong><small>This email stays linked to the FreightLink load.</small></div>}
+        {context.loadId && <div className="email-related-record"><span>RELATED ROUTE</span><strong>{context.loadNumber || context.loadId}</strong><small>This email stays linked to the FreightLink route.</small></div>}
 
         <label className="email-compose-field"><span>TO</span><select value={recipientId} onChange={(event) => setRecipientId(event.target.value)}>{contacts.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
         <label className="email-compose-field"><span>SUBJECT</span><input value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="Subject" /></label>

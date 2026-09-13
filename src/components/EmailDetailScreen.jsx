@@ -1,3 +1,4 @@
+import { getFreightRouteName } from '../utils/freightIdentity.js'
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 
 function EmailDetailScreen({ message, carrier, loads = [], onReview, onOpenRelated, onOpenAttachment, onBack }) {
@@ -44,7 +45,11 @@ function EmailDetailScreen({ message, carrier, loads = [], onReview, onOpenRelat
           )}
 
           {message.loadId && (
-            <section className="email-related-link-block"><span>RELATED RECORD</span><button type="button" onClick={() => onOpenRelated?.('load', message.loadId)}>↗ {relatedLoad?.loadNumber || message.loadId} · View in FreightLink</button></section>
+            message.workflowType === 'carrier-approval' ? (
+              <section className="email-related-link-block"><span>NEXT ACTION</span><button type="button" onClick={() => onOpenRelated?.('schedule', message.loadId)}>↗ VIEW TODAY’S PLAN</button></section>
+            ) : (
+              <section className="email-related-link-block"><span>RELATED ROUTE</span><button type="button" onClick={() => onOpenRelated?.('load', message.loadId)}>↗ {relatedLoad ? getFreightRouteName(relatedLoad) : 'Route'} · View in FreightLink</button></section>
+            )
           )}
 
           {Array.isArray(message.attachments) && message.attachments.length > 0 && (

@@ -1,11 +1,8 @@
+import { formatTime } from '../utils/gameTime.js'
+
 function formatMessageTime(value) {
   if (!Number.isFinite(value)) return ''
-  const minutes = ((value % 1440) + 1440) % 1440
-  const hour24 = Math.floor(minutes / 60)
-  const minute = minutes % 60
-  const suffix = hour24 >= 12 ? 'PM' : 'AM'
-  const hour = hour24 % 12 || 12
-  return `${hour}:${String(minute).padStart(2, '0')} ${suffix}`
+  return formatTime(value)
 }
 
 function MessagesScreen({ messages = [], drivers = [], onBack, onOpenThread }) {

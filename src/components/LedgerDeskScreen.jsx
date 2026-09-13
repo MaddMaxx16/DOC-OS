@@ -111,7 +111,7 @@ function LedgerDeskScreen({ loads, carriers, ledgerWorkflowByLoadId, onBack, onO
               <div className="ledger-card-topline">
                 <div>
                   <span className="ledger-card-eyebrow">Dispatch fee</span>
-                  <strong className="ledger-card-id">{item.loadNumber || item.loadId}</strong>
+                  <strong className="ledger-card-id">{item.routeName || item.loadNumber || 'Route'}</strong>
                 </div>
                 <span className="ledger-card-status">{statusLabel(item.financialStatus)}</span>
               </div>

@@ -1,3 +1,5 @@
+## Current build: AW1.6.7 — Stop Marker Integrity + Map Layer Hierarchy
+
 # MASTER-2026-09-05-A Build Chain
 
 Base:
@@ -388,3 +390,171 @@ Built from the promoted AV2.4.1 stable foundation. Adds an explicit BOARD camera
 - Driver markers use a stable animation-frame render clock with fractional game-time progress.
 - Route segment metrics are cached for smooth iPhone rendering.
 - Simulation state and arrival lifecycle remain authoritative and unchanged.
+
+## AV2.6 — CarrierSource Identity + Live Agreements
+- Persistent dispatcher profile created inside CarrierSource.
+- CarrierSource now separates My Carriers and Opportunities.
+- Metroline agreement is live operating data shared by CarrierSource, FreightLink approval rules, LedgerDesk economics, and Daily Closeout.
+- Carrier relationship is distinct from driver relationship and updates from daily service results.
+
+- AV2.6.1 — DOC OS identity polish for CarrierSource landing page.
+
+
+## AV2.8 — Trip Planning System
+- Driver Select creates a provisional trip once.
+- Carrier approval preserves the plan.
+- BOOK LOAD commits driver + deadhead + loaded route legs.
+- Loaded route persists through pickup; normal delivery is SEND ROUTE, not re-plan.
+
+## AV2.9 — Dispatch Operations Workflow
+- Schedule promoted to authoritative workday view.
+- Normal player route-planning / Send Route ceremony retired.
+- Driver movement begins from assignment/physical facility release.
+- Driver release separated from POD administrative closeout.
+- Messages shifted from workflow controller to human coordination.
+
+
+## AV2.9.3 — Confirm Unload Reference Fix
+- Fixed missing `promoteNextQueuedLoad` import used by unload completion.
+- Prevents runtime ReferenceError / white screen on CONFIRM UNLOAD.
+
+## AV2.9.4 — Handoff + Multi-Driver Schedule Foundation + Message Reply UI
+- Persist queued-load driver briefing/acknowledgment and auto-start acknowledged next loads on promotion.
+- Preserve queued trip route geometry through handoff.
+- Add ALL DRIVERS / per-driver Schedule selector foundation.
+- Replace always-visible message replies with DOC OS-styled contextual REPLY dropdown.
+- Keep AV2.9 dispatch-operations workflow and AV2.9.3 unload-confirm fix intact.
+
+## AV2.9.5 — Day Flow Polish (test build)
+- Schedule completed-state visual cleanup.
+- CarrierSource phone-first layout pass.
+- FreightLink player-owned map camera.
+- FreightLink broader full-day floor inventory.
+- Remaining follow-on planning wording removed from market map.
+
+## AV2.9.6 — Approval Flow + Handoff Movement
+- Load Details auto-evaluates single-driver fit; approval-required freight goes directly to REQUEST APPROVAL.
+- Driver fit alone stays off Schedule; pending/approved requests create provisional holds; BOOK LOAD commits.
+- Queued-load handoff recalculates actual receiver → next pickup route before movement, preventing pickup teleport.
+
+## AV2.9.7 — Appointment Gates + Full-Day Freight Market
+- Hard pickup/delivery service gates prevent early loading/unloading.
+- Full-day FreightLink coverage through 8 PM at start, extending later on hourly refresh.
+- Generated market appointments use :00/:30 pickup times.
+
+- AV2.9.8 — Multi-Load Foundation I: appointment-aware staging, driver-context Messages UPDATE/REPLY split, staged departure projection.
+
+
+## AV2.10 — Multi-Stop Itinerary Foundation
+- Built from AV2.9.8 test source.
+- Adds onboard freight state, automatic pickup-before-delivery insertion, load-ID-aware messaging, customer facilities, and overnight freight generation.
+
+- AV2.10.1: itinerary authority; provisional pre-pickup insertion, stop-first schedule, shared driver itinerary context, overnight alert guard.
+
+- AV2.10.2 — iPhone developer tools: hidden DOC OS long-press menu now includes persistent CREATE TEST PROFILE plus RESET GAME.
+
+- AV2.10.3 — itinerary order authority, message time formatting, operational update dedupe, readable multi-stop preview.
+
+- AV2.10.4 — Late multi-stop activation when a compatible queued load is sent after anchor loading completes.
+- AV2.10.5 — Active Itinerary Map: all unfinished assigned-load stops visible; current travel route authoritative; future planned legs dashed.
+
+- AV2.10.6 — Itinerary Sequencing + Route Identity: time-prioritized constrained itinerary, next-stop routing after inserted pickups, per-load pickup/delivery route styling and labels.
+
+- AV2.10.7 — Live itinerary diversion: loaded drivers can divert from a later active delivery to a newly confirmed compatible pickup; route from live position and keep anchor freight onboard.
+
+- AV2.11 — Authoritative Driver Itinerary: canonical next-stop movement authority + map layer hierarchy.
+
+- AV2.11.1 — itinerary authority gate before routing + map UI stacking contract
+
+## AV2.11.2
+Itinerary-safe pickup recovery and stop-first driver availability projection.
+
+## AV2.12 — Driver Movement Authority + Freight Identity
+- One canonical physical movement leg per driver.
+- Per-driver route-request token guards against stale async route races.
+- Route-origin sanity check protects live diversions from cached geometry teleports.
+- Operational freight identity moved to customer/facility + freight type; load IDs remain reference/document identifiers.
+
+## AV2.13
+Communications Center V1: messaging/alerts cleanup plus iPhone Carrier Approval dev controls.
+
+
+## AV2.14 — Schedule-First Operations
+Schedule owns the workday; Messages communicate plans, relationship, and exceptions rather than controlling routine load progression.
+
+## AV2.15 — 6 AM Planning + Carrier Gate
+- Workday standard start moved to 6:00 AM for pre-shift planning.
+- Initial freight market moved to 6:00 AM.
+- FreightLink locked until an active carrier relationship exists and its driver is on roster.
+- Preserves fit-before-load-approval and schedule-first operation.
+
+
+## AV2.17 — Grouped Carrier Approval + Schedule Action Polish
+FreightLink adds freight to the plan without contacting the carrier. Schedule sends one grouped approval request and uses the DOC OS action surface.
+
+## AV2.17.1 — Build repair + patch-note consolidation
+- Repaired AV2.17 schedule-action CSS where escaped `\\n` text had been written literally into `src/App.css`, causing Lightning CSS/Vite to fail.
+- Consolidated legacy `MASTER_*_PATCH_NOTES.md` files into one root `PATCH_NOTES.md` file for test/master ZIP cleanliness.
+- Going forward, append release notes to `PATCH_NOTES.md` instead of creating a new patch-note file per build.
+
+AV2.18 — Planning Intelligence
+- Built from AV2.17.1.
+- Planning UX only; execution foundation protected.
+
+AV2.18.1 — Added post-carrier 6:00 AM day reset shortcut in iPhone Dev Tools.
+
+AV2.18.2 — Freight haul classification (LOCAL / REGIONAL / LONG HAUL) added to FreightLink planning and Schedule.
+
+AV2.19 — Schedule Control + Multi-Driver Visual Identity
+- Built from AV2.18.2.
+- Planning controls: remove/withdraw/cancel pre-movement freight, whole-day impact, open/travel windows, completed collapse.
+- Communications: delta-only schedule updates; facility-first Marcus language.
+- Map: persistent per-driver color families; per-load route shades; route-bearing labels that stay upright.
+- Protected: authoritative driver movement / canonical itinerary engine.
+
+
+## AW1.6.2
+Load Details CTA is anchored to the bottom action bar. Carrier approval returns to Today’s Plan. Approved schedule freight can be booked directly from the scheduler before the driver schedule is sent.
+
+
+## AW1.6.3 — Schedule State Integrity
+Booking no longer starts movement. Today’s Plan order is persisted through booking, SEND SCHEDULE grants movement authority, and Driver Hub follows the same authoritative itinerary as the map.
+
+
+## Current patch
+AW1.6.9 — Route Info Anchors. See `PATCH_NOTES.md`.
+
+AW1.6.10 — Compact Route Peek. See `PATCH_NOTES.md`.
+
+
+## AW1.6.10.3 — Route Label Shrink-Wrap Hotfix
+Route peek geometry only: shrink-wrap the compact route label without changing typography or interaction behavior.
+
+## AW1.6.10.4 — Stacked Route Label Final Polish
+- Narrowed route annotation by stacking status, pickup time, and delivery time.
+- Preserved existing typography and interaction behavior.
+- Removed redundant same-day date text from route annotation times.
+
+
+
+## AW1.6.11 — Facility Ops Restore
+Restores authoritative loading/unloading minigame entry and clock ownership during facility gameplay.
+
+## AW1.6.12 — Itinerary Schedule Validation
+Today’s Plan planning intelligence now simulates the full ordered stop sequence. Stop-to-stop travel, appointment windows, service time, waiting time, tight windows, and conflicts are evaluated before producing the plan-quality verdict. Dense timeline stops use a compact card treatment for readability.
+
+## AW1.6.14 — Scheduler Utility + Load Detail Layout
+- Today’s Plan surfaces stop-by-stop travel, buffer, wait, and lateness from the itinerary simulation.
+- Conflict plans block approval/booking actions until resolved.
+- Dense timeline stops preserve route identity without overlapping as heavily.
+- Load Details is viewport-locked with a persistent bottom CTA.
+
+
+## AW1.7.1 stabilization note
+AW1.7.1 establishes the driver itinerary as the compatibility authority for active-load consumers, makes FreightLink inspection read-only, repairs Operational Alert action delivery, and aligns the operations-map future route display with Today’s Plan stop order.
+
+## AW1.7.3 — Map + Timeline Integrity Restore
+AW1.7.3 restores the itinerary stop markers, FreightLink browse markers, and iOS marker-rebuild safeguards lost during the AW1.7 cleanup. Future operations-map route visuals now use stable pickup-to-delivery road geometry per load while the authoritative itinerary controls priority/order. Scheduler cards within 75 minutes of adjacent stops render compactly to avoid overlap.
+
+## AW1.7.4
+Map continuity + driver layering. Completed legs/stops remain visible as muted day history. Marcus is layered above route geometry but below P/D markers.

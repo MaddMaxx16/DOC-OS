@@ -18,6 +18,9 @@ import { reconcileActiveCarrierDrivers } from './utils/driverRoster.js'
 import { getDriverActiveLoad, getDriverQueue, promoteNextQueuedLoad } from './utils/driverQueue.js'
 import { createDayReport, DEFAULT_DAY_LOOP_STATE, DEFAULT_PLAYER_PROGRESSION, getEndDayStatus } from './utils/dayLoop.js'
 import { calculateRoute } from './services/routingService.js'
+import { refreshFreightMarket } from './utils/freightMarket.js'
+import { getAuthoritativeDriverTravelLoad } from './utils/driverItinerary.js'
+import { getFreightRouteName } from './utils/freightIdentity.js'
 
 
 const IDLE_DWELL_MINUTES = 20
@@ -71,7 +74,7 @@ function reconcileDriverRuntimeState(driver, activeLoad, savedPosition, now) {
 function App() {
   const [stage, setStage] = useState('start')
   const [selectedMarket, setSelectedMarket] = useState(null)
-  const [gameTime, setGameTime] = useState({ gameDayIndex: 0, totalMinutesOfDay: 420 })
+  const [gameTime, setGameTime] = useState({ gameDayIndex: 0, totalMinutesOfDay: 360 })
   const [loads, setLoads] = useState(() => seedLoads)
   const [drivers, setDrivers] = useState([])
   const [carriers, setCarriers] = useState(() => seedCarriers.map((carrier) => ({ ...carrier })))
@@ -87,6 +90,7 @@ function App() {
   const [seenLedgerPaymentReceivedIds, setSeenLedgerPaymentReceivedIds] = useState([])
   const [ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId] = useState({})
   const [carrierApplicationsById, setCarrierApplicationsById] = useState({})
+  const [dispatcherProfile, setDispatcherProfile] = useState(null)
   const [emailMessages, setEmailMessages] = useState([])
   const [driverMessages, setDriverMessages] = useState([])
   const [businessDocuments, setBusinessDocuments] = useState([])
@@ -98,70 +102,22 @@ function App() {
 
   const approvePodAndCloseout = (loadId) => {
     const load = loads.find((item) => item.id === loadId)
-    if (!load || load.tripStatus !== 'awaiting-pod' || !load.pod?.verified || !load.assignedDriverId) return false
+    if (!load || load.tripStatus !== 'awaiting-pod' || !load.pod?.verified) return false
     const recordPieces = Number.isFinite(Number(load.pod?.freightCondition?.loadedAtPickup)) ? Number(load.pod.freightCondition.loadedAtPickup) : Number(load.pod.piecesReceived)
     const recordDamageCount = Number(load.pod?.freightCondition?.damagedAtPickup || 0)
     const recordDamage = recordDamageCount > 0 ? `${recordDamageCount} pallet${recordDamageCount === 1 ? '' : 's'} noted` : 'None'
     if (Number(load.pod.piecesReceived) !== Number(recordPieces) || String(load.pod.damage || '').trim() !== recordDamage) return false
-
-    const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
-    if (!delivery) {
-      console.error('POD closeout failed: delivery location unavailable', loadId, load.deliveryLocationId)
-      return false
-    }
-
-    const driverId = load.assignedDriverId
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    const nextQueued = getDriverQueue(loads, driverId)[0] || null
-
-    // POD approval owns the document decision AND the operational closeout.
-    // Complete the delivered load in the same player action so queue promotion
-    // never depends on a later render/effect noticing an intermediate state.
-    setLoads((current) => {
-      const closed = current.map((item) => item.id === loadId && item.tripStatus === 'awaiting-pod'
-        ? {
-            ...item,
-            tripStatus: 'completed',
-            status: 'completed',
-            completedDriverId: driverId,
-            assignedDriverId: null,
-            queuePosition: null,
-            completedGameMinute: now,
-            completedOperationDay: dayLoop.operationDay,
-            pod: {
-              ...item.pod,
-              approved: true,
-              approvedGameMinute: now,
-            },
-          }
-        : item)
-      return promoteNextQueuedLoad(closed, driverId).loads
-    })
-
-    setDrivers((current) => current.map((driver) => driver.id === driverId
-      ? {
-          ...driver,
-          status: nextQueued ? 'unavailable' : 'available',
-          assignedLoadId: nextQueued?.id || null,
-          queuedLoadIds: (driver.queuedLoadIds || []).filter((id) => id !== nextQueued?.id),
-          longitude: delivery.longitude,
-          latitude: delivery.latitude,
-          lastKnownLocationId: load.deliveryLocationId,
-          idleSinceGameMinute: nextQueued ? null : now,
-          idleTargetLocationId: nextQueued ? null : getIdleTargetLocationId(load.deliveryLocationId),
-          idleRouteStatus: nextQueued ? null : 'dwell',
-          idleRouteGeometry: null,
-          idleRouteStartGameMinute: null,
-          idleRouteDurationMinutes: null,
-        }
-      : driver))
-
-    // The receiver remains the authoritative physical origin for whatever comes next.
-    setRuntimePositions((current) => ({
-      ...current,
-      [driverId]: { longitude: delivery.longitude, latitude: delivery.latitude },
-    }))
-    setRuntimeProgressByDriver((current) => ({ ...current, [driverId]: null }))
+    // AV2.9: POD approval is administrative only. The receiver already released
+    // the driver at unload completion, so Documents never owns driver movement.
+    setLoads((current) => current.map((item) => item.id === loadId ? {
+      ...item,
+      tripStatus: 'completed',
+      status: 'completed',
+      completedGameMinute: Number.isFinite(item.completedGameMinute) ? item.completedGameMinute : now,
+      completedOperationDay: dayLoop.operationDay,
+      pod: { ...item.pod, approved: true, approvedGameMinute: now },
+    } : item))
     return true
   }
 
@@ -200,7 +156,7 @@ function App() {
       return seed ? { ...seed, ...carrier, dispatchAgreement: { ...(seed.dispatchAgreement || {}), ...(carrier.dispatchAgreement || {}) } } : carrier
     })
     let hydratedLoads = mergeSavedLoads(saved.loads ?? [])
-    const savedNow = (saved.gameTime?.gameDayIndex ?? 0) * 1440 + (saved.gameTime?.totalMinutesOfDay ?? 420)
+    const savedNow = (saved.gameTime?.gameDayIndex ?? 0) * 1440 + (saved.gameTime?.totalMinutesOfDay ?? 360)
     hydratedLoads = hydratedLoads.map((load) => {
       if (load.tripStatus === 'at-delivery' && !Number.isFinite(load.deliveryArrivalGameMinute)) return { ...load, deliveryArrivalGameMinute: savedNow }
       if (load.tripStatus === 'waiting-at-delivery') {
@@ -245,7 +201,7 @@ function App() {
     })
 
     setSelectedMarket(saved.selectedMarket ?? null)
-    setGameTime(saved.gameTime ?? { gameDayIndex: 0, totalMinutesOfDay: 420 })
+    setGameTime(saved.gameTime ?? { gameDayIndex: 0, totalMinutesOfDay: 360 })
     setLoads(hydratedLoads)
     setDrivers(hydratedDrivers)
     setCarriers(hydratedCarriers)
@@ -255,6 +211,7 @@ function App() {
     setSeenLedgerPaymentReceivedIds(Array.isArray(saved.seenLedgerPaymentReceivedIds) ? saved.seenLedgerPaymentReceivedIds : [])
     setLedgerWorkflowByLoadId(saved.ledgerWorkflowByLoadId || {})
     setCarrierApplicationsById(saved.carrierApplicationsById || {})
+    setDispatcherProfile(saved.dispatcherProfile || null)
     setEmailMessages(Array.isArray(saved.emailMessages) ? saved.emailMessages.filter((message) => !message.templateId) : [])
     const savedDriverMessages = Array.isArray(saved.driverMessages) ? saved.driverMessages : []
     const migratedDriverMessages = savedDriverMessages.flatMap((message) => {
@@ -275,7 +232,7 @@ function App() {
 
   const resetOperationState = () => {
     setSelectedMarket(null)
-    setGameTime({ gameDayIndex: 0, totalMinutesOfDay: 420 })
+    setGameTime({ gameDayIndex: 0, totalMinutesOfDay: 360 })
     setLoads(seedLoads.map((load) => ({ ...load })))
     setDrivers([])
     setCarriers(seedCarriers.map((carrier) => ({ ...carrier })))
@@ -288,6 +245,7 @@ function App() {
     setSeenLedgerPaymentReceivedIds([])
     setLedgerWorkflowByLoadId({})
     setCarrierApplicationsById({})
+    setDispatcherProfile(null)
     setEmailMessages([])
     setDriverMessages([])
     setBusinessDocuments([])
@@ -311,11 +269,11 @@ function App() {
     if (stage === 'start' && !hasExistingOperation) return
     const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
     const timer = setTimeout(() => {
-      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
+      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
       setSaveSlots(getSaveSlots())
     }, 700)
     return () => clearTimeout(timer)
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
 
   // AV lifecycle persistence: critical operational boundaries flush immediately.
   // Routine animation/clock changes still use the normal debounce above.
@@ -329,8 +287,8 @@ function App() {
     if (!signature || signature === lifecycleSaveSignatureRef.current) return
     lifecycleSaveSignatureRef.current = signature
     const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
-    saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
+    saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
 
   // AU3 mobile persistence hardening: keep the normal debounce for routine
   // updates, but flush the current snapshot immediately when iOS backgrounds
@@ -339,7 +297,7 @@ function App() {
     if (!hydrated || !activeSaveSlotId) return undefined
     const flushSave = () => {
       const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
-      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
+      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
     }
     const onVisibility = () => { if (document.visibilityState === 'hidden') flushSave() }
     window.addEventListener('pagehide', flushSave)
@@ -348,7 +306,7 @@ function App() {
       window.removeEventListener('pagehide', flushSave)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
 
   // Market appointments are seeded directly; operation-day gates do not rewrite them.
 
@@ -386,6 +344,15 @@ function App() {
     })
   }, [hydrated, stage, dayLoop.phase, dayLoop.operationDay, gameTime.gameDayIndex, gameTime.totalMinutesOfDay])
 
+  // AV2.7.1a: FreightLink is a live market every operating day. At each in-game
+  // hour boundary it posts fresh freight and tops the actionable board back up
+  // to a minimum of ten loads. Generated loads persist in save state.
+  const freightMarketHourBucket = Math.floor(gameTime.totalMinutesOfDay / 60)
+  useEffect(() => {
+    if (!hydrated || stage !== 'game' || dayLoop.phase !== 'operating') return
+    setLoads((current) => refreshFreightMarket(current, gameTime))
+  }, [hydrated, stage, dayLoop.phase, gameTime.gameDayIndex, freightMarketHourBucket])
+
 
   useEffect(() => {
     if (!hydrated || stage !== 'game') return
@@ -398,7 +365,7 @@ function App() {
     if (!pending) return
 
     const load = loads.find((item) => item.id === pending.loadId)
-    const loadNumber = load?.loadNumber || pending.loadId || 'load'
+    const loadNumber = load ? getFreightRouteName(load) : 'route'
     let senderOverride = 'Metroline Transport'
     let subject = `Re: ${pending.subject || loadNumber}`
     let bodyOverride = 'Received. Thank you.'
@@ -406,12 +373,23 @@ function App() {
 
     if (pending.workflowType === 'carrier-approval') {
       senderOverride = 'Metroline Transport · Operations'
-      if (pending.workflowValid) {
-        bodyOverride = `Approved. Go ahead and book ${loadNumber}. Keep us posted if the schedule or rate changes.`
-        setLoads((current) => current.map((item) => item.id === pending.loadId ? { ...item, carrierApprovalStatus: 'APPROVED', carrierApprovedGameMinute: now } : item))
+      const requestedIds = Array.isArray(pending.loadIds) && pending.loadIds.length ? pending.loadIds : [pending.loadId].filter(Boolean)
+      const requestedLoads = requestedIds.map((id) => loads.find((item) => item.id === id)).filter(Boolean)
+      const activeRequestedLoads = requestedLoads.filter((item) => item.carrierApprovalStatus === 'PENDING' && item.scheduleApprovalQueued)
+      const activeRequestedIds = activeRequestedLoads.map((item) => item.id)
+      if (!activeRequestedIds.length) {
+        bodyOverride = `Understood — the approval request was withdrawn. No action taken.`
+      } else if (pending.workflowValid) {
+        const lines = activeRequestedLoads.map((item) => { const pickupName = mapLocations.find((location) => location.id === item.pickupLocationId)?.name || 'Pickup'; const deliveryName = mapLocations.find((location) => location.id === item.deliveryLocationId)?.name || 'Delivery'; return `Approved — ${pickupName} → ${deliveryName}` })
+        bodyOverride = activeRequestedLoads.length > 1
+          ? `Approved for today's plan:\n\n${lines.join('\n')}\n\nGo ahead and book the approved freight. Keep us posted if the schedule or rate changes.`
+          : `Approved. Go ahead and book ${loadNumber}. Keep us posted if the schedule or rate changes.`
+        const idSet = new Set(activeRequestedIds)
+        setLoads((current) => current.map((item) => idSet.has(item.id) ? { ...item, carrierApprovalStatus: 'APPROVED', carrierApprovedGameMinute: now } : item))
       } else {
-        bodyOverride = `We can’t approve ${loadNumber} yet. Please resend the request to Operations with the FreightLink load offer attached.`
-        setLoads((current) => current.map((item) => item.id === pending.loadId ? { ...item, carrierApprovalStatus: 'NEEDS_INFO' } : item))
+        bodyOverride = `We can’t approve this plan yet. Please resend the request to Operations with the FreightLink offers attached.`
+        const idSet = new Set(activeRequestedIds)
+        setLoads((current) => current.map((item) => idSet.has(item.id) ? { ...item, carrierApprovalStatus: 'NEEDS_INFO' } : item))
       }
     }
 
@@ -450,6 +428,7 @@ function App() {
       bodyOverride,
       attachments,
       loadId: pending.loadId,
+      loadIds: pending.loadIds || null,
       replyToEmailId: pending.id,
       receivedGameMinute: now,
       read: false,
@@ -511,6 +490,51 @@ function App() {
     }
   }
   const resetGame = () => { clearSave(activeSaveSlotId); window.location.reload() }
+
+  // AV2.18.1 dev shortcut: restart Day 1 planning at 6:00 AM while
+  // preserving the accepted carrier relationship, signed agreement, profile,
+  // and carrier-provided driver roster. This is intentionally test-only state.
+  const resetDayAfterCarrierApproval = () => {
+    const activeCarriers = carriers.filter((carrier) => carrier.status === 'active')
+    if (!activeCarriers.length) return false
+
+    const nextLoads = seedLoads.map((load) => ({ ...load }))
+    const nextDrivers = reconcileActiveCarrierDrivers([], carriers).map((driver) => ({
+      ...driver,
+      status: 'available',
+      assignedLoadId: null,
+      queuedLoadIds: [],
+      idleSinceGameMinute: null,
+      idleTargetLocationId: null,
+      idleRouteStatus: null,
+      idleRouteGeometry: null,
+      idleRouteStartGameMinute: null,
+      idleRouteDurationMinutes: null,
+    }))
+    const nextPositions = {}
+    nextDrivers.forEach((driver) => {
+      const home = mapLocations.find((location) => location.id === driver.homeBaseLocationId)
+      if (home) nextPositions[driver.id] = { longitude: home.longitude, latitude: home.latitude }
+    })
+
+    setGameTime({ gameDayIndex: 0, totalMinutesOfDay: 360 })
+    setLoads(nextLoads)
+    setDrivers(nextDrivers)
+    setRuntimePositions(nextPositions)
+    setRuntimeProgressByDriver({})
+    setPlannedRoute(null)
+    setSimulationSpeed(1)
+    setIsGameClockPaused(false)
+    setSeenLedgerReceivableIds([])
+    setSeenLedgerPaymentReceivedIds([])
+    setLedgerWorkflowByLoadId({})
+    setEmailMessages((current) => current.filter((message) => /application approved|agreement/i.test(`${message.subject || ''} ${message.body || ''}`)))
+    setDriverMessages((current) => current.filter((message) => message.id === 'marcus-intro' || String(message.id || '').startsWith('marcus-intro-')))
+    setBusinessDocuments((current) => current.filter((document) => document.type === 'dispatch-agreement'))
+    setDayLoop({ ...DEFAULT_DAY_LOOP_STATE, operationDay: 1, phase: 'operating', currentStartGameDayIndex: 0, report: null, history: [] })
+    setPlayerProgression({ ...DEFAULT_PLAYER_PROGRESSION })
+    return true
+  }
   const activateCarrier = () => {
     const nextCarriers = carriers.map((carrier) => carrier.id === 'metroline' ? { ...carrier, status: 'active' } : carrier)
     setCarriers(nextCarriers)
@@ -531,7 +555,7 @@ function App() {
   const applyCarrier = () => { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setCarrierApplicationsById((current) => current.metroline ? current : { ...current, metroline: { status: 'PENDING', submittedGameMinute: now, responseGameMinute: now + 10 } }) }
   const acceptCarrierAgreement = () => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    const signedBy = 'Authorized Dispatcher'
+    const signedBy = dispatcherProfile?.displayName || 'Authorized Dispatcher'
     setCarrierApplicationsById((current) => ({ ...current, metroline: { ...current.metroline, status: 'ACCEPTED', acceptedGameMinute: now } }))
     activateCarrier()
     setBusinessDocuments((current) => current.some((document) => document.id === 'metroline-dispatch-agreement') ? current : [...current, {
@@ -544,18 +568,15 @@ function App() {
       signedBy,
       signedGameMinute: now,
       goals: [
-        'Book at least 2 loads.',
         'Target $2.00+ per loaded mile.',
         'Dry Van / General Freight.',
         'Preferred region: Northeast.',
-        'Keep deadhead under 75 miles when possible.',
         'Protect pickup and delivery appointments.',
         'Keep the driver informed before dispatch.',
-        'Consider where each load positions the truck next.',
         'Dispatch fee: 8% of carrier gross.',
       ],
       priorities: ['On-time service', 'Rate quality', 'Reasonable deadhead', 'Driver communication', 'Smart truck positioning'],
-      terms: { dispatchFee: '8% of carrier gross', loadApprovalRequired: true, paymentTermsDays: 1 },
+      terms: { ...carriers.find((carrier) => carrier.id === 'metroline')?.dispatchAgreement, dispatchFee: '8% of carrier gross' },
       acknowledgment: 'These are Metroline’s operating goals, not absolute rules. Freight markets change throughout the day. Use reasonable judgment when balancing carrier goals, driver preferences, appointment requirements, and available freight.',
     }])
     setDriverMessages((current) => current.some((message) => message.id === 'marcus-intro-1' || message.id === 'marcus-intro') ? current : [...current,
@@ -631,7 +652,9 @@ function App() {
     // AV: each driver owns independent travel progress and route state. This keeps
     // simultaneous drivers from stealing one another's movement.
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    const travelingLoads = loads.filter((load) => load.assignedDriverId && ['en-route-pickup', 'en-route-delivery'].includes(load.tripStatus))
+    // AV2.12: physical movement is driver-owned. A driver can carry many loads,
+    // but only the canonical next itinerary stop is allowed to move the truck.
+    const travelingLoads = drivers.map((driver) => getAuthoritativeDriverTravelLoad(loads, driver.id)).filter(Boolean)
     if (!travelingLoads.length) return
 
     const progressUpdates = {}
@@ -731,7 +754,7 @@ function App() {
       const closed = current.map((load) => load.id === completed.id && load.tripStatus === 'delivered'
         ? { ...load, tripStatus: 'completed', status: 'completed', completedDriverId: driverId, assignedDriverId: null, queuePosition: null, completedGameMinute: gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay, completedOperationDay: dayLoop.operationDay }
         : load)
-      return promoteNextQueuedLoad(closed, driverId).loads
+      return promoteNextQueuedLoad(closed, driverId, gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay).loads
     })
 
     setDrivers((current) => current.map((driver) => driver.id === driverId
@@ -859,6 +882,7 @@ function App() {
       gameTime,
       loads,
       receivables,
+      carriers,
     })
 
     setIsGameClockPaused(true)
@@ -871,6 +895,10 @@ function App() {
       xp: Number(current.xp || 0),
       reputation: Number(current.reputation || 0) + report.reputationChange,
     }))
+    setCarriers((current) => current.map((carrier) => {
+      const result = report.carrierBreakdown?.find((item) => item.carrierId === carrier.id)
+      return result ? { ...carrier, relationshipScore: result.relationshipAfter } : carrier
+    }))
     setDayLoop((current) => ({
       ...current,
       phase: 'results',
@@ -880,8 +908,21 @@ function App() {
   }
 
   const continueToNextDayBriefing = () => {
-    if (!dayLoop.report || dayLoop.phase !== 'results') return
-    setDayLoop((current) => ({ ...current, phase: 'briefing' }))
+    const report = dayLoop.report
+    if (!report || dayLoop.phase !== 'results') return
+    const nextOperationDay = dayLoop.operationDay + 1
+    setGameTime({ gameDayIndex: report.nextStartGameDayIndex, totalMinutesOfDay: report.nextStartMinutes })
+    setDayLoop((current) => ({
+      ...current,
+      operationDay: nextOperationDay,
+      phase: 'operating',
+      currentStartGameDayIndex: report.nextStartGameDayIndex,
+      report: null,
+    }))
+    // AV2.7.1: closeout now returns directly to the same operating workspace.
+    // No special Day 2 startup gate is inserted between normal operation days.
+    setSimulationSpeed(1)
+    setIsGameClockPaused(false)
   }
 
   const beginNextOperationDay = () => {
@@ -931,6 +972,8 @@ function App() {
             setLoads={setLoads}
             drivers={drivers}
             carriers={carriers}
+            dispatcherProfile={dispatcherProfile}
+            onSaveDispatcherProfile={setDispatcherProfile}
             onActivateCarrier={activateCarrier}
             carrierApplicationsById={carrierApplicationsById}
             onApplyCarrier={applyCarrier}
@@ -955,6 +998,7 @@ function App() {
             isGameClockPaused={isGameClockPaused}
             setGameClockPaused={setIsGameClockPaused}
             runtimePositions={runtimePositions}
+            setRuntimePositions={setRuntimePositions}
             runtimeProgressByDriver={runtimeProgressByDriver}
             setRuntimeProgressByDriver={setRuntimeProgressByDriver}
             simulationSpeed={simulationSpeed}
@@ -962,6 +1006,7 @@ function App() {
             onOpenMarkets={() => setStage('market')}
             onApplyDevPreset={applySelectedDevPreset}
             onResetGame={resetGame}
+            onResetDayAfterCarrierApproval={resetDayAfterCarrierApproval}
             seenLedgerReceivableIds={seenLedgerReceivableIds}
             onOpenLedger={() => { const records = getReceivables(loads, carriers, ledgerWorkflowByLoadId); setSeenLedgerReceivableIds((current) => Array.from(new Set([...current, ...records.map((item) => item.loadId)]))); setSeenLedgerPaymentReceivedIds((current) => Array.from(new Set([...current, ...records.filter((item) => item.financialStatus === 'PAID').map((item) => item.loadId)]))) }}
             ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}

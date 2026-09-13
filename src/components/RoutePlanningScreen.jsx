@@ -2,6 +2,7 @@ import mapLocations from '../data/mapLocations.js'
 import { useCallback, useEffect, useState } from 'react'
 import { calculateRoute } from '../services/routingService.js'
 import { formatAppointment } from '../utils/gameTime.js'
+import { getFreightRouteName } from '../utils/freightIdentity.js'
 
 function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedRoute, onSelectRoute, onBack, onContinue }) {
   const load = loads.find((item) => item.id === loadId)
@@ -41,7 +42,7 @@ function RoutePlanningScreen({ loads, loadId, drivers, plannedRoute, setPlannedR
         <span className="docos-page-kicker">TRIP PLANNING</span>
         <div className="docos-page-title-row">
           <div>
-            <h2>{load.loadNumber || load.id}</h2>
+            <h2>{getFreightRouteName(load)}</h2>
             <p>{pickup.name} → {delivery.name}</p>
           </div>
           <span className="docos-count-chip">{driver?.name || 'DRIVER'}</span>
