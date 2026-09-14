@@ -1,20 +1,9 @@
-# DOC OS AW1.7.4 — Map Continuity + Driver Layering
+# CS2.0A.14.1 — Facility Attention Badge Hotfix
 
-## Scope
-Map presentation only. No scheduler, booking, approval, movement, loading/unloading, or facility lifecycle changes.
+Fixes the facility `!` cue not appearing reliably on iPhone.
 
-## Changes
-- Completed pickup and delivery stop markers persist for the rest of the operating day in a muted visual state.
-- Completed pickup-to-delivery route geometry persists as low-opacity route history.
-- Marcus now renders above route lines/history but below every pickup/delivery stop marker.
-- Current P/D stop remains the strongest/highest stop marker.
-- Completed history remains non-authoritative; itinerary state and live movement logic are unchanged.
+The A.14 state logic was correct, but the visual cue depended on a CSS `::after` pseudo-element attached to a MapLibre DOM marker. On iOS/WKWebView, class changes on an existing marker did not reliably repaint that pseudo-element.
 
-## Layer contract
-1. Popup / route labels
-2. Current P/D stop
-3. Future P/D stops
-4. Completed P/D history
-5. Marcus
-6. Route lines / completed route history
-7. Basemap
+A.14.1 renders the attention cue as a real child DOM element inside the live P/D marker and toggles it directly from the same facility-attention state.
+
+No operational logic changed.

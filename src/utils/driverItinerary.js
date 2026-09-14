@@ -29,8 +29,32 @@ function stopState(load, type) {
 export function buildDriverItinerary(loads = [], driverId) {
   if (!driverId) return []
   const assigned = loads.filter((load) => (load.assignedDriverId === driverId || load.completedDriverId === driverId) && !TERMINAL.has(load.status))
+
+  // CS2.0A.11 — Sequential Load Integrity
+  // Until trailer-capacity / multi-load planning exists, a driver owns exactly
+  // one freight lifecycle at a time. A later pickup may NOT be inserted between
+  // an earlier pickup and that load's delivery. Route order is therefore atomic:
+  // pickup A -> delivery A -> pickup B -> delivery B.
+  //
+  // Prefer the persisted operational ordering created by booking/scheduling.
+  // Fall back to pickup appointment time only for legacy/unordered data.
+  const orderedLoads = [...assigned].sort((a, b) => {
+    const aQueue = Number.isFinite(a.queuePosition) ? a.queuePosition : Number.POSITIVE_INFINITY
+    const bQueue = Number.isFinite(b.queuePosition) ? b.queuePosition : Number.POSITIVE_INFINITY
+    if (aQueue !== bQueue) return aQueue - bQueue
+
+    const aSchedule = Number.isFinite(a.scheduleOrderIndex) ? a.scheduleOrderIndex : Number.POSITIVE_INFINITY
+    const bSchedule = Number.isFinite(b.scheduleOrderIndex) ? b.scheduleOrderIndex : Number.POSITIVE_INFINITY
+    if (aSchedule !== bSchedule) return aSchedule - bSchedule
+
+    const aPickup = abs(a.pickupDayIndex, a.pickupWindowStartMinutes)
+    const bPickup = abs(b.pickupDayIndex, b.pickupWindowStartMinutes)
+    if (aPickup !== bPickup) return aPickup - bPickup
+    return String(a.id || '').localeCompare(String(b.id || ''))
+  })
+
   const stops = []
-  assigned.forEach((load) => {
+  orderedLoads.forEach((load) => {
     const ref = load.loadNumber || load.id
     stops.push({
       id: `${load.id}:pickup`, loadId: load.id, loadRef: ref, type: 'pickup', locationId: load.pickupLocationId,
@@ -44,54 +68,70 @@ export function buildDriverItinerary(loads = [], driverId) {
     })
   })
 
-  // AV2.10.6: itinerary order is a time-prioritized topological sort.
-  // Earlier versions forced an inserted load's delivery to remain after the anchor
-  // delivery. That breaks chained freight when the anchor is a long-haul delivery
-  // (for example 9 PM) but the inserted load delivers at 1 PM. We only enforce
-  // real precedence constraints here: every pickup precedes its own delivery, and
-  // an explicit pickup-before-delivery insertion precedes the anchor delivery.
-  const byId = new Map(stops.map((stop) => [stop.id, stop]))
-  const outgoing = new Map(stops.map((stop) => [stop.id, new Set()]))
-  const indegree = new Map(stops.map((stop) => [stop.id, 0]))
-  const addEdge = (from, to) => {
-    if (!byId.has(from) || !byId.has(to) || outgoing.get(from).has(to)) return
-    outgoing.get(from).add(to)
-    indegree.set(to, (indegree.get(to) || 0) + 1)
-  }
-
-  assigned.forEach((load) => {
-    addEdge(`${load.id}:pickup`, `${load.id}:delivery`)
-    const plan = load.itineraryInsertion || load.tripPlan?.insertionPlan || load.assignmentProjection?.insertionPlan
-    if (plan?.type === 'pickup-before-delivery' && plan.anchorLoadId) {
-      addEdge(`${load.id}:pickup`, `${plan.anchorLoadId}:delivery`)
-    }
-  })
-
-  const sortReady = (a, b) => (a.sortMinute - b.sortMinute) || (a.type === 'pickup' ? -1 : 1) || a.id.localeCompare(b.id)
-  const ready = stops.filter((stop) => (indegree.get(stop.id) || 0) === 0).sort(sortReady)
-  const ordered = []
-  while (ready.length) {
-    const stop = ready.shift()
-    ordered.push(stop)
-    outgoing.get(stop.id)?.forEach((nextId) => {
-      indegree.set(nextId, (indegree.get(nextId) || 0) - 1)
-      if ((indegree.get(nextId) || 0) === 0) {
-        ready.push(byId.get(nextId))
-        ready.sort(sortReady)
-      }
-    })
-  }
-
-  // Defensive fallback if malformed legacy data ever introduces a cycle.
-  if (ordered.length !== stops.length) {
-    const included = new Set(ordered.map((stop) => stop.id))
-    ordered.push(...stops.filter((stop) => !included.has(stop.id)).sort(sortReady))
-  }
-  return ordered.map((stop, itineraryOrder) => ({ ...stop, itineraryOrder }))
+  return stops.map((stop, itineraryOrder) => ({ ...stop, itineraryOrder }))
 }
 
+// CS2.0A.7 — one physical authority for every driver consumer.
+// If Marcus is already traveling or physically working a facility, that stop is
+// the present truth. Schedule/window ordering is only allowed to choose work when
+// there is no current physical leg or facility operation.
+const PHYSICAL_PICKUP_STATES = new Set([
+  'en-route-pickup', 'at-pickup', 'checking-in-pickup', 'waiting-at-pickup',
+  'checked-in-pickup', 'loading-at-pickup', 'pickup-issue',
+])
+const PHYSICAL_DELIVERY_STATES = new Set([
+  'en-route-delivery', 'at-delivery', 'checking-in-delivery', 'waiting-at-delivery',
+  'checked-in-delivery', 'unloading-delivery',
+])
+
+function physicalStateMinute(load) {
+  if (!load) return -Infinity
+  if (load.tripStatus === 'en-route-delivery') return Number.isFinite(load.deliveryDepartureGameMinute) ? load.deliveryDepartureGameMinute : -Infinity
+  if (load.tripStatus === 'en-route-pickup') return Number.isFinite(load.departureGameMinute) ? load.departureGameMinute : -Infinity
+  if (PHYSICAL_DELIVERY_STATES.has(load.tripStatus)) return Number.isFinite(load.deliveryArrivalGameMinute) ? load.deliveryArrivalGameMinute : -Infinity
+  if (PHYSICAL_PICKUP_STATES.has(load.tripStatus)) return Number.isFinite(load.pickupArrivalGameMinute) ? load.pickupArrivalGameMinute : -Infinity
+  return -Infinity
+}
+
+export function getDriverPhysicalStop(loads = [], driverId) {
+  if (!driverId) return null
+  const candidates = loads.filter((load) => load?.assignedDriverId === driverId && (
+    PHYSICAL_PICKUP_STATES.has(load.tripStatus) || PHYSICAL_DELIVERY_STATES.has(load.tripStatus)
+  ))
+  if (!candidates.length) return null
+
+  // Active road travel is absolute physical truth. If malformed legacy state has
+  // more than one candidate, prefer travel, then the most recently entered state.
+  const ordered = [...candidates].sort((a, b) => {
+    const aTravel = ['en-route-pickup', 'en-route-delivery'].includes(a.tripStatus) ? 1 : 0
+    const bTravel = ['en-route-pickup', 'en-route-delivery'].includes(b.tripStatus) ? 1 : 0
+    if (aTravel !== bTravel) return bTravel - aTravel
+    return physicalStateMinute(b) - physicalStateMinute(a)
+  })
+  const load = ordered[0]
+  const type = PHYSICAL_PICKUP_STATES.has(load.tripStatus) ? 'pickup' : 'delivery'
+  const itineraryStop = buildDriverItinerary(loads, driverId).find((stop) => stop.loadId === load.id && stop.type === type)
+  if (itineraryStop) return itineraryStop
+
+  // Defensive fallback for malformed legacy saves where the stop was omitted.
+  return {
+    id: `${load.id}:${type}`,
+    loadId: load.id,
+    loadRef: load.loadNumber || load.id,
+    type,
+    locationId: type === 'pickup' ? load.pickupLocationId : load.deliveryLocationId,
+    dayIndex: type === 'pickup' ? (load.pickupDayIndex || 0) : (load.deliveryDayIndex || 0),
+    windowStartMinutes: type === 'pickup' ? (load.pickupWindowStartMinutes || 0) : (load.deliveryWindowStartMinutes || 0),
+    windowEndMinutes: type === 'pickup' ? (load.pickupWindowEndMinutes || 0) : (load.deliveryWindowEndMinutes || 0),
+    state: load.tripStatus,
+    load,
+  }
+}
 
 export function getNextActionableDriverStop(loads = [], driverId) {
+  const physicalStop = getDriverPhysicalStop(loads, driverId)
+  if (physicalStop) return physicalStop
+
   const itinerary = buildDriverItinerary(loads, driverId)
   const pickupComplete = (load) => PICKUP_DONE.has(load?.tripStatus || load?.status)
 
@@ -129,8 +169,13 @@ export function getDriverItineraryState(loads = [], driverId) {
 
 
 export function getAuthoritativeDriverTravelLoad(loads = [], driverId) {
-  const nextStop = getNextActionableDriverStop(loads, driverId)
-  if (!nextStop) return null
-  const expectedStatus = nextStop.type === 'pickup' ? 'en-route-pickup' : 'en-route-delivery'
-  return loads.find((load) => load.assignedDriverId === driverId && load.id === nextStop.loadId && load.tripStatus === expectedStatus) || null
+  if (!driverId) return null
+
+  // CS2.0A.7 — travel authority is derived from the same physical-stop resolver
+  // used by the driver card, itinerary state, route highlighting, and reconciliation.
+  const physicalStop = getDriverPhysicalStop(loads, driverId)
+  if (!physicalStop) return null
+  const load = loads.find((item) => item.id === physicalStop.loadId && item.assignedDriverId === driverId)
+  if (!load) return null
+  return ['en-route-pickup', 'en-route-delivery'].includes(load.tripStatus) ? load : null
 }

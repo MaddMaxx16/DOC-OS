@@ -17,6 +17,8 @@ import { getReceivables } from './utils/ledger.js'
 import { reconcileActiveCarrierDrivers } from './utils/driverRoster.js'
 import { getDriverActiveLoad, getDriverQueue, promoteNextQueuedLoad } from './utils/driverQueue.js'
 import { createDayReport, DEFAULT_DAY_LOOP_STATE, DEFAULT_PLAYER_PROGRESSION, getEndDayStatus } from './utils/dayLoop.js'
+import { buildCarrierCareerById, mergeCarrierCareerEntry, CARRIER_APPLICATION_STATES, CARRIER_RELATIONSHIP_STATES } from './utils/carrierCareer.js'
+import { getAgreementRules } from './utils/carrierAgreement.js'
 import { calculateRoute } from './services/routingService.js'
 import { refreshFreightMarket } from './utils/freightMarket.js'
 import { getAuthoritativeDriverTravelLoad } from './utils/driverItinerary.js'
@@ -90,6 +92,7 @@ function App() {
   const [seenLedgerPaymentReceivedIds, setSeenLedgerPaymentReceivedIds] = useState([])
   const [ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId] = useState({})
   const [carrierApplicationsById, setCarrierApplicationsById] = useState({})
+  const [carrierCareerById, setCarrierCareerById] = useState(() => buildCarrierCareerById(seedCarriers))
   const [dispatcherProfile, setDispatcherProfile] = useState(null)
   const [emailMessages, setEmailMessages] = useState([])
   const [driverMessages, setDriverMessages] = useState([])
@@ -210,7 +213,9 @@ function App() {
     setSeenLedgerReceivableIds(Array.isArray(saved.seenLedgerReceivableIds) ? saved.seenLedgerReceivableIds : [])
     setSeenLedgerPaymentReceivedIds(Array.isArray(saved.seenLedgerPaymentReceivedIds) ? saved.seenLedgerPaymentReceivedIds : [])
     setLedgerWorkflowByLoadId(saved.ledgerWorkflowByLoadId || {})
-    setCarrierApplicationsById(saved.carrierApplicationsById || {})
+    const hydratedApplications = saved.carrierApplicationsById || {}
+    setCarrierApplicationsById(hydratedApplications)
+    setCarrierCareerById(buildCarrierCareerById(hydratedCarriers, hydratedApplications, saved.carrierCareerById || {}))
     setDispatcherProfile(saved.dispatcherProfile || null)
     setEmailMessages(Array.isArray(saved.emailMessages) ? saved.emailMessages.filter((message) => !message.templateId) : [])
     const savedDriverMessages = Array.isArray(saved.driverMessages) ? saved.driverMessages : []
@@ -245,6 +250,7 @@ function App() {
     setSeenLedgerPaymentReceivedIds([])
     setLedgerWorkflowByLoadId({})
     setCarrierApplicationsById({})
+    setCarrierCareerById(buildCarrierCareerById(seedCarriers))
     setDispatcherProfile(null)
     setEmailMessages([])
     setDriverMessages([])
@@ -269,11 +275,11 @@ function App() {
     if (stage === 'start' && !hasExistingOperation) return
     const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
     const timer = setTimeout(() => {
-      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
+      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
       setSaveSlots(getSaveSlots())
     }, 700)
     return () => clearTimeout(timer)
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
 
   // AV lifecycle persistence: critical operational boundaries flush immediately.
   // Routine animation/clock changes still use the normal debounce above.
@@ -287,8 +293,8 @@ function App() {
     if (!signature || signature === lifecycleSaveSignatureRef.current) return
     lifecycleSaveSignatureRef.current = signature
     const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
-    saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
+    saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
 
   // AU3 mobile persistence hardening: keep the normal debounce for routine
   // updates, but flush the current snapshot immediately when iOS backgrounds
@@ -297,7 +303,7 @@ function App() {
     if (!hydrated || !activeSaveSlotId) return undefined
     const flushSave = () => {
       const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
-      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
+      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
     }
     const onVisibility = () => { if (document.visibilityState === 'hidden') flushSave() }
     window.addEventListener('pagehide', flushSave)
@@ -306,7 +312,7 @@ function App() {
       window.removeEventListener('pagehide', flushSave)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
 
   // Market appointments are seeded directly; operation-day gates do not rewrite them.
 
@@ -535,9 +541,14 @@ function App() {
     setPlayerProgression({ ...DEFAULT_PLAYER_PROGRESSION })
     return true
   }
-  const activateCarrier = () => {
-    const nextCarriers = carriers.map((carrier) => carrier.id === 'metroline' ? { ...carrier, status: 'active' } : carrier)
+  const activateCarrier = (carrierId = 'metroline') => {
+    const nextCarriers = carriers.map((carrier) => carrier.id === carrierId ? { ...carrier, status: 'active' } : carrier)
     setCarriers(nextCarriers)
+    const activatedCarrier = nextCarriers.find((carrier) => carrier.id === carrierId)
+    setCarrierCareerById((current) => ({
+      ...current,
+      [carrierId]: mergeCarrierCareerEntry(current[carrierId], activatedCarrier, { relationshipState: CARRIER_RELATIONSHIP_STATES.ACTIVE }),
+    }))
     setDrivers((current) => {
       const nextDrivers = reconcileActiveCarrierDrivers(current, nextCarriers)
       setRuntimePositions((positions) => {
@@ -552,86 +563,100 @@ function App() {
       return nextDrivers
     })
   }
-  const applyCarrier = () => { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setCarrierApplicationsById((current) => current.metroline ? current : { ...current, metroline: { status: 'PENDING', submittedGameMinute: now, responseGameMinute: now + 10 } }) }
-  const acceptCarrierAgreement = () => {
+
+  const applyCarrier = (carrierId = 'metroline') => {
+    const carrier = carriers.find((item) => item.id === carrierId)
+    if (!carrier) return false
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    setCarrierApplicationsById((current) => current[carrierId] ? current : { ...current, [carrierId]: { status: 'PENDING', submittedGameMinute: now, responseGameMinute: now + 10 } })
+    setCarrierCareerById((current) => ({
+      ...current,
+      [carrierId]: mergeCarrierCareerEntry(current[carrierId], carrier, { applicationState: CARRIER_APPLICATION_STATES.PENDING }),
+    }))
+    return true
+  }
+
+  const acceptCarrierAgreement = (carrierId = 'metroline') => {
+    const carrier = carriers.find((item) => item.id === carrierId)
+    if (!carrier) return false
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     const signedBy = dispatcherProfile?.displayName || 'Authorized Dispatcher'
-    setCarrierApplicationsById((current) => ({ ...current, metroline: { ...current.metroline, status: 'ACCEPTED', acceptedGameMinute: now } }))
-    activateCarrier()
-    setBusinessDocuments((current) => current.some((document) => document.id === 'metroline-dispatch-agreement') ? current : [...current, {
-      id: 'metroline-dispatch-agreement',
+    const rules = getAgreementRules(carrier)
+    setCarrierApplicationsById((current) => ({ ...current, [carrierId]: { ...current[carrierId], status: 'ACCEPTED', acceptedGameMinute: now } }))
+    setCarrierCareerById((current) => ({
+      ...current,
+      [carrierId]: mergeCarrierCareerEntry(current[carrierId], carrier, {
+        relationshipState: CARRIER_RELATIONSHIP_STATES.ACTIVE,
+        applicationState: CARRIER_APPLICATION_STATES.ACCEPTED,
+        agreementAccepted: true,
+        agreementAcceptedGameMinute: now,
+      }),
+    }))
+    activateCarrier(carrierId)
+
+    const agreementId = `${carrierId}-dispatch-agreement`
+    const equipment = carrierId === 'metroline' ? 'Dry Van / General Freight.' : (rules.equipmentScope.length ? `${rules.equipmentScope.join(', ')}.` : 'Carrier-approved equipment.')
+    const rateGoal = Number.isFinite(rules.minimumRatePerLoadedMile) ? `Target $${rules.minimumRatePerLoadedMile.toFixed(2)}+ per loaded mile.` : 'Use sound rate judgment for available freight.'
+    setBusinessDocuments((current) => current.some((document) => document.id === agreementId) ? current : [...current, {
+      id: agreementId,
       type: 'dispatch-agreement',
-      title: 'Metroline Transport — Dispatch Operating Agreement',
-      carrierId: 'metroline',
-      carrierName: 'Metroline Transport',
+      title: `${carrier.name} — Dispatch Operating Agreement`,
+      carrierId,
+      carrierName: carrier.name,
       status: 'SIGNED',
       signedBy,
       signedGameMinute: now,
       goals: [
-        'Target $2.00+ per loaded mile.',
-        'Dry Van / General Freight.',
-        'Preferred region: Northeast.',
+        rateGoal,
+        equipment,
+        `Preferred region: ${rules.preferredRegion}.`,
         'Protect pickup and delivery appointments.',
         'Keep the driver informed before dispatch.',
-        'Dispatch fee: 8% of carrier gross.',
+        `Dispatch fee: ${rules.percentage}% of carrier gross.`,
       ],
       priorities: ['On-time service', 'Rate quality', 'Reasonable deadhead', 'Driver communication', 'Smart truck positioning'],
-      terms: { ...carriers.find((carrier) => carrier.id === 'metroline')?.dispatchAgreement, dispatchFee: '8% of carrier gross' },
-      acknowledgment: 'These are Metroline’s operating goals, not absolute rules. Freight markets change throughout the day. Use reasonable judgment when balancing carrier goals, driver preferences, appointment requirements, and available freight.',
+      terms: { ...carrier.dispatchAgreement, dispatchFee: `${rules.percentage}% of carrier gross` },
+      acknowledgment: `These are ${carrier.name}’s operating goals, not absolute rules. Freight markets change throughout the day. Use reasonable judgment when balancing carrier goals, driver preferences, appointment requirements, and available freight.`,
     }])
-    setDriverMessages((current) => current.some((message) => message.id === 'marcus-intro-1' || message.id === 'marcus-intro') ? current : [...current,
-      {
-        id: 'marcus-intro-1',
-        driverId: 'marcus',
-        sender: 'Marcus Reed',
-        senderRole: 'Driver',
-        direction: 'inbound',
-        body: 'Hey, Marcus here. Looks like we’re working together.',
-        receivedGameMinute: now,
-        read: false,
-      },
-      {
-        id: 'marcus-intro-2',
-        driverId: 'marcus',
-        sender: 'Marcus Reed',
-        senderRole: 'Driver',
-        direction: 'inbound',
-        body: 'I mostly run regional. Just keep the deadhead reasonable and keep me posted on where I’m going and when I need to be there.',
-        receivedGameMinute: now + 0.01,
-        read: false,
-      },
-      {
-        id: 'marcus-intro-3',
-        driverId: 'marcus',
-        sender: 'Marcus Reed',
-        senderRole: 'Driver',
-        direction: 'inbound',
-        body: 'I’m in Brooklyn now and ready when you are.',
-        receivedGameMinute: now + 0.02,
-        read: false,
-      },
+
+    // Preserve Metroline's current Day 1 driver introduction exactly.
+    if (carrierId === 'metroline') setDriverMessages((current) => current.some((message) => message.id === 'marcus-intro-1' || message.id === 'marcus-intro') ? current : [...current,
+      { id: 'marcus-intro-1', driverId: 'marcus', sender: 'Marcus Reed', senderRole: 'Driver', direction: 'inbound', body: 'Hey, Marcus here. Looks like we’re working together.', receivedGameMinute: now, read: false },
+      { id: 'marcus-intro-2', driverId: 'marcus', sender: 'Marcus Reed', senderRole: 'Driver', direction: 'inbound', body: 'I mostly run regional. Just keep the deadhead reasonable and keep me posted on where I’m going and when I need to be there.', receivedGameMinute: now + 0.01, read: false },
+      { id: 'marcus-intro-3', driverId: 'marcus', sender: 'Marcus Reed', senderRole: 'Driver', direction: 'inbound', body: 'I’m in Brooklyn now and ready when you are.', receivedGameMinute: now + 0.02, read: false },
     ])
+    return true
   }
+
 
 
   useEffect(() => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     Object.entries(carrierApplicationsById).forEach(([carrierId, application]) => {
       if (application.status === 'PENDING' && now >= application.responseGameMinute) {
+        const carrier = carriers.find((item) => item.id === carrierId)
+        if (!carrier) return
         setCarrierApplicationsById((current) => ({ ...current, [carrierId]: { ...current[carrierId], status: 'OFFER_RECEIVED' } }))
+        setCarrierCareerById((current) => ({
+          ...current,
+          [carrierId]: mergeCarrierCareerEntry(current[carrierId], carrier, { applicationState: CARRIER_APPLICATION_STATES.APPROVED }),
+        }))
+        const approvalBody = carrierId === 'metroline'
+          ? 'Hello,\n\nYour dispatch service application for Metroline Transport has been approved.\n\nReview the attached operating agreement before adding Metroline to your active carrier roster. It covers the carrier’s shift goals, operating expectations, and dispatch priorities.\n\nOnce accepted, Metroline Transport and its assigned driver will become available in your operation.\n\nCarrierSource\nCarrier Network Services'
+          : `Hello,\n\nYour dispatch service application for ${carrier.name} has been approved.\n\nReview the attached operating agreement before adding ${carrier.name} to your active carrier roster. It covers the carrier’s shift goals, operating expectations, and dispatch priorities.\n\nOnce accepted, ${carrier.name} and its assigned driver roster will become available in your operation.\n\nCarrierSource\nCarrier Network Services`
         setEmailMessages((current) => current.some((message) => message.id === `${carrierId}-application-approved`) ? current : [...current, {
           id: `${carrierId}-application-approved`,
           type: 'carrier-application-offer',
           carrierId,
           senderOverride: 'CarrierSource',
-          subject: 'Metroline Transport — Application Approved',
-          bodyOverride: 'Hello,\n\nYour dispatch service application for Metroline Transport has been approved.\n\nReview the attached operating agreement before adding Metroline to your active carrier roster. It covers the carrier’s shift goals, operating expectations, and dispatch priorities.\n\nOnce accepted, Metroline Transport and its assigned driver will become available in your operation.\n\nCarrierSource\nCarrier Network Services',
+          subject: `${carrier.name} — Application Approved`,
+          bodyOverride: approvalBody,
           receivedGameMinute: application.responseGameMinute,
           read: false,
         }])
       }
     })
-  }, [gameTime, carrierApplicationsById])
+  }, [gameTime, carrierApplicationsById, carriers])
 
 
 
@@ -899,6 +924,17 @@ function App() {
       const result = report.carrierBreakdown?.find((item) => item.carrierId === carrier.id)
       return result ? { ...carrier, relationshipScore: result.relationshipAfter } : carrier
     }))
+    setCarrierCareerById((current) => {
+      const next = { ...current }
+      report.carrierBreakdown?.forEach((result) => {
+        const carrier = carriers.find((item) => item.id === result.carrierId)
+        next[result.carrierId] = mergeCarrierCareerEntry(current[result.carrierId], carrier, {
+          relationshipScore: result.relationshipAfter,
+          standing: result.relationshipLabel,
+        })
+      })
+      return next
+    })
     setDayLoop((current) => ({
       ...current,
       phase: 'results',

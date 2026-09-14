@@ -135,8 +135,26 @@ export function getPlanningImpact(load, loads = [], driverId = null) {
 }
 
 function planningStopOrder(planned = []) {
+  // CS2.0A.11 — planning must validate the same route-atomic sequence that
+  // operations execute. Until explicit trailer capacity exists, later pickups
+  // cannot interleave ahead of an earlier load's delivery.
+  const orderedLoads = [...planned].sort((a, b) => {
+    const aQueue = Number.isFinite(a.queuePosition) ? a.queuePosition : Number.POSITIVE_INFINITY
+    const bQueue = Number.isFinite(b.queuePosition) ? b.queuePosition : Number.POSITIVE_INFINITY
+    if (aQueue !== bQueue) return aQueue - bQueue
+
+    const aSchedule = Number.isFinite(a.scheduleOrderIndex) ? a.scheduleOrderIndex : Number.POSITIVE_INFINITY
+    const bSchedule = Number.isFinite(b.scheduleOrderIndex) ? b.scheduleOrderIndex : Number.POSITIVE_INFINITY
+    if (aSchedule !== bSchedule) return aSchedule - bSchedule
+
+    const aPickup = absolute(a.pickupDayIndex, a.pickupWindowStartMinutes)
+    const bPickup = absolute(b.pickupDayIndex, b.pickupWindowStartMinutes)
+    if (aPickup !== bPickup) return aPickup - bPickup
+    return String(a.id || '').localeCompare(String(b.id || ''))
+  })
+
   const stops = []
-  planned.forEach((load) => {
+  orderedLoads.forEach((load) => {
     stops.push({
       id: `${load.id}:pickup`, loadId: load.id, load, type: 'pickup', locationId: load.pickupLocationId,
       windowStart: absolute(load.pickupDayIndex, load.pickupWindowStartMinutes),
@@ -148,45 +166,7 @@ function planningStopOrder(planned = []) {
       windowEnd: absolute(load.deliveryDayIndex, load.deliveryWindowEndMinutes),
     })
   })
-
-  // Use the same time-prioritized precedence rule as the operational itinerary:
-  // every load's pickup must happen before its own delivery. This lets the
-  // scheduler validate interleaved pickup/delivery days instead of pretending
-  // each load is completed before the next one starts.
-  const byId = new Map(stops.map((stop) => [stop.id, stop]))
-  const outgoing = new Map(stops.map((stop) => [stop.id, new Set()]))
-  const indegree = new Map(stops.map((stop) => [stop.id, 0]))
-  const addEdge = (from, to) => {
-    if (!byId.has(from) || !byId.has(to) || outgoing.get(from).has(to)) return
-    outgoing.get(from).add(to)
-    indegree.set(to, (indegree.get(to) || 0) + 1)
-  }
-  planned.forEach((load) => {
-    addEdge(`${load.id}:pickup`, `${load.id}:delivery`)
-    const insertion = load.itineraryInsertion || load.tripPlan?.insertionPlan || load.assignmentProjection?.insertionPlan
-    if (insertion?.type === 'pickup-before-delivery' && insertion.anchorLoadId) {
-      addEdge(`${load.id}:pickup`, `${insertion.anchorLoadId}:delivery`)
-    }
-  })
-  const sortReady = (a, b) => (a.windowStart - b.windowStart) || (a.type === 'pickup' ? -1 : 1) || a.id.localeCompare(b.id)
-  const ready = stops.filter((stop) => (indegree.get(stop.id) || 0) === 0).sort(sortReady)
-  const ordered = []
-  while (ready.length) {
-    const stop = ready.shift()
-    ordered.push(stop)
-    outgoing.get(stop.id)?.forEach((nextId) => {
-      indegree.set(nextId, (indegree.get(nextId) || 0) - 1)
-      if ((indegree.get(nextId) || 0) === 0) {
-        ready.push(byId.get(nextId))
-        ready.sort(sortReady)
-      }
-    })
-  }
-  if (ordered.length !== stops.length) {
-    const used = new Set(ordered.map((stop) => stop.id))
-    ordered.push(...stops.filter((stop) => !used.has(stop.id)).sort(sortReady))
-  }
-  return ordered
+  return stops
 }
 
 function serviceMinutesForStop(stop) {

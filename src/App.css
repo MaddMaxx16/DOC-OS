@@ -11746,3 +11746,359 @@
   filter: saturate(.45) brightness(.78);
   z-index: 48;
 }
+
+
+/* CS2.0A.1 — Map Authority Hotfix */
+.game-marker.driver { z-index: 55 !important; }
+.game-marker.itinerary-stop-marker { z-index: 64 !important; }
+.game-marker.itinerary-stop-marker.current-itinerary-stop { z-index: 70 !important; }
+.game-marker.itinerary-stop-marker.completed-itinerary-stop {
+  z-index: 58 !important;
+  pointer-events: none !important;
+}
+
+
+/* CS2.0A.4 — Stop Coordinate Integrity
+   P/D markers stay on true facility coordinates. Shared coordinates stack;
+   current operational stop wins the visual hierarchy above future/history. */
+.game-marker.itinerary-stop-marker { z-index: 64 !important; }
+.game-marker.itinerary-stop-marker.completed-itinerary-stop { z-index: 58 !important; }
+.game-marker.itinerary-stop-marker.current-itinerary-stop { z-index: 72 !important; }
+.game-marker.driver { z-index: 55 !important; }
+
+/* CS2.0A.12 — Scheduler Full-Day Visibility
+   The scheduler gets the tallest operations-device sheet, a tighter chrome budget,
+   collision-safe stop cards, and a compact action dock that never hides the day. */
+.phone-overlay.scheduler-expanded {
+  /* CS2.0A.12.1 — top + bottom must own the scheduler sheet. The base phone
+     rule still declares height:68%, which previously prevented A.12 from truly
+     expanding even though top/bottom were set. */
+  top: calc(env(safe-area-inset-top, 0px) + 2px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 2px);
+  height: auto;
+  min-height: 0;
+}
+.phone-overlay.scheduler-expanded .device-sheet-handle {
+  top: -5px;
+}
+.phone-overlay.scheduler-expanded .phone-device-screen {
+  grid-template-rows: 48px minmax(0, 1fr) 40px;
+}
+.phone-overlay.scheduler-expanded .phone-status-bar {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.phone-overlay.scheduler-expanded .phone-navigation-bar {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.phone-overlay.scheduler-expanded .fleet-scheduler-screen {
+  min-height: 0;
+  height: 100%;
+}
+.phone-overlay.scheduler-expanded .scheduler-header.aw161 {
+  padding-top: 9px;
+  padding-bottom: 6px;
+}
+.phone-overlay.scheduler-expanded .scheduler-header.aw161 h2 {
+  font-size: 18px;
+}
+.phone-overlay.scheduler-expanded .scheduler-driver-tabs.aw14 button {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.phone-overlay.scheduler-expanded .scheduler-summary-strip.aw14 {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+.phone-overlay.scheduler-expanded .fleet-scheduler-screen:has(.scheduler-summary-strip.aw14) .scheduler-scroll {
+  height: calc(100% - 132px);
+  padding-bottom: 72px;
+}
+.phone-overlay.scheduler-expanded .fleet-scheduler-screen:has(.scheduler-top-hint) .scheduler-scroll {
+  height: calc(100% - 156px);
+}
+.phone-overlay.scheduler-expanded .scheduler-time-canvas {
+  margin-top: 7px;
+  margin-bottom: 10px;
+  min-height: 0;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-panel {
+  left: 8px;
+  right: 8px;
+  bottom: 44px;
+  padding: 9px 10px;
+  border-radius: 14px;
+  max-height: 102px;
+  overflow-y: auto;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-copy {
+  padding-right: 30px;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-copy > strong {
+  margin: 2px 0;
+  font-size: 9.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-copy > small {
+  font-size: 7px;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-impact {
+  margin-top: 4px;
+  font-size: 6.4px;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-actions {
+  gap: 5px;
+  margin-top: 6px;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-actions button {
+  min-height: 30px;
+  padding: 5px 7px;
+  font-size: 7px;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-close {
+  top: 6px;
+  right: 7px;
+  width: 24px;
+  height: 24px;
+  font-size: 15px;
+}
+/* Dense appointments must never visually cover another stop. The JS layout nudges
+   close cards; these dimensions keep the layout contract deterministic. */
+.phone-overlay.scheduler-expanded .scheduler-stop-event.compact {
+  min-height: 42px;
+}
+
+/* CS2.0A.12.2 — Scheduler Final Polish
+   Freeze operations logic; spend the last pixels on full-day readability. */
+.phone-overlay.scheduler-expanded {
+  top: env(safe-area-inset-top, 0px);
+  bottom: env(safe-area-inset-bottom, 0px);
+  border-radius: 16px 16px 18px 18px;
+}
+/* The browser label is redundant inside the dedicated scheduler view. Removing it
+   buys back vertical room without changing BrowserScreen behavior elsewhere. */
+.phone-overlay.scheduler-expanded .browser-screen:has(.fleet-scheduler-screen) .browser-header {
+  display: none;
+}
+.phone-overlay.scheduler-expanded .browser-screen:has(.fleet-scheduler-screen) .browser-bar {
+  min-height: 30px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.phone-overlay.scheduler-expanded .browser-screen:has(.fleet-scheduler-screen) .browser-back,
+.phone-overlay.scheduler-expanded .browser-screen:has(.fleet-scheduler-screen) .browser-home-control {
+  width: 28px;
+  height: 28px;
+}
+.phone-overlay.scheduler-expanded .browser-screen:has(.fleet-scheduler-screen) .browser-address {
+  min-height: 28px;
+  font-size: 8px;
+}
+.phone-overlay.scheduler-expanded .phone-device-screen {
+  grid-template-rows: 42px minmax(0, 1fr) 34px;
+}
+.phone-overlay.scheduler-expanded .phone-status-bar {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.phone-overlay.scheduler-expanded .phone-navigation-bar {
+  min-height: 34px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.phone-overlay.scheduler-expanded .scheduler-header.aw161 {
+  padding-top: 7px;
+  padding-bottom: 5px;
+}
+.phone-overlay.scheduler-expanded .scheduler-header.aw161 h2 {
+  margin-top: 2px;
+  font-size: 17px;
+}
+.phone-overlay.scheduler-expanded .scheduler-driver-tabs.aw14 {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+.phone-overlay.scheduler-expanded .scheduler-summary-strip.aw14 {
+  min-height: 26px;
+}
+.phone-overlay.scheduler-expanded .fleet-scheduler-screen:has(.scheduler-summary-strip.aw14) .scheduler-scroll {
+  height: calc(100% - 118px);
+  padding-bottom: 88px;
+}
+.phone-overlay.scheduler-expanded .fleet-scheduler-screen:has(.scheduler-top-hint) .scheduler-scroll {
+  height: calc(100% - 140px);
+}
+/* Selected-load actions become a shallow dock rather than a second modal. */
+.phone-overlay.scheduler-expanded .scheduler-selection-panel {
+  bottom: 36px;
+  padding: 7px 9px;
+  max-height: 78px;
+  border-radius: 12px;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-copy > span {
+  font-size: 6.4px;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-copy > strong {
+  font-size: 9px;
+  margin: 1px 0;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-copy > small {
+  display: none;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-impact {
+  margin-top: 2px;
+  font-size: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-actions {
+  margin-top: 4px;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-actions button {
+  min-height: 26px;
+  padding: 4px 6px;
+  font-size: 6.6px;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-close {
+  top: 4px;
+  right: 5px;
+  width: 21px;
+  height: 21px;
+  font-size: 13px;
+}
+
+/* CS2.0A.12.3 — Scheduler Sheet + Scroll Restore
+   A.12.2 compacted the scheduler chrome but left the timeline dependent on
+   percentage-height calculations inside several nested flex containers. On
+   iPhone/WKWebView that can collapse the scroll region. The scheduler is now
+   a true flex column with one dedicated scrolling child. The operations
+   device also rises through the gameplay status-bar budget so the grab handle
+   reaches the actual top safe area rather than only the top of map-area. */
+.phone-overlay.scheduler-expanded {
+  /* map-area begins below the gameplay status bar; compensate for that here. */
+  top: calc(-46px - env(safe-area-inset-top, 0px));
+  bottom: 0;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.phone-overlay.scheduler-expanded .phone-device-screen,
+.phone-overlay.scheduler-expanded .browser-screen:has(.fleet-scheduler-screen),
+.phone-overlay.scheduler-expanded .browser-site-content:has(> .fleet-scheduler-screen),
+.phone-overlay.scheduler-expanded .fleet-scheduler-screen {
+  min-height: 0;
+  height: 100%;
+}
+
+.phone-overlay.scheduler-expanded .browser-screen:has(.fleet-scheduler-screen),
+.phone-overlay.scheduler-expanded .fleet-scheduler-screen {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.phone-overlay.scheduler-expanded .browser-site-content:has(> .fleet-scheduler-screen) {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden !important;
+}
+
+/* Stop using fragile calc(100% - chrome) heights. The timeline owns whatever
+   vertical space remains and is the only vertical scroller on this screen. */
+.phone-overlay.scheduler-expanded .fleet-scheduler-screen .scheduler-scroll,
+.phone-overlay.scheduler-expanded .fleet-scheduler-screen:has(.scheduler-summary-strip.aw14) .scheduler-scroll,
+.phone-overlay.scheduler-expanded .fleet-scheduler-screen:has(.scheduler-top-hint) .scheduler-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+
+.phone-overlay.scheduler-expanded .scheduler-time-canvas {
+  flex: 0 0 auto;
+}
+
+/* Keep the load action dock above the home bar without stealing timeline height. */
+.phone-overlay.scheduler-expanded .scheduler-selection-panel {
+  bottom: calc(34px + env(safe-area-inset-bottom, 0px));
+}
+
+
+/* CS2.0A.12.4 — Scheduler Shell + Route Continuity
+   Keep the taller scheduler, but make the shell transition feel intentional and
+   preserve the bottom navigation/home control inside the iPhone safe area. */
+.phone-overlay {
+  transition: top 170ms cubic-bezier(.2,.75,.25,1), bottom 170ms cubic-bezier(.2,.75,.25,1), border-radius 170ms ease;
+}
+.phone-overlay.scheduler-expanded {
+  top: calc(-42px - env(safe-area-inset-top, 0px));
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  overflow: visible;
+}
+.phone-overlay.scheduler-expanded .phone-device-screen {
+  grid-template-rows: 42px minmax(0, 1fr) 42px;
+}
+.phone-overlay.scheduler-expanded .phone-navigation-bar {
+  min-height: 42px;
+  padding: 5px 12px 6px;
+  flex: 0 0 42px;
+  box-sizing: border-box;
+}
+.phone-overlay.scheduler-expanded .phone-home-button {
+  width: 54px;
+  height: 30px;
+  flex: 0 0 auto;
+}
+.phone-overlay.scheduler-expanded .scheduler-selection-panel {
+  bottom: calc(44px + env(safe-area-inset-bottom, 0px));
+}
+
+
+/* CS2.0A.14 — Facility Attention Marker Restore
+   Live operational P/D markers carry the attention cue while Marcus physically
+   owns that facility stop. Future stops never receive the cue. */
+.game-marker.itinerary-stop-marker.attention::after {
+  z-index: 2;
+  pointer-events: none;
+}
+.game-marker.itinerary-stop-marker.current-itinerary-stop.attention {
+  overflow: visible;
+}
+
+
+/* CS2.0A.14.1 — Facility Attention Badge Hotfix
+   Real child badge is more reliable than a pseudo-element inside MapLibre DOM markers on iOS. */
+.game-marker.itinerary-stop-marker { overflow: visible; }
+.game-marker.itinerary-stop-marker .facility-attention-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 6;
+  width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #11161c;
+  border-radius: 999px;
+  background: var(--docos-attention);
+  color: var(--docos-attention-ink);
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0,0,0,.4);
+  pointer-events: none;
+}
+.game-marker.itinerary-stop-marker .facility-attention-badge[hidden] { display: none !important; }
+/* Prevent the older pseudo-element from double-rendering now that the badge is explicit DOM. */
+.game-marker.itinerary-stop-marker.attention::after { display: none !important; }
