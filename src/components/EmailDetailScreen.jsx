@@ -39,7 +39,7 @@ function EmailDetailScreen({ message, carrier, loads = [], onReview, onOpenRelat
             <section className="email-detail-attachments compact agreement-email-link">
               <span>ATTACHMENT · 1</span>
               <button type="button" className="email-detail-file-link" onClick={() => onReview?.('agreement')}>
-                <b aria-hidden="true">📎</b><p><strong>Metroline Dispatch Operating Agreement</strong><small>Open full document · review terms · sign</small></p><i>Open</i>
+                <b aria-hidden="true">📎</b><p><strong>{carrier?.name || 'Carrier'} Dispatch Operating Agreement</strong><small>Open full document · review terms · sign</small></p><i>Open</i>
               </button>
             </section>
           )}

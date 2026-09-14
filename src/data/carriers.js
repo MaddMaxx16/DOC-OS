@@ -12,6 +12,15 @@ export default [{
   homeBaseLocationId: 'metroline-yard',
   experienceRequirement: 'Entry Level',
   relationshipScore: 50,
+  carrierSource: {
+    initials: 'MT',
+    accountType: 'Independent Dispatch',
+    homeBaseLabel: 'Brooklyn, NY',
+    marketLabel: 'NEW YORK',
+    equipmentLabel: 'Dry Van',
+    summary: 'Regional carrier seeking dispatch support for freight sourcing, trip planning, service windows and driver communication.',
+    description: 'Metroline operates regional dry-van freight across the Northeast and is looking for day-to-day dispatch support.',
+  },
   dispatchAgreement: {
     type: 'percentage',
     percentage: 8,

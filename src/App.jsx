@@ -1012,6 +1012,7 @@ function App() {
             onSaveDispatcherProfile={setDispatcherProfile}
             onActivateCarrier={activateCarrier}
             carrierApplicationsById={carrierApplicationsById}
+            carrierCareerById={carrierCareerById}
             onApplyCarrier={applyCarrier}
             onAcceptAgreement={acceptCarrierAgreement}
             onApprovePod={approvePodAndCloseout}

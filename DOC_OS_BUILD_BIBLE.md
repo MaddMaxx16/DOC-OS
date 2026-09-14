@@ -1,8 +1,11 @@
-## Current build: AW1.6.7 — Stop Marker Integrity + Map Layer Hierarchy
+## Current build: CS2.0B.1 — CarrierSource Data Architecture
+**Frozen Operations baseline:** CS2.0A.14.1
+**Frozen Agenda checkpoint:** CS2.0B.0.1
+**Change class:** B — CarrierSource architecture / read-only state plumbing
 
 # DOC OS — Build Bible
 Baseline: 2026-09-05
-Canonical build: MASTER-2026-09-05-A
+Current canonical checkpoint: CS2.0B.1
 
 ## 1. Vision
 DOC OS is a realistic dispatcher simulation that looks like a professional operations system but plays like a game. The map is the primary world. The phone/device is a secondary operations tool.
@@ -11,13 +14,17 @@ The player loop is:
 FIND -> EVALUATE -> ACCEPT -> ASSIGN -> PLAN -> DISPATCH -> MANAGE -> DELIVER -> CLOSE OUT -> GET PAID -> PROGRESS
 
 ## 2. Current Canonical Baseline
-This master is the latest full source plus the existing verified patch chain, applied in order:
-1. DOC-OS-FULL-CURRENT(1)
-2. Phase 2.2c3 Active Trip Fix
-3. Phase 2.2c4 Delivery Facility Fix
-4. Phase 2.2c5 Trip Dispatch Consistency
+**CS2.0A.14.1 is the frozen Operations baseline.** Its driver movement, itinerary authority, routing, pickup/delivery facility lifecycle, POD closeout, save/resume behavior, and scheduler-planning logic are protected from incidental feature work.
 
-No new gameplay feature was added during baseline creation.
+**CS2.0B.0 adds Agenda access only.** Agenda is a first-class DOC OS home app that opens the existing Today’s Plan scheduler directly. The original FreightLink scheduler entry remains intact. No Operations state transition or scheduler-planning rule changed in B.0.
+
+**CS2.0B.0.1 is presentation-only polish.** It removes the redundant route-count subtitle from the driver tabs; the route total remains in the plan summary strip directly below. No scheduler-planning or Operations behavior changed.
+
+**CS2.0B.1 converts CarrierSource to carrier-driven architecture.** CarrierSource now consumes the full carrier collection plus application and career state keyed by carrier ID, maintains selected-carrier navigation, and renders carrier identity, location, opportunity copy, roster, relationship standing, agreement email identity, and agreement market from carrier data. Metroline remains the only authored carrier in this checkpoint and its existing gameplay path is preserved. No Operations lifecycle, scheduler-planning, route movement, facility, POD, LedgerDesk, or save-state authority changed.
+
+**CarrierSource boundary contract:** CarrierSource may read carrier/account/career data and invoke existing application/agreement actions by carrier ID. It must not become an authority for driver movement, load lifecycle, itinerary, facility state, or scheduling logic.
+
+Historical sections below remain useful as lifecycle contracts and regression references even where older build names appear.
 
 ## 3. Core Load Lifecycle — Locked Contract
 AVAILABLE
