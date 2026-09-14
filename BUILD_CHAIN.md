@@ -10,3 +10,5 @@ CS2.0A.12.4 — Scheduler Shell + Route Continuity
 - CS2.0B.0 — Agenda Access: adds first-class Agenda app and direct Today’s Plan entry; existing scheduler and Operations logic remain frozen.
 - CS2.0B.0.1 — Agenda Driver Tab Polish: removes redundant per-driver route-count subtitle; route total remains in plan summary strip; no scheduler or Operations logic change.
 - CS2.0B.1 — CarrierSource Data Architecture: removes Metroline-only CarrierSource wiring, adds carrier-ID selection and career-state read plumbing, and makes CarrierSource/agreement identity carrier-driven; Operations remains frozen.
+
+- CS2.0B.2 — CarrierSource Workspace Overhaul: visible CarrierSource business workspace with network summary, account health, live terms, service standards and roster presentation; no Operations authority changes.

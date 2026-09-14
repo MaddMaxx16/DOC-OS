@@ -1,11 +1,11 @@
-## Current build: CS2.0B.1 — CarrierSource Data Architecture
+## Current build: CS2.0B.2 — CarrierSource Workspace Overhaul
 **Frozen Operations baseline:** CS2.0A.14.1
 **Frozen Agenda checkpoint:** CS2.0B.0.1
-**Change class:** B — CarrierSource architecture / read-only state plumbing
+**Change class:** B — CarrierSource workspace / presentation
 
 # DOC OS — Build Bible
 Baseline: 2026-09-05
-Current canonical checkpoint: CS2.0B.1
+Current canonical checkpoint: CS2.0B.2
 
 ## 1. Vision
 DOC OS is a realistic dispatcher simulation that looks like a professional operations system but plays like a game. The map is the primary world. The phone/device is a secondary operations tool.
@@ -21,6 +21,8 @@ FIND -> EVALUATE -> ACCEPT -> ASSIGN -> PLAN -> DISPATCH -> MANAGE -> DELIVER ->
 **CS2.0B.0.1 is presentation-only polish.** It removes the redundant route-count subtitle from the driver tabs; the route total remains in the plan summary strip directly below. No scheduler-planning or Operations behavior changed.
 
 **CS2.0B.1 converts CarrierSource to carrier-driven architecture.** CarrierSource now consumes the full carrier collection plus application and career state keyed by carrier ID, maintains selected-carrier navigation, and renders carrier identity, location, opportunity copy, roster, relationship standing, agreement email identity, and agreement market from carrier data. Metroline remains the only authored carrier in this checkpoint and its existing gameplay path is preserved. No Operations lifecycle, scheduler-planning, route movement, facility, POD, LedgerDesk, or save-state authority changed.
+
+**CS2.0B.2 upgrades CarrierSource into a visible business workspace.** My Carriers now presents network status, carrier account health, relationship score, agreement metrics, and direct account access. Opportunities adds market-oriented metadata and clearer application/account states. Active carrier detail pages now expose relationship standing, live agreement terms, service standards, account health, and driver roster using existing authoritative CarrierSource/career data. No carrier gameplay rules, progression consequences, Operations lifecycle, scheduler planning, movement, facility, POD, LedgerDesk, or save authority changed.
 
 **CarrierSource boundary contract:** CarrierSource may read carrier/account/career data and invoke existing application/agreement actions by carrier ID. It must not become an authority for driver movement, load lifecycle, itinerary, facility state, or scheduling logic.
 
