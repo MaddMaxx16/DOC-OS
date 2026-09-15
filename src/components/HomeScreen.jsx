@@ -68,7 +68,7 @@ function AppTile({ label, description, icon, onClick, disabled = false, badgeCou
   )
 }
 
-function HomeScreen({ onOpenBrowser, onOpenAgenda, agendaLocked = false, onOpenDocuments, onOpenLedger, onOpenMessages, onOpenEmail, emailBadgeCount = 0, messagesBadgeCount = 0, documentsBadgeCount = 0, ledgerUnreadCount = 0 }) {
+function HomeScreen({ onOpenBrowser, onOpenAgenda, agendaLocked = false, agendaBadgeCount = 0, onOpenDocuments, onOpenLedger, onOpenMessages, onOpenEmail, emailBadgeCount = 0, messagesBadgeCount = 0, documentsBadgeCount = 0, ledgerUnreadCount = 0 }) {
   return (
     <div className="phone-page home-screen docos-ui-page">
       <header className="device-home-header docos-ui-header">
@@ -84,7 +84,7 @@ function HomeScreen({ onOpenBrowser, onOpenAgenda, agendaLocked = false, onOpenD
         </div>
         <div className="phone-app-grid" aria-label="DOC OS apps">
           <AppTile label="Browser" description="FreightLink and Carrier Source" icon={<BrowserIcon />} onClick={onOpenBrowser} />
-          <AppTile label="Agenda" description="Driver schedules and appointments" icon={<AgendaIcon />} onClick={onOpenAgenda} disabled={agendaLocked} />
+          <AppTile label="Agenda" description="Driver schedules and appointments" icon={<AgendaIcon />} onClick={onOpenAgenda} disabled={agendaLocked} badgeCount={agendaBadgeCount} />
           <AppTile label="Documents" description="PODs and operation records" icon={<DocumentsIcon />} onClick={onOpenDocuments} badgeCount={documentsBadgeCount} />
           <AppTile label="LedgerDesk" description="Invoices and receivables" icon={<LedgerIcon />} onClick={onOpenLedger} badgeCount={ledgerUnreadCount} badgeClassName="ledger-badge" />
           <AppTile label="Messages" description="Driver communication" icon={<MessagesIcon />} onClick={onOpenMessages} badgeCount={messagesBadgeCount} />

@@ -7,7 +7,7 @@ export const DELIVERY_UNLOAD_DURATION_MINUTES = 8
 // Pickup Operations V1: facility timing is deterministic and appointment-aware.
 // Marcus handles routine check-in automatically; the player is called back only
 // when a dock is ready and loading requires attention.
-export function getPickupDockWaitMinutes(load, checkInGameMinute) {
+export function getPickupDockWaitMinutes(load, checkInGameMinute, earlyCheckInBonusMinutes = 0) {
   const dayIndex = Number.isFinite(load?.pickupDayIndex) ? load.pickupDayIndex : Math.floor(checkInGameMinute / 1440)
   const windowStart = Number.isFinite(load?.pickupWindowStartMinutes)
     ? dayIndex * 1440 + load.pickupWindowStartMinutes
@@ -21,7 +21,7 @@ export function getPickupDockWaitMinutes(load, checkInGameMinute) {
   // AV2.9.7: appointment windows are hard service gates. Drivers may arrive and
   // check in early, but the dock cannot become actionable before the window opens.
   // Preserve a short normal facility wait when arrival is on time.
-  if (checkInGameMinute < windowStart) return Math.max(0, windowStart - checkInGameMinute)
+  if (checkInGameMinute < windowStart) return Math.max(0, windowStart - checkInGameMinute - Math.max(0, Number(earlyCheckInBonusMinutes || 0)))
 
   // On-time arrivals keep their slot and usually get a door quickly.
   if (checkInGameMinute <= windowEnd) return 12
@@ -34,7 +34,7 @@ export function getPickupDockWaitMinutes(load, checkInGameMinute) {
 
 // Delivery Operations V1 arrival lifecycle. Marcus owns routine receiver check-in.
 // The player is called back only when the receiver has a dock/door ready.
-export function getDeliveryDockWaitMinutes(load, checkInGameMinute) {
+export function getDeliveryDockWaitMinutes(load, checkInGameMinute, earlyCheckInBonusMinutes = 0) {
   const dayIndex = Number.isFinite(load?.deliveryDayIndex) ? load.deliveryDayIndex : Math.floor(checkInGameMinute / 1440)
   const windowStart = Number.isFinite(load?.deliveryWindowStartMinutes)
     ? dayIndex * 1440 + load.deliveryWindowStartMinutes
@@ -45,7 +45,7 @@ export function getDeliveryDockWaitMinutes(load, checkInGameMinute) {
 
   if (!Number.isFinite(windowStart) || !Number.isFinite(windowEnd)) return 10
   // AV2.9.7: early delivery arrival is allowed, early unloading is not.
-  if (checkInGameMinute < windowStart) return Math.max(0, windowStart - checkInGameMinute)
+  if (checkInGameMinute < windowStart) return Math.max(0, windowStart - checkInGameMinute - Math.max(0, Number(earlyCheckInBonusMinutes || 0)))
   if (checkInGameMinute <= windowEnd) return 10
   return 30
 }

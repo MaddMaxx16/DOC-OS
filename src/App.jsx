@@ -23,6 +23,7 @@ import { calculateRoute } from './services/routingService.js'
 import { refreshFreightMarket } from './utils/freightMarket.js'
 import { getAuthoritativeDriverTravelLoad } from './utils/driverItinerary.js'
 import { getFreightRouteName } from './utils/freightIdentity.js'
+import { getClockInMessage, getEndOfDayMessage, getRelationshipStartMessage } from './utils/driverCommunications.js'
 
 
 const IDLE_DWELL_MINUTES = 20
@@ -165,7 +166,7 @@ function App() {
       if (load.tripStatus === 'waiting-at-delivery') {
         const deliveryArrivalGameMinute = Number.isFinite(load.deliveryArrivalGameMinute) ? load.deliveryArrivalGameMinute : savedNow
         const deliveryCheckInGameMinute = Number.isFinite(load.deliveryCheckInGameMinute) ? load.deliveryCheckInGameMinute : savedNow
-        const deliveryDockReadyGameMinute = deliveryCheckInGameMinute + getDeliveryDockWaitMinutes(load, deliveryCheckInGameMinute)
+        const deliveryDockReadyGameMinute = deliveryCheckInGameMinute + getDeliveryDockWaitMinutes(load, deliveryCheckInGameMinute, load.lunchEarlyCheckInBonusAppliedMinutes || 0)
         return { ...load, deliveryArrivalGameMinute, deliveryCheckInGameMinute, deliveryDockReadyGameMinute }
       }
       if (load.tripStatus === 'waiting-at-pickup') {
@@ -173,7 +174,7 @@ function App() {
         const pickupCheckInGameMinute = Number.isFinite(load.pickupCheckInGameMinute) ? load.pickupCheckInGameMinute : savedNow
         // AP1 normalizes legacy/AP test saves to the current dock-wait contract.
         // Do not preserve an old excessive ready time after the wait rules change.
-        const pickupDockReadyGameMinute = pickupCheckInGameMinute + getPickupDockWaitMinutes(load, pickupCheckInGameMinute)
+        const pickupDockReadyGameMinute = pickupCheckInGameMinute + getPickupDockWaitMinutes(load, pickupCheckInGameMinute, load.lunchEarlyCheckInBonusAppliedMinutes || 0)
         return { ...load, pickupArrivalGameMinute, pickupCheckInGameMinute, pickupDockReadyGameMinute }
       }
       return load
@@ -219,15 +220,22 @@ function App() {
     setDispatcherProfile(saved.dispatcherProfile || null)
     setEmailMessages(Array.isArray(saved.emailMessages) ? saved.emailMessages.filter((message) => !message.templateId) : [])
     const savedDriverMessages = Array.isArray(saved.driverMessages) ? saved.driverMessages : []
-    const migratedDriverMessages = savedDriverMessages.flatMap((message) => {
-      if (message.id !== 'marcus-intro') return [message]
-      const baseMinute = Number.isFinite(message.receivedGameMinute) ? message.receivedGameMinute : savedNow
-      return [
-        { ...message, id: 'marcus-intro-1', body: 'Hey, Marcus here. Looks like we’re working together.', receivedGameMinute: baseMinute },
-        { ...message, id: 'marcus-intro-2', body: 'I mostly run regional. Just keep the deadhead reasonable and keep me posted on where I’m going and when I need to be there.', receivedGameMinute: baseMinute + 0.01 },
-        { ...message, id: 'marcus-intro-3', body: 'I’m in Brooklyn now and ready when you are.', receivedGameMinute: baseMinute + 0.02 },
-      ]
-    })
+    // CS2.0B.4.1 — collapse the old three-text Marcus tutorial burst into one
+    // relationship-start message. Existing saves keep their history without carrying
+    // the repetitive onboarding cadence forward.
+    const legacyIntro = savedDriverMessages.find((message) => ['marcus-intro', 'marcus-intro-1', 'marcus-intro-2', 'marcus-intro-3'].includes(message.id))
+    const migratedDriverMessages = savedDriverMessages.filter((message) => !['marcus-intro', 'marcus-intro-1', 'marcus-intro-2', 'marcus-intro-3'].includes(message.id))
+    if (legacyIntro) {
+      const marcus = hydratedDrivers.find((driver) => driver.id === 'marcus') || seedDrivers.find((driver) => driver.id === 'marcus')
+      migratedDriverMessages.push({
+        ...legacyIntro,
+        id: 'marcus-relationship-start',
+        body: getRelationshipStartMessage(marcus),
+        messageIntent: 'relationship-start',
+        requiresResponse: false,
+        receivedGameMinute: Number.isFinite(legacyIntro.receivedGameMinute) ? legacyIntro.receivedGameMinute : savedNow,
+      })
+    }
     setDriverMessages(migratedDriverMessages)
     setBusinessDocuments(Array.isArray(saved.businessDocuments) ? saved.businessDocuments : [])
     setDayLoop(saved.dayLoop ? { ...DEFAULT_DAY_LOOP_STATE, ...saved.dayLoop, history: Array.isArray(saved.dayLoop.history) ? saved.dayLoop.history : [] } : { ...DEFAULT_DAY_LOOP_STATE })
@@ -371,14 +379,16 @@ function App() {
     if (!pending) return
 
     const load = loads.find((item) => item.id === pending.loadId)
+    const pendingCarrier = carriers.find((item) => item.id === pending.carrierId) || carriers[0] || null
+    const carrierName = pendingCarrier?.name || 'Carrier'
     const loadNumber = load ? getFreightRouteName(load) : 'route'
-    let senderOverride = 'Metroline Transport'
+    let senderOverride = carrierName
     let subject = `Re: ${pending.subject || loadNumber}`
     let bodyOverride = 'Received. Thank you.'
     let attachments = []
 
     if (pending.workflowType === 'carrier-approval') {
-      senderOverride = 'Metroline Transport · Operations'
+      senderOverride = `${carrierName} · Operations`
       const requestedIds = Array.isArray(pending.loadIds) && pending.loadIds.length ? pending.loadIds : [pending.loadId].filter(Boolean)
       const requestedLoads = requestedIds.map((id) => loads.find((item) => item.id === id)).filter(Boolean)
       const activeRequestedLoads = requestedLoads.filter((item) => item.carrierApprovalStatus === 'PENDING' && item.scheduleApprovalQueued)
@@ -400,7 +410,7 @@ function App() {
     }
 
     if (pending.workflowType === 'pod-correction') {
-      senderOverride = 'Metroline Transport · Documentation'
+      senderOverride = `${carrierName} · Documentation`
       if (pending.workflowValid && load?.pod) {
         const piecesReceived = Number.isFinite(Number(load.pod.freightCondition?.loadedAtPickup)) ? Number(load.pod.freightCondition.loadedAtPickup) : Number(load.pod.piecesReceived)
         const damaged = Number(load.pod.freightCondition?.damagedAtPickup || 0)
@@ -415,7 +425,7 @@ function App() {
     }
 
     if (pending.workflowType === 'invoice-submission') {
-      senderOverride = 'Metroline Transport · Accounting'
+      senderOverride = `${carrierName} · Accounting`
       if (pending.workflowValid) {
         bodyOverride = `Invoice received for ${loadNumber} with supporting POD. Payment terms are active.`
       } else {
@@ -429,7 +439,9 @@ function App() {
       type: 'operational-email-reply',
       direction: 'inbound',
       senderOverride,
-      carrierId: pending.carrierId || 'metroline',
+      carrierId: pending.carrierId || pendingCarrier?.id || null,
+      workflowType: pending.workflowType,
+      workflowValid: pending.workflowValid,
       subject,
       bodyOverride,
       attachments,
@@ -439,7 +451,7 @@ function App() {
       receivedGameMinute: now,
       read: false,
     }])
-  }, [hydrated, stage, gameTime, emailMessages, loads])
+  }, [hydrated, stage, gameTime, emailMessages, loads, carriers])
 
 
   useEffect(() => {
@@ -619,16 +631,62 @@ function App() {
       acknowledgment: `These are ${carrier.name}’s operating goals, not absolute rules. Freight markets change throughout the day. Use reasonable judgment when balancing carrier goals, driver preferences, appointment requirements, and available freight.`,
     }])
 
-    // Preserve Metroline's current Day 1 driver introduction exactly.
-    if (carrierId === 'metroline') setDriverMessages((current) => current.some((message) => message.id === 'marcus-intro-1' || message.id === 'marcus-intro') ? current : [...current,
-      { id: 'marcus-intro-1', driverId: 'marcus', sender: 'Marcus Reed', senderRole: 'Driver', direction: 'inbound', body: 'Hey, Marcus here. Looks like we’re working together.', receivedGameMinute: now, read: false },
-      { id: 'marcus-intro-2', driverId: 'marcus', sender: 'Marcus Reed', senderRole: 'Driver', direction: 'inbound', body: 'I mostly run regional. Just keep the deadhead reasonable and keep me posted on where I’m going and when I need to be there.', receivedGameMinute: now + 0.01, read: false },
-      { id: 'marcus-intro-3', driverId: 'marcus', sender: 'Marcus Reed', senderRole: 'Driver', direction: 'inbound', body: 'I’m in Brooklyn now and ready when you are.', receivedGameMinute: now + 0.02, read: false },
-    ])
+    // CS2.0B.4.1.2 — relationship start remains immediate, but clock-in is now
+    // driven by the dispatcher-authored Agenda workday and fires when game time
+    // reaches that driver's scheduled start.
+    if (carrierId === 'metroline') {
+      const marcus = seedDrivers.find((driver) => driver.id === 'marcus')
+      setDriverMessages((current) => {
+        if (current.some((message) => message.id === 'marcus-relationship-start')) return current
+        return [...current, {
+          id: 'marcus-relationship-start', driverId: 'marcus', sender: marcus?.fullName || 'Marcus Reed', senderRole: 'Driver', direction: 'inbound',
+          body: getRelationshipStartMessage(marcus), messageIntent: 'relationship-start', requiresResponse: false, receivedGameMinute: now, read: false,
+        }]
+      })
+    }
     return true
   }
 
 
+
+  // CS2.0B.4.1.2 — clock-in is a real scheduled event. Agenda owns the
+  // workday; Messages only confirms that the driver actually came on duty.
+  useEffect(() => {
+    if (!hydrated || dayLoop.phase !== 'operating') return
+    const dayIndex = Number(gameTime.gameDayIndex || 0)
+    const now = dayIndex * 1440 + Number(gameTime.totalMinutesOfDay || 0)
+    const operationDay = Number(dayLoop.operationDay || 1)
+    const activeCarrierIds = new Set(carriers.filter((carrier) => carrier.status === 'active').map((carrier) => carrier.id))
+
+    setDriverMessages((current) => {
+      let changed = false
+      const next = [...current]
+      drivers.forEach((driver) => {
+        if (!driver?.id || !activeCarrierIds.has(driver.carrierId)) return
+        const workday = driver.workdayByDay?.[String(dayIndex)] || driver.workdayByDay?.[dayIndex]
+        const startMinutes = Number(workday?.startMinutes)
+        if (!Number.isFinite(startMinutes)) return
+        const scheduledClockIn = dayIndex * 1440 + startMinutes
+        if (now < scheduledClockIn) return
+        const messageId = `driver-clock-in-${driver.id}-day-${operationDay}`
+        if (next.some((message) => message.id === messageId)) return
+        next.push({
+          id: messageId,
+          driverId: driver.id,
+          sender: driver.fullName || driver.name || 'Driver',
+          senderRole: 'Driver',
+          direction: 'inbound',
+          body: getClockInMessage(driver, operationDay),
+          messageIntent: 'clock-in',
+          requiresResponse: false,
+          receivedGameMinute: scheduledClockIn + 0.01,
+          read: false,
+        })
+        changed = true
+      })
+      return changed ? next : current
+    })
+  }, [hydrated, dayLoop.phase, dayLoop.operationDay, gameTime.gameDayIndex, gameTime.totalMinutesOfDay, drivers, carriers])
 
   useEffect(() => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
@@ -729,11 +787,20 @@ function App() {
       }
       if (load.tripStatus === 'checking-in-pickup' && Number.isFinite(load.pickupCheckInStartGameMinute) && now - load.pickupCheckInStartGameMinute >= PICKUP_CHECKIN_MINUTES) {
         const pickupCheckInGameMinute = now
+        const driver = drivers.find((item) => item.id === load.assignedDriverId)
+        const dayKey = String(gameTime.gameDayIndex)
+        const lunchEvent = driver?.workdayByDay?.[dayKey]?.lunchEvent
+        const lunchEffect = driver?.lunchEffectsByDay?.[dayKey]
+        const bonusAlreadyUsed = current.some((item) => item.id !== load.id && (item.assignedDriverId === load.assignedDriverId || item.completedDriverId === load.assignedDriverId) && Number(item.lunchEarlyCheckInBonusAppliedMinutes || 0) > 0)
+        const earlyCheckInBonusMinutes = !bonusAlreadyUsed && Number(lunchEvent?.selectedGameMinute) <= pickupCheckInGameMinute
+          ? Math.max(0, Number(lunchEffect?.earlyCheckInBonusMinutes || 0))
+          : 0
         return {
           ...load,
           tripStatus: 'waiting-at-pickup',
           pickupCheckInGameMinute,
-          pickupDockReadyGameMinute: pickupCheckInGameMinute + getPickupDockWaitMinutes(load, pickupCheckInGameMinute),
+          lunchEarlyCheckInBonusAppliedMinutes: earlyCheckInBonusMinutes,
+          pickupDockReadyGameMinute: pickupCheckInGameMinute + getPickupDockWaitMinutes(load, pickupCheckInGameMinute, earlyCheckInBonusMinutes),
         }
       }
       if (load.tripStatus === 'waiting-at-pickup' && Number.isFinite(load.pickupDockReadyGameMinute) && now >= load.pickupDockReadyGameMinute) {
@@ -747,11 +814,20 @@ function App() {
       }
       if (load.tripStatus === 'checking-in-delivery' && Number.isFinite(load.deliveryCheckInStartGameMinute) && now - load.deliveryCheckInStartGameMinute >= DELIVERY_CHECKIN_MINUTES) {
         const deliveryCheckInGameMinute = now
+        const driver = drivers.find((item) => item.id === load.assignedDriverId)
+        const dayKey = String(gameTime.gameDayIndex)
+        const lunchEvent = driver?.workdayByDay?.[dayKey]?.lunchEvent
+        const lunchEffect = driver?.lunchEffectsByDay?.[dayKey]
+        const bonusAlreadyUsed = current.some((item) => item.id !== load.id && (item.assignedDriverId === load.assignedDriverId || item.completedDriverId === load.assignedDriverId) && Number(item.lunchEarlyCheckInBonusAppliedMinutes || 0) > 0) || Number(load.lunchEarlyCheckInBonusAppliedMinutes || 0) > 0
+        const earlyCheckInBonusMinutes = !bonusAlreadyUsed && Number(lunchEvent?.selectedGameMinute) <= deliveryCheckInGameMinute
+          ? Math.max(0, Number(lunchEffect?.earlyCheckInBonusMinutes || 0))
+          : 0
         return {
           ...load,
           tripStatus: 'waiting-at-delivery',
           deliveryCheckInGameMinute,
-          deliveryDockReadyGameMinute: deliveryCheckInGameMinute + getDeliveryDockWaitMinutes(load, deliveryCheckInGameMinute),
+          lunchEarlyCheckInBonusAppliedMinutes: earlyCheckInBonusMinutes,
+          deliveryDockReadyGameMinute: deliveryCheckInGameMinute + getDeliveryDockWaitMinutes(load, deliveryCheckInGameMinute, earlyCheckInBonusMinutes),
         }
       }
       if (load.tripStatus === 'waiting-at-delivery' && Number.isFinite(load.deliveryDockReadyGameMinute) && now >= load.deliveryDockReadyGameMinute) {
@@ -759,7 +835,7 @@ function App() {
       }
       return load
     }))
-  }, [gameTime])
+  }, [gameTime, drivers])
 
   // Recovery path for legacy saves/dev states that still enter the old
   // intermediate `delivered` state. Normal POD approval now closes out
@@ -973,7 +1049,19 @@ function App() {
       const statusLabel = getCarrierRelationshipStateLabel(review.relationshipStateAfter)
       const warningLine = review.strikeIssued ? `\nService warning: ${review.strikeReason}. Strike ${review.strikeCountAfter} is now on the account.\n` : review.strikeForgiven ? `\nRecovery credit: one service strike was removed after a clean performance review.\n` : '\n'
       const levelLine = review.levelUp ? `\nAccount progression: Level ${review.levelBefore} → Level ${review.levelAfter}.\n` : ''
-      const bodyOverride = `Day ${dayLoop.operationDay} performance review is complete.\n\nGrade: ${review.grade}\nService windows: ${review.serviceWindowsMet}/${review.serviceWindowsTotal}\nRelationship: ${review.relationshipBefore} → ${review.relationshipAfter} (${review.relationshipChange >= 0 ? '+' : ''}${review.relationshipChange})\nCarrier XP: +${review.carrierXpGain}\nAccount status: ${statusLabel}${warningLine}${levelLine}\nReview full performance history in CarrierSource.`
+      const careerHeadline = review.strikeIssued
+        ? `${carrier.name} has issued a service warning following Day ${dayLoop.operationDay}.`
+        : review.levelUp
+          ? `Your ${carrier.name} account advanced to Level ${review.levelAfter} following Day ${dayLoop.operationDay}.`
+          : `Your Day ${dayLoop.operationDay} ${carrier.name} performance review has been posted.`
+      const bodyOverride = `${careerHeadline}
+
+Grade: ${review.grade}
+Service windows: ${review.serviceWindowsMet}/${review.serviceWindowsTotal}
+Relationship: ${review.relationshipBefore} → ${review.relationshipAfter} (${review.relationshipChange >= 0 ? '+' : ''}${review.relationshipChange})
+Carrier XP: +${review.carrierXpGain}
+Account status: ${statusLabel}${warningLine}${levelLine}
+Open CarrierSource to review your full account history.`
       const messageId = `${carrierId}-career-review-${dayLoop.operationDay}`
       setEmailMessages((current) => current.some((message) => message.id === messageId) ? current : [...current, {
         id: messageId,
@@ -982,9 +1070,47 @@ function App() {
         senderOverride: 'CarrierSource',
         subject,
         bodyOverride,
+        careerReview: {
+          operationDay: dayLoop.operationDay,
+          grade: review.grade,
+          serviceWindowsMet: review.serviceWindowsMet,
+          serviceWindowsTotal: review.serviceWindowsTotal,
+          relationshipChange: review.relationshipChange,
+          carrierXpGain: review.carrierXpGain,
+          statusLabel,
+          levelBefore: review.levelBefore,
+          levelAfter: review.levelAfter,
+          levelUp: review.levelUp,
+          strikeIssued: review.strikeIssued,
+          strikeForgiven: review.strikeForgiven,
+          strikeCountAfter: review.strikeCountAfter,
+        },
         receivedGameMinute: reviewedGameMinute,
         read: false,
       }])
+    })
+
+    // CS2.0B.4.1 — a normal closeout gets one human sign-off per active driver.
+    // The driver does not restate hours, schedule, or completed stops.
+    setDriverMessages((current) => {
+      const next = [...current]
+      drivers.forEach((driver) => {
+        const messageId = `driver-signoff-${driver.id}-day-${dayLoop.operationDay}`
+        if (next.some((message) => message.id === messageId)) return
+        next.push({
+          id: messageId,
+          driverId: driver.id,
+          sender: driver.fullName || driver.name || 'Driver',
+          senderRole: 'Driver',
+          direction: 'inbound',
+          body: getEndOfDayMessage(driver, dayLoop.operationDay),
+          messageIntent: 'end-of-day',
+          requiresResponse: false,
+          receivedGameMinute: reviewedGameMinute + 0.01,
+          read: false,
+        })
+      })
+      return next
     })
 
     setDayLoop((current) => ({

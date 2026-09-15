@@ -6,6 +6,7 @@ import PhoneOverlay from './PhoneOverlay.jsx'
 import StatusBar from './StatusBar.jsx'
 import OperationsBar from './OperationsBar.jsx'
 import EndDaySheet from './EndDaySheet.jsx'
+import LunchDecisionOverlay from './LunchDecisionOverlay.jsx'
 import DayResultsScreen from './DayResultsScreen.jsx'
 import DayBriefingScreen from './DayBriefingScreen.jsx'
 import { formatAppointment, formatCompactDate, formatTime } from '../utils/gameTime.js'
@@ -21,6 +22,8 @@ import { buildDriverItinerary, getNextActionableDriverStop } from '../utils/driv
 import { getFreightBusinessName, getFreightCommodity, getFreightRouteName } from '../utils/freightIdentity.js'
 import { getFreightHaulClass, getPlanningImpact } from '../utils/planningIntelligence.js'
 import { getRouteLifecycleLabel } from '../utils/routeLifecycle.js'
+import { getDelayMessage, getDepartureMessage, getPickupExceptionMessage, getScheduleAcknowledgement, getUnloadExceptionMessage } from '../utils/driverCommunications.js'
+import { applyLunchDuration, getLunchDecisionChoices, isDriverOnLunch, isLunchDecisionReady } from '../utils/lunchDecisionEvents.js'
 
 
 function getEvaluationBufferMinutes(evaluation) {
@@ -311,6 +314,9 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [freightBrowseLoadId, setFreightBrowseLoadId] = useState(null)
   const [freightBrowseRouteGeometry, setFreightBrowseRouteGeometry] = useState(null)
   const [freightBrowseRouteStatus, setFreightBrowseRouteStatus] = useState('idle')
+  const [lunchDecisionDriverId, setLunchDecisionDriverId] = useState(null)
+  const lunchPauseWasAlreadyPausedRef = useRef(false)
+  const lunchPriorSpeedRef = useRef(1)
   const freightBrowseRouteRequestRef = useRef(0)
   const itineraryMovementSyncRef = useRef(new Map())
   const itineraryMovementTokenRef = useRef(0)
@@ -341,48 +347,130 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     || activeDriverLoads[0]
     || null
   const assignedDriverId = assignedLoad?.assignedDriverId || null
+  const assignedDriverOnLunch = isDriverOnLunch(drivers.find((driver) => driver.id === assignedDriverId), gameTime)
   const runtimeProgress = assignedDriverId ? (runtimeProgressByDriver?.[assignedDriverId] ?? null) : null
   const setDriverRuntimeProgress = (driverId, value) => setRuntimeProgressByDriver?.((current) => ({ ...(current || {}), [driverId]: value }))
   const podNotificationCount = loads.filter((load) => load.tripStatus === 'awaiting-pod').length
   const emailUnreadCount = emailMessages?.filter((message) => !message.read).length || 0
   const currentAbsoluteGameMinute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+
+  // CS2.0B.4.1.3.1 — lunch is now a ready task, not an interrupt. DOC OS
+  // flags eligible drivers, but the dispatcher decides when to open the decision.
+  const lunchReadyDriverIds = drivers.filter((driver) => isLunchDecisionReady({ driver, loads, gameTime })).map((driver) => driver.id)
+
+  const openLunchDecisionForDriver = (driverId) => {
+    const candidate = drivers.find((driver) => driver.id === driverId) || null
+    if (!candidate || !isLunchDecisionReady({ driver: candidate, loads, gameTime })) return false
+    lunchPauseWasAlreadyPausedRef.current = isGameClockPaused
+    lunchPriorSpeedRef.current = Number(simulationSpeed) || 1
+    setSimulationSpeed(0.75)
+    setGameClockPaused(false)
+    setLunchDecisionDriverId(candidate.id)
+    setIsPhoneOpen(false)
+    return true
+  }
+
+  const closeLunchDecision = () => {
+    setLunchDecisionDriverId(null)
+    setSimulationSpeed(lunchPriorSpeedRef.current || 1)
+    setGameClockPaused(lunchPauseWasAlreadyPausedRef.current)
+  }
+
+  const lunchDecisionDriver = drivers.find((driver) => driver.id === lunchDecisionDriverId) || null
+  const lunchDecisionWorkday = lunchDecisionDriver?.workdayByDay?.[String(gameTime.gameDayIndex)] || lunchDecisionDriver?.workdayByDay?.[gameTime.gameDayIndex] || null
+  const lunchDecisionChoices = lunchDecisionDriver && lunchDecisionWorkday
+    ? getLunchDecisionChoices({ driver: lunchDecisionDriver, loads, gameTime, operationDay })
+    : []
+
+  const chooseLunchDecision = (choice) => {
+    if (!choice || !lunchDecisionDriver || !lunchDecisionWorkday) return
+    const offeredChoiceIds = lunchDecisionChoices.map((item) => item.id)
+    const dayKey = String(gameTime.gameDayIndex)
+    const relationshipDelta = Number(choice.effects?.relationship || 0)
+    const actualLunchStartMinutes = Number(gameTime.totalMinutesOfDay || lunchDecisionWorkday.lunchStartMinutes || 0)
+    const nextDuration = applyLunchDuration(lunchDecisionWorkday.lunchDurationMinutes, choice.effects?.durationOverrideMinutes)
+    const lunchEnd = Math.min(Number(lunchDecisionWorkday.endMinutes || 1440), actualLunchStartMinutes + nextDuration)
+    const duration = Math.max(20, lunchEnd - actualLunchStartMinutes)
+
+    setDrivers((current) => current.map((driver) => {
+      if (driver.id !== lunchDecisionDriver.id) return driver
+      const workdayByDay = { ...(driver.workdayByDay || {}) }
+      const currentWorkday = workdayByDay[dayKey] || lunchDecisionWorkday
+      if (currentWorkday?.lunchEvent?.selectedChoiceId) return driver
+      workdayByDay[dayKey] = {
+        ...currentWorkday,
+        lunchStartMinutes: actualLunchStartMinutes,
+        lunchDurationMinutes: duration,
+        lunchEvent: {
+          selectedChoiceId: choice.id,
+          title: choice.title,
+          category: choice.category,
+          selectedGameMinute: currentAbsoluteGameMinute,
+          offeredChoiceIds,
+          effects: { ...(choice.effects || {}) },
+        },
+      }
+      const lunchOfferHistory = [
+        ...(Array.isArray(driver.lunchOfferHistory) ? driver.lunchOfferHistory : []).filter((entry) => entry?.dayIndex !== gameTime.gameDayIndex),
+        { dayIndex: gameTime.gameDayIndex, optionIds: offeredChoiceIds, selectedChoiceId: choice.id },
+      ].slice(-6)
+      const lunchEffectsByDay = {
+        ...(driver.lunchEffectsByDay || {}),
+        [dayKey]: {
+          recovery: Number(choice.effects?.recovery || 0),
+          earlyCheckInBonusMinutes: Number(choice.effects?.earlyCheckInBonusMinutes || 0),
+          prepBonusMinutes: Number(choice.effects?.prepBonusMinutes || 0),
+          choiceId: choice.id,
+          title: choice.title,
+        },
+      }
+      return {
+        ...driver,
+        workdayByDay,
+        lunchOfferHistory,
+        lunchEffectsByDay,
+        communicationRapport: Math.max(0, Math.min(100, Number(driver.communicationRapport ?? 50) + relationshipDelta)),
+      }
+    }))
+
+    setLunchDecisionDriverId(null)
+    setSimulationSpeed(lunchPriorSpeedRef.current || 1)
+    setGameClockPaused(lunchPauseWasAlreadyPausedRef.current)
+  }
+
   const ledgerNotificationCount = loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved && !seenLedgerReceivableIds.includes(load.id)).length + receivables.filter((item) => item.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(item.loadId)).length
   const lifecycleDriverMessages = loads.flatMap((load) => {
-    // Simulation events can create human communication, but the messages never
-    // create or advance those events. The load remains the source of truth.
+    // CS2.0B.4.1 — routine check-in is silent. The driver only texts once the
+    // facility wait becomes operationally meaningful (20+ minutes).
     const messageDriverId = load.assignedDriverId || load.completedDriverId
     const driver = drivers.find((item) => item.id === messageDriverId)
     const driverName = driver?.fullName || driver?.name || 'Driver'
     const messages = []
     if (Number.isFinite(load.pickupCheckInGameMinute)) {
-      const pickupFacility = mapLocations.find((location) => location.id === load.pickupLocationId)
-      messages.push({
-        id: `${load.id}-pickup-checked-in`,
-        loadId: load.id,
-        driverId: messageDriverId,
-        sender: driverName,
-        senderRole: 'Driver',
-        direction: 'inbound',
-        body: `Checked in at ${getFreightBusinessName(load, 'pickup') || pickupFacility?.name || 'the pickup'}. They’re waiting on a door for me.`,
-        messageIntent: 'facility-delay',
-        read: Boolean(load.pickupCheckedInDriverMessageRead),
-        receivedGameMinute: load.pickupCheckInGameMinute,
-      })
+      const waitEnd = Number.isFinite(load.pickupDockReadyGameMinute) ? Math.min(currentAbsoluteGameMinute, load.pickupDockReadyGameMinute) : currentAbsoluteGameMinute
+      const waitedMinutes = Math.max(0, waitEnd - load.pickupCheckInGameMinute)
+      if (currentAbsoluteGameMinute >= load.pickupCheckInGameMinute + 20 && waitedMinutes >= 20) {
+        const pickupFacility = mapLocations.find((location) => location.id === load.pickupLocationId)
+        const facilityName = getFreightBusinessName(load, 'pickup') || pickupFacility?.name || 'the pickup'
+        messages.push({
+          id: `${load.id}-pickup-checked-in`, loadId: load.id, driverId: messageDriverId, sender: driverName, senderRole: 'Driver', direction: 'inbound',
+          body: getDelayMessage({ facilityName, phase: 'pickup', waitedMinutes }), messageIntent: 'facility-delay', requiresResponse: true,
+          read: Boolean(load.pickupCheckedInDriverMessageRead), receivedGameMinute: load.pickupCheckInGameMinute + 20,
+        })
+      }
     }
     if (Number.isFinite(load.deliveryCheckInGameMinute)) {
-      const deliveryFacility = mapLocations.find((location) => location.id === load.deliveryLocationId)
-      messages.push({
-        id: `${load.id}-delivery-checked-in`,
-        loadId: load.id,
-        driverId: messageDriverId,
-        sender: driverName,
-        senderRole: 'Driver',
-        direction: 'inbound',
-        body: `Checked in at ${getFreightBusinessName(load, 'delivery') || deliveryFacility?.name || 'the receiver'}. Waiting on a door now.`,
-        messageIntent: 'facility-delay',
-        read: Boolean(load.deliveryCheckedInDriverMessageRead),
-        receivedGameMinute: load.deliveryCheckInGameMinute,
-      })
+      const waitEnd = Number.isFinite(load.deliveryDockReadyGameMinute) ? Math.min(currentAbsoluteGameMinute, load.deliveryDockReadyGameMinute) : currentAbsoluteGameMinute
+      const waitedMinutes = Math.max(0, waitEnd - load.deliveryCheckInGameMinute)
+      if (currentAbsoluteGameMinute >= load.deliveryCheckInGameMinute + 20 && waitedMinutes >= 20) {
+        const deliveryFacility = mapLocations.find((location) => location.id === load.deliveryLocationId)
+        const facilityName = getFreightBusinessName(load, 'delivery') || deliveryFacility?.name || 'the receiver'
+        messages.push({
+          id: `${load.id}-delivery-checked-in`, loadId: load.id, driverId: messageDriverId, sender: driverName, senderRole: 'Driver', direction: 'inbound',
+          body: getDelayMessage({ facilityName, phase: 'delivery', waitedMinutes }), messageIntent: 'facility-delay', requiresResponse: true,
+          read: Boolean(load.deliveryCheckedInDriverMessageRead), receivedGameMinute: load.deliveryCheckInGameMinute + 20,
+        })
+      }
     }
     return messages
   })
@@ -392,9 +480,22 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     ...lifecycleDriverMessages,
   ]
   const driverMessageUnreadCount = driverMessages.filter((message) => message.direction !== 'outbound' && !message.read).length
-  const phoneNotificationCount = emailUnreadCount + driverMessageUnreadCount
+  const phoneNotificationCount = emailUnreadCount + driverMessageUnreadCount + lunchReadyDriverIds.length
+  const driverLunchAlerts = lunchReadyDriverIds.map((driverId) => {
+    const driver = drivers.find((item) => item.id === driverId)
+    const driverName = driver?.fullName || driver?.name || 'Driver'
+    return {
+      id: `driver-${driverId}-lunch-ready-${gameTime.gameDayIndex}`,
+      driverId, alertClass: 'action', tone: 'attention', action: 'lunch-decision',
+      title: `${driverName} · LUNCH READY`,
+      detail: 'Lunch window is open. Choose the afternoon strategy when ready.',
+      value: 'CHOOSE LUNCH',
+    }
+  })
+
   const driverOperationAlerts = activeDriverLoads.flatMap((load) => {
     const driver = drivers.find((item) => item.id === load.assignedDriverId)
+    if (isDriverOnLunch(driver, gameTime)) return []
     const driverName = driver?.fullName || driver?.name || 'Driver'
     const pickupName = mapLocations.find((location) => location.id === load.pickupLocationId)?.name || 'pickup'
     const deliveryName = mapLocations.find((location) => location.id === load.deliveryLocationId)?.name || 'delivery'
@@ -408,6 +509,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const driverCommunicationAlerts = activeDriverLoads.flatMap((load) => {
     if (!['waiting-at-pickup', 'waiting-at-delivery'].includes(load.tripStatus)) return []
     const driver = drivers.find((item) => item.id === load.assignedDriverId)
+    if (isDriverOnLunch(driver, gameTime)) return []
     const driverName = driver?.fullName || driver?.name || 'Driver'
     const atDelivery = load.tripStatus === 'waiting-at-delivery'
     const facilityName = mapLocations.find((location) => location.id === (atDelivery ? load.deliveryLocationId : load.pickupLocationId))?.name || 'Facility'
@@ -519,14 +621,49 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     } : load))
     ready.forEach((load) => {
       setDriverRuntimeProgress(load.assignedDriverId, 0)
-      const driverName = drivers.find((driver) => driver.id === load.assignedDriverId)?.fullName || 'Driver'
-      const deliveryName = mapLocations.find((location) => location.id === load.deliveryLocationId)?.name || 'the receiver'
+      const driver = drivers.find((item) => item.id === load.assignedDriverId)
+      const driverName = driver?.fullName || 'Driver'
+      const deliveryName = getFreightBusinessName(load, 'delivery') || mapLocations.find((location) => location.id === load.deliveryLocationId)?.name || 'the receiver'
       setDriverMessages?.((current) => current.some((message) => message.id === `appointment-depart-${load.id}`) ? current : [...current, {
         id: `appointment-depart-${load.id}`, driverId: load.assignedDriverId, sender: driverName, senderRole: 'Driver', direction: 'inbound', loadId: load.id,
-        body: `Timing looks good now. I’m heading to ${deliveryName}.`, receivedGameMinute: now + 0.01, read: false,
+        body: getDepartureMessage({ driver, load, phase: 'delivery', facilityName: deliveryName, operationDay }), messageIntent: 'major-departure', phase: 'delivery', requiresResponse: false,
+        receivedGameMinute: now + 0.01, read: false,
       }])
     })
   }, [gameTime, loads, drivers, setDriverMessages])
+
+  // CS2.0B.4.1 — major departures are communication events even when movement was
+  // started automatically by itinerary reconciliation rather than a manual route send.
+  // This effect only observes authoritative travel state; it never changes movement.
+  useEffect(() => {
+    if (!setDriverMessages) return
+    const traveling = loads.filter((load) => {
+      if (!load.assignedDriverId) return false
+      if (load.tripStatus === 'en-route-pickup') return Number.isFinite(load.departureGameMinute)
+      if (load.tripStatus === 'en-route-delivery') return Number.isFinite(load.deliveryDepartureGameMinute)
+      return false
+    })
+    if (!traveling.length) return
+    setDriverMessages((current) => {
+      let next = current
+      traveling.forEach((load) => {
+        const phase = load.tripStatus === 'en-route-pickup' ? 'pickup' : 'delivery'
+        const departureMinute = phase === 'pickup' ? load.departureGameMinute : load.deliveryDepartureGameMinute
+        const alreadySent = next.some((message) => message.driverId === load.assignedDriverId && message.loadId === load.id && message.messageIntent === 'major-departure' && message.phase === phase)
+        if (alreadySent) return
+        const driver = drivers.find((item) => item.id === load.assignedDriverId)
+        const facilityId = phase === 'pickup' ? load.pickupLocationId : load.deliveryLocationId
+        const facilityName = getFreightBusinessName(load, phase) || mapLocations.find((location) => location.id === facilityId)?.name || (phase === 'pickup' ? 'the pickup' : 'the receiver')
+        const message = {
+          id: `major-departure-${phase}-${load.id}-${departureMinute}`, driverId: load.assignedDriverId, sender: driver?.fullName || driver?.name || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId: load.id,
+          body: getDepartureMessage({ driver, load, phase, facilityName, operationDay }), messageIntent: 'major-departure', phase, requiresResponse: false,
+          receivedGameMinute: departureMinute + 0.01, read: false,
+        }
+        next = next === current ? [...current, message] : [...next, message]
+      })
+      return next
+    })
+  }, [loads, drivers, operationDay, setDriverMessages])
 
   // CS2.0A.7 — schedule reconciliation only starts work when there is no active
   // physical leg/facility operation. getNextActionableDriverStop() now returns
@@ -538,6 +675,9 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     if (pendingLoadingHandoff) return
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     drivers.forEach((driver) => {
+      // CS2.0B.4.1.3.2 — lunch pauses only this driver. The world and other
+      // drivers continue, but this driver cannot start or advance a new leg.
+      if (isDriverOnLunch(driver, gameTime)) return
       const nextStop = getNextActionableDriverStop(loads, driver.id)
       if (!nextStop) return
       const nextLoad = loads.find((item) => item.id === nextStop.loadId)
@@ -700,6 +840,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       action: 'load-result',
       loadId: load.id,
     })),
+    ...driverLunchAlerts,
     ...driverCommunicationAlerts,
     ...driverOperationAlerts,
     ...(podNotificationCount > 0 ? [{
@@ -754,11 +895,11 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   // Actionable driver events bring the simulation back to normal speed instead
   // of letting 10× carry the player past a decision point.
   useEffect(() => {
-    if (!assignedLoad || isGameClockPaused) return
+    if (!assignedLoad || isGameClockPaused || assignedDriverOnLunch) return
     if (['checked-in-pickup', 'checked-in-delivery', 'pickup-issue'].includes(assignedLoad.tripStatus) && simulationSpeed > 1) {
       setSimulationSpeed(1)
     }
-  }, [assignedLoad?.tripStatus, isGameClockPaused, setSimulationSpeed, simulationSpeed])
+  }, [assignedLoad?.tripStatus, assignedDriverOnLunch, isGameClockPaused, setSimulationSpeed, simulationSpeed])
 
   // AW1.6.11: Facility challenges are explicit player-owned workflows.
   // Once loading/unloading begins, freeze the simulation so itinerary reconciliation
@@ -1014,7 +1155,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     const driverId = currentLoad?.candidateDriverId
     if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFitVerified || !driverId) return false
     const selectedDriver = drivers.find((driver) => driver.id === driverId)
-    if (!selectedDriver) return false
+    if (!selectedDriver || isDriverOnLunch(selectedDriver, gameTime)) return false
     const carrier = carriers.find((item) => item.id === selectedDriver.carrierId)
     if (carrier?.dispatchAgreement?.loadApprovalRequired && currentLoad.carrierApprovalStatus !== 'APPROVED') return false
 
@@ -1111,6 +1252,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const handleDriverAction = (actionType, loadId, driverId) => {
     const load = loads.find((item) => item.id === loadId)
     if (!load) return
+    const actionDriver = drivers.find((item) => item.id === (driverId || load.assignedDriverId))
+    if (actionType !== 'MESSAGE_DRIVER' && isDriverOnLunch(actionDriver, gameTime)) return
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     if (actionType === 'MESSAGE_DRIVER') {
       setPhoneInitialScreen('messageThread')
@@ -1188,21 +1331,9 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     // pendingLoadingHandoff is non-null, so no route can be reassigned mid-commit.
     setLoads(projectedLoads)
 
-    if (driverId && setDriverMessages) {
-      let messageBody = ''
-      if (Number(result.damagedPallets || 0) > 0) {
-        messageBody = `I’m loaded, but we’ve got a problem. ${result.damagedPallets} pallet${Number(result.damagedPallets) === 1 ? '' : 's'} were damaged during loading. I’m holding here until we get it corrected.`
-      } else if (Number(result.missingPallets || 0) > 0) {
-        messageBody = `I’m loaded, but the count is short by ${result.missingPallets}. I’m holding here until they correct it.`
-      } else {
-        const nextStop = getNextActionableDriverStop(projectedLoads, driverId)
-        const nextLoad = nextStop ? projectedLoads.find((item) => item.id === nextStop.loadId) : null
-        const sourceName = getFreightBusinessName(sourceLoad, 'pickup')
-        const nextName = nextStop && nextLoad ? getFreightBusinessName(nextLoad, nextStop.type === 'delivery' ? 'delivery' : 'pickup') : null
-        messageBody = nextStop && nextName
-          ? `All loaded at ${sourceName}. Next is ${nextStop.type === 'pickup' ? 'pickup' : 'delivery'} at ${nextName}.`
-          : `All loaded at ${sourceName}. Everything looks good.`
-      }
+    if (hasIssue && driverId && setDriverMessages) {
+      const damagedPallets = Number(result.damagedPallets || 0)
+      const missingPallets = Number(result.missingPallets || 0)
       setDriverMessages((current) => current.some((message) => message.id === `pickup-outcome-${loadId}-${now}`) ? current : [...current, {
         id: `pickup-outcome-${loadId}-${now}`,
         driverId,
@@ -1210,7 +1341,9 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         senderRole: 'Driver',
         direction: 'inbound',
         loadId,
-        body: messageBody,
+        body: getPickupExceptionMessage({ damagedPallets, missingPallets }),
+        messageIntent: 'pickup-exception',
+        requiresResponse: true,
         receivedGameMinute: now + 0.01,
         read: false,
       }])
@@ -1318,6 +1451,22 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     })
 
     if (!releasedDriverId) setUnloadSequenceLoadId(null)
+    if (releasedDriverId && Number(result.wrongMoves || 0) > 0) {
+      const releasedDriver = drivers.find((driver) => driver.id === releasedDriverId)
+      setDriverMessages?.((current) => [...current, {
+        id: `unload-exception-${loadId}-${now}`,
+        driverId: releasedDriverId,
+        sender: releasedDriver?.fullName || releasedDriver?.name || 'Driver',
+        senderRole: 'Driver',
+        direction: 'inbound',
+        loadId,
+        body: getUnloadExceptionMessage({ wrongMoves: result.wrongMoves, delayMinutes: result.unloadingDelayMinutes }),
+        messageIntent: 'unload-exception',
+        requiresResponse: false,
+        receivedGameMinute: now + 0.005,
+        read: false,
+      }])
+    }
     if (releasedDriverId) {
       setDrivers((current) => current.map((driver) => driver.id === releasedDriverId ? {
         ...driver,
@@ -1346,9 +1495,12 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
               deliveryDepartureGameMinute: completeMinute,
             } : item))
             setDriverRuntimeProgress(releasedDriverId, 0)
+            const releasedDriver = drivers.find((driver) => driver.id === releasedDriverId)
+            const onboardDeliveryName = getFreightBusinessName(onboardNext, 'delivery') || onboardDelivery.name || 'the receiver'
             setDriverMessages?.((current) => [...current, {
-              id: `multistop-delivery-${loadId}-${now}`, driverId: releasedDriverId, sender: drivers.find((driver) => driver.id === releasedDriverId)?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId: onboardNext.id,
-              body: `${getFreightBusinessName(deliveredLoad, 'delivery')} is finished. I still have the ${getFreightBusinessName(onboardNext, 'pickup')} freight onboard, heading to ${onboardDelivery.name}.`, receivedGameMinute: now + 0.01, read: false,
+              id: `multistop-delivery-${loadId}-${now}`, driverId: releasedDriverId, sender: releasedDriver?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId: onboardNext.id,
+              body: getDepartureMessage({ driver: releasedDriver, load: onboardNext, phase: 'delivery', facilityName: onboardDeliveryName, operationDay }), messageIntent: 'major-departure', phase: 'delivery', requiresResponse: false,
+              receivedGameMinute: now + 0.01, read: false,
             }])
           } catch (error) { console.error('DOC OS ONBOARD DELIVERY HANDOFF FAILED', error) }
         }
@@ -1370,22 +1522,18 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             pickupArrivalGameMinute: null,
           } : item))
           setDriverRuntimeProgress(releasedDriverId, 0)
+          const releasedDriver = drivers.find((driver) => driver.id === releasedDriverId)
+          const nextPickupName = getFreightBusinessName(nextQueued, 'pickup') || nextPickup.name || 'the next pickup'
           setDriverMessages?.((current) => [...current, {
-            id: `delivery-release-${loadId}-${now}`, driverId: releasedDriverId, sender: drivers.find((driver) => driver.id === releasedDriverId)?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId,
-            body: `Empty and paperwork is signed. I’m heading to ${nextPickup.name || 'the next pickup'} now.`, receivedGameMinute: now + 0.01, read: false,
+            id: `delivery-release-${loadId}-${now}`, driverId: releasedDriverId, sender: releasedDriver?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId: nextQueued.id,
+            body: getDepartureMessage({ driver: releasedDriver, load: nextQueued, phase: 'pickup', facilityName: nextPickupName, operationDay }), messageIntent: 'major-departure', phase: 'pickup', requiresResponse: false,
+            receivedGameMinute: now + 0.01, read: false,
           }])
         } catch (error) {
           console.error('DOC OS NEXT-LOAD HANDOFF ROUTE FAILED', error)
-          setDriverMessages?.((current) => [...current, {
-            id: `delivery-release-${loadId}-${now}`, driverId: releasedDriverId, sender: drivers.find((driver) => driver.id === releasedDriverId)?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId,
-            body: 'Empty and paperwork is signed. I’m ready for the next one.', receivedGameMinute: now + 0.01, read: false,
-          }])
+          // Routing failure is a system concern, not a reason for the driver to ask
+          // dispatch what comes next when the schedule is already known.
         }
-      } else {
-        setDriverMessages?.((current) => [...current, {
-          id: `delivery-release-${loadId}-${now}`, driverId: releasedDriverId, sender: drivers.find((driver) => driver.id === releasedDriverId)?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId,
-          body: 'Empty and paperwork is signed. What’s next?', receivedGameMinute: now + 0.01, read: false,
-        }])
       }
     }
     setGameClockPaused(unloadingPauseWasAlreadyPausedRef.current)
@@ -1524,6 +1672,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   // pre-shift / revised schedule message and remember which loads Marcus has seen.
   const sendDriverSchedule = (driverId) => {
     if (!driverId || !setDriverMessages) return
+    const scheduledDriver = drivers.find((item) => item.id === driverId)
+    if (isDriverOnLunch(scheduledDriver, gameTime)) return
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     const driver = drivers.find((item) => item.id === driverId)
     const firstName = String(driver?.fullName || driver?.name || 'Driver').split(' ')[0]
@@ -1551,11 +1701,11 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       removedStops.forEach((stop) => { const load = loads.find((item) => item.id === stop.loadId); const place = load ? getFreightBusinessName(load, stop.type) : 'that stop'; changes.push(`Removed ${stop.type} · ${place}`) })
       outboundBody = `Quick update — ${changes.length ? changes.join('\n') : 'the timing changed on today’s schedule.'}`
     }
-    const replyBody = isRevision ? `Got it. I see the change.` : `Got it. I have the schedule. I’m ready to go.`
+    const replyBody = getScheduleAcknowledgement(driver, operationDay, isRevision)
     const token = `${now}-${Math.random().toString(36).slice(2, 8)}`
     setDriverMessages((current) => [...current,
       { id: `schedule-out-${driverId}-${token}`, driverId, sender: 'You', senderRole: 'Coordinator', direction: 'outbound', body: outboundBody, messageIntent: isRevision ? 'schedule-update' : 'day-schedule', receivedGameMinute: now, read: true },
-      { id: `schedule-ack-${driverId}-${token}`, driverId, sender: driver?.fullName || driver?.name || firstName, senderRole: 'Driver', direction: 'inbound', body: replyBody, messageIntent: 'schedule-ack', receivedGameMinute: now + 0.01, read: false },
+      { id: `schedule-ack-${driverId}-${token}`, driverId, sender: driver?.fullName || driver?.name || firstName, senderRole: 'Driver', direction: 'inbound', body: replyBody, messageIntent: 'schedule-ack', requiresResponse: false, receivedGameMinute: now + 0.01, read: false },
     ])
     const seen = new Set(seenLoadIds)
     setLoads((current) => current.map((item) => item.assignedDriverId === driverId && seen.has(item.id) ? {
@@ -1611,6 +1761,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   }
 
   const bookApprovedScheduleLoads = (driverId) => {
+    const bookingDriver = drivers.find((item) => item.id === driverId)
+    if (isDriverOnLunch(bookingDriver, gameTime)) return false
     const approvedLoads = loads
       .filter((load) => load.status === 'available' && load.candidateDriverId === driverId && load.driverFitVerified && load.carrierApprovalStatus === 'APPROVED')
       .sort((a, b) => ((a.pickupDayIndex || 0) * 1440 + (a.pickupWindowStartMinutes || 0)) - ((b.pickupDayIndex || 0) * 1440 + (b.pickupWindowStartMinutes || 0)))
@@ -1694,6 +1846,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     const load = loads.find((item) => item.id === loadId)
     const driverId = driverIdArg || load?.assignedDriverId
     if (!load || !driverId || !setDriverMessages) return
+    const updateDriver = drivers.find((item) => item.id === driverId)
+    if (isDriverOnLunch(updateDriver, gameTime)) return
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     const driver = drivers.find((item) => item.id === driverId)
     const nextStop = getNextActionableDriverStop(loads, driverId)
@@ -1703,7 +1857,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     const token = `${now}-${Math.random().toString(36).slice(2, 8)}`
     setDriverMessages((current) => [...current,
       { id: `schedule-change-out-${driverId}-${load.id}-${token}`, driverId, sender: 'You', senderRole: 'Coordinator', direction: 'outbound', loadId: load.id, body, communicationType: 'schedule-change', messageIntent: 'schedule-update', receivedGameMinute: now, read: true },
-      { id: `schedule-change-ack-${driverId}-${load.id}-${token}`, driverId, sender: driver?.fullName || driver?.name || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId: load.id, body: nextStop?.loadId === load.id ? `Got it. ${pickupName} is next.` : `Got it. I see ${pickupName} on the schedule.`, messageIntent: 'schedule-ack', receivedGameMinute: now + 0.01, read: false },
+      { id: `schedule-change-ack-${driverId}-${load.id}-${token}`, driverId, sender: driver?.fullName || driver?.name || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId: load.id, body: getScheduleAcknowledgement(driver, operationDay, true), messageIntent: 'schedule-ack', requiresResponse: false, receivedGameMinute: now + 0.01, read: false },
     ])
     setLoads((current) => current.map((item) => item.id === load.id ? { ...item, scheduleCommunicatedGameMinute: now, pickupDriverBriefedGameMinute: Number.isFinite(item.pickupDriverBriefedGameMinute) ? item.pickupDriverBriefedGameMinute : now, driverAcknowledgedGameMinute: Number.isFinite(item.driverAcknowledgedGameMinute) ? item.driverAcknowledgedGameMinute : now + 0.01 } : item))
   }
@@ -1726,7 +1880,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       loadId: meta?.loadId || null,
     }
     const isRouteSend = meta?.operationalAction === 'route-sent' && meta?.loadId && ['pickup', 'delivery'].includes(meta?.phase)
-    const routeLoad = isRouteSend ? loads.find((item) => item.id === meta.loadId) : null
+    const contextLoad = meta?.loadId ? loads.find((item) => item.id === meta.loadId) : null
+    const routeLoad = isRouteSend ? contextLoad : null
     const routeDriver = drivers.find((item) => item.id === driverId)
     const currentOrigin = isRouteSend
       ? (runtimePositions?.[driverId]
@@ -1777,18 +1932,47 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     }
 
     const driverName = routeDriver?.fullName || routeDriver?.name || 'Driver'
+    const routeFacilityName = isRouteSend ? (getFreightBusinessName(routeLoad, meta.phase) || routeDestination?.name || (meta.phase === 'delivery' ? 'the receiver' : 'the pickup')) : null
     const confirmation = isRouteSend ? {
       id: `driver-route-confirm-${driverId}-${meta.loadId}-${token}`,
       driverId,
       sender: driverName,
       senderRole: 'Driver',
       direction: 'inbound',
-      body: 'Got it. Heading out now. I’ll update you when I’m at the dock.',
+      body: getDepartureMessage({ driver: routeDriver, load: routeLoad, phase: meta.phase, facilityName: routeFacilityName, operationDay }),
+      messageIntent: 'major-departure',
+      phase: meta.phase,
+      requiresResponse: false,
       receivedGameMinute: now + 0.01,
       read: false,
       loadId: meta.loadId,
     } : null
-    setDriverMessages((current) => confirmation ? [...current, outbound, confirmation] : [...current, outbound])
+    let communicationResponse = null
+    if (!isRouteSend && meta?.communication === 'request-eta') {
+      const status = contextLoad?.tripStatus || ''
+      const departureMinute = status === 'en-route-pickup' ? contextLoad?.departureGameMinute : status === 'en-route-delivery' ? contextLoad?.deliveryDepartureGameMinute : null
+      const driveMinutes = status === 'en-route-pickup' ? contextLoad?.plannedDeadheadDriveTimeMinutes : status === 'en-route-delivery' ? contextLoad?.plannedLoadedDriveTimeMinutes : null
+      const etaMinute = Number.isFinite(departureMinute) && Number.isFinite(driveMinutes) ? departureMinute + driveMinutes : null
+      communicationResponse = {
+        id: `driver-eta-response-${driverId}-${meta?.loadId || 'general'}-${token}`,
+        driverId,
+        sender: driverName,
+        senderRole: 'Driver',
+        direction: 'inbound',
+        loadId: meta?.loadId || null,
+        body: Number.isFinite(etaMinute) ? `Right now I’m showing about ${formatTime(etaMinute % 1440)}.` : 'I’ll send you an updated ETA as soon as I’m moving.',
+        messageIntent: 'eta-response',
+        requiresResponse: false,
+        receivedGameMinute: now + 0.01,
+        read: false,
+      }
+    }
+    setDriverMessages((current) => {
+      const additions = [outbound]
+      if (confirmation) additions.push(confirmation)
+      if (communicationResponse) additions.push(communicationResponse)
+      return [...current, ...additions]
+    })
     if (isRouteSend) {
       setDriverRuntimeProgress(driverId, 0)
       setLoads((current) => current.map((load) => load.id !== meta.loadId ? load : meta.phase === 'delivery' ? {
@@ -1887,22 +2071,12 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
           deliveryDepartureGameMinute: null, plannedDeliveryDepartureGameMinute: null,
           waitingReason: 'itinerary-next-stop',
         } : item)
-        const nextStop = getNextActionableDriverStop(projectedLoads, driverId)
-        const nextLoad = nextStop ? projectedLoads.find((item) => item.id === nextStop.loadId) : null
-        const nextFacility = nextStop && nextLoad
-          ? mapLocations.find((location) => location.id === (nextStop.type === 'pickup' ? nextLoad.pickupLocationId : nextLoad.deliveryLocationId))
-          : null
-        const nextName = nextStop && nextLoad ? getFreightBusinessName(nextLoad, nextStop.type === 'delivery' ? 'delivery' : 'pickup') : null
-        const nextText = nextStop && nextName
-          ? ` Next is ${nextStop.type === 'pickup' ? 'pickup' : 'delivery'} at ${nextName}.`
-          : ''
-
         setLoads(projectedLoads)
         setDriverRuntimeProgress(driverId, 0)
         setDriverMessages?.((current) => [...current, {
           id: `pickup-corrected-${load.id}-${now}`, driverId,
           sender: drivers.find((driver) => driver.id === driverId)?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId: load.id,
-          body: `They got it corrected and everything is secured now.${nextText}`,
+          body: 'They got it corrected. Freight is secure now.', messageIntent: 'exception-resolved', requiresResponse: false,
           receivedGameMinute: now + 0.01, read: false,
         }])
       }
@@ -1931,6 +2105,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       setDriverFocusRequest((value) => value + 1)
       return
     }
+    if (action === 'lunch-decision') { openLunchDecisionForDriver(notification?.driverId); return }
     if (action === 'messages') { setPhoneInitialScreen('messageThread'); setPhoneInitialDriverId(notification?.driverId || assignedLoad?.assignedDriverId || null); setPhoneLoadId(notification?.loadId || null); setIsPhoneOpen(true); return }
     if (action === 'ledger') onOpenLedger?.()
     if (!['email', 'documents', 'ledger'].includes(action)) return
@@ -2038,7 +2213,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             onComplete={completeUnloadSequence}
           />
         )}
-        <GameMap boardViewRequest={boardViewRequest} driverFocusRequest={driverFocusRequest} driverFocusId={driverFocusId} facilityFocusRequest={facilityFocusRequest} facilityFocusRole={facilityFocusRole} loads={loads} activeRouteGeometry={freightBrowseMode ? freightBrowseRouteGeometry : activeRouteGeometry} routeFocusMode={freightBrowseMode && freightBrowseRouteGeometry ? 'freight-browse' : planningMode || deliveryPlanning ? 'planning' : null} routeReviewLoad={planningLoad || deliveryPlanningLoad} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgressByDriver={runtimeProgressByDriver} simulationSpeed={simulationSpeed} isGameClockPaused={isGameClockPaused} assignedLoad={assignedLoad} evaluationLoad={null} isDriverFitEvaluation={false} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} freightBrowseMode={freightBrowseMode} freightBrowseLoads={freightBrowseLoads} freightBrowseSelectedLoadId={freightBrowseLoadId} onFreightBrowseSelect={selectFreightBrowseLoad} />
+        <GameMap boardViewRequest={boardViewRequest} driverFocusRequest={driverFocusRequest} driverFocusId={driverFocusId} facilityFocusRequest={facilityFocusRequest} facilityFocusRole={facilityFocusRole} loads={loads} activeRouteGeometry={freightBrowseMode ? freightBrowseRouteGeometry : activeRouteGeometry} routeFocusMode={freightBrowseMode && freightBrowseRouteGeometry ? 'freight-browse' : planningMode || deliveryPlanning ? 'planning' : null} routeReviewLoad={planningLoad || deliveryPlanningLoad} tripStatus={assignedLoad?.tripStatus} drivers={drivers.map((driver) => isDriverOnLunch(driver, gameTime) ? { ...driver, status: 'unavailable' } : driver)} carriers={carriers} runtimePositions={runtimePositions} runtimeProgressByDriver={runtimeProgressByDriver} simulationSpeed={simulationSpeed} isGameClockPaused={isGameClockPaused} assignedLoad={assignedLoad} evaluationLoad={null} isDriverFitEvaluation={false} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} freightBrowseMode={freightBrowseMode} freightBrowseLoads={freightBrowseLoads} freightBrowseSelectedLoadId={freightBrowseLoadId} onFreightBrowseSelect={selectFreightBrowseLoad} />
         {freightBrowseMode && (
           <>
             <div className="freight-browse-mode-bar">
@@ -2266,6 +2441,16 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
           </div>
         )}
 
+        {lunchDecisionDriver && lunchDecisionWorkday && lunchDecisionChoices.length > 0 && (
+          <LunchDecisionOverlay
+            driver={lunchDecisionDriver}
+            choices={lunchDecisionChoices}
+            gameTime={gameTime}
+            onChoose={chooseLunchDecision}
+            onClose={closeLunchDecision}
+          />
+        )}
+
         {!isPhoneOpen && !planningMode && !deliveryPlanning && (
           <>
             <button
@@ -2303,7 +2488,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                     const projected = getProjectedDriverOrigin({ driver, loads, runtimePositions, gameTime })
                     const driverName = driver.fullName || driver.name || 'Driver'
                     const panel = driverLoad ? getDriverPanelModel({ driver, assignedLoad: driverLoad, gameTime, runtimeProgress: runtimeProgressByDriver?.[driver.id] ?? 0, pickup: mapLocations.find((location) => location.id === driverLoad.pickupLocationId), delivery: mapLocations.find((location) => location.id === driverLoad.deliveryLocationId) }) : null
-                    const driverStatus = panel?.statusLabel?.toUpperCase() || (driver.status === 'available' ? 'AVAILABLE' : String(driver.status || 'OFF DUTY').replaceAll('-', ' ').toUpperCase())
+                    const lunchReady = lunchReadyDriverIds.includes(driver.id)
+                    const driverStatus = isDriverOnLunch(driver, gameTime) ? 'ON LUNCH' : lunchReady ? 'LUNCH READY' : (panel?.statusLabel?.toUpperCase() || (driver.status === 'available' ? 'AVAILABLE' : String(driver.status || 'OFF DUTY').replaceAll('-', ' ').toUpperCase()))
                     const nextLoad = followingStop
                       ? loads.find((item) => item.id === followingStop.loadId) || null
                       : driverQueue.find((item) => item.id !== driverLoad?.id) || null
@@ -2322,7 +2508,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                         type="button"
                         className={`driver-hub-row state-${driverLoad?.tripStatus || driver.status || 'idle'}`}
                         key={driver.id}
-                        onClick={() => { setExpandedDriverScheduleId((current) => current === driver.id ? null : driver.id); setDriverFocusId(driver.id); setDriverFocusRequest((value) => value + 1) }}
+                        onClick={() => { if (lunchReady) { openLunchDecisionForDriver(driver.id); return } setExpandedDriverScheduleId((current) => current === driver.id ? null : driver.id); setDriverFocusId(driver.id); setDriverFocusRequest((value) => value + 1) }}
                       >
                         <span className="driver-hub-avatar">{driverName.charAt(0).toUpperCase()}</span>
                         <span className="driver-hub-copy">
@@ -2334,7 +2520,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                           {expandedDriverScheduleId === driver.id && <span className="driver-card-full-schedule"><b>TODAY'S SCHEDULE</b>{daySchedule.filter((entry) => entry.driverId === driver.id && !entry.isCompleted).sort((a,b) => (a.sortMinute || 0) - (b.sortMinute || 0)).map((entry) => <span className="driver-card-schedule-stop" key={entry.id}><strong>{entry.pickupName} → {entry.deliveryName}</strong><small>{entry.status} · {formatTime(entry.start)}{Number.isFinite(entry.end) ? `–${formatTime(entry.end)}` : ''}</small></span>)}{!daySchedule.some((entry) => entry.driverId === driver.id && !entry.isCompleted) ? <small>NO ROUTES SCHEDULED</small> : null}</span>}
                           <span className="driver-relationship"><span className="driver-relationship-label"><small>RELATIONSHIP</small><small>{Number(driver.communicationRapport ?? 50) >= 80 ? 'STRONG' : Number(driver.communicationRapport ?? 50) >= 65 ? 'TRUSTED' : Number(driver.communicationRapport ?? 50) >= 45 ? 'PROFESSIONAL' : Number(driver.communicationRapport ?? 50) >= 25 ? 'STRAINED' : 'POOR'}</small></span><span className="driver-relationship-track"><i style={{ width: `${Math.max(4, Math.min(100, Number(driver.communicationRapport ?? 50)))}%` }} /></span></span>
                         </span>
-                        <span className="driver-hub-jump">{expandedDriverScheduleId === driver.id ? 'COLLAPSE ↑' : 'SCHEDULE ↑'}</span>
+                        <span className={`driver-hub-jump${lunchReady ? ' lunch-ready' : ''}`}>{lunchReady ? 'CHOOSE LUNCH →' : expandedDriverScheduleId === driver.id ? 'COLLAPSE ↑' : 'SCHEDULE ↑'}</span>
                       </button>
                     )
                   })}
@@ -2464,6 +2650,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             onRequestScheduleApproval={requestScheduleApproval}
             onBookApprovedSchedule={bookApprovedScheduleLoads}
             onRemoveScheduleLoad={removeScheduleLoad}
+            onOpenLunchDecision={openLunchDecisionForDriver}
             onClose={() => setIsPhoneOpen(false)}
           />
         )}
@@ -2483,7 +2670,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
           report={dayReport}
           cash={ledgerSummary.collected}
           activeCarriers={carriers.filter((carrier) => carrier.status === 'active').length}
-          availableDrivers={drivers.filter((driver) => driver.status === 'available').length}
+          availableDrivers={drivers.filter((driver) => driver.status === 'available' && !isDriverOnLunch(driver, gameTime)).length}
           openReceivables={ledgerSummary.outstanding}
           onBegin={onBeginOperations}
         />

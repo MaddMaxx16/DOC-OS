@@ -1,11 +1,14 @@
-## Current build: CS2.0B.3 — Carrier Relationship RPG
+> Current test checkpoint: **CS2.0B.4.1.3.7 — Driver Tab Shape Polish**
+> Frozen Operations baseline remains **CS2.0A.14.1**.
+
+## Current build: CS2.0B.4.1.3.7 — Driver Tab Shape Polish
 **Frozen Operations baseline:** CS2.0A.14.1
 **Frozen Agenda checkpoint:** CS2.0B.0.1
-**Change class:** B — CarrierSource career progression
+**Change class:** B — Communications + driver duty foundation
 
 # DOC OS — Build Bible
 Baseline: 2026-09-05
-Current canonical checkpoint: CS2.0B.3
+Current canonical checkpoint: CS2.0B.4.1.3.7
 
 ## 1. Vision
 DOC OS is a realistic dispatcher simulation that looks like a professional operations system but plays like a game. The map is the primary world. The phone/device is a secondary operations tool.
@@ -27,6 +30,29 @@ FIND -> EVALUATE -> ACCEPT -> ASSIGN -> PLAN -> DISPATCH -> MANAGE -> DELIVER ->
 **CS2.0B.3 activates the Carrier Relationship RPG.** Each Day Close now creates a persistent carrier performance review using the already-authoritative carrier relationship calculation. Reviews award Carrier XP, progress account levels, preserve service-history grades, and can issue service strikes that move active accounts to AT RISK or PROBATION. Clean A-grade reviews remove one prior strike, allowing recovery. CarrierSource surfaces this history and Daily Results reports the career impact. Meaningful career events can generate CarrierSource email. Because Metroline is still the only authored carrier, B.3 deliberately does not terminate the account; termination remains parked until a later multi-carrier career phase. No driver movement, load lifecycle, itinerary, facility, scheduler, POD, or LedgerDesk authority moved into CarrierSource.
 
 **CarrierSource boundary contract:** CarrierSource may read carrier/account/career data and invoke existing application/agreement actions by carrier ID. It must not become an authority for driver movement, load lifecycle, itinerary, facility state, or scheduling logic.
+
+**CS2.0B.4 upgrades the communications layer.** Email and Messages now use stronger identity, unread, context, and workflow presentation while continuing to read existing authoritative operational state rather than creating new state transitions. Driver conversation ordering is latest-activity-first. Email replies preserve workflow metadata so communication deep links remain accurate. CarrierSource career-review emails can render structured performance cards and link directly to CarrierSource. No driver movement, scheduling, carrier approval, facility, POD, LedgerDesk, or career-scoring authority moved into communications.
+
+**CS2.0B.4.1 adds Driver Communications Intelligence.** Driver communication now follows an event contract instead of mirroring every state change. Proactive driver texts are reserved for relationship start, clock-in, schedule receipt, major departure, meaningful delay/problem, loading/unloading exception, schedule change, and end-of-day sign-off. Routine check-in remains silent unless a facility wait reaches 20 minutes. Routine informational messages do not demand a reply; contextual response choices appear only for active exceptions/decisions. `OPS UPDATE` is replaced by contextual `DISPATCH ACTIONS`, and redundant next-stop reminders are removed because Agenda remains the schedule authority. Driver texts never restate start time, lunch, or end-of-day schedule details that the dispatcher already owns. B.4.1 adds communication metadata only and does not change movement, itinerary, appointment, facility, scheduler, or load-lifecycle authority.
+
+**Driver communications contract:** Do not tell the dispatcher information they already entered or can already see in Agenda. Routine state stays quiet. Human communication appears when a driver starts/ends work, receives/revises the plan, begins a meaningful movement leg, or when a change/problem requires dispatcher awareness or judgment.
+
+**CS2.0B.4.1.1–B.4.1.3 build the driver-duty foundation.** Agenda now stores a per-driver, per-operating-day workday with shift start, movable lunch, lunch duration, and end-of-day. Clock-in messaging fires from the authored start time while Messages never repeats schedule details the dispatcher already owns. B.4.1.3 turns lunch into a rotating strategic event using an 18-card pool with three context-aware choices per day. Lunch choices can change driver relationship, scheduled break duration, stored afternoon recovery, and a one-use next-facility early-check benefit. Recent offers are deprioritized to prevent repetitive daily sets. Lunch does not add proactive driver chatter and does not become a new authority for itinerary, movement, booking, or facility lifecycle.
+
+**Driver duty contract:** Agenda owns the planned workday. Driver communication confirms real events rather than restating the plan. Driver-duty events may influence relationship, recovery, or bounded facility timing, but HOS/legal-duty enforcement remains a future dedicated phase.
+
+**CS2.0B.4.1.3.1 refines lunch UX without changing lunch gameplay.** Lunch becomes a manually opened ready task rather than an automatic interrupt. When a driver reaches the lunch window at a safe operational moment, DOC OS surfaces LUNCH READY through Operations, Agenda, and the driver card. The dispatcher chooses when to open the full-screen decision. The selected lunch summary sits directly beneath Driver Workday, and redundant timing/helper copy is removed. The 18-card pool, three-choice selection, anti-repeat rules, and all lunch effects remain unchanged.
+
+**CS2.0B.4.1.3.2 refines lunch into a live-operation decision.** The dispatcher still opens lunch manually after LUNCH READY, but the choice UI is now a compact sheet over the live map instead of a full-screen takeover. Opening the sheet slows the global simulation to 0.75× while leaving Pause/Play/Fast Forward available; closing or choosing restores the prior clock state. After selection, only the chosen driver enters ON LUNCH and becomes operationally unavailable for that break duration. That driver cannot begin a movement leg, new booking/assignment, loading/unloading, or schedule dispatch while on lunch; other drivers and the world continue normally. Existing lunch option/effect logic is unchanged and full HOS enforcement remains parked for the dedicated duty-management phase.
+
+**Lunch availability contract:** lunch is a driver-specific duty state, never a global pause. The dispatcher can continue managing the operation while a driver is on break. Actionable facility/driver controls for that driver wait until the lunch window ends.
+
+**CS2.0B.4.1.3.3 polishes communications and Agenda workday authoring.** Email defaults to the Unread inbox. Messages removes the redundant no-route Driver Status context card because status already lives beneath the driver name. Agenda separates shift hours from lunch: Set Time / Edit Day owns only start and end-of-day, while Set Lunch owns lunch start and duration. Native iOS time/select menus are replaced with DOC OS stepper and segmented controls. No lunch event, HOS, communication, Operations, itinerary, facility, or load-lifecycle authority changes in this checkpoint.
+
+**Workday authoring contract:** shift time and lunch are separate dispatcher inputs. The workday header summarizes scheduled start/end; lunch is configured through Set Lunch and visualized independently on the timeline. DOC OS should not rely on platform-native picker styling for these core simulation controls.
+
+
+**CS2.0B.4.1.3.4 fixes Agenda driver-tab presentation only.** The active-driver indicator is rendered at the bottom edge of the tab instead of through the driver label on iPhone. No scheduler, workday, lunch, communications, Operations, itinerary, routing, or save authority changes.
 
 Historical sections below remain useful as lifecycle contracts and regression references even where older build names appear.
 
@@ -136,6 +162,7 @@ Progression, negotiation expansion, events, skill system, new carrier systems. R
 - Skill tree implementation
 - Dynamic dispatcher events/choices
 - Expanded negotiation
+- Driver Duty / HOS management (driver start time, lunch/break window, end-of-day target, legal duty/driving constraints)
 - Carrier growth/reputation
 - Multiple-driver pressure
 - More markets
@@ -682,3 +709,10 @@ AW1.7.1 establishes the driver itinerary as the compatibility authority for acti
 - WKWebView resume/focus must rebuild DOM-backed operational markers without changing camera position.
 - Future route visualization uses each load's pickup-to-delivery road geometry; itinerary order controls visual priority. Do not draw straight inter-stop connectors as freight routes.
 - Scheduler stops within 75 minutes of adjacent stops use compact rendering so neighboring appointments remain independently readable.
+
+### CS2.0B.4.1.3.6 — Index Driver Tabs
+Agenda driver selection now uses raised file-divider style tabs rather than pill buttons.
+
+
+### CS2.0B.4.1.3.7 — Driver Tab Shape Polish
+Agenda driver selection uses a shorter raised file-divider tab attached visually to Driver Workday. This is presentation-only and does not change scheduler behavior or Operations authority.

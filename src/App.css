@@ -10959,6 +10959,15 @@
 @media (max-width:380px){.driver-thread-dual-controls{grid-template-columns:1fr}}
 
 
+/* CS2.0B.4.1 — communication prompts appear only when the situation earns them. */
+.driver-thread-reply-dropdown>button{display:grid;gap:3px}
+.driver-thread-reply-dropdown>button>strong{font-size:8px;font-weight:950;letter-spacing:.08em;color:#e8edf2}
+.driver-thread-reply-dropdown>button>small{font-size:8px;line-height:1.35;color:#91a2b2}
+.driver-thread-no-response{grid-column:1/-1;min-height:42px;padding:8px 10px;border:1px solid rgba(58,69,80,.46);border-radius:8px;background:rgba(18,23,28,.78);display:grid;gap:2px;align-content:center}
+.driver-thread-no-response strong{font-size:7px;font-weight:950;letter-spacing:.14em;color:#7f93a5}
+.driver-thread-no-response span{font-size:8px;line-height:1.25;color:#65798b}
+
+
 /* AV2.10.3 · readable multi-stop itinerary preview */
 .freightlink-stop-order ol { list-style:none; margin:10px 0 12px; padding:0; display:grid; gap:8px; }
 .freightlink-stop-order li { display:flex; align-items:center; gap:10px; padding:9px 10px; border:1px solid rgba(120,139,160,.22); border-radius:12px; background:rgba(15,20,27,.52); }
@@ -12149,3 +12158,807 @@
 .cs-carrier-xp-b3{display:grid;gap:6px;margin-top:7px;padding:9px;border:1px solid #303a44;border-radius:8px;background:#11171c}.cs-carrier-xp-b3>div:first-child{display:grid;grid-template-columns:auto auto 1fr;align-items:baseline;gap:6px}.cs-carrier-xp-b3 span{font-size:6px;font-weight:950;letter-spacing:.12em;color:#718392}.cs-carrier-xp-b3 strong{font-size:13px;color:#d7c8e1}.cs-carrier-xp-b3 small{justify-self:end;font-size:6px;color:#6f7f8c;letter-spacing:.06em}.cs-carrier-xp-track-b3{height:5px;overflow:hidden;border-radius:999px;background:#28313a}.cs-carrier-xp-track-b3 i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#655573,#9b7eb3)}
 .cs-account-alert-b3{display:grid;gap:3px;margin-top:7px;padding:9px 10px;border:1px solid #6e5735;border-radius:8px;background:#1d1913}.cs-account-alert-b3.probation{border-color:#70434a;background:#201517}.cs-account-alert-b3 strong{font-size:7px;letter-spacing:.12em;color:#dab878}.cs-account-alert-b3.probation strong{color:#e09a9f}.cs-account-alert-b3 p{margin:0;color:#9ca7af;font-size:7px;line-height:1.4}
 .cs-performance-history-b3{display:grid;gap:6px}.cs-performance-row-b3{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px;border:1px solid #303a44;border-radius:9px;background:#141a20}.cs-performance-grade-b3{width:32px;height:32px;display:grid;place-items:center;border:1px solid #4c4055;border-radius:8px;background:#1c1720;color:#d9c6e5;font-size:14px;font-weight:950}.cs-performance-row-b3.grade-d .cs-performance-grade-b3,.cs-performance-row-b3.grade-f .cs-performance-grade-b3{border-color:#6b4d42;background:#221816;color:#d7a58f}.cs-performance-copy-b3{display:grid;gap:2px;min-width:0}.cs-performance-copy-b3 strong{font-size:7px;color:#dfe6eb;letter-spacing:.08em}.cs-performance-copy-b3 span{font-size:6.5px;line-height:1.25;color:#80919e}.cs-performance-copy-b3 small{font-size:6px;line-height:1.25;color:#d29a8e}.cs-performance-xp-b3{display:grid;justify-items:end;align-content:center}.cs-performance-xp-b3 strong{font-size:9px;color:#bca8c9}.cs-performance-xp-b3 span{font-size:6px;font-weight:900;letter-spacing:.1em;color:#718291}.cs-performance-empty-b3{display:grid;gap:3px;padding:10px;border:1px dashed #343e47;border-radius:9px;background:#11171c}.cs-performance-empty-b3 strong{font-size:8px;color:#b9c4cc}.cs-performance-empty-b3 p{margin:0;font-size:7px;line-height:1.4;color:#718291}
+
+/* CS2.0B.4 — Communications Overhaul
+   Presentation-only communication layer. Operations authority remains frozen. */
+.email-inbox-v4 {
+  padding: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto auto minmax(0,1fr);
+  background:
+    radial-gradient(circle at 12% -8%, rgba(126,103,151,.10), transparent 27%),
+    #0f1317;
+}
+.email-inbox-header-v4 {
+  min-height: 68px;
+  padding: 12px 13px 10px;
+  display: grid;
+  grid-template-columns: 34px minmax(0,1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border-bottom: 1px solid rgba(67,78,91,.58);
+  background: rgba(17,22,27,.96);
+}
+.email-inbox-heading-v4 { display:grid; gap:4px; align-items:initial; justify-content:initial; }
+.email-inbox-heading-v4 .email-inbox-eyebrow { color:#7f91a3; font-size:7px; font-weight:900; letter-spacing:.16em; }
+.email-inbox-heading-v4 > div { display:flex; align-items:baseline; gap:7px; min-width:0; }
+.email-inbox-heading-v4 h2 { font-size:18px; font-weight:780; color:#f1f4f7; }
+.email-inbox-heading-v4 > div > span { color:#8596a7; font-size:8px; font-weight:700; white-space:nowrap; }
+.email-inbox-header-v4 .email-new-button {
+  min-height:34px;
+  padding:0 10px;
+  border:1px solid rgba(181,154,203,.42);
+  border-radius:9px;
+  background:rgba(82,62,96,.28);
+  color:#e8dff0;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.email-inbox-filters {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0;
+  padding:0 12px;
+  border-bottom:1px solid rgba(56,67,79,.68);
+  background:#11161b;
+}
+.email-inbox-filters button {
+  position:relative;
+  min-height:42px;
+  border:0;
+  background:transparent;
+  color:#7d8d9d;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+.email-inbox-filters button span {
+  display:inline-grid;
+  place-items:center;
+  min-width:19px;
+  height:19px;
+  margin-left:6px;
+  padding:0 5px;
+  border-radius:999px;
+  background:#202832;
+  color:#8293a4;
+  font-size:8px;
+  letter-spacing:0;
+}
+.email-inbox-filters button.active { color:#f1eaf6; }
+.email-inbox-filters button.active::after {
+  content:"";
+  position:absolute;
+  left:12px;
+  right:12px;
+  bottom:-1px;
+  height:2px;
+  background:#9a7caf;
+  border-radius:2px 2px 0 0;
+}
+.email-inbox-filters button.active span { background:#342c3b; color:#d7c5e2; }
+.email-inbox-v4 .email-inbox-list { min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.email-inbox-row-v4 {
+  min-height:92px;
+  grid-template-columns:42px minmax(0,1fr);
+  gap:10px;
+  padding:12px 13px;
+  border-bottom:1px solid rgba(54,65,76,.52);
+  background:#11161b;
+}
+.email-inbox-row-v4.unread { background:linear-gradient(90deg, rgba(92,71,106,.18), rgba(17,22,27,.96) 38%); }
+.email-inbox-row-v4:active { background:#171d23; }
+.email-sender-avatar {
+  position:relative;
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border:1px solid #394450;
+  border-radius:12px;
+  background:#1a222a;
+  color:#c7d1dc;
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.04em;
+}
+.email-sender-avatar.career,.email-detail-avatar.career { border-color:rgba(181,154,203,.46); background:#2a2230; color:#dcc8e8; }
+.email-sender-avatar.operations,.email-detail-avatar.operations { border-color:rgba(112,142,169,.42); background:#1d2832; color:#b8cde0; }
+.email-sender-avatar.documents,.email-detail-avatar.documents { border-color:rgba(128,141,151,.42); background:#20262c; color:#c8d0d7; }
+.email-sender-avatar.accounting,.email-detail-avatar.accounting { border-color:rgba(102,162,139,.38); background:#172923; color:#b7dbc9; }
+.email-sender-avatar.sent,.email-detail-avatar.sent { border-color:rgba(112,127,145,.35); background:#1a2027; color:#95a4b3; }
+.email-avatar-unread {
+  position:absolute;
+  right:-2px;
+  top:-2px;
+  width:9px;
+  height:9px;
+  border:2px solid #11161b;
+  border-radius:50%;
+  background:#a27ab7;
+}
+.email-inbox-row-v4 .email-row-content { gap:3px; }
+.email-inbox-row-v4 .email-row-sender { font-size:10.5px; font-weight:780; }
+.email-inbox-row-v4 .email-row-time { font-size:7.5px; }
+.email-row-category-line { display:flex; align-items:center; gap:5px; min-height:15px; }
+.email-category-chip,.email-reply-chip {
+  display:inline-flex;
+  align-items:center;
+  min-height:15px;
+  padding:0 5px;
+  border:1px solid #38434e;
+  border-radius:999px;
+  color:#8ea0b0;
+  font-size:6.5px;
+  font-weight:950;
+  letter-spacing:.10em;
+}
+.email-category-chip.career { border-color:rgba(181,154,203,.42); color:#c7a8d7; background:rgba(80,57,92,.18); }
+.email-category-chip.operations { border-color:rgba(104,139,170,.4); color:#9ebbd2; background:rgba(47,77,102,.16); }
+.email-category-chip.documents { border-color:rgba(119,135,148,.34); color:#9eabb6; }
+.email-category-chip.accounting { border-color:rgba(91,151,127,.34); color:#8fc9b0; background:rgba(38,80,62,.14); }
+.email-category-chip.sent { color:#7f8d9b; }
+.email-reply-chip { border-color:transparent; padding-left:0; color:#667687; }
+.email-inbox-row-v4 .email-row-subject { color:#cfd6de; font-size:9.5px; font-weight:650; }
+.email-inbox-row-v4.unread .email-row-subject { color:#edf1f4; }
+.email-inbox-row-v4 .email-row-preview { color:#788998; font-size:8.5px; }
+.email-inbox-v4 .email-inbox-empty { min-height:0; padding:44px 24px; display:grid; place-items:center; align-content:center; gap:6px; text-align:center; }
+.email-inbox-v4 .email-inbox-empty strong { color:#d6dee5; font-size:11px; }
+.email-inbox-v4 .email-inbox-empty span { color:#708192; font-size:8.5px; line-height:1.4; }
+
+.email-detail-v4 { background:radial-gradient(circle at 15% -6%, rgba(113,89,130,.10), transparent 26%), #0f1317; }
+.email-detail-toolbar-v4 { min-height:52px; padding:8px 12px; gap:10px; border-bottom:1px solid rgba(57,68,80,.56); background:#11161b; }
+.email-detail-toolbar-v4 > span { color:#788b9d; font-size:7px; font-weight:950; letter-spacing:.18em; }
+.email-detail-v4 .email-detail-scroll { padding:14px 14px 24px; }
+.email-message-header-v4 {
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  padding-top:0;
+}
+.email-detail-avatar {
+  width:40px;
+  height:40px;
+  display:grid;
+  place-items:center;
+  border:1px solid #3a4550;
+  border-radius:12px;
+  background:#1b2229;
+  color:#cbd6df;
+  font-size:10px;
+  font-weight:950;
+}
+.email-detail-sender-block { min-width:0; display:grid; gap:5px; justify-items:start; }
+.email-message-header-v4 .email-message-sender { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11.5px; }
+.email-message-header-v4 .email-message-time { margin:0; align-self:start; padding-top:3px; white-space:nowrap; font-size:7px; }
+.email-message-subject-v4 { margin-top:16px; color:#f0f3f6; font-size:19px; font-weight:760; line-height:1.18; letter-spacing:-.025em; }
+.email-message-v4 .email-message-divider { margin:14px 0 16px; }
+.email-message-v4 .email-message-body { color:#b9c5d0; font-size:10.5px; line-height:1.58; }
+.email-career-review-card {
+  margin:0 0 17px;
+  padding:12px;
+  border:1px solid rgba(181,154,203,.4);
+  border-radius:13px;
+  background:linear-gradient(145deg, rgba(55,42,64,.88), rgba(24,28,34,.96));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+}
+.email-career-review-card.strong { border-color:rgba(181,154,203,.55); }
+.email-career-review-card.warning { border-color:rgba(176,108,108,.48); background:linear-gradient(145deg, rgba(69,37,42,.76), rgba(24,28,34,.96)); }
+.email-career-grade { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; padding-bottom:10px; border-bottom:1px solid rgba(193,174,205,.18); }
+.email-career-grade span { color:#a995b5; font-size:7px; font-weight:950; letter-spacing:.16em; }
+.email-career-grade strong { color:#e5d7ed; font-size:34px; line-height:.9; font-weight:900; }
+.email-career-review-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; margin-top:8px; }
+.email-career-review-grid > div { display:grid; gap:3px; padding:8px 6px; border-bottom:1px solid rgba(79,88,98,.38); }
+.email-career-review-grid > div:nth-child(odd) { border-right:1px solid rgba(79,88,98,.38); }
+.email-career-review-grid span { color:#748698; font-size:6.5px; font-weight:950; letter-spacing:.13em; }
+.email-career-review-grid strong { color:#dce4ea; font-size:10px; }
+.email-career-event { margin-top:9px; padding:7px 8px; border:1px solid rgba(181,154,203,.35); border-radius:8px; background:rgba(107,78,124,.15); color:#d3b9df; font-size:8px; font-weight:950; letter-spacing:.10em; text-align:center; }
+.email-career-event.warning { border-color:rgba(183,103,103,.42); color:#d8a1a1; background:rgba(107,54,54,.14); }
+.email-career-event.recovery { border-color:rgba(95,157,132,.40); color:#9fd2bb; background:rgba(43,93,73,.13); }
+.email-detail-v4 .email-related-link-block { margin-top:17px; padding:11px; border:1px solid rgba(71,83,94,.58); border-radius:10px; background:#141a20; }
+.email-detail-v4 .email-related-link-block > span { color:#788b9b; }
+.email-detail-v4 .email-related-link-block button { text-decoration:none; color:#d4dce4; font-size:9px; }
+.email-detail-v4 .email-detail-action-bar { background:#10151a; }
+.email-detail-v4 .email-detail-action { min-height:42px; border-color:rgba(181,154,203,.42); background:#2b2431; color:#efe7f4; }
+
+.driver-messages-v4 { background:radial-gradient(circle at 12% -8%, rgba(108,88,122,.10), transparent 26%), #0f1317; }
+.driver-messages-header-v4 { min-height:67px; padding:12px 13px 10px; background:#11161b; border-bottom:1px solid rgba(57,68,79,.58); }
+.driver-messages-header-v4 > button { width:34px; height:34px; border-radius:10px; }
+.driver-messages-header-v4 > div { flex:1; }
+.driver-messages-titleline { display:flex!important; flex-direction:row!important; align-items:baseline; gap:8px!important; }
+.driver-messages-titleline h2 { font-size:18px; }
+.driver-messages-titleline b { color:#a58ab4; font-size:8px; font-weight:850; }
+.driver-thread-list-v4 { background:#11161b; }
+.driver-thread-row-v4 {
+  grid-template-columns:44px minmax(0,1fr) auto;
+  gap:10px;
+  min-height:86px;
+  padding:12px 13px;
+  background:#11161b;
+  border-bottom:1px solid rgba(55,66,77,.58);
+}
+.driver-thread-row-v4.unread { background:linear-gradient(90deg, rgba(85,65,98,.17), rgba(17,22,27,.97) 38%); }
+.driver-thread-avatar-wrap { position:relative; width:40px; height:40px; }
+.driver-thread-row-v4 .driver-thread-avatar { width:40px; height:40px; border-radius:13px; background:#222b34; border:1px solid #394550; }
+.driver-presence-dot { position:absolute; width:9px; height:9px; right:-1px; bottom:-1px; border:2px solid #11161b; border-radius:50%; background:#6d7a86; }
+.driver-presence-dot.available { background:#62b592; }
+.driver-presence-dot.active { background:#9a7caf; }
+.driver-thread-row-v4 .driver-thread-copy { gap:4px; }
+.driver-thread-row-v4 .driver-thread-topline strong { font-size:11.5px; }
+.driver-thread-row-v4 .driver-thread-topline time { font-size:7.5px; }
+.driver-thread-context { display:flex; align-items:center; gap:6px; min-width:0; }
+.driver-thread-context > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#6f8192; font-size:7px; font-weight:750; }
+.driver-thread-context > b { flex:0 0 auto; color:#9b86a7; font-size:6.5px; font-weight:950; letter-spacing:.08em; }
+.driver-thread-row-v4 .driver-thread-preview { color:#8798a7; font-size:8.7px; }
+.driver-thread-row-v4.unread .driver-thread-preview { color:#b9c5cf; }
+.driver-thread-row-v4 .driver-thread-unread { align-self:center; min-width:20px; height:20px; background:#725e7d; }
+
+.driver-thread-header-v4 { min-height:64px; grid-template-columns:34px 40px minmax(0,1fr); padding:10px 12px; background:#11161b; }
+.driver-thread-header-v4 .driver-thread-header-avatar { width:40px; height:40px; border-radius:13px; border:1px solid #394550; background:#222b34; }
+.driver-thread-header-copy { min-width:0; display:grid!important; gap:3px!important; }
+.driver-thread-header-copy strong { font-size:11.5px; }
+.driver-thread-header-copy span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#8193a3; font-size:6.8px; }
+.driver-thread-route-context {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-height:48px;
+  padding:8px 12px;
+  border-bottom:1px solid rgba(55,66,77,.58);
+  background:#141a20;
+}
+.driver-thread-route-context > div { min-width:0; display:grid; gap:3px; }
+.driver-thread-route-context span { color:#738597; font-size:6.5px; font-weight:950; letter-spacing:.14em; }
+.driver-thread-route-context strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#d9e1e7; font-size:9px; }
+.driver-thread-route-context small { max-width:47%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#9581a1; font-size:7px; font-weight:850; text-align:right; }
+.driver-thread-history { background:linear-gradient(180deg,#0f1419,#0e1216); gap:10px; }
+.driver-thread-day-separator { display:flex; align-items:center; gap:8px; margin:1px 0 3px; }
+.driver-thread-day-separator::before,.driver-thread-day-separator::after { content:""; height:1px; flex:1; background:rgba(57,68,79,.46); }
+.driver-thread-day-separator span { color:#637586; font-size:6px; font-weight:950; letter-spacing:.16em; }
+.driver-chat-bubble { max-width:84%; padding:8px 10px 9px; border-radius:13px; background:#171e24; border-color:#313b45; }
+.driver-chat-row.outbound .driver-chat-bubble { background:#2a2430; border-color:rgba(181,154,203,.32); }
+.driver-chat-meta { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:5px; }
+.driver-chat-meta span { color:#75899b; font-size:6px; font-weight:950; letter-spacing:.10em; }
+.driver-chat-row.outbound .driver-chat-meta span { color:#b39bc0; }
+.driver-chat-meta time { color:#687989; font-size:6.5px; }
+.driver-chat-bubble p { font-size:10px; line-height:1.45; }
+.driver-chat-bubble > time { display:none; }
+.driver-thread-composer-v3 { padding-top:9px; background:#11161b; }
+.driver-thread-reply-toggle { min-height:40px; border-radius:9px; font-size:8px; }
+.driver-thread-reply-toggle.open { background:#2a2430; }
+.driver-thread-reply-dropdown { border-radius:11px; background:rgba(15,20,25,.995); }
+.email-compose-v3 { background:radial-gradient(circle at 10% -8%, rgba(112,89,128,.10), transparent 26%), #0f1317; }
+.email-compose-v3 .email-compose-toolbar { min-height:58px; background:#11161b; border-bottom:1px solid rgba(57,68,79,.58); }
+.email-compose-v3 .email-compose-toolbar > div > span { color:#7f91a3; font-size:7px; }
+.email-compose-v3 .email-compose-toolbar > div > strong { color:#f0f3f6; font-size:14px; }
+.email-compose-v3 .email-compose-scroll { padding:12px; gap:11px; }
+.email-compose-v3 .email-compose-context { border-color:rgba(181,154,203,.34); background:rgba(81,60,94,.16); }
+.email-compose-v3 .email-compose-context strong { color:#dccbe6; }
+.email-compose-v3 .email-compose-field select,
+.email-compose-v3 .email-compose-field input,
+.email-compose-v3 .email-compose-field textarea { border-color:#35414c; background:#141a20; color:#e0e6eb; }
+.email-compose-v3 .email-compose-field select:focus,
+.email-compose-v3 .email-compose-field input:focus,
+.email-compose-v3 .email-compose-field textarea:focus { border-color:rgba(181,154,203,.66); box-shadow:0 0 0 1px rgba(181,154,203,.12); }
+.email-compose-v3 .email-compose-bottom { border-top:1px solid rgba(57,68,79,.58); background:#10151a; }
+.email-compose-v3 .email-compose-bottom .docos-primary-action { border-color:rgba(181,154,203,.46)!important; background:#2b2431!important; color:#efe7f4!important; }
+
+/* CS2.0B.4.1.1 — Agenda driver workday foundation. These are dispatcher-authored
+   scheduling constraints only; HOS enforcement remains a later system. */
+.scheduler-workday-strip{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:7px 16px;border-bottom:1px solid rgba(135,154,177,.12);background:#0b1017;
+}
+.scheduler-workday-strip>div{min-width:0}.scheduler-workday-strip span{display:block;color:#66778b;font-size:6.5px;font-weight:900;letter-spacing:.14em}
+.scheduler-workday-strip strong{display:block;margin-top:2px;color:#d9e3ee;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scheduler-workday-strip strong small{color:#7f90a3;font-size:6.6px;font-weight:800}
+.scheduler-workday-strip.unset strong{color:#b7a172}
+.scheduler-workday-strip>button{flex:0 0 auto;border:1px solid rgba(111,155,202,.34);border-radius:9px;background:#132133;color:#cfe0f2;padding:6px 8px;font-size:6.7px;font-weight:900;letter-spacing:.08em}
+.scheduler-workday-marker{position:absolute;left:46px;right:0;z-index:1;border-top:1px dashed rgba(118,155,196,.46);pointer-events:none}
+.scheduler-workday-marker.end{border-top-color:rgba(196,137,118,.45)}
+.scheduler-workday-marker span{position:absolute;right:4px;top:-11px;padding:1px 4px;border-radius:4px;background:#0b1017;color:#7697ba;font-size:5.8px;font-weight:900;letter-spacing:.08em}
+.scheduler-workday-marker.end span{color:#bc897a}
+.scheduler-workday-lunch{position:absolute;left:46px;right:0;z-index:0;background:rgba(176,144,84,.075);border-top:1px dashed rgba(195,158,90,.34);border-bottom:1px dashed rgba(195,158,90,.34);pointer-events:none}
+.scheduler-workday-lunch span{position:absolute;right:4px;top:2px;color:#b89a65;font-size:5.8px;font-weight:900;letter-spacing:.08em}
+.scheduler-workday-editor-backdrop{position:absolute;inset:0;z-index:60;display:flex;align-items:flex-end;background:rgba(3,6,10,.72);backdrop-filter:blur(3px)}
+.scheduler-workday-editor{width:100%;padding:14px 14px calc(18px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(129,160,194,.28);border-radius:18px 18px 0 0;background:#0d131b;box-shadow:0 -20px 45px rgba(0,0,0,.45)}
+.scheduler-workday-editor-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.scheduler-workday-editor-heading span{display:block;color:#718399;font-size:6.5px;font-weight:900;letter-spacing:.14em}.scheduler-workday-editor-heading strong{display:block;margin-top:3px;color:#eef4fb;font-size:13px}.scheduler-workday-editor-heading>button{width:28px;height:28px;border:1px solid rgba(135,154,177,.22);border-radius:50%;background:#111923;color:#b8c6d6;font-size:17px}
+.scheduler-workday-editor>p{margin:8px 0 12px;color:#79899d;font-size:7.4px;line-height:1.45}
+.scheduler-workday-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.scheduler-workday-fields label{display:block;padding:8px;border:1px solid rgba(126,151,181,.18);border-radius:10px;background:#0a0f16}.scheduler-workday-fields label>span{display:block;margin-bottom:5px;color:#697b90;font-size:6px;font-weight:900;letter-spacing:.11em}.scheduler-workday-fields input,.scheduler-workday-fields select{width:100%;min-height:30px;border:0;border-radius:7px;background:#121b26;color:#e6eef7;padding:5px 7px;font:inherit;font-size:9px;color-scheme:dark}.scheduler-workday-error{margin-top:8px;padding:7px 8px;border:1px solid rgba(194,103,103,.35);border-radius:8px;background:rgba(92,38,38,.28);color:#dca4a4;font-size:7px}
+.scheduler-workday-editor-actions{display:flex;gap:7px;margin-top:12px}.scheduler-workday-editor-actions button{flex:1;min-height:34px;border:1px solid rgba(132,156,184,.24);border-radius:9px;background:#111820;color:#9eafc1;font-size:6.8px;font-weight:900;letter-spacing:.07em}.scheduler-workday-editor-actions button.primary{background:#1c3046;border-color:#5f8ab7;color:#f0f6fb}
+
+
+/* CS2.0B.4.1.2 — Workday + Email polish. Lunch remains a movable planning
+   block; manual email compose is intentionally absent because DOC OS emails are
+   launched by operational workflows. */
+.scheduler-workday-actions{display:flex;align-items:center;gap:5px;flex:0 0 auto}
+.scheduler-workday-actions button{border:1px solid rgba(111,155,202,.34);border-radius:9px;background:#132133;color:#cfe0f2;padding:6px 8px;font-size:6.7px;font-weight:900;letter-spacing:.08em;white-space:nowrap}
+.scheduler-workday-actions button:first-child{border-color:rgba(193,157,91,.32);background:#211b12;color:#d7bd89}
+.scheduler-workday-fields.lunch-only{grid-template-columns:1fr 1fr}
+.email-inbox-header-spacer{width:48px;min-width:48px;height:1px;display:block}
+
+/* CS2.0B.4.1.3 — Lunch Decision Events */
+.lunch-decision-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 18px 12px 12px;
+  background: rgba(3, 7, 13, 0.78);
+  backdrop-filter: blur(10px);
+}
+
+.lunch-decision-sheet {
+  width: min(100%, 720px);
+  max-height: calc(100% - 8px);
+  overflow: auto;
+  border: 1px solid rgba(154, 123, 255, 0.32);
+  border-radius: 24px;
+  padding: 18px;
+  background: linear-gradient(180deg, rgba(24, 27, 38, 0.98), rgba(10, 13, 21, 0.99));
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.48);
+}
+
+.lunch-decision-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.lunch-decision-header h2 {
+  margin: 4px 0 3px;
+  font-size: clamp(24px, 6vw, 34px);
+  line-height: 1;
+  color: #f7f7fb;
+}
+
+.lunch-decision-header p,
+.lunch-decision-context small,
+.lunch-option-card p,
+.lunch-decision-sheet footer small {
+  color: rgba(231, 232, 240, 0.66);
+}
+
+.lunch-decision-kicker,
+.lunch-option-eyebrow,
+.lunch-decision-context > span,
+.lunch-decision-sheet footer > span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(183, 164, 255, 0.9);
+}
+
+.lunch-decision-badge {
+  flex: 0 0 auto;
+  border: 1px solid rgba(183, 164, 255, 0.28);
+  border-radius: 999px;
+  padding: 7px 9px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #d9d0ff;
+  background: rgba(120, 88, 214, 0.12);
+}
+
+.lunch-decision-context {
+  display: grid;
+  gap: 4px;
+  padding: 12px 13px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.lunch-decision-context strong {
+  color: #f4f4fa;
+  font-size: 15px;
+}
+
+.lunch-decision-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.lunch-option-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "eyebrow action"
+    "title action"
+    "copy action"
+    "effects effects";
+  gap: 5px 12px;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 17px;
+  padding: 14px;
+  color: #f6f6fb;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.lunch-option-card:active {
+  transform: translateY(1px);
+}
+
+.lunch-option-card.category-recovery { border-color: rgba(79, 195, 247, 0.22); }
+.lunch-option-card.category-efficiency { border-color: rgba(183, 164, 255, 0.26); }
+.lunch-option-card.category-opportunity { border-color: rgba(116, 222, 173, 0.22); }
+
+.lunch-option-card .lunch-option-eyebrow { grid-area: eyebrow; }
+.lunch-option-card > strong { grid-area: title; font-size: 17px; }
+.lunch-option-card > p { grid-area: copy; margin: 0; font-size: 12px; line-height: 1.35; }
+.lunch-option-card > b {
+  grid-area: action;
+  align-self: center;
+  justify-self: end;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  color: #efeaff;
+  background: rgba(125, 92, 230, 0.18);
+}
+
+.lunch-option-effects {
+  grid-area: effects;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.lunch-option-effects small {
+  border-radius: 999px;
+  padding: 4px 7px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  color: rgba(234, 235, 242, 0.82);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.lunch-option-effects small.benefit { color: #bdebd4; background: rgba(65, 164, 113, 0.11); }
+.lunch-option-effects small.cost { color: #f4c5c5; background: rgba(190, 78, 78, 0.11); }
+
+.lunch-decision-sheet footer {
+  display: grid;
+  gap: 4px;
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.065);
+}
+
+.scheduler-lunch-choice-summary {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(180, 159, 255, 0.18);
+  background: rgba(124, 91, 224, 0.07);
+}
+
+.scheduler-lunch-choice-summary > span {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  color: rgba(187, 169, 255, 0.88);
+}
+
+.scheduler-lunch-choice-summary strong { color: #f3f1fb; font-size: 13px; }
+.scheduler-lunch-choice-summary small { color: rgba(229, 228, 237, 0.62); font-size: 10px; }
+
+@media (max-width: 520px) {
+  .lunch-decision-sheet { border-radius: 20px; padding: 15px; }
+  .lunch-option-card { padding: 12px; }
+  .lunch-decision-backdrop { padding: 10px 8px 8px; }
+}
+
+
+/* CS2.0B.4.1.3.1 — Lunch UX polish. Lunch is a manual ready task instead of
+   an automatic interrupt, and the decision takes over the full device viewport. */
+.scheduler-workday-panel{display:block;background:#0b1017;border-bottom:1px solid rgba(135,154,177,.12)}
+.scheduler-workday-panel .scheduler-workday-strip{border-bottom:0}
+.scheduler-lunch-choice-summary,.scheduler-lunch-ready-summary{margin:0 16px 10px;box-sizing:border-box}
+.scheduler-lunch-ready-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(204,173,91,.26);background:rgba(144,105,28,.08)}
+.scheduler-lunch-ready-summary>div{min-width:0;display:grid;gap:2px}.scheduler-lunch-ready-summary span{font-size:9px;font-weight:900;letter-spacing:.11em;color:#d7bd89}.scheduler-lunch-ready-summary strong{color:#f0e7d3;font-size:10px;line-height:1.25}
+.scheduler-lunch-ready-summary button{flex:0 0 auto;border:1px solid rgba(210,177,105,.36);border-radius:9px;background:#2a2113;color:#f0d7a4;padding:7px 9px;font-size:6.8px;font-weight:900;letter-spacing:.08em;white-space:nowrap}
+.scheduler-lunch-choice-summary{width:auto;grid-column:auto;margin-top:0;padding:10px 12px}
+
+.lunch-decision-backdrop{position:fixed;inset:0;z-index:5000;display:block;padding:0;background:#080c13;backdrop-filter:none}
+.lunch-decision-sheet{width:100%;height:100%;max-height:none;overflow:auto;box-sizing:border-box;border:0;border-radius:0;padding:calc(22px + env(safe-area-inset-top,0px)) 18px calc(24px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,#111622 0%,#0a0e16 100%);box-shadow:none}
+.lunch-decision-header{position:sticky;top:calc(-22px - env(safe-area-inset-top,0px));z-index:2;margin:-0px -18px 18px;padding:0 18px 14px;background:linear-gradient(180deg,rgba(17,22,34,.99) 75%,rgba(17,22,34,0));}
+.lunch-decision-header-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.lunch-decision-close{border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:7px 10px;background:rgba(255,255,255,.045);color:#cbd2dd;font-size:9px;font-weight:900;letter-spacing:.08em}
+.lunch-decision-grid{display:grid;gap:14px;padding-bottom:10px}
+.lunch-option-card{min-height:170px;padding:18px;border-radius:19px;grid-template-columns:1fr auto;gap:7px 14px}
+.lunch-option-card>strong{font-size:20px}.lunch-option-card>p{font-size:13px;line-height:1.45;max-width:90%}.lunch-option-card>b{padding:10px 13px;font-size:10px}
+.lunch-option-effects{margin-top:9px}.lunch-option-effects small{padding:5px 8px;font-size:9px}
+.lunch-decision-context,.lunch-decision-sheet footer{display:none!important}
+.driver-hub-jump.lunch-ready{color:#e6c98c}
+
+@media (max-width:520px){.lunch-decision-backdrop{padding:0}.lunch-decision-sheet{border-radius:0;padding-left:16px;padding-right:16px}.lunch-decision-header{margin-left:-16px;margin-right:-16px;padding-left:16px;padding-right:16px}.lunch-option-card{padding:16px;min-height:155px}}
+
+/* CS2.0B.4.1.3.2 — condensed lunch decision. Keep the live map, clock, and
+   time controls visible; lunch is a dispatcher task, not a full-screen event. */
+.lunch-decision-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:5000;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding:0 12px calc(78px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(180deg,rgba(4,7,12,0) 0%,rgba(4,7,12,.08) 34%,rgba(4,7,12,.42) 100%);
+  backdrop-filter:none;
+  pointer-events:none;
+}
+.lunch-decision-sheet{
+  pointer-events:auto;
+  width:min(620px,100%);
+  height:auto;
+  max-height:min(52vh,470px);
+  overflow:auto;
+  box-sizing:border-box;
+  border:1px solid rgba(170,146,247,.3);
+  border-radius:20px;
+  padding:14px;
+  background:linear-gradient(180deg,rgba(18,23,34,.98),rgba(10,14,22,.98));
+  box-shadow:0 24px 64px rgba(0,0,0,.58),0 0 0 1px rgba(255,255,255,.025) inset;
+}
+.lunch-decision-header{
+  position:static;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin:0 0 10px;
+  padding:0 0 10px;
+  background:none;
+  border-bottom:1px solid rgba(255,255,255,.075);
+}
+.lunch-decision-titleblock{min-width:0;display:grid;gap:5px}
+.lunch-decision-driverline{display:flex;align-items:baseline;gap:9px;min-width:0}
+.lunch-decision-header h2{margin:0;font-size:19px;line-height:1;color:#f4f2f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lunch-decision-header p{margin:0;color:rgba(225,226,235,.62);font-size:11px;white-space:nowrap}
+.lunch-decision-kicker{font-size:8px;letter-spacing:.14em;color:#bca8ff}
+.lunch-decision-close{flex:0 0 auto;border:1px solid rgba(255,255,255,.13);border-radius:999px;padding:7px 10px;background:rgba(255,255,255,.045);color:#d8dae2;font-size:8px;font-weight:900;letter-spacing:.09em}
+.lunch-decision-grid{display:grid;gap:8px;padding:0}
+.lunch-option-card{
+  min-height:0;
+  padding:10px 11px;
+  border-radius:14px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:"eyebrow choose" "title choose" "copy choose" "effects effects";
+  gap:3px 9px;
+  text-align:left;
+}
+.lunch-option-card>strong{font-size:15px;line-height:1.15}
+.lunch-option-card>p{font-size:10.5px;line-height:1.3;max-width:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lunch-option-card>b{align-self:center;padding:8px 10px;font-size:8px;border-radius:10px}
+.lunch-option-eyebrow{font-size:7.5px}
+.lunch-option-effects{margin-top:4px;gap:4px}
+.lunch-option-effects small{padding:4px 6px;font-size:7.5px}
+.lunch-decision-context,.lunch-decision-sheet footer,.lunch-decision-badge{display:none!important}
+
+@media (max-width:520px){
+  .lunch-decision-backdrop{padding:0 9px calc(70px + env(safe-area-inset-bottom,0px))}
+  .lunch-decision-sheet{width:100%;max-height:54vh;border-radius:18px;padding:12px}
+  .lunch-decision-header{margin:0 0 8px;padding-bottom:8px}
+  .lunch-option-card{padding:9px 10px}
+}
+
+/* CS2.0B.4.1.3.3 — Comms + Workday UI polish */
+.scheduler-workday-actions button:disabled{opacity:.42;cursor:default}
+.scheduler-workday-time-fields,.scheduler-lunch-setting-fields{grid-template-columns:1fr 1fr}
+.scheduler-time-stepper,.scheduler-duration-control{display:grid;gap:8px;padding:11px;border:1px solid rgba(126,151,181,.2);border-radius:12px;background:linear-gradient(180deg,#111922,#0b1118)}
+.scheduler-time-stepper>span,.scheduler-duration-control>span{color:#73879d;font-size:6.2px;font-weight:950;letter-spacing:.13em}
+.scheduler-time-stepper>strong{color:#eef4fa;font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:700;line-height:1}
+.scheduler-time-stepper-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.scheduler-time-stepper-actions button,.scheduler-duration-control button{min-height:30px;border:1px solid rgba(126,151,181,.24);border-radius:8px;background:#151f2a;color:#aebed0;font-size:6.5px;font-weight:950;letter-spacing:.07em}
+.scheduler-time-stepper-actions button:active,.scheduler-duration-control button.active{border-color:rgba(158,130,178,.65);background:#2b2433;color:#eee3f5}
+.scheduler-duration-control>div{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.scheduler-duration-control button.active{box-shadow:inset 0 0 0 1px rgba(186,151,210,.18)}
+@media(max-width:520px){.scheduler-workday-time-fields,.scheduler-lunch-setting-fields{grid-template-columns:1fr}.scheduler-time-stepper>strong{font-size:16px}}
+
+/* CS2.0B.4.1.3.4 — Driver Tab Visual Fix
+   Keep the active-driver indicator below the tab label instead of crossing through the name. */
+.scheduler-driver-tabs.aw14 button.active::after { display:none; }
+.scheduler-driver-tabs.aw14 button.active {
+  text-decoration:none;
+  box-shadow: inset 0 -2px 0 #6f9bca;
+}
+.scheduler-driver-tabs.aw14 strong { text-decoration:none; }
+
+/* CS2.0B.4.1.3.5 — Compact Driver Tabs
+   Render Agenda driver selection as a true compact tab row instead of a text strip. */
+.scheduler-driver-tabs.aw14{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 12px 8px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  border-bottom:1px solid rgba(135,154,177,.14);
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.scheduler-driver-tabs.aw14::-webkit-scrollbar{display:none}
+.scheduler-driver-tabs.aw14 button,
+.phone-overlay.scheduler-expanded .scheduler-driver-tabs.aw14 button{
+  position:relative;
+  flex:0 0 auto;
+  min-width:0;
+  padding:6px 10px;
+  border:1px solid rgba(135,154,177,.20);
+  border-radius:9px;
+  background:#10161e;
+  color:#8595a8;
+  box-shadow:none;
+  text-align:center;
+  text-decoration:none;
+}
+.scheduler-driver-tabs.aw14 button.active,
+.phone-overlay.scheduler-expanded .scheduler-driver-tabs.aw14 button.active{
+  border-color:rgba(103,153,205,.72);
+  background:linear-gradient(180deg,#1d3852,#172b40);
+  color:#f2f7fc;
+  box-shadow:inset 0 0 0 1px rgba(136,183,230,.08),0 2px 8px rgba(0,0,0,.18);
+  text-decoration:none;
+}
+.scheduler-driver-tabs.aw14 button.active::after{display:none!important}
+.scheduler-driver-tabs.aw14 strong{
+  display:block;
+  font-size:8.5px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:.015em;
+  white-space:nowrap;
+  text-decoration:none!important;
+}
+.scheduler-driver-tabs.aw14 button:only-child{min-width:86px}
+
+/* CS2.0B.4.1.3.6 — Index-style Driver Tabs
+   Agenda driver selectors now resemble file-folder index dividers instead of pills. */
+.scheduler-driver-tabs.aw14{
+  align-items:flex-end;
+  gap:6px;
+  padding:9px 12px 0;
+  overflow-x:auto;
+  overflow-y:visible;
+  border-bottom:1px solid rgba(135,154,177,.16);
+}
+.scheduler-driver-tabs.aw14 button,
+.phone-overlay.scheduler-expanded .scheduler-driver-tabs.aw14 button{
+  position:relative;
+  flex:0 0 auto;
+  min-width:112px;
+  min-height:38px;
+  margin:0 0 -1px;
+  padding:12px 16px 9px;
+  border:0;
+  border-radius:0;
+  background:#151c25;
+  color:#8f9dad;
+  clip-path:polygon(16px 0,calc(100% - 16px) 0,calc(100% - 10px) 8px,100% 8px,100% 100%,0 100%,0 8px,10px 8px);
+  filter:drop-shadow(0 -1px 0 rgba(135,154,177,.20));
+  box-shadow:none;
+  text-align:center;
+}
+.scheduler-driver-tabs.aw14 button.active,
+.phone-overlay.scheduler-expanded .scheduler-driver-tabs.aw14 button.active{
+  z-index:2;
+  min-height:42px;
+  padding-top:13px;
+  background:linear-gradient(180deg,#315f8a 0%,#244867 100%);
+  color:#f5f9fd;
+  filter:drop-shadow(0 -1px 0 rgba(139,190,236,.68)) drop-shadow(0 3px 7px rgba(0,0,0,.22));
+  box-shadow:none;
+}
+.scheduler-driver-tabs.aw14 button.active::after{display:none!important}
+.scheduler-driver-tabs.aw14 strong{
+  display:block;
+  font-size:9px;
+  line-height:1.05;
+  font-weight:900;
+  letter-spacing:.012em;
+  white-space:nowrap;
+  text-decoration:none!important;
+}
+.scheduler-driver-tabs.aw14 button:only-child{
+  min-width:124px;
+}
+
+/* CS2.0B.4.1.3.7 — Driver Tab Shape Polish
+   Refines Agenda's driver selector into a compact raised file-divider tab that
+   visually attaches to the Driver Workday section instead of reading as a banner. */
+.scheduler-driver-tabs.aw14,
+.phone-overlay.scheduler-expanded .scheduler-driver-tabs.aw14{
+  position:relative;
+  display:flex;
+  align-items:flex-end;
+  gap:5px;
+  min-height:34px;
+  padding:6px 14px 0;
+  overflow-x:auto;
+  overflow-y:visible;
+  border-bottom:1px solid rgba(91,139,188,.30);
+  background:#090e14;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.scheduler-driver-tabs.aw14::-webkit-scrollbar{display:none}
+.scheduler-driver-tabs.aw14 button,
+.phone-overlay.scheduler-expanded .scheduler-driver-tabs.aw14 button{
+  position:relative;
+  flex:0 0 auto;
+  width:auto;
+  min-width:94px;
+  min-height:30px;
+  height:30px;
+  margin:0 0 -1px;
+  padding:0 15px;
+  border:1px solid rgba(126,151,181,.24);
+  border-bottom:0;
+  border-radius:9px 9px 0 0;
+  background:#111821;
+  color:#8e9daf;
+  clip-path:none;
+  filter:none;
+  box-shadow:none;
+  text-align:center;
+  text-decoration:none;
+}
+.scheduler-driver-tabs.aw14 button.active,
+.phone-overlay.scheduler-expanded .scheduler-driver-tabs.aw14 button.active{
+  z-index:2;
+  min-height:32px;
+  height:32px;
+  padding:0 17px;
+  border-color:rgba(112,165,218,.74);
+  border-bottom-color:#0b1017;
+  border-radius:10px 10px 0 0;
+  background:linear-gradient(180deg,#2d618e 0%,#254f73 100%);
+  color:#f5f9fd;
+  filter:none;
+  box-shadow:inset 0 1px 0 rgba(182,215,245,.10),0 -3px 9px rgba(0,0,0,.16);
+}
+.scheduler-driver-tabs.aw14 button::before,
+.scheduler-driver-tabs.aw14 button::after{content:none!important}
+.scheduler-driver-tabs.aw14 button.active::after{display:none!important}
+.scheduler-driver-tabs.aw14 strong,
+.phone-overlay.scheduler-expanded .scheduler-driver-tabs.aw14 strong{
+  display:block;
+  font-size:8.4px;
+  line-height:30px;
+  font-weight:900;
+  letter-spacing:.015em;
+  white-space:nowrap;
+  text-decoration:none!important;
+}
+.scheduler-driver-tabs.aw14 button.active strong,
+.phone-overlay.scheduler-expanded .scheduler-driver-tabs.aw14 button.active strong{
+  line-height:31px;
+}
+.scheduler-driver-tabs.aw14 button:only-child,
+.phone-overlay.scheduler-expanded .scheduler-driver-tabs.aw14 button:only-child{
+  min-width:104px;
+  width:auto;
+}
+.scheduler-driver-tabs.aw14 + .scheduler-workday-panel{
+  border-top:0;
+  box-shadow:inset 0 1px 0 rgba(91,139,188,.18);
+}
