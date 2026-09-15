@@ -1,4 +1,5 @@
 import { getAgreementRules } from '../utils/carrierAgreement.js'
+import { CARRIER_XP_PER_LEVEL, getCarrierRelationshipStateLabel } from '../utils/carrierCareer.js'
 import {
   getCarrierSourceAccountType,
   getCarrierSourceDescription,
@@ -27,12 +28,18 @@ function CarrierOpportunityScreen({ carrier, drivers = [], onApply, onOpenOffer,
   const rules = getAgreementRules(carrier)
   const score = relationshipScoreFor(carrier, career)
   const strikeCount = Number(career?.strikeCount || 0)
-  const performanceCount = Array.isArray(career?.performanceHistory) ? career.performanceHistory.length : 0
+  const performanceHistory = Array.isArray(career?.performanceHistory) ? career.performanceHistory : []
+  const performanceCount = performanceHistory.length
+  const relationshipState = career?.relationshipState || (active ? 'ACTIVE' : 'AVAILABLE')
+  const relationshipStateLabel = getCarrierRelationshipStateLabel(relationshipState)
+  const carrierLevel = Math.max(1, Number(career?.carrierLevel || 1))
+  const carrierXp = Math.max(0, Number(career?.carrierXp || 0))
+  const levelProgress = carrierXp % CARRIER_XP_PER_LEVEL
   const carrierDrivers = carrier.driverIds?.map((driverId) => drivers.find((driver) => driver.id === driverId)).filter(Boolean) || []
 
-  return <div className="phone-page carrier-detail-screen carrier-posting-v2 cs-account-detail-b2">
+  return <div className="phone-page carrier-detail-screen carrier-posting-v2 cs-account-detail-b2 cs-account-detail-b3">
     <header className="docos-page-hero carrier-posting-hero cs-carrier-hero-b2">
-      <div className="cs-carrier-hero-kicker"><span>{active?'CARRIER ACCOUNT':'CARRIER OPPORTUNITY'}</span><span className={`carrier-job-status ${active?'active':offer?'offer':pending?'pending':'prospect'}`}>{active?'ACTIVE AGREEMENT':offer?'OFFER RECEIVED':pending?'APPLICATION PENDING':'OPEN OPPORTUNITY'}</span></div>
+      <div className="cs-carrier-hero-kicker"><span>{active?'CARRIER ACCOUNT':'CARRIER OPPORTUNITY'}</span><span className={`carrier-job-status ${active ? relationshipState === 'PROBATION' ? 'warning' : relationshipState === 'AT_RISK' ? 'attention' : 'active' : offer?'offer':pending?'pending':'prospect'}`}>{active ? relationshipStateLabel : offer?'OFFER RECEIVED':pending?'APPLICATION PENDING':'OPEN OPPORTUNITY'}</span></div>
       <div className="carrier-posting-company"><div className="carrier-job-logo large">{getCarrierSourceInitials(carrier)}</div><div><h2>{carrier.name}</h2><p>{getCarrierSourceLocation(carrier)} · {getCarrierSourceAccountType(carrier).replace('Dispatch', 'dispatch')}</p></div></div>
       {active && <div className="cs-hero-relationship"><div><span>RELATIONSHIP</span><strong>{getCarrierSourceStanding(carrier, career)}</strong></div><div className="cs-account-health-score"><b>{Math.round(score)}</b><small>/100</small></div><div className="cs-relationship-track"><i style={{ width: `${score}%` }} /></div></div>}
     </header>
@@ -56,7 +63,15 @@ function CarrierOpportunityScreen({ carrier, drivers = [], onApply, onOpenOffer,
       {active && <>
         <section className="docos-section cs-account-section">
           <div className="docos-section-heading"><span>ACCOUNT HEALTH</span><small>{performanceCount ? `${performanceCount} REVIEWS` : 'LIVE'}</small></div>
-          <div className="cs-health-grid-b2"><div><span>STANDING</span><strong>{getCarrierSourceStanding(carrier, career)}</strong></div><div><span>STRIKES</span><strong>{strikeCount}</strong></div><div><span>LEVEL</span><strong>{Number(career?.carrierLevel || 0)}</strong></div><div><span>CARRIER XP</span><strong>{Number(career?.carrierXp || 0)}</strong></div></div>
+          <div className="cs-health-grid-b2"><div><span>STANDING</span><strong>{getCarrierSourceStanding(carrier, career)}</strong></div><div><span>ACCOUNT STATUS</span><strong className={['AT_RISK','PROBATION'].includes(relationshipState) ? 'attention' : ''}>{relationshipStateLabel}</strong></div><div><span>STRIKES</span><strong className={strikeCount ? 'attention' : ''}>{strikeCount}</strong></div><div><span>LEVEL</span><strong>{carrierLevel}</strong></div></div>
+          <div className="cs-carrier-xp-b3"><div><span>CARRIER XP</span><strong>{carrierXp}</strong><small>{levelProgress} / {CARRIER_XP_PER_LEVEL} TO NEXT LEVEL</small></div><div className="cs-carrier-xp-track-b3"><i style={{ width: `${Math.min(100, (levelProgress / CARRIER_XP_PER_LEVEL) * 100)}%` }} /></div></div>
+          {relationshipState === 'AT_RISK' && <div className="cs-account-alert-b3 at-risk"><strong>ACCOUNT AT RISK</strong><p>Service performance triggered a carrier warning. Protect appointments and freight condition to rebuild trust.</p></div>}
+          {relationshipState === 'PROBATION' && <div className="cs-account-alert-b3 probation"><strong>ACCOUNT ON PROBATION</strong><p>{carrier.name} is reviewing this dispatch relationship. Additional critical service failures may threaten the account in a future career phase.</p></div>}
+        </section>
+
+        <section className="docos-section cs-account-section">
+          <div className="docos-section-heading"><span>PERFORMANCE HISTORY</span><small>{performanceCount ? `${performanceCount} REVIEW${performanceCount === 1 ? '' : 'S'}` : 'NO REVIEWS'}</small></div>
+          {performanceCount ? <div className="cs-performance-history-b3">{performanceHistory.slice(0, 5).map((review) => <div key={review.id || review.operationDay} className={`cs-performance-row-b3 grade-${String(review.grade || 'c').toLowerCase()}`}><div className="cs-performance-grade-b3">{review.grade}</div><div className="cs-performance-copy-b3"><strong>DAY {String(review.operationDay).padStart(2, '0')} REVIEW</strong><span>{review.loadsCompleted} load{review.loadsCompleted === 1 ? '' : 's'} · {review.serviceWindowsMet}/{review.serviceWindowsTotal} windows · {review.relationshipChange >= 0 ? '+' : ''}{review.relationshipChange} relationship</span>{review.strikeIssued && <small>{review.strikeReason}</small>}{review.strikeForgiven && <small>Recovery credit · one service strike removed</small>}</div><div className="cs-performance-xp-b3"><strong>+{review.carrierXpGain}</strong><span>XP</span></div></div>)}</div> : <div className="cs-performance-empty-b3"><strong>No performance reviews yet.</strong><p>Complete an operation day and CarrierSource will score the account.</p></div>}
         </section>
 
         <section className="docos-section cs-account-section">

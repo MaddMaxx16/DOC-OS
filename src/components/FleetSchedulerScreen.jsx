@@ -181,10 +181,9 @@ function FleetSchedulerScreen({
       )}
 
       <div className="scheduler-driver-tabs aw14" aria-label="Driver schedules">
-        {drivers.filter((item) => item.carrierId).map((item) => {
-          const count = loads.filter((load) => (load.assignedDriverId === item.id) || (load.status === 'available' && load.candidateDriverId === item.id && load.scheduleApprovalQueued)).length
-          return <button type="button" key={item.id} className={item.id === driver?.id ? 'active' : ''} onClick={() => { setDriverId(item.id); setSelectedLoadId(null) }}><strong>{item.fullName || item.name}</strong><small>{count} route{count === 1 ? '' : 's'}</small></button>
-        })}
+        {drivers.filter((item) => item.carrierId).map((item) => (
+          <button type="button" key={item.id} className={item.id === driver?.id ? 'active' : ''} onClick={() => { setDriverId(item.id); setSelectedLoadId(null) }}><strong>{item.fullName || item.name}</strong></button>
+        ))}
       </div>
 
       <section className={`scheduler-summary-strip aw14 ${planQuality?.tone || 'neutral'}`}>

@@ -12,3 +12,4 @@ CS2.0A.12.4 — Scheduler Shell + Route Continuity
 - CS2.0B.1 — CarrierSource Data Architecture: removes Metroline-only CarrierSource wiring, adds carrier-ID selection and career-state read plumbing, and makes CarrierSource/agreement identity carrier-driven; Operations remains frozen.
 
 - CS2.0B.2 — CarrierSource Workspace Overhaul: visible CarrierSource business workspace with network summary, account health, live terms, service standards and roster presentation; no Operations authority changes.
+- CS2.0B.3 — Carrier Relationship RPG: turns Day Close carrier performance into persistent grades, carrier XP/levels, performance history, strikes, AT RISK/PROBATION states, and clean-service recovery; live Operations authority remains frozen.

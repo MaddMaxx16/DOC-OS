@@ -152,6 +152,7 @@ export function createDayReport({
     const relationshipChange = getCarrierDayRelationshipChange({ carrier, completedLoads: carrierLoads })
     const onTimePickupCount = carrierLoads.filter((load) => appointmentLateMinutes(load, 'pickup') === 0).length
     const onTimeDeliveryCount = carrierLoads.filter((load) => appointmentLateMinutes(load, 'delivery') === 0).length
+    const carrierExceptionLoads = carrierLoads.filter((load) => Number(load.pod?.freightCondition?.damagedAtPickup || 0) > 0 || Number(load.pod?.freightCondition?.missingAtPickup || 0) > 0).length
     return {
       carrierId: carrier.id,
       carrierName: carrier.name,
@@ -163,6 +164,7 @@ export function createDayReport({
       preferredRegion: rules.preferredRegion,
       onTimePickups: onTimePickupCount,
       onTimeDeliveries: onTimeDeliveryCount,
+      exceptionLoads: carrierExceptionLoads,
       relationshipBefore: Number(carrier.relationshipScore ?? 50),
       relationshipChange,
       relationshipAfter: Math.max(0, Math.min(100, Number(carrier.relationshipScore ?? 50) + relationshipChange)),

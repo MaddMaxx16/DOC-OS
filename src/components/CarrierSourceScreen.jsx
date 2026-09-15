@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getAgreementRules } from '../utils/carrierAgreement.js'
+import { getCarrierRelationshipStateLabel } from '../utils/carrierCareer.js'
 import {
   getCarrierSourceAccountType,
   getCarrierSourceEquipmentLabel,
@@ -51,10 +52,13 @@ function CarrierSourceScreen({ carriers = [], applicationsById = {}, careerById 
         const rules = getAgreementRules(carrier)
         const career = careerById[carrier.id]
         const score = relationshipScoreFor(carrier, career)
-        return <button key={carrier.id} className="cs-carrier-dashboard-card cs-account-card-b2" onClick={() => onOpenCarrier?.(carrier.id)}>
+        const relationshipState = career?.relationshipState || 'ACTIVE'
+        const relationshipStateLabel = getCarrierRelationshipStateLabel(relationshipState)
+        const recentReview = Array.isArray(career?.performanceHistory) ? career.performanceHistory[0] : null
+        return <button key={carrier.id} className={`cs-carrier-dashboard-card cs-account-card-b2 cs-account-card-b3 ${relationshipState === 'AT_RISK' ? 'at-risk' : relationshipState === 'PROBATION' ? 'probation' : ''}`} onClick={() => onOpenCarrier?.(carrier.id)}>
           <div className="cs-account-card-head">
             <div className="cs-carrier-title"><div className="carrier-job-logo">{getCarrierSourceInitials(carrier)}</div><div><strong>{carrier.name}</strong><span>{getCarrierSourceLocation(carrier).toUpperCase()} · {getCarrierSourceEquipmentLabel(carrier).toUpperCase()}</span></div></div>
-            <span className="carrier-job-status active">ACTIVE</span>
+            <span className={`carrier-job-status ${relationshipState === 'AT_RISK' ? 'attention' : relationshipState === 'PROBATION' ? 'warning' : 'active'}`}>{relationshipStateLabel}</span>
           </div>
           <div className="cs-account-health">
             <div><span>RELATIONSHIP</span><strong>{getCarrierSourceStanding(carrier, career)}</strong></div>
@@ -62,6 +66,7 @@ function CarrierSourceScreen({ carriers = [], applicationsById = {}, careerById 
             <div className="cs-relationship-track"><i style={{ width: `${score}%` }} /></div>
           </div>
           <div className="cs-account-metric-row"><div><span>DISPATCH FEE</span><b>{rules.percentage}%</b></div><div><span>DRIVERS</span><b>{carrier.driverIds?.length ?? carrier.fleetSize}</b></div><div><span>REGION</span><b>{rules.preferredRegion}</b></div></div>
+          <div className="cs-career-strip-b3"><span>LEVEL {Math.max(1, Number(career?.carrierLevel || 1))}</span><span>{recentReview ? `LAST REVIEW ${recentReview.grade}` : 'NO REVIEWS YET'}</span><span>{Number(career?.strikeCount || 0)} STRIKE{Number(career?.strikeCount || 0) === 1 ? '' : 'S'}</span></div>
           <div className="cs-account-open"><span>OPEN CARRIER ACCOUNT</span><span>›</span></div>
         </button>
       })}

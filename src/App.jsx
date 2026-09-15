@@ -17,7 +17,7 @@ import { getReceivables } from './utils/ledger.js'
 import { reconcileActiveCarrierDrivers } from './utils/driverRoster.js'
 import { getDriverActiveLoad, getDriverQueue, promoteNextQueuedLoad } from './utils/driverQueue.js'
 import { createDayReport, DEFAULT_DAY_LOOP_STATE, DEFAULT_PLAYER_PROGRESSION, getEndDayStatus } from './utils/dayLoop.js'
-import { buildCarrierCareerById, mergeCarrierCareerEntry, CARRIER_APPLICATION_STATES, CARRIER_RELATIONSHIP_STATES } from './utils/carrierCareer.js'
+import { applyCarrierPerformanceReview, buildCarrierCareerById, getCarrierRelationshipStateLabel, mergeCarrierCareerEntry, CARRIER_APPLICATION_STATES, CARRIER_RELATIONSHIP_STATES } from './utils/carrierCareer.js'
 import { getAgreementRules } from './utils/carrierAgreement.js'
 import { calculateRoute } from './services/routingService.js'
 import { refreshFreightMarket } from './utils/freightMarket.js'
@@ -901,7 +901,7 @@ function App() {
     const closeStatus = getEndDayStatus(loads, receivables)
     if (!closeStatus.canEnd || dayLoop.phase !== 'operating') return
 
-    const report = createDayReport({
+    const baseReport = createDayReport({
       operationDay: dayLoop.operationDay,
       currentStartGameDayIndex: dayLoop.currentStartGameDayIndex,
       gameTime,
@@ -909,6 +909,23 @@ function App() {
       receivables,
       carriers,
     })
+    const reviewedGameMinute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const careerReviewsByCarrierId = {}
+    const report = {
+      ...baseReport,
+      carrierBreakdown: (baseReport.carrierBreakdown || []).map((result) => {
+        const carrier = carriers.find((item) => item.id === result.carrierId)
+        const reviewResult = applyCarrierPerformanceReview({
+          career: carrierCareerById[result.carrierId] || {},
+          carrier,
+          breakdown: result,
+          operationDay: dayLoop.operationDay,
+          reviewedGameMinute,
+        })
+        careerReviewsByCarrierId[result.carrierId] = reviewResult
+        return { ...result, careerReview: reviewResult.review }
+      }),
+    }
 
     setIsGameClockPaused(true)
     setSimulationSpeed(1)
@@ -928,13 +945,48 @@ function App() {
       const next = { ...current }
       report.carrierBreakdown?.forEach((result) => {
         const carrier = carriers.find((item) => item.id === result.carrierId)
-        next[result.carrierId] = mergeCarrierCareerEntry(current[result.carrierId], carrier, {
-          relationshipScore: result.relationshipAfter,
-          standing: result.relationshipLabel,
+        const reviewResult = applyCarrierPerformanceReview({
+          career: current[result.carrierId] || {},
+          carrier,
+          breakdown: result,
+          operationDay: dayLoop.operationDay,
+          reviewedGameMinute,
         })
+        next[result.carrierId] = mergeCarrierCareerEntry(current[result.carrierId], carrier, reviewResult.patch)
       })
       return next
     })
+
+    Object.entries(careerReviewsByCarrierId).forEach(([carrierId, reviewResult]) => {
+      const review = reviewResult?.review
+      if (!reviewResult?.isNewReview || !review) return
+      const carrier = carriers.find((item) => item.id === carrierId)
+      if (!carrier) return
+      const statusChanged = review.relationshipStateAfter !== review.relationshipStateBefore
+      const noteworthy = review.strikeIssued || review.strikeForgiven || review.levelUp || statusChanged
+      if (!noteworthy) return
+      const subject = review.strikeIssued
+        ? `${carrier.name} — Service Warning`
+        : review.levelUp
+          ? `${carrier.name} — Account Level ${review.levelAfter}`
+          : `${carrier.name} — Account Standing Updated`
+      const statusLabel = getCarrierRelationshipStateLabel(review.relationshipStateAfter)
+      const warningLine = review.strikeIssued ? `\nService warning: ${review.strikeReason}. Strike ${review.strikeCountAfter} is now on the account.\n` : review.strikeForgiven ? `\nRecovery credit: one service strike was removed after a clean performance review.\n` : '\n'
+      const levelLine = review.levelUp ? `\nAccount progression: Level ${review.levelBefore} → Level ${review.levelAfter}.\n` : ''
+      const bodyOverride = `Day ${dayLoop.operationDay} performance review is complete.\n\nGrade: ${review.grade}\nService windows: ${review.serviceWindowsMet}/${review.serviceWindowsTotal}\nRelationship: ${review.relationshipBefore} → ${review.relationshipAfter} (${review.relationshipChange >= 0 ? '+' : ''}${review.relationshipChange})\nCarrier XP: +${review.carrierXpGain}\nAccount status: ${statusLabel}${warningLine}${levelLine}\nReview full performance history in CarrierSource.`
+      const messageId = `${carrierId}-career-review-${dayLoop.operationDay}`
+      setEmailMessages((current) => current.some((message) => message.id === messageId) ? current : [...current, {
+        id: messageId,
+        type: 'carrier-performance-review',
+        carrierId,
+        senderOverride: 'CarrierSource',
+        subject,
+        bodyOverride,
+        receivedGameMinute: reviewedGameMinute,
+        read: false,
+      }])
+    })
+
     setDayLoop((current) => ({
       ...current,
       phase: 'results',

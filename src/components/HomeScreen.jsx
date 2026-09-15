@@ -7,6 +7,16 @@ function BrowserIcon() {
   )
 }
 
+function AgendaIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="4" y="5.5" width="16" height="14.5" rx="2.25" />
+      <path d="M7.5 3.75v3.5M16.5 3.75v3.5M4 9.25h16" />
+      <path d="M7.25 12.25h4.25M7.25 15.25h7.75M7.25 18.25h5.5" />
+    </svg>
+  )
+}
+
 function DocumentsIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -44,9 +54,9 @@ function EmailIcon() {
   )
 }
 
-function AppTile({ label, description, icon, onClick, badgeCount = 0, badgeClassName = '' }) {
+function AppTile({ label, description, icon, onClick, disabled = false, badgeCount = 0, badgeClassName = '' }) {
   return (
-    <button type="button" className="app-icon app-grid-tile" onClick={onClick} aria-label={`${label}. ${description}`}>
+    <button type="button" className="app-icon app-grid-tile" onClick={onClick} disabled={disabled} aria-label={`${label}. ${description}${disabled ? '. Locked until a carrier joins your operation.' : ''}`}>
       <span className="app-icon-visual">
         <span className="app-icon-square">{icon}</span>
         {badgeCount > 0 && (
@@ -58,7 +68,7 @@ function AppTile({ label, description, icon, onClick, badgeCount = 0, badgeClass
   )
 }
 
-function HomeScreen({ onOpenBrowser, onOpenDocuments, onOpenLedger, onOpenMessages, onOpenEmail, emailBadgeCount = 0, messagesBadgeCount = 0, documentsBadgeCount = 0, ledgerUnreadCount = 0 }) {
+function HomeScreen({ onOpenBrowser, onOpenAgenda, agendaLocked = false, onOpenDocuments, onOpenLedger, onOpenMessages, onOpenEmail, emailBadgeCount = 0, messagesBadgeCount = 0, documentsBadgeCount = 0, ledgerUnreadCount = 0 }) {
   return (
     <div className="phone-page home-screen docos-ui-page">
       <header className="device-home-header docos-ui-header">
@@ -74,6 +84,7 @@ function HomeScreen({ onOpenBrowser, onOpenDocuments, onOpenLedger, onOpenMessag
         </div>
         <div className="phone-app-grid" aria-label="DOC OS apps">
           <AppTile label="Browser" description="FreightLink and Carrier Source" icon={<BrowserIcon />} onClick={onOpenBrowser} />
+          <AppTile label="Agenda" description="Driver schedules and appointments" icon={<AgendaIcon />} onClick={onOpenAgenda} disabled={agendaLocked} />
           <AppTile label="Documents" description="PODs and operation records" icon={<DocumentsIcon />} onClick={onOpenDocuments} badgeCount={documentsBadgeCount} />
           <AppTile label="LedgerDesk" description="Invoices and receivables" icon={<LedgerIcon />} onClick={onOpenLedger} badgeCount={ledgerUnreadCount} badgeClassName="ledger-badge" />
           <AppTile label="Messages" description="Driver communication" icon={<MessagesIcon />} onClick={onOpenMessages} badgeCount={messagesBadgeCount} />

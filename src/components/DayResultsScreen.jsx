@@ -1,5 +1,6 @@
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 import { getProgressionView } from '../utils/dayLoop.js'
+import { getCarrierRelationshipStateLabel } from '../utils/carrierCareer.js'
 
 function money(value) {
   return `$${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
@@ -52,6 +53,12 @@ function DayResultsScreen({ report, progression, onContinue }) {
               <div><span>Loads Completed</span><strong>{carrier.loadsCompleted}</strong></div>
               <div><span>Service Windows</span><strong>{carrier.onTimePickups + carrier.onTimeDeliveries} / {carrier.loadsCompleted * 2}</strong></div>
               <div><span>Carrier Relationship</span><strong className={carrier.relationshipChange >= 0 ? 'positive' : 'attention'}>{carrier.relationshipLabel} · {carrier.relationshipChange >= 0 ? '+' : ''}{carrier.relationshipChange}</strong></div>
+              {carrier.careerReview && <div><span>Performance Grade</span><strong className={['A','B'].includes(carrier.careerReview.grade) ? 'positive' : ['D','F'].includes(carrier.careerReview.grade) ? 'attention' : ''}>{carrier.careerReview.grade}</strong></div>}
+              {carrier.careerReview && <div><span>Carrier XP</span><strong className="positive">+{carrier.careerReview.carrierXpGain} XP</strong></div>}
+              {carrier.careerReview && <div><span>Account Level</span><strong>{carrier.careerReview.levelAfter}{carrier.careerReview.levelUp ? ' · LEVEL UP' : ''}</strong></div>}
+              {carrier.careerReview && <div><span>Account Status</span><strong className={['AT_RISK','PROBATION'].includes(carrier.careerReview.relationshipStateAfter) ? 'attention' : 'positive'}>{getCarrierRelationshipStateLabel(carrier.careerReview.relationshipStateAfter)}</strong></div>}
+              {carrier.careerReview?.strikeIssued && <div><span>Service Warning</span><strong className="attention">STRIKE {carrier.careerReview.strikeCountAfter}</strong></div>}
+              {carrier.careerReview?.strikeForgiven && <div><span>Service Recovery</span><strong className="positive">STRIKE REMOVED</strong></div>}
             </div>
           </section>
         ))}
