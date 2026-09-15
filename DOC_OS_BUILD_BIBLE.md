@@ -716,3 +716,9 @@ Agenda driver selection now uses raised file-divider style tabs rather than pill
 
 ### CS2.0B.4.1.3.7 — Driver Tab Shape Polish
 Agenda driver selection uses a shorter raised file-divider tab attached visually to Driver Workday. This is presentation-only and does not change scheduler behavior or Operations authority.
+
+## CS2.0B.4.2 Multi-Day Architecture — IN TEST
+B.4.2 extends the existing absolute game-minute/day-index architecture rather than replacing it. Agenda Day View is date-selectable across a rolling seven-day window. Driver workday records remain keyed by driver and `workdayByDay[dayIndex]`; the selected Agenda date determines which record is viewed/edited. Freight continues to use `pickupDayIndex` and `deliveryDayIndex`. For cross-midnight freight, each date renders only the stop belonging to that date while the same load remains part of the driver's multi-day plan. HOS is explicitly out of scope until B.5. The B.4.1.3.7 Operations lifecycle remains protected while B.4.2 is IN TEST.
+
+## CS2.0B.4.2.1-STABLE — Multi-Day Agenda Foundation
+Approved 2026-09-15. Agenda now exposes a fixed seven-day Day View using real calendar dates. Driver workday editing is date-aware, and cross-midnight freight is represented on each applicable date with only that date's stop rendered. This slice does not yet change midnight rollover, open-load persistence, Daily Closeout semantics, revenue timing, or HOS. Those remain later B.4.2/B.5 responsibilities.

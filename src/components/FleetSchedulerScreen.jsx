@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import mapLocations from '../data/mapLocations.js'
-import { formatAppointment, formatTime } from '../utils/gameTime.js'
+import { formatAppointment, formatCompactDate, formatTime, getCalendarDate } from '../utils/gameTime.js'
 import { getFreightRouteName } from '../utils/freightIdentity.js'
 import { formatPlanningMinutes, getPlanQuality } from '../utils/planningIntelligence.js'
 import { getRouteLifecycleLabel, getRouteLifecycleTone } from '../utils/routeLifecycle.js'
@@ -83,7 +83,14 @@ function FleetSchedulerScreen({
   }, [focusLoadId])
   const driver = drivers.find((item) => item.id === driverId) || drivers[0]
   const selectedLoad = loads.find((load) => load.id === selectedLoadId)
-  const currentDay = gameTime?.gameDayIndex || 0
+  const liveDay = gameTime?.gameDayIndex || 0
+  const [currentDay, setCurrentDay] = useState(liveDay)
+  useEffect(() => {
+    setCurrentDay((day) => day < liveDay ? liveDay : day)
+  }, [liveDay])
+  const planningDays = useMemo(() => Array.from({ length: 7 }, (_, index) => liveDay + index), [liveDay])
+  const selectedDate = getCalendarDate(currentDay)
+  const selectedDateLabel = selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })
   const workday = driver?.workdayByDay?.[currentDay] || null
   const lunchDecisionReady = isLunchDecisionReady({ driver, loads, gameTime })
   const driverOnLunch = isDriverOnLunch(driver, gameTime)
@@ -156,8 +163,8 @@ function FleetSchedulerScreen({
   // forcing a mostly-empty 6 AM–10 PM canvas. Keep a useful minimum window so
   // sparse schedules still read like a day, while dense schedules gain room.
   const scheduleStopMinutes = currentDayLoads.flatMap((load) => [
-    load.pickupWindowStartMinutes,
-    load.deliveryWindowStartMinutes,
+    (load.pickupDayIndex ?? currentDay) === currentDay ? load.pickupWindowStartMinutes : null,
+    (load.deliveryDayIndex ?? currentDay) === currentDay ? load.deliveryWindowStartMinutes : null,
   ]).filter(Number.isFinite)
   const timelineReferenceMinutes = [
     ...scheduleStopMinutes,
@@ -191,9 +198,9 @@ function FleetSchedulerScreen({
           : null
   const planHasConflict = planQuality?.label === 'CONFLICT'
   const stopMinutes = currentDayLoads.flatMap((item) => [
-    { id: `${item.id}:pickup`, loadId: item.id, side: 'pickup', minute: item.pickupWindowStartMinutes ?? startMinute },
-    { id: `${item.id}:delivery`, loadId: item.id, side: 'delivery', minute: item.deliveryWindowStartMinutes ?? startMinute },
-  ]).sort((a, b) => a.minute - b.minute || (a.side === 'delivery' ? -1 : 1))
+    (item.pickupDayIndex ?? currentDay) === currentDay ? { id: `${item.id}:pickup`, loadId: item.id, side: 'pickup', minute: item.pickupWindowStartMinutes ?? startMinute } : null,
+    (item.deliveryDayIndex ?? currentDay) === currentDay ? { id: `${item.id}:delivery`, loadId: item.id, side: 'delivery', minute: item.deliveryWindowStartMinutes ?? startMinute } : null,
+  ].filter(Boolean)).sort((a, b) => a.minute - b.minute || (a.side === 'delivery' ? -1 : 1))
 
   // Collision-safe visual positions. Appointment time remains the semantic truth;
   // close stops are nudged only enough to keep every pickup/delivery card visible.
@@ -258,7 +265,7 @@ function FleetSchedulerScreen({
       <header className="scheduler-header aw13 aw161">
         <div>
           <span>SCHEDULER</span>
-          <h2>Today’s Plan</h2>
+          <h2>{currentDay === liveDay ? 'Today' : selectedDateLabel}</h2>
         </div>
         <div className="scheduler-header-actions">
           {driverOnLunch ? (
@@ -281,6 +288,15 @@ function FleetSchedulerScreen({
       {approvalCandidates.length > 0 && (
         <div className="scheduler-top-hint aw14">Tap a route to review actions. Tap it again or tap empty time to close.</div>
       )}
+
+      <nav className="scheduler-date-strip" aria-label="Seven day planning window">
+        {planningDays.map((dayIndex) => {
+          const date = getCalendarDate(dayIndex)
+          const weekday = date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }).toUpperCase()
+          const hasFreight = scheduleLoads.some((load) => (load.pickupDayIndex ?? liveDay) === dayIndex || (load.deliveryDayIndex ?? liveDay) === dayIndex)
+          return <button type="button" key={dayIndex} className={dayIndex === currentDay ? 'active' : ''} onClick={() => { setCurrentDay(dayIndex); setSelectedLoadId(null) }}><span>{dayIndex === liveDay ? 'TODAY' : weekday}</span><strong>{formatCompactDate(dayIndex)}</strong>{hasFreight && <i aria-label="Freight planned" />}</button>
+        })}
+      </nav>
 
       <div className="scheduler-driver-tabs aw14" aria-label="Driver schedules">
         {drivers.filter((item) => item.carrierId).map((item) => (
@@ -314,7 +330,7 @@ function FleetSchedulerScreen({
         )}
         {workday?.lunchEvent?.selectedChoiceId && (
           <div className="scheduler-lunch-choice-summary">
-            <span>TODAY'S LUNCH</span>
+            <span>SCHEDULED LUNCH</span>
             <strong>{workday.lunchEvent.title}</strong>
             <small>{Number(workday.lunchEvent.effects?.recovery || 0) > 0 ? `RECOVERY +${workday.lunchEvent.effects.recovery}` : Number(workday.lunchEvent.effects?.recovery || 0) < 0 ? `RECOVERY ${workday.lunchEvent.effects.recovery}` : 'RECOVERY NEUTRAL'}{Number(workday.lunchEvent.effects?.earlyCheckInBonusMinutes || 0) > 0 ? ` · EARLY CHECK +${workday.lunchEvent.effects.earlyCheckInBonusMinutes}` : ''}{Number(workday.lunchEvent.effects?.relationship || 0) ? ` · RELATIONSHIP ${Number(workday.lunchEvent.effects.relationship) > 0 ? '+' : ''}${workday.lunchEvent.effects.relationship}` : ''}</small>
           </div>
@@ -388,7 +404,10 @@ function FleetSchedulerScreen({
                   {load.id === focusLoadId && <em>NEW</em>}
                 </button>
               }
-              return [event('pickup', pickupMinute, pickup), event('delivery', deliveryMinute, delivery)]
+              return [
+                (load.pickupDayIndex ?? currentDay) === currentDay ? event('pickup', pickupMinute, pickup) : null,
+                (load.deliveryDayIndex ?? currentDay) === currentDay ? event('delivery', deliveryMinute, delivery) : null,
+              ].filter(Boolean)
             })}
             {!currentDayLoads.length && <div className="scheduler-open-day"><strong>OPEN DAY</strong><span>No routes are planned for {driver?.fullName || driver?.name || 'this driver'} yet.</span></div>}
           </div>
@@ -402,7 +421,7 @@ function FleetSchedulerScreen({
               <div><span>AGENDA · DRIVER HOURS</span><strong>{driver?.fullName || driver?.name}</strong></div>
               <button type="button" onClick={() => setWorkdayEditorOpen(false)} aria-label="Close workday editor">×</button>
             </div>
-            <p>{workdayEditorMode === 'lunch' ? 'Set today’s lunch window. You can adjust it until the driver actually begins lunch.' : 'Set the driver’s scheduled start and end time. Lunch is managed separately.'}</p>
+            <p>{workdayEditorMode === 'lunch' ? 'Set this day’s lunch window. You can adjust it until the driver actually begins lunch.' : 'Set the driver’s scheduled start and end time. Lunch is managed separately.'}</p>
             {workdayEditorMode === 'full' ? (
               <div className="scheduler-workday-fields scheduler-workday-time-fields">
                 <TimeStepper label="START TIME" value={workdayDraft.start} onChange={(value) => setWorkdayDraft((current) => ({ ...current, start: value }))} />

@@ -34,3 +34,19 @@ CS2.0A.12.4 — Scheduler Shell + Route Continuity
 
 CS2.0B.4.1.3.6 — Agenda uses raised index-style driver tabs; active driver is blue and future inactive drivers remain neutral.
 - CS2.0B.4.1.3.7 — Driver Tab Shape Polish: refines Agenda driver selection into a compact raised file-divider tab attached to Driver Workday; presentation only.
+
+## CS2.0B.4.2.1-TEST — Seven-Day Agenda Foundation
+**Base:** CS2.0B.4.1.3.7-STABLE
+**Status:** IN TEST — not a stable checkpoint.
+Introduces the canonical roadmap and first Multi-Day Operations slice: seven-day Agenda navigation, real calendar dates, selected-date driver workdays, and correct cross-midnight stop rendering. Stable source remains CS2.0B.4.1.3.7-STABLE until user approval.
+
+### CS2.0B.4.2.1.1-TEST
+B.4.2.1 visual-feedback revision. Replaced the scrollable seven-day Agenda pill selector with a fixed seven-across tab bar. B.4.2 remains IN TEST; CS2.0B.4.1.3.7-STABLE remains the stable checkpoint.
+
+- `CS2.0B.4.2.1.2-TEST` — Agenda seven-day tab height corrected; redundant selected-date subtitle removed. TEST ONLY.
+
+## CS2.0B.4.2.1-STABLE — Seven-Day Agenda Foundation
+**Base:** CS2.0B.4.1.3.7-STABLE
+**Approved:** 2026-09-15
+**Status:** STABLE SLICE within CS2.0B.4.2; full B.4.2 remains IN TEST.
+Locks the approved seven-day Agenda Day View, real calendar dates, per-date workday editing foundation, cross-midnight stop rendering, fixed seven-across date tabs, corrected tab-row height, and removal of the redundant selected-date subtitle. Next development slice: CS2.0B.4.2.2-TEST — Midnight Rollover & Overnight Persistence.
