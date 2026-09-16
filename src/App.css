@@ -13084,3 +13084,92 @@
 .freightlink-date-strip button { flex:0 0 auto; min-width:58px; min-height:30px; padding:0 9px; border:1px solid #303842; background:#14191f; color:#7f8c99; border-radius:8px; font-size:8px; font-weight:900; letter-spacing:.08em; }
 .freightlink-date-strip button.active { border-color:#6b6375; background:#25212b; color:#ece8ef; }
 .freightlink-date-strip button span { white-space:nowrap; }
+
+/* CS2.0B.4.2.6 — locked workflow email review */
+.email-workflow-review { display:grid; gap:10px; }
+.email-review-field, .email-review-message, .email-review-attachments { border:1px solid #35414c; border-radius:9px; background:#141a20; padding:11px 12px; display:grid; gap:6px; }
+.email-review-field > span, .email-review-message > span, .email-review-section-heading > span { color:#7f91a3; font-size:8px; font-weight:900; letter-spacing:.14em; }
+.email-review-field > strong { color:#edf1f4; font-size:12px; line-height:1.35; }
+.email-review-message p { margin:0; color:#d7dfe5; font-size:12px; line-height:1.48; white-space:pre-line; }
+.email-review-section-heading { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.email-review-section-heading small { color:#7f91a3; font-size:9px; }
+.email-file-link.review { width:100%; border:1px solid #303b45; border-radius:8px; background:#11171c; padding:9px 10px; display:grid; grid-template-columns:auto 1fr; gap:8px; text-align:left; color:inherit; align-items:center; }
+.email-file-link.review > span:last-child { display:grid; gap:2px; }
+.email-file-link.review strong { color:#dce5eb; font-size:10px; }
+.email-file-link.review small { color:#8295a6; font-size:8px; }
+\n\n/* CS2.0B.4.2.6.1 — workflow review reads like an email, not a card stack */
+.email-compose-v3 .email-compose-scroll:has(.email-paper-review) { padding:0 16px 12px; gap:0; }
+.email-paper-review { display:block; background:#11161b; border:0; border-radius:0; overflow:hidden; }
+.email-review-header-row { display:grid; grid-template-columns:54px minmax(0,1fr); gap:8px; align-items:start; padding:11px 4px; border-bottom:1px solid rgba(68,79,89,.55); }
+.email-review-header-row > span { color:#8294a5; font-size:9px; font-weight:850; letter-spacing:.04em; text-transform:none; }
+.email-review-header-row > strong { min-width:0; color:#e8edf1; font-size:11.5px; line-height:1.35; font-weight:750; overflow-wrap:anywhere; }
+.email-review-header-row.subject > strong { color:#f1f3f5; }
+.email-review-body { min-height:118px; padding:18px 4px 20px; border-bottom:1px solid rgba(68,79,89,.55); }
+.email-review-body p { margin:0; color:#d8e0e6; font-size:12px; line-height:1.58; white-space:pre-line; }
+.email-paper-attachments { border:0; border-radius:0; background:transparent; padding:13px 4px 6px; display:grid; gap:8px; }
+.email-paper-attachments .email-review-section-heading > span { color:#8294a5; font-size:7.5px; }
+.email-paper-attachments .email-review-section-heading small { color:#748697; font-size:8px; }
+.email-paper-attachments .email-file-link.review { border:0; border-radius:0; border-top:1px solid rgba(54,65,75,.7); background:transparent; padding:9px 2px 5px; }
+.email-paper-attachments .email-file-link.review:first-of-type { border-top:0; }
+.email-paper-attachments .email-file-link.review strong { font-size:10px; }
+.email-compose-v3:has(.email-paper-review) .email-compose-bottom { padding:9px 16px 12px; }
+.email-compose-v3:has(.email-paper-review) .email-compose-bottom .docos-primary-action { min-height:40px; }
+
+/* CS2.0B.4.2.6.2 — locked workflow email is a fixed review surface, not a scroll view */
+.email-compose-v3:has(.email-paper-review) {
+  height:100%;
+  min-height:0;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.email-compose-v3:has(.email-paper-review) .email-compose-toolbar,
+.email-compose-v3:has(.email-paper-review) .email-compose-bottom { flex:0 0 auto; }
+.email-compose-v3:has(.email-paper-review) .email-compose-scroll {
+  flex:1 1 auto;
+  min-height:0;
+  overflow:hidden;
+  overscroll-behavior:none;
+  touch-action:none;
+  padding-bottom:4px;
+}
+.email-compose-v3:has(.email-paper-review) .email-paper-review {
+  height:100%;
+  min-height:0;
+  box-sizing:border-box;
+}
+.email-compose-v3:has(.email-paper-review) .email-review-body {
+  min-height:82px;
+  padding:14px 4px 14px;
+}
+.email-compose-v3:has(.email-paper-review) .email-paper-attachments {
+  padding-top:10px;
+  gap:5px;
+}
+.email-compose-v3:has(.email-paper-review) .email-paper-attachments .email-file-link.review {
+  padding:6px 2px 4px;
+}
+
+
+/* CS2.0B.4.2.6.3 — keep all locked workflow attachments visible on the fixed email surface */
+.email-compose-v3:has(.email-paper-review.attachment-count-3) .email-review-body {
+  min-height:56px;
+  padding-top:10px;
+  padding-bottom:10px;
+}
+.email-compose-v3:has(.email-paper-review.attachment-count-3) .email-paper-attachments {
+  padding-top:7px;
+  gap:2px;
+}
+.email-compose-v3:has(.email-paper-review.attachment-count-3) .email-paper-attachments .email-file-link.review {
+  padding:4px 2px 3px;
+}
+.email-compose-v3:has(.email-paper-review.attachment-count-3) .email-paper-attachments .email-file-link.review strong {
+  display:-webkit-box;
+  -webkit-line-clamp:1;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.email-compose-v3:has(.email-paper-review.attachment-count-3) .email-paper-attachments .email-file-link.review small {
+  line-height:1.15;
+}

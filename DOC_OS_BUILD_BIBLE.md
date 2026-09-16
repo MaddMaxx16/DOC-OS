@@ -825,3 +825,26 @@ FreightLink is a rolling seven-day planning market. Available freight can have p
 ## B.4.2-STABLE — Multi-Day Operations
 B.4.2-STABLE freezes the approved multi-day architecture. Agenda owns real calendar dates and full-day views; midnight advances the calendar without lifecycle authority; active freight and physical driver state persist across date changes; Shift End is the explicit post-work staging instruction; future freight is planning state until legitimate work/dispatch authority exists; and FreightLink exposes a rolling seven-day market with real pickup/delivery dates including early-morning appointments. Payment/revenue authority remains tied to completed freight and approved POD. The stable candidate and exact promoted real-repository source both passed on-device testing. This section describes current stable behavior and introduces no future-phase mechanics.
 
+
+## Email — Workflow Review Rule (B.4.2.6-STABLE)
+Operational workflow emails are system-prepared business communications. The player reviews and sends them; recipient, subject, message, and required attachments are locked. Schedule Approval remains one batch email for the planned schedule. Email presentation must not independently advance freight, movement, POD, payment, or approval state before Send.
+
+### Compact Workflow Email presentation — B.4.2.6-STABLE
+Required operational email remains locked Review → Send. The review surface uses conventional email hierarchy (To, Subject, message body, attachments, Send) rather than independent dashboard cards. Operational workflow logic remains unchanged.
+
+### Locked workflow email — fixed review surface (B.4.2.6-STABLE)
+Workflow-generated Email remains a locked Review → Send experience presented as an email. The review surface is fixed rather than vertically scrollable: the toolbar and Send action stay anchored, the compact email body/attachments fit within the device, and vertical drag/overscroll is suppressed. General/freeform Email behavior is unchanged.
+
+
+### Email correction entry points (B.4.2.6-STABLE)
+- Pickup freight exceptions hold the driver until the dispatcher sends the locked pickup-correction email from the alert action.
+- POD document corrections continue to originate from the POD review/document workflow and use the locked POD-correction email.
+- Opening a correction email does not release the driver; SEND is the authoritative release event for the pickup exception.
+- Locked workflow emails remain non-scrollable; three required attachments are compacted to remain visible.
+
+
+## B.4.2.6-STABLE — Compact Email Workflow
+The approved Email contract is formal Review → Send. Required operational emails are system-prepared and locked; the player reviews recipient, subject, message, and required attachments, then explicitly sends. Schedule Approval remains a multi-load batch communication. Correction and Invoice Submission workflows use the same presentation. Opening/reviewing an email never grants movement or business-state authority by itself. For pickup exception holds, SEND is the authoritative release event. The fixed workflow review surface does not vertically bounce and compacts required attachments to fit. General/freeform composer infrastructure remains available but is not the required workflow path.
+
+### Known Documents handoff for B.4.3
+The current Documents architecture may continue to expose Request Correction on a POD after a corrected copy has been received, and older exception details may surface in downstream document views. This is not part of the Email contract. B.4.3 must establish authoritative current-versus-superseded document versions and make downstream invoice/settlement workflows reference the current POD consistently.

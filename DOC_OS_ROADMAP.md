@@ -3,7 +3,7 @@
 Canonical roadmap introduced with CS2.0B.4.2. This file is the source of truth for phase order and status.
 
 ## CURRENT STABLE CHECKPOINT
-**CS2.0B.4.2-STABLE — Multi-Day Operations**
+**CS2.0B.4.2.6-STABLE — Compact Email Workflow**
 
 ## COMPLETE — STABLE
 ### CS2.0B.4.2 — Multi-Day Planning & Shift End Operations
@@ -24,12 +24,17 @@ All B.4.2 implementation slices passed user testing through `CS2.0B.4.2.5-TEST`,
 
 **Protected at this checkpoint:** Operations/core lifecycle, explicit dispatch authority, midnight calendar-only behavior, payment/document closure rules, and B.4.1.3.7-established gameplay.
 
-## NEXT
+## COMPLETE — STABLE
 ### CS2.0B.4.2.x — Compact Email Workflow Polish
-Outgoing email becomes compact and standardized before document-correction workflows are introduced.
+Operational workflow Email is now a locked Review → Send experience with conventional email presentation. Schedule Approval, POD Correction, pickup-exception correction, and Invoice Submission were acceptance-tested on device. Required attachments fit the fixed review surface, and formal workflow state changes occur only on explicit SEND.
 
+**Stable checkpoint:** `CS2.0B.4.2.6-STABLE — Compact Email Workflow`
+
+**Protected at this checkpoint:** `CS2.0B.4.2-STABLE` multi-day operations plus the approved locked workflow Email contract and presentation.
+
+## NEXT
 ### CS2.0B.4.3 — Documents & Rate Confirmation Workflow
-Rate Confirmation compare/verify/correction workflow; permanent load packet; Documents becomes archive/review/settlement hub.
+Rate Confirmation compare/verify/correction workflow; permanent load packet; Documents becomes archive/review/settlement hub. Corrected-document lifecycle must establish one authoritative current POD so superseded PODs do not continue offering `Request Correction` or leak stale exception details into downstream invoice/settlement views.
 
 ### CS2.0B.4.4 — LedgerDesk Banking
 Available Cash, Pending Deposits, Accounts Receivable, transaction feed, and dispatcher-fee-only banking.
@@ -118,3 +123,26 @@ IN TEST. Adds persistent truck-stop map markers and smooth visual interpolation 
 
 
 > **Stable promotion — CS2.0B.4.2-STABLE:** Final stable candidate passed on-device smoke testing and the exact promoted source passed in the real repository. B.4.2 is complete; next roadmap work is Compact Email Workflow Polish.
+
+### CS2.0B.4.2.6 — Compact Locked Workflow Email — ACCEPTED
+- Workflow-generated Email is Review → Send: recipient, subject, body, and required attachments are locked.
+- Schedule Approval uses the existing multi-load batch approval flow, now with a review gate and time-neutral copy.
+- POD Correction and Invoice Submission use the same compact locked review presentation.
+- General/freeform composer infrastructure remains available but is not used for required operational workflows.
+- Protected: CS2.0B.4.2-STABLE multi-day, Shift End, FreightLink, freight lifecycle, POD, LedgerDesk/payment, approval timing, and automated response timing.
+
+### CS2.0B.4.2.6.1 — Email Presentation — ACCEPTED
+- Keeps locked Review → Send workflow behavior from B.4.2.6.
+- Removes workflow/card-stack presentation from locked operational email.
+- Locked email now uses conventional To/Subject header rows, open message body, inline attachment area, and compact Send action.
+- No workflow authority, timing, freight, POD, payment, or B.4.2-STABLE behavior changes.
+
+### CS2.0B.4.2.6.2 — Fixed Workflow Email Review — ACCEPTED
+- [COMPLETE] Locked Review → Send workflow email is fixed/non-scrollable when its compact content fits the device.
+- [COMPLETE] Removes vertical drag/overscroll from workflow email while preserving the approved email-style presentation.
+- Protected: CS2.0B.4.2-STABLE gameplay systems and operational email workflow logic remain unchanged.
+
+- **CS2.0B.4.2.6.3 — Correction Email Entry Points + Attachment Fit — ACCEPTED:** Pickup exception alert now opens a locked correction email; the driver remains held until SEND. POD document correction remains the canonical post-delivery POD correction path. Fixed workflow email layout compacts three attachments so none are cut off. B.4.2-STABLE remains protected.
+
+
+> **Stable promotion — CS2.0B.4.2.6-STABLE:** Compact Email Workflow passed acceptance testing for Schedule Approval, correction workflows, Invoice Submission, fixed Review → Send presentation, SEND-owned workflow authority, and three-attachment fit. The known repeated-correction behavior on already-corrected PODs is intentionally deferred to B.4.3 Documents architecture.

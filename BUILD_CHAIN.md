@@ -145,3 +145,32 @@ Presentation handoff correction: after Shift End state releases, an on-duty/acti
 - Final candidate passed on-device smoke testing; the exact promoted source also passed in the real Git repository.
 - Freezes the completed B.4.2 multi-day Agenda, cross-midnight persistence, Shift End staging/authority, next-workday visual handoff, and rolling seven-day FreightLink market.
 - Official stable checkpoint replacing CS2.0B.4.2.1-STABLE.
+
+## CS2.0B.4.2.6-TEST — Compact Locked Workflow Email
+- Built from CS2.0B.4.2-STABLE.
+- Added locked Review → Send presentation for operational workflow email.
+- Added review gate to existing batch Schedule Approval email without changing approval authority/timing.
+- Removed time-specific "Morning" copy from Schedule Approval.
+
+## CS2.0B.4.2.6.1-TEST — Email Presentation
+- Built cumulatively from CS2.0B.4.2.6-TEST.
+- Presentation-only revision: locked workflow Review → Send now reads visually as an email rather than a stack of workflow cards.
+
+## CS2.0B.4.2.6.2-TEST — Fixed Workflow Email Review
+- Presentation-only follow-up to B.4.2.6.1.
+- Removes vertical scrolling/overscroll from locked workflow Review → Send.
+- Compacts body/attachment spacing so the fixed email surface remains usable on iPhone.
+- No workflow authority, timing, freight, driver, document, or payment logic changed.
+
+- CS2.0B.4.2.6.3-TEST — routed pickup correction alert through locked Email Review → Send; SEND releases pickup hold; compacted fixed attachment list so three scheduled-load attachments remain visible.
+
+
+## CS2.0B.4.2.6-STABLE — Compact Email Workflow
+Promoted after user acceptance of the cumulative B.4.2.6 → B.4.2.6.3 test chain.
+- Workflow-generated Email uses locked Review → Send for required operational communication.
+- Schedule Approval preserves the multi-load batch email and time-neutral copy.
+- POD/pickup correction entry points route through formal Email; opening the email does not release the pickup hold, SEND does.
+- Invoice Submission uses the same locked review presentation.
+- Fixed review surface prevents whole-screen bounce while keeping required attachments visible, including three-load schedule approval.
+- Known Documents issue deferred to B.4.3: an already-corrected POD may still expose Request Correction / stale original exception context because authoritative document-version architecture has not yet been rebuilt.
+- Protected base: CS2.0B.4.2-STABLE Multi-Day Operations.

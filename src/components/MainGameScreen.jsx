@@ -291,6 +291,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [driverFitEvaluation, setDriverFitEvaluation] = useState(null)
   const [phoneLoadId, setPhoneLoadId] = useState(null)
   const [phoneInitialDriverId, setPhoneInitialDriverId] = useState(null)
+  const [phoneInitialEmailContext, setPhoneInitialEmailContext] = useState(null)
   const [planningMode, setPlanningMode] = useState(null)
   const [deliveryPlanning, setDeliveryPlanning] = useState(null)
   const modalPauseWasAlreadyPausedRef = useRef(false)
@@ -1737,7 +1738,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   // AV2.17 — one carrier approval request per planned schedule batch.
   // FreightLink only adds fitted freight to the proposed plan; the Schedule is the
   // single place that actually contacts the carrier. One email can cover many loads.
-  const requestScheduleApproval = (driverId) => {
+  const requestScheduleApproval = (driverId, reviewedEmail = {}) => {
     if (!driverId) return false
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     const driver = drivers.find((item) => item.id === driverId)
@@ -1758,8 +1759,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       recipientId: `${carrier?.id || 'metroline'}-operations`,
       recipientLabel: `${carrier?.name || 'Metroline Transport'} · Operations`,
       carrierId: carrier?.id || driver?.carrierId || null,
-      subject: `Approval request · ${firstName} · ${candidates.length} load${candidates.length === 1 ? '' : 's'}`,
-      bodyOverride: `Morning,\n\nPlease review the following freight for ${firstName}'s planned schedule:\n\n${lines.join('\n')}\n\nDOC OS has checked the schedule fit for the full plan. Please confirm which loads are approved.\n\nThank you.`,
+      subject: reviewedEmail.subject || `Approval request · ${firstName} · ${candidates.length} load${candidates.length === 1 ? '' : 's'}`,
+      bodyOverride: reviewedEmail.body || `Please review the attached FreightLink offer${candidates.length === 1 ? '' : 's'} for ${firstName}'s planned schedule. Confirm which loads are approved.`,
       attachments: candidates.map((load) => ({ id: `load-offer:${load.id}`, type: 'load-offer', title: `${getFreightBusinessName(load, 'pickup')} → ${getFreightBusinessName(load, 'delivery')}`, meta: 'FreightLink offer', loadId: load.id })),
       workflowType: 'carrier-approval',
       workflowValid: true,
@@ -2074,28 +2075,21 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     }
     if (action === 'resolve-pickup-issue' && notification?.loadId) {
       const load = loads.find((item) => item.id === notification.loadId)
-      const driverId = load?.assignedDriverId
-      const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-      if (load && driverId) {
-        // AV2.11.2: correcting a pickup exception resolves the facility problem;
-        // it does NOT choose that load's delivery. Put the freight onboard, then
-        // let the same canonical itinerary authority used by clean pickups decide
-        // Marcus's next stop.
-        const projectedLoads = loads.map((item) => item.id === load.id ? {
-          ...item,
-          tripStatus: 'onboard-hold', status: 'onboard', pickupIssueResolvedGameMinute: now,
-          deliveryDepartureGameMinute: null, plannedDeliveryDepartureGameMinute: null,
-          waitingReason: 'itinerary-next-stop',
-        } : item)
-        setLoads(projectedLoads)
-        setDriverRuntimeProgress(driverId, 0)
-        setDriverMessages?.((current) => [...current, {
-          id: `pickup-corrected-${load.id}-${now}`, driverId,
-          sender: drivers.find((driver) => driver.id === driverId)?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId: load.id,
-          body: 'They got it corrected. Freight is secure now.', messageIntent: 'exception-resolved', requiresResponse: false,
-          receivedGameMinute: now + 0.01, read: false,
-        }])
-      }
+      if (!load) return
+      const carrier = carriers.find((item) => item.id === load.carrierId) || carriers[0]
+      setPhoneInitialEmailContext({
+        workflowType: 'pickup-correction',
+        label: 'PICKUP CORRECTION',
+        loadId: load.id,
+        loadNumber: getFreightRouteName(load),
+        suggestedRecipientId: `${carrier?.id || 'metroline'}-documents`,
+        subject: `Pickup correction required · ${getFreightRouteName(load)}`,
+        body: `Please correct the pickup discrepancy for ${getFreightRouteName(load)} before departure. The freight exception record is attached.`,
+        returnScreen: 'home',
+      })
+      setPhoneInitialScreen('emailCompose')
+      setPhoneLoadId(load.id)
+      setIsPhoneOpen(true)
       return
     }
     if (action === 'pickup') {
@@ -2644,6 +2638,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             initialScreen={phoneInitialScreen}
             initialLoadId={phoneLoadId}
             initialDriverId={phoneInitialDriverId}
+            initialEmailComposeContext={phoneInitialEmailContext}
             documentsBadgeCount={podNotificationCount}
             ledgerUnreadCount={loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved && !seenLedgerReceivableIds.includes(load.id)).length + receivables.filter((item) => item.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(item.loadId)).length}
             emailUnreadCount={emailUnreadCount}
@@ -2654,6 +2649,17 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             onSendDriverLoadUpdate={sendDriverLoadUpdate}
             onSendDriverSchedule={sendDriverSchedule}
             onSendDriverQuickReply={sendDriverQuickReply}
+            onPickupCorrectionSent={(loadId) => {
+              const load = loads.find((item) => item.id === loadId)
+              const driverId = load?.assignedDriverId
+              if (!load || !driverId || load.tripStatus !== 'pickup-issue') return false
+              const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+              setLoads((current) => current.map((item) => item.id === loadId ? { ...item, tripStatus: 'onboard-hold', status: 'onboard', pickupIssueResolvedGameMinute: now, deliveryDepartureGameMinute: null, plannedDeliveryDepartureGameMinute: null, waitingReason: 'itinerary-next-stop' } : item))
+              setDriverRuntimeProgress(driverId, 0)
+              setDriverMessages?.((current) => [...current, { id: `pickup-corrected-${loadId}-${now}`, driverId, sender: drivers.find((driver) => driver.id === driverId)?.fullName || 'Driver', senderRole: 'Driver', direction: 'inbound', loadId, body: 'They got it corrected. Freight is secure now.', messageIntent: 'exception-resolved', requiresResponse: false, receivedGameMinute: now + 0.01, read: false }])
+              setPhoneInitialEmailContext(null)
+              return true
+            }}
             onPlanDeliveryRoute={(loadId) => { setIsPhoneOpen(false); startDeliveryPlanning(loadId) }}
             onOpenLedger={onOpenLedger}
             ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}

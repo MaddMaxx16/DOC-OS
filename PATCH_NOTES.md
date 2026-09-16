@@ -1,23 +1,22 @@
-# PATCH NOTES — CS2.0B.4.2-STABLE
+# PATCH NOTES
 
-## Stable promotion
-B.4.2 — Multi-Day Planning & Shift End Operations is approved STABLE. The final stable candidate passed on-device smoke testing, and the exact promoted source passed again in the real Git repository. This promotion changes documentation/status only; it introduces no new gameplay behavior beyond the approved candidate.
+## CS2.0B.4.2.6-STABLE — Compact Email Workflow Promotion
 
-## Stable contents
-- Seven-day, real-date Agenda with full 24-hour Day View.
-- Per-date driver workday/lunch planning and cross-midnight continuity.
-- Calendar-only midnight rollover with open freight/route/position persistence.
-- Shift End Plan staging to Carrier Yard or fixed truck/rest stops.
-- Active freight retains authority past Shift End until completion; staging executes afterward.
-- Shift End badges: 💤 traveling, 🌙 staged, normal blue presentation on next workday.
-- Future scheduled freight cannot steal off-hours/staging movement authority.
-- Rolling seven-day FreightLink market with future-date and midnight/early-morning pickups.
-- Real pickup/delivery calendar dates retained through booking and operation.
-- Daily Closeout remains a business-day report rather than a world reset.
-- Revenue/payment eligibility remains tied to load closure/approved POD, not date rollover.
+This cumulative promotion patch moves the fully acceptance-tested Email work from the disposable B.4.2.6 test chain into the protected real repository.
 
-## Protected systems
-No intentional changes to frozen Operations/core lifecycle, explicit dispatch flow, Communications scope, HOS, Documents correction workflows, or LedgerDesk banking scope.
+### Promoted behavior
+- Locked Review → Send for required operational workflow emails.
+- Conventional email presentation with To, Subject, open message body, attachments, and one Send action.
+- Fixed/non-bouncing workflow review surface.
+- Three required attachments compact correctly instead of being cut off.
+- Schedule Approval keeps one multi-load batch email with time-neutral copy.
+- Pickup exception alert opens the formal correction email; the driver remains held until SEND.
+- POD document correction continues through the same formal Email contract.
+- Invoice + approved POD submission uses the locked review workflow.
+- Existing response timing and protected B.4.2 multi-day Operations behavior remain unchanged.
 
-## Next roadmap phase
-CS2.0B.4.2.x — Compact Email Workflow Polish.
+### Known issue intentionally deferred
+Documents can still offer Request Correction after a corrected POD has already been received, and older POD exception context can appear in later document views. This is a B.4.3 document-version/lifecycle architecture issue and is intentionally not patched during Email promotion.
+
+### Next roadmap phase
+`CS2.0B.4.3 — Documents & Rate Confirmation Workflow`
