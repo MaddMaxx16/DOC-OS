@@ -22,7 +22,7 @@ function EndDaySheet({ operationDay, status, onCancel, onConfirm }) {
           <button type="button" className="end-day-sheet-close" onClick={onCancel} aria-label="Cancel end day">×</button>
         </header>
 
-        <p className="end-day-sheet-copy">Make sure all active work is complete before ending the operation.</p>
+        <p className="end-day-sheet-copy">Review today’s business activity. Open work will carry forward without resetting the world.</p>
 
         <div className="end-day-status-grid">
           {rows.map(([label, value]) => (
@@ -33,23 +33,21 @@ function EndDaySheet({ operationDay, status, onCancel, onConfirm }) {
           ))}
         </div>
 
-        {!status.canEnd && (
+        {status.carryover?.length > 0 ? (
           <div className="end-day-blockers" role="status">
-            <strong>Cannot close operation yet</strong>
-            {status.blockers.map((blocker) => <span key={blocker}>• {blocker}</span>)}
+            <strong>Carryover into the next date</strong>
+            {status.carryover.map((item) => <span key={item}>• {item}</span>)}
           </div>
-        )}
-
-        {status.canEnd && (
+        ) : (
           <div className="end-day-ready" role="status">
             <span className="end-day-ready-dot" aria-hidden="true" />
-            <span>Operation is clear to close.</span>
+            <span>No open operational work is carrying forward.</span>
           </div>
         )}
 
         <div className="end-day-sheet-actions">
           <button type="button" className="end-day-cancel" onClick={onCancel}>CANCEL</button>
-          <button type="button" className="end-day-confirm" onClick={onConfirm} disabled={!status.canEnd}>END DAY</button>
+          <button type="button" className="end-day-confirm" onClick={onConfirm} disabled={!status.canEnd}>VIEW CLOSEOUT</button>
         </div>
       </section>
     </div>

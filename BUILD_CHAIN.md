@@ -50,3 +50,98 @@ B.4.2.1 visual-feedback revision. Replaced the scrollable seven-day Agenda pill 
 **Approved:** 2026-09-15
 **Status:** STABLE SLICE within CS2.0B.4.2; full B.4.2 remains IN TEST.
 Locks the approved seven-day Agenda Day View, real calendar dates, per-date workday editing foundation, cross-midnight stop rendering, fixed seven-across date tabs, corrected tab-row height, and removal of the redundant selected-date subtitle. Next development slice: CS2.0B.4.2.2-TEST — Midnight Rollover & Overnight Persistence.
+
+## CS2.0B.4.2.2-TEST — Midnight Rollover & Overnight Persistence
+**Base:** CS2.0B.4.2.1-STABLE
+**Status:** IN TEST — not stable.
+Separates calendar rollover from Daily Closeout authority. Midnight advances date bookkeeping only; active/open freight, driver assignment, runtime position, and route state remain untouched. Daily Closeout becomes a report and returns to the same live game minute instead of jumping to a future start time.
+
+### CS2.0B.4.2.2.1-TEST — Hidden Dev Time Controls
+**Base:** CS2.0B.4.2.2-TEST
+**Status:** IN TEST — testing-support revision only.
+Extends the existing long-press DOC OS iPhone Dev Tools with current game time, Set Near Midnight (11:55 PM), +1 Hour, +6 Hours, and +1 Day controls. The controls mutate only the existing game clock and add no gameplay authority. B.4.2 remains IN TEST.
+
+### CS2.0B.4.2.2.2-TEST — Dev Tools Safety Fix
+Built on CS2.0B.4.2.2.1-TEST. Test-only safety revision: scrollable hidden Dev Tools, persistent close control, legacy Day 1 reset disabled, and confirmation required for full game reset. B.4.2 remains IN TEST; stable checkpoint remains CS2.0B.4.2.1-STABLE.
+
+### CS2.0B.4.2.2.3-TEST
+Testing-support revision on B.4.2.2.2. Adds a controlled overnight delivery preset to the existing hidden iPhone Dev Tools so midnight persistence can be tested without manufacturing a late appointment.
+
+## CS2.0B.4.2.3-TEST — Overnight Staging & Next-Day Continuity
+**Base:** approved CS2.0B.4.2.2 test line
+**Status:** IN TEST — not stable.
+Adds explicit per-driver/per-date overnight staging to Agenda. End-of-day idle positioning is no longer an automatic yard return: the dispatcher selects Stay Near Final Stop, Nearby Staging, or Return to Metroline. The selected physical position/route persists into the next date and becomes the next routing origin. HOS/rest legality remains deferred to B.5.
+
+### CS2.0B.4.2.3.1-TEST — Overnight Choice Cleanup
+**Base:** CS2.0B.4.2.3-TEST
+**Status:** IN TEST — not stable.
+Narrows overnight parking to Truck Stop or Carrier Yard, removes player-facing development-roadmap language, and requires an explicit overnight selection before showing the completed state.
+
+### CS2.0B.4.2.3.2-TEST — Cross-Midnight Workdays
+Built on CS2.0B.4.2.3.1-TEST. Adds next-calendar-day workday end semantics and makes overnight staging use the workday's absolute end across midnight. B.4.2 remains IN TEST.
+
+- CS2.0B.4.2.3.3-TEST — Overnight Staging Movement Persistence (IN TEST)
+
+### CS2.0B.4.2.3.4-TEST — Overnight Map Status Polish
+**Base:** CS2.0B.4.2.3.3-TEST
+**Status:** IN TEST — presentation-only revision.
+Replaces verbose overnight map labels with compact state symbols: 💤 while Marcus is traveling to his selected overnight staging destination and 🌙 once he has arrived and is parked for the night. No routing, schedule, lifecycle, HOS, or staging-authority behavior changed.
+
+- CS2.0B.4.2.3.5-TEST — Overnight Status Badge Polish: compact overnight map status attached to the driver marker; no operational logic changes.
+
+- CS2.0B.4.2.3.6-TEST — Overnight Badge Size Fix (IN TEST): restores canonical driver marker size while retaining corner overnight badge.
+- CS2.0B.4.2.3.7-TEST — Strategic Truck Stop Selection: explicit fixed-world overnight staging choices (Carrier Yard + three truck stops) with distance context; selected location drives existing staging route. IN TEST.
+
+
+- CS2.0B.4.2.3.8-TEST — Overnight Agenda Timeline Continuity: extends selected-day Agenda vertically through midnight when work/freight continues, with a next-date divider and true next-day workday/stop positions. IN TEST.
+
+- CS2.0B.4.2.3.9-TEST — Carryover Day Timeline Window: receiving-day Agenda exposes the post-midnight portion of a prior day's cross-midnight workday and marks its true end; no Operations authority changes.
+
+### CS2.0B.4.2.3.10-TEST — Full Carryover Day Timeline
+Receiving-day Agenda continuity fix: carryover dates render the complete calendar day while preserving the inherited overnight window and any later same-day operations.
+
+### CS2.0B.4.2.3.11-TEST — 24-Hour Agenda Day View
+Agenda Day View normalized to a complete midnight-to-midnight calendar canvas for every selected date. Carryover and true next-day extensions remain supported. B.4.2 remains IN TEST.
+
+## CS2.0B.4.2.3.12-TEST — Truck Stop Map Markers & Staging Movement Polish
+- Added persistent compact map markers for the three strategic overnight truck stops.
+- Overnight staging travel now uses the map's fractional render clock for smooth visual movement while preserving simulation-authoritative arrival.
+
+- CS2.0B.4.2.3.13-TEST — Map POI Marker Size Consistency: truck-stop and carrier-yard POI markers now share the same footprint.
+
+## CS2.0B.4.2.4-TEST — B.4.2 Closure & Acceptance
+Built cumulatively from CS2.0B.4.2.3.13-TEST. Adds subdued overnight staging route visibility and moves the parent B.4.2 phase into explicit closure acceptance testing. No stable promotion yet.
+
+## CS2.0B.4.2.4.1-TEST — Next-Day Dispatch Authority Fix
+- Built cumulatively from CS2.0B.4.2.4-TEST.
+- Prevents a communicated next-day route from auto-departing outside the driver's scheduled workday.
+- Planned/assigned future freight no longer blocks an already-eligible overnight staging reposition.
+- Preserves freight, financial, document, Agenda, and HOS boundaries.
+
+## CS2.0B.4.2.4.2-TEST — Shift End Staging Authority
+- Refines B.4.2 closure behavior from overnight-trigger language to shift-end authority.
+- Shift End Plan owns post-shift staging once active freight is clear.
+- Midnight remains calendar-only and future scheduled freight does not become movement authority merely because the date changed.
+- Player-facing Agenda terminology changed from Overnight to Shift End.
+
+- CS2.0B.4.2.4.3-TEST — Shift End Status Badge Restoration: removes staging text labels and restores badge-only 💤 → 🌙 presentation while preserving Shift End movement authority.
+
+- CS2.0B.4.2.4.4-TEST — Shift End Visual Release: next workday clears completed staging presentation; active freight restores normal driver marker color.
+
+
+### CS2.0B.4.2.4.5-TEST — Driver Active Color Restoration
+Presentation handoff correction: after Shift End state releases, an on-duty/active driver returns to the canonical blue marker instead of inheriting queue-driven unavailable gray styling. No routing or lifecycle authority changes.
+
+- CS2.0B.4.2.5-TEST — Added rolling seven-day FreightLink market, future-dated pickup opportunities (including 12 AM–6 AM), and pickup-date filters.
+
+## CS2.0B.4.2-STABLE-CANDIDATE — Multi-Day Operations
+- Built cumulatively from the user-approved CS2.0B.4.2.5-TEST source chain.
+- Feature work frozen for final regression/smoke acceptance.
+- Consolidates the proven B.4.2 multi-day Agenda, cross-midnight persistence, Shift End staging, next-day visual handoff, and rolling seven-day FreightLink market.
+- Not stable until the user approves the candidate on-device and the approved source is promoted into the real Git repository.
+
+## CS2.0B.4.2-STABLE — Multi-Day Operations
+- Promoted from the user-approved CS2.0B.4.2-STABLE-CANDIDATE with no gameplay changes.
+- Final candidate passed on-device smoke testing; the exact promoted source also passed in the real Git repository.
+- Freezes the completed B.4.2 multi-day Agenda, cross-midnight persistence, Shift End staging/authority, next-workday visual handoff, and rolling seven-day FreightLink market.
+- Official stable checkpoint replacing CS2.0B.4.2.1-STABLE.

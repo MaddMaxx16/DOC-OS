@@ -28,10 +28,14 @@ import { getClockInMessage, getEndOfDayMessage, getRelationshipStartMessage } fr
 
 const IDLE_DWELL_MINUTES = 20
 
-function getIdleTargetLocationId(lastLocationId) {
-  if (['bronx-commerce-terminal', 'queens-freight-center'].includes(lastLocationId)) return 'queens-staging-area'
-  if (['newark-distribution-hub', 'elizabeth-logistics-park'].includes(lastLocationId)) return 'newark-fuel-stop'
-  return 'metroline-yard'
+function getOvernightTruckStopId(origin) {
+  const truckStops = mapLocations.filter((location) => ['queens-staging-area', 'newark-fuel-stop'].includes(location.id))
+  if (!origin || !truckStops.length) return 'newark-fuel-stop'
+  return truckStops.reduce((nearest, location) => {
+    const distance = ((location.longitude - origin.longitude) ** 2) + ((location.latitude - origin.latitude) ** 2)
+    const nearestDistance = ((nearest.longitude - origin.longitude) ** 2) + ((nearest.latitude - origin.latitude) ** 2)
+    return distance < nearestDistance ? location : nearest
+  }).id
 }
 
 function pointAlongRoute(route, progress) {
@@ -467,6 +471,25 @@ function App() {
 
 
   const applyDevPreset = async (name) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads([...preset.loads, ...loads.filter((load) => !preset.loads.some((item) => item.id === load.id)), ...seedLoads.filter((seed) => !preset.loads.some((item) => item.id === seed.id) && !loads.some((item) => item.id === seed.id))]); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgressByDriver(preset.runtimeProgressByDriver || (Number.isFinite(preset.runtimeProgress) ? { marcus: preset.runtimeProgress } : {})) } catch (error) { console.error('DEV preset route unavailable:', error) } }
+  const setupOvernightDevScenario = async () => {
+    try {
+      const testTime = { gameDayIndex: gameTime.gameDayIndex, totalMinutesOfDay: 23 * 60 + 45 }
+      const selectedLoadId = loads.some((load) => load.id === 'DOC113') ? 'DOC113' : (loads[0]?.id || 'DOC001')
+      const preset = await createDevPreset('overnight-delivery', { gameTime: testTime, currentLoads: loads, currentDrivers: drivers, currentRuntimePositions: runtimePositions, currentCarriers: carriers, selectedLoadId })
+      setStage(preset.stage)
+      setSelectedMarket(preset.selectedMarket)
+      setLoads([...preset.loads, ...loads.filter((load) => !preset.loads.some((item) => item.id === load.id)), ...seedLoads.filter((seed) => !preset.loads.some((item) => item.id === seed.id) && !loads.some((item) => item.id === seed.id))])
+      setDrivers(preset.drivers)
+      if (preset.carriers) setCarriers(preset.carriers)
+      setRuntimePositions(preset.runtimePositions)
+      setRuntimeProgressByDriver(preset.runtimeProgressByDriver || (Number.isFinite(preset.runtimeProgress) ? { marcus: preset.runtimeProgress } : {}))
+      setGameTime(testTime)
+      setSimulationSpeed(1)
+      setIsGameClockPaused(true)
+    } catch (error) {
+      console.error('DEV overnight scenario unavailable:', error)
+    }
+  }
   const applySelectedDevPreset = async (name, selectedLoadId) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers, currentRuntimePositions: runtimePositions, currentCarriers: carriers, selectedLoadId }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads([...preset.loads, ...loads.filter((load) => !preset.loads.some((item) => item.id === load.id)), ...seedLoads.filter((seed) => !preset.loads.some((item) => item.id === seed.id) && !loads.some((item) => item.id === seed.id))]); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgressByDriver(preset.runtimeProgressByDriver || (Number.isFinite(preset.runtimeProgress) ? { marcus: preset.runtimeProgress } : {})) } catch (error) { console.error('DEV preset route unavailable:', error) } }
   void applyDevPreset
   const resumeSave = (slotId) => {
@@ -868,7 +891,7 @@ function App() {
           latitude: delivery.latitude,
           lastKnownLocationId: completed.deliveryLocationId,
           idleSinceGameMinute: nextQueued ? null : gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay,
-          idleTargetLocationId: nextQueued ? null : getIdleTargetLocationId(completed.deliveryLocationId),
+          idleTargetLocationId: null,
           idleRouteStatus: nextQueued ? null : 'dwell',
           idleRouteGeometry: null,
           idleRouteStartGameMinute: null,
@@ -887,29 +910,89 @@ function App() {
   }, [loads, gameTime, dayLoop.operationDay])
 
 
-  // AV: idle repositioning is per-driver and interruptible. Returning to a yard
-  // is a default destination, never a commitment; assigning a load clears the idle route.
+  // B.4.2.4.2: shift-end staging is an explicit per-driver/per-date plan.
+  // The scheduled SHIFT END is the trigger; midnight has zero movement authority.
+  // Active freight may finish beyond shift end, then the driver follows the saved
+  // shift-end staging plan. Existing overnight* data keys remain for save compatibility.
   useEffect(() => {
     if (!hydrated || stage !== 'game' || dayLoop.phase !== 'operating') return undefined
-    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const dayIndex = gameTime.gameDayIndex
+    const now = dayIndex * 1440 + gameTime.totalMinutesOfDay
     drivers.forEach((driver) => {
-      if (getDriverActiveLoad(loads, driver.id)) return
-      if (driver.idleRouteStatus !== 'dwell' || !Number.isFinite(driver.idleSinceGameMinute) || !driver.idleTargetLocationId) return
-      if (now - driver.idleSinceGameMinute < IDLE_DWELL_MINUTES) return
+      // CS2.0B.4.2.4.1: planned/assigned future freight may be visible and already
+      // communicated, but it must not block an authorized shift-end reposition.
+      // Only freight that has actually entered an operational physical state owns
+      // the driver ahead of staging.
+      const activeLoad = getDriverActiveLoad(loads, driver.id)
+      const activeTripStatus = activeLoad?.tripStatus || activeLoad?.status
+      const freightOwnsMovement = Boolean(activeLoad && !['queued', 'assigned', 'route-ready'].includes(activeTripStatus))
+      if (freightOwnsMovement) return
+      const currentWorkday = driver.workdayByDay?.[String(dayIndex)] || driver.workdayByDay?.[dayIndex]
+      const priorDayIndex = dayIndex - 1
+      const priorWorkday = priorDayIndex >= 0 ? (driver.workdayByDay?.[String(priorDayIndex)] || driver.workdayByDay?.[priorDayIndex]) : null
+      const priorCrossesMidnight = priorWorkday && (Number(priorWorkday.endDayOffset) === 1 || (!Number.isFinite(Number(priorWorkday.endDayOffset)) && Number(priorWorkday.endMinutes) <= Number(priorWorkday.startMinutes)))
+      const currentStart = Number(currentWorkday?.startMinutes)
+      const priorCarryoverRelevant = priorCrossesMidnight && (!Number.isFinite(currentStart) || gameTime.totalMinutesOfDay < currentStart)
+      const workdayOwnerDay = priorCarryoverRelevant ? priorDayIndex : dayIndex
+      const workday = priorCarryoverRelevant ? priorWorkday : currentWorkday
+      if (driver.overnightAppliedDayIndex === workdayOwnerDay) return
+      if (!workday || !Number.isFinite(Number(workday.endMinutes))) return
+      const endDayOffset = Number.isFinite(Number(workday.endDayOffset)) ? Number(workday.endDayOffset) : (Number(workday.endMinutes) <= Number(workday.startMinutes) ? 1 : 0)
+      const endAbsolute = workdayOwnerDay * 1440 + Number(workday.endMinutes) + endDayOffset * 1440
+      if (now < endAbsolute) return
+      const mode = workday.overnightMode
+      if (!mode) return
       const origin = runtimePositions[driver.id]
-      const target = mapLocations.find((location) => location.id === driver.idleTargetLocationId)
-      if (!origin || !target) return
-      setDrivers((current) => current.map((item) => item.id === driver.id && item.idleRouteStatus === 'dwell' ? { ...item, idleRouteStatus: 'calculating' } : item))
+      if (!origin) return
+      const requestedTruckStopId = workday.overnightTargetLocationId
+      const validRequestedTruckStop = requestedTruckStopId && mapLocations.some((location) => location.id === requestedTruckStopId && location.type === 'staging')
+      const targetId = mode === 'yard' ? 'metroline-yard' : (validRequestedTruckStop ? requestedTruckStopId : getOvernightTruckStopId(origin))
+      const target = mapLocations.find((location) => location.id === targetId)
+      if (!target) return
+      setDrivers((current) => current.map((item) => item.id === driver.id ? { ...item, overnightAppliedDayIndex: workdayOwnerDay, overnightMode: mode, idleTargetLocationId: targetId, idleRouteStatus: 'calculating', idleSinceGameMinute: now } : item))
       calculateRoute(origin, target).then((route) => {
-        setDrivers((current) => current.map((item) => item.id === driver.id && item.idleRouteStatus === 'calculating' && !getDriverActiveLoad(loads, driver.id)
-          ? { ...item, idleRouteStatus: 'traveling', idleRouteGeometry: route.routeShape, idleRouteStartGameMinute: now, idleRouteDurationMinutes: Math.max(1, route.durationMinutes) }
-          : item))
+        setDrivers((current) => current.map((item) => {
+          const routeActiveLoad = getDriverActiveLoad(loads, driver.id)
+          const routeActiveStatus = routeActiveLoad?.tripStatus || routeActiveLoad?.status
+          const routeFreightOwnsMovement = Boolean(routeActiveLoad && !['queued', 'assigned', 'route-ready'].includes(routeActiveStatus))
+          return item.id === driver.id && item.overnightAppliedDayIndex === workdayOwnerDay && item.idleRouteStatus === 'calculating' && !routeFreightOwnsMovement
+            ? { ...item, idleRouteStatus: 'traveling', idleRouteGeometry: route.routeShape, idleRouteStartGameMinute: now, idleRouteDurationMinutes: Math.max(1, route.durationMinutes) }
+            : item
+        }))
       }).catch((error) => {
-        console.error('Idle positioning route unavailable:', driver.id, error)
-        setDrivers((current) => current.map((item) => item.id === driver.id && item.idleRouteStatus === 'calculating' ? { ...item, idleRouteStatus: 'route-unavailable' } : item))
+        console.error('Shift-end staging route unavailable:', driver.id, error)
+        setDrivers((current) => current.map((item) => item.id === driver.id && item.overnightAppliedDayIndex === workdayOwnerDay ? { ...item, idleRouteStatus: 'route-unavailable' } : item))
       })
     })
   }, [hydrated, stage, dayLoop.phase, drivers, loads, gameTime, runtimePositions])
+
+
+  // CS2.0B.4.2.4.4: Shift End presentation expires when the driver's next
+  // scheduled workday actually begins. Preserve the staged physical position,
+  // but release the runtime staging state so normal freight presentation can
+  // resume (no lingering moon badge or staging route authority).
+  useEffect(() => {
+    if (!hydrated || stage !== 'game' || dayLoop.phase !== 'operating') return
+    const dayIndex = gameTime.gameDayIndex
+    const minuteOfDay = gameTime.totalMinutesOfDay
+    setDrivers((current) => current.map((driver) => {
+      if (driver.idleRouteStatus !== 'arrived') return driver
+      if (!Number.isFinite(Number(driver.overnightAppliedDayIndex)) || Number(driver.overnightAppliedDayIndex) >= dayIndex) return driver
+      const workday = driver.workdayByDay?.[String(dayIndex)] || driver.workdayByDay?.[dayIndex]
+      const start = Number(workday?.startMinutes)
+      if (!Number.isFinite(start) || minuteOfDay < start) return driver
+      return {
+        ...driver,
+        idleRouteStatus: null,
+        idleRouteGeometry: null,
+        idleRouteStartGameMinute: null,
+        idleRouteDurationMinutes: null,
+        idleTargetLocationId: null,
+        overnightMode: null,
+      }
+    }))
+  }, [hydrated, stage, dayLoop.phase, gameTime.gameDayIndex, gameTime.totalMinutesOfDay])
+
 
   useEffect(() => {
     if (!hydrated) return
@@ -936,7 +1019,11 @@ function App() {
     const positionUpdates = {}
     const arrivedDriverIds = new Set()
     drivers.forEach((driver) => {
-      if (driver.idleRouteStatus !== 'traveling' || getDriverActiveLoad(loads, driver.id)) return
+      // B.4.2.3.3: once an overnight staging route has started, it owns the
+      // driver's repositioning movement until arrival. A next-day assigned/open
+      // load must not freeze that already-authorized staging trip. Freight still
+      // blocks staging from STARTING above; it does not cancel staging in flight.
+      if (driver.idleRouteStatus !== 'traveling') return
       if (!Array.isArray(driver.idleRouteGeometry) || driver.idleRouteGeometry.length < 2 || !Number.isFinite(driver.idleRouteStartGameMinute) || !Number.isFinite(driver.idleRouteDurationMinutes)) return
       const progress = Math.max(0, Math.min(1, (now - driver.idleRouteStartGameMinute) / driver.idleRouteDurationMinutes))
       const position = pointAlongRoute(driver.idleRouteGeometry, progress)
@@ -964,6 +1051,23 @@ function App() {
   }, [stage, isGameClockPaused, simulationSpeed])
 
 
+  // B.4.2.2: operation-day identity follows the calendar after midnight without
+  // moving the world clock. This is bookkeeping only; runtime positions, routes,
+  // assignments, load lifecycle, and appointments retain their existing state.
+  useEffect(() => {
+    if (!hydrated || stage !== 'game') return
+    setDayLoop((current) => {
+      const expectedOperationDay = Number(gameTime.gameDayIndex || 0) + 1
+      if (current.operationDay === expectedOperationDay && current.currentStartGameDayIndex === gameTime.gameDayIndex) return current
+      return {
+        ...current,
+        operationDay: expectedOperationDay,
+        currentStartGameDayIndex: gameTime.gameDayIndex,
+      }
+    })
+  }, [hydrated, stage, gameTime.gameDayIndex])
+
+
   const awardLoadXp = (loadId, amount) => {
     setPlayerProgression((current) => {
       const awardedLoadXpIds = Array.isArray(current.awardedLoadXpIds) ? current.awardedLoadXpIds : []
@@ -975,7 +1079,7 @@ function App() {
   const closeOperationDay = () => {
     const receivables = getReceivables(loads, carriers, ledgerWorkflowByLoadId)
     const closeStatus = getEndDayStatus(loads, receivables)
-    if (!closeStatus.canEnd || dayLoop.phase !== 'operating') return
+    if (!closeStatus.canEnd || dayLoop.phase !== 'operating' || dayLoop.lastClosedGameDayIndex === gameTime.gameDayIndex) return
 
     const baseReport = createDayReport({
       operationDay: dayLoop.operationDay,
@@ -1124,17 +1228,15 @@ Open CarrierSource to review your full account history.`
   const continueToNextDayBriefing = () => {
     const report = dayLoop.report
     if (!report || dayLoop.phase !== 'results') return
-    const nextOperationDay = dayLoop.operationDay + 1
-    setGameTime({ gameDayIndex: report.nextStartGameDayIndex, totalMinutesOfDay: report.nextStartMinutes })
+    // B.4.2.2: acknowledging Daily Closeout returns to the live world at the
+    // exact same game minute. The clock/date boundary—not this report—advances
+    // the calendar. No driver, load, route, appointment, or position is reset.
     setDayLoop((current) => ({
       ...current,
-      operationDay: nextOperationDay,
       phase: 'operating',
-      currentStartGameDayIndex: report.nextStartGameDayIndex,
+      lastClosedGameDayIndex: report.closeGameDayIndex,
       report: null,
     }))
-    // AV2.7.1: closeout now returns directly to the same operating workspace.
-    // No special Day 2 startup gate is inserted between normal operation days.
     setSimulationSpeed(1)
     setIsGameClockPaused(false)
   }
@@ -1220,6 +1322,7 @@ Open CarrierSource to review your full account history.`
             setSimulationSpeed={setSimulationSpeed}
             onOpenMarkets={() => setStage('market')}
             onApplyDevPreset={applySelectedDevPreset}
+            onSetupOvernightDevScenario={setupOvernightDevScenario}
             onResetGame={resetGame}
             onResetDayAfterCarrierApproval={resetDayAfterCarrierApproval}
             seenLedgerReceivableIds={seenLedgerReceivableIds}

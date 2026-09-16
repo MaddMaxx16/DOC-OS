@@ -3,6 +3,7 @@ import mapLocations from '../data/mapLocations.js'
 import { getFreightCommodity } from '../utils/freightIdentity.js'
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 import { getFreightHaulClass, getPlanQuality } from '../utils/planningIntelligence.js'
+import { MARKET_HORIZON_DAYS } from '../utils/freightMarket.js'
 import FreightLinkMarketMap from './FreightLinkMarketMap.jsx'
 
 function formatListedMiles(value) {
@@ -26,6 +27,7 @@ function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime,
   const [sortMode, setSortMode] = useState('pickup')
   const [mapOpen, setMapOpen] = useState(false)
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
+  const [pickupDateFilter, setPickupDateFilter] = useState('all')
   const now = (gameTime?.gameDayIndex ?? 0) * 1440 + (gameTime?.totalMinutesOfDay ?? 360)
 
   const unlockedLoads = loads.filter((load) => {
@@ -62,7 +64,13 @@ function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime,
     return { load, pickup, delivery, rpm, pickupAbsoluteMinute, haulClass: getFreightHaulClass(load), planningHint }
   }).filter((item) => item.pickup && item.delivery), [unlockedLoads, gameTime?.gameDayIndex, planningDriver?.id, loads])
 
-  const filteredViews = useMemo(() => loadViews.filter(({ load }) => bucketFor(load) === filterMode), [loadViews, filterMode])
+  const marketDayIndex = gameTime?.gameDayIndex ?? 0
+  const marketDays = useMemo(() => Array.from({ length: MARKET_HORIZON_DAYS }, (_, offset) => marketDayIndex + offset), [marketDayIndex])
+  const filteredViews = useMemo(() => loadViews.filter(({ load }) => {
+    if (bucketFor(load) !== filterMode) return false
+    if (filterMode !== 'available' || pickupDateFilter === 'all') return true
+    return (load.pickupDayIndex ?? marketDayIndex) === pickupDateFilter
+  }), [loadViews, filterMode, pickupDateFilter, marketDayIndex])
   const sortedLoadViews = useMemo(() => {
     const copy = [...filteredViews]
     if (filterMode !== 'available') return copy.sort((a, b) => a.pickupAbsoluteMinute - b.pickupAbsoluteMinute)
@@ -105,6 +113,17 @@ function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime,
           </div>
         )}
       </div>
+
+      {filterMode === 'available' && (
+        <div className="freightlink-date-strip" aria-label="Pickup date filter">
+          <button type="button" className={pickupDateFilter === 'all' ? 'active' : ''} onClick={() => setPickupDateFilter('all')}>ALL</button>
+          {marketDays.map((dayIndex, offset) => (
+            <button key={dayIndex} type="button" className={pickupDateFilter === dayIndex ? 'active' : ''} onClick={() => setPickupDateFilter(dayIndex)}>
+              <span>{offset === 0 ? 'TODAY' : formatCompactDate(dayIndex)}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {filterMode === 'available' && (
         <div className="freightlink-view-row" aria-label="Freight view">

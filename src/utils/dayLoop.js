@@ -9,6 +9,7 @@ export const DEFAULT_DAY_LOOP_STATE = {
   currentStartGameDayIndex: 0,
   report: null,
   history: [],
+  lastClosedGameDayIndex: null,
 }
 
 export const DEFAULT_PLAYER_PROGRESSION = {
@@ -47,11 +48,15 @@ export function getEndDayStatus(loads = [], receivables = []) {
   const pendingDocuments = loads.filter((load) => DOCUMENT_TRIP_STATUSES.has(load.tripStatus) || (load.tripStatus === 'completed' && !load.pod?.approved)).length
   const pendingInvoices = receivables.filter((item) => BLOCKING_FINANCIAL_STATUSES.has(item.financialStatus)).length
 
+  // B.4.2.2: closeout is a business-day report, not world-reset authority.
+  // Open freight, moving drivers, paperwork, and receivables are carryover work;
+  // they must survive the date boundary instead of blocking the report.
   const blockers = []
-  if (activeLoads > 0) blockers.push(`${activeLoads} active load${activeLoads === 1 ? '' : 's'} still in progress`)
-  if (driversInMotion > 0) blockers.push(`${driversInMotion} driver${driversInMotion === 1 ? '' : 's'} still in motion`)
-  if (pendingDocuments > 0) blockers.push(`${pendingDocuments} document action${pendingDocuments === 1 ? '' : 's'} still required`)
-  if (pendingInvoices > 0) blockers.push(`${pendingInvoices} invoice${pendingInvoices === 1 ? '' : 's'} still needs to be sent`)
+  const carryover = []
+  if (activeLoads > 0) carryover.push(`${activeLoads} active load${activeLoads === 1 ? '' : 's'} carrying forward`)
+  if (driversInMotion > 0) carryover.push(`${driversInMotion} driver${driversInMotion === 1 ? '' : 's'} currently in motion`)
+  if (pendingDocuments > 0) carryover.push(`${pendingDocuments} document action${pendingDocuments === 1 ? '' : 's'} carrying forward`)
+  if (pendingInvoices > 0) carryover.push(`${pendingInvoices} invoice${pendingInvoices === 1 ? '' : 's'} carrying forward`)
 
   return {
     activeLoads,
@@ -59,7 +64,8 @@ export function getEndDayStatus(loads = [], receivables = []) {
     pendingDocuments,
     pendingInvoices,
     blockers,
-    canEnd: blockers.length === 0,
+    carryover,
+    canEnd: true,
   }
 }
 

@@ -38,8 +38,9 @@ const mapLocations = [
   { id: 'liberty-home-philadelphia', name: 'Liberty Home Goods DC', type: 'facility', longitude: -75.1652, latitude: 39.9526 },
 
   // Driver positioning destinations. These are operating/staging points rather than freight facilities.
-  { id: 'queens-staging-area', name: 'Queens Staging Area', type: 'staging', longitude: -73.8990, latitude: 40.7470 },
+  { id: 'queens-staging-area', name: 'Queens Truck & Rest Stop', type: 'staging', longitude: -73.8990, latitude: 40.7470 },
   { id: 'newark-fuel-stop', name: 'Newark Fuel & Rest Stop', type: 'staging', longitude: -74.1485, latitude: 40.7200 },
+  { id: 'elizabeth-truck-stop', name: 'Elizabeth Truck & Travel Stop', type: 'staging', longitude: -74.1910, latitude: 40.6695 },
 ]
 
 export default mapLocations

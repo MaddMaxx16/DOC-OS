@@ -13,7 +13,6 @@ function score(value) {
 function DayResultsScreen({ report, progression, onContinue }) {
   if (!report) return null
   const progress = getProgressionView(progression)
-  const nextOperationDay = report.operationDay + 1
   const dispatchFeePercent = report.carrierRevenue > 0 ? Math.round((report.dispatchRevenue / report.carrierRevenue) * 1000) / 10 : 0
 
   return (
@@ -25,7 +24,7 @@ function DayResultsScreen({ report, progression, onContinue }) {
 
       <header className="day-loop-header">
         <span className="day-loop-kicker">DAY {String(report.operationDay).padStart(2, '0')} RESULTS</span>
-        <h1>Operation closed.</h1>
+        <h1>Business-day report.</h1>
         <p>{formatCompactDate(report.closeGameDayIndex)} · {formatTime(report.closeMinutes)}</p>
       </header>
 
@@ -88,17 +87,17 @@ function DayResultsScreen({ report, progression, onContinue }) {
         </section>
 
         <section className="day-report-section next-day-outlook">
-          <h2>NEXT OPERATION</h2>
+          <h2>CONTINUITY</h2>
           <div className="day-report-rows">
-            <div><span>Standard Start</span><strong>{formatTime(report.standardStartMinutes)}</strong></div>
-            <div><span>Late Close Adjustment</span><strong className={report.lateCloseAdjustmentMinutes > 0 ? 'attention' : ''}>{report.lateCloseAdjustmentMinutes > 0 ? `+${report.lateCloseAdjustmentMinutes} min` : 'None'}</strong></div>
-            <div><span>Next Day Start</span><strong>{formatTime(report.nextStartMinutes)}</strong></div>
+            <div><span>World Clock</span><strong>UNCHANGED</strong></div>
+            <div><span>Open Freight</span><strong>CARRIES FORWARD</strong></div>
+            <div><span>Driver / Route State</span><strong>PRESERVED</strong></div>
           </div>
         </section>
       </div>
 
       <div className="day-loop-actions">
-        <button type="button" className="day-loop-primary" onClick={onContinue}>BEGIN DAY {String(nextOperationDay).padStart(2, '0')}</button>
+        <button type="button" className="day-loop-primary" onClick={onContinue}>RETURN TO OPERATIONS</button>
       </div>
     </section>
   )

@@ -284,7 +284,7 @@ function getAppointmentAlerts(loads, now) {
   return alerts
 }
 
-function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp }) {
+function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario }) {
   const [devOpen, setDevOpen] = useState(false)
   const [isPhoneOpen, setIsPhoneOpen] = useState(false)
   const [phoneInitialScreen, setPhoneInitialScreen] = useState('home')
@@ -1374,6 +1374,22 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     const delivery = mapLocations.find((location) => location.id === deliveredLoad?.deliveryLocationId)
     const nextPickup = nextQueued ? mapLocations.find((location) => location.id === nextQueued.pickupLocationId) : null
     const nextWasBriefed = Number.isFinite(nextQueued?.pickupDriverBriefedGameMinute) && Number.isFinite(nextQueued?.driverAcknowledgedGameMinute)
+    // CS2.0B.4.2.4.1: a communicated schedule is not movement authority outside
+    // the driver's scheduled workday. This is especially important after a
+    // cross-midnight delivery: the next morning's pickup may already be known,
+    // but overnight staging owns repositioning until the next shift begins.
+    const releasedDriver = drivers.find((driver) => driver.id === releasedDriverId) || null
+    const currentWorkday = releasedDriver?.workdayByDay?.[String(gameTime.gameDayIndex)] || releasedDriver?.workdayByDay?.[gameTime.gameDayIndex] || null
+    const currentWorkdayStart = Number(currentWorkday?.startMinutes)
+    const currentWorkdayEnd = Number(currentWorkday?.endMinutes)
+    const currentWorkdayEndOffset = Number.isFinite(Number(currentWorkday?.endDayOffset))
+      ? Number(currentWorkday.endDayOffset)
+      : (Number.isFinite(currentWorkdayStart) && Number.isFinite(currentWorkdayEnd) && currentWorkdayEnd <= currentWorkdayStart ? 1 : 0)
+    const currentWorkdayStartAbsolute = gameTime.gameDayIndex * 1440 + currentWorkdayStart
+    const currentWorkdayEndAbsolute = gameTime.gameDayIndex * 1440 + currentWorkdayEnd + currentWorkdayEndOffset * 1440
+    const withinCurrentWorkday = Number.isFinite(currentWorkdayStart) && Number.isFinite(currentWorkdayEnd) && now >= currentWorkdayStartAbsolute && now < currentWorkdayEndAbsolute
+    const nextPickupIsCurrentOrEarlierDay = !Number.isFinite(Number(nextQueued?.pickupDayIndex)) || Number(nextQueued.pickupDayIndex) <= gameTime.gameDayIndex
+    const nextCanAutoHandoff = Boolean(nextQueued && nextWasBriefed && withinCurrentWorkday && nextPickupIsCurrentOrEarlierDay)
 
     // Close the delivered load and promote the queued load without departing yet.
     // AV2.9.6 recalculates the deadhead from the driver's ACTUAL receiver position
@@ -1504,7 +1520,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             }])
           } catch (error) { console.error('DOC OS ONBOARD DELIVERY HANDOFF FAILED', error) }
         }
-      } else if (nextQueued && nextWasBriefed && delivery && nextPickup) {
+      } else if (nextQueued && nextCanAutoHandoff && delivery && nextPickup) {
         try {
           const handoffRoute = await calculateRoute(delivery, nextPickup)
           const routeGeometry = normalizeRouteGeometry(handoffRoute.routeShape, delivery, nextPickup)
@@ -2624,6 +2640,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             plannedRoute={plannedRoute}
             setPlannedRoute={setPlannedRoute}
             gameTime={gameTime}
+            setGameTime={setGameTime}
             initialScreen={phoneInitialScreen}
             initialLoadId={phoneLoadId}
             initialDriverId={phoneInitialDriverId}
@@ -2645,6 +2662,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             onAcceptCandidateAssignment={acceptCandidateAssignment}
             onPlanTrip={(loadId, driverId) => { setIsPhoneOpen(false); startPlanning(loadId, driverId) }}
             onResetGame={onResetGame}
+            onSetupOvernightDevScenario={onSetupOvernightDevScenario}
             onResetDayAfterCarrierApproval={onResetDayAfterCarrierApproval}
             onOpenDriverSchedule={(driverId) => { setIsPhoneOpen(false); setDriverHubOpen(true); if (driverId) { setDriverFocusId(driverId); setDriverFocusRequest((value) => value + 1) } }}
             onRequestScheduleApproval={requestScheduleApproval}

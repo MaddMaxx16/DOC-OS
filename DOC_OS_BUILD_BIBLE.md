@@ -722,3 +722,106 @@ B.4.2 extends the existing absolute game-minute/day-index architecture rather th
 
 ## CS2.0B.4.2.1-STABLE — Multi-Day Agenda Foundation
 Approved 2026-09-15. Agenda now exposes a fixed seven-day Day View using real calendar dates. Driver workday editing is date-aware, and cross-midnight freight is represented on each applicable date with only that date's stop rendered. This slice does not yet change midnight rollover, open-load persistence, Daily Closeout semantics, revenue timing, or HOS. Those remain later B.4.2/B.5 responsibilities.
+
+
+## CS2.0B.4.2.2 — Multi-Day Clock / Closeout Contract (IN TEST)
+- The game clock is the sole authority for crossing a calendar boundary.
+- Midnight changes calendar identity only; it does not move drivers, mutate load lifecycle, dispatch freight, complete freight, or post revenue.
+- Driver runtime positions, route progress, assignments, appointments, and open load state persist across midnight through normal saved runtime state.
+- Daily Closeout is a report overlay. It may report carryover work and must return to the same world minute when dismissed.
+- HOS/rest legality is intentionally deferred to CS2.0B.5. Overnight staging decisions are not introduced in this slice.
+
+### Hidden iPhone Dev Tools — B.4.2.2 testing support
+Holding the `DOC OS` status-bar brand opens the existing hidden iPhone Dev Tools. During B.4.2.2 testing, its Time & Day section may set the current game clock to 11:55 PM, advance +1 hour, +6 hours, or +1 day. These controls are test infrastructure only and have no load, route, driver, closeout, or revenue authority.
+
+### Hidden Dev Tools — multi-day safety
+During CS2.0B.4.2 testing, the hidden iPhone Dev Tools panel is viewport-bounded and vertically scrollable with an always-accessible close control. The old Day 1 reset shortcut is disabled because it is incompatible with preserving multi-day test state. RESET GAME is the sole full-run destructive reset and requires confirmation. Time/day shortcuts remain test-only clock controls and do not receive operational lifecycle authority.
+
+### Dev Tools — Controlled Overnight Scenario (B.4.2.2.3 TEST)
+The hidden iPhone Dev Tools include `SETUP OVERNIGHT TEST`. It prepares an active Marcus delivery at 11:45 PM with pickup complete, delivery scheduled after midnight, an active loaded route, and the simulation paused. This is test infrastructure only and does not grant gameplay authority or implement HOS/overnight staging.
+
+## CS2.0B.4.2.3 — Overnight staging contract (IN TEST)
+- Overnight positioning is planned per driver and per calendar date in Agenda.
+- The dispatcher explicitly chooses Metroline Yard or one of the fixed truck/rest staging locations available in the market.
+- Load completion no longer starts an automatic return-to-yard countdown.
+- An overnight positioning route begins only after the selected date's scheduled end-of-day and only when the driver has no active freight.
+- Midnight has no movement authority. Any active overnight positioning route continues from its real runtime position across the date boundary.
+- The resulting runtime position is authoritative for tomorrow's routing origin.
+- B.4.2 does not judge legal rest, duty time, or HOS compliance; those remain B.5 scope.
+
+### CS2.0B.4.2.3.1 — Player-Facing Roadmap Boundary
+Player-facing DOC OS surfaces describe only systems and decisions that exist in the current game experience. Roadmap phases, future mechanics, deferred systems, build/version terminology, and development commentary belong only in project documentation. Overnight parking currently exposes two operational choices: Truck Stop and Carrier Yard. The choice is explicit per driver/date and uses normal routing rather than teleportation.
+
+### Cross-Midnight Driver Workdays (CS2.0B.4.2.3.2-TEST)
+A driver workday is owned by its Agenda start date. If its end clock time is at or before its start clock time, `endDayOffset: 1` means the scheduled end belongs to the next calendar day. Example: a Tuesday 2:00 PM–3:00 AM workday ends Wednesday at 3:00 AM. Midnight does not end the workday, trigger staging, reset driver state, or interrupt freight. Overnight staging becomes eligible only after the workday's absolute end and only when the driver is free of active freight. The following Agenda date surfaces the prior day's overnight carryover for operator awareness.
+
+### Overnight staging movement authority
+Once a driver has legitimately entered an overnight staging route, that repositioning movement persists until arrival at the selected staging destination. Future/next-day freight may prevent new staging from beginning when freight is already operationally active, but it must not freeze an overnight staging route that has already started. Overnight staging never interrupts an active freight movement.
+
+### Overnight map status presentation
+During overnight staging, the operational map uses compact visual state indicators rather than verbose development/operational labels: `💤` means the driver is actively repositioning to the selected overnight destination; `🌙` means the driver has arrived and is parked for the night. Detailed staging information belongs in Agenda/driver details so the map remains visually clean.
+
+
+### Overnight map status presentation
+During overnight staging, the map keeps the driver marker as the primary visual. A compact attached badge communicates overnight state: `💤` while traveling to the selected staging destination and `🌙` once parked for the night. Detailed overnight information remains in Agenda/driver surfaces rather than becoming a large map label.
+
+
+### B.4.2 Overnight map badge presentation
+Overnight status is rendered as a small corner badge on the canonical driver marker. The badge must never resize or replace the driver marker.
+
+### Strategic overnight staging (CS2.0B.4.2.3.7-TEST)
+Agenda overnight planning is a player decision. A scheduled driver may be staged at the carrier yard or one of three fixed truck/rest stops in the New York market. The chosen location is stored per driver/per workday and is used as the destination for the existing overnight repositioning route. The UI shows approximate straight-line distance from the driver's current known position for decision context. DOC OS does not label a choice as best or choose one automatically.
+
+
+
+### Overnight Agenda timeline continuity (CS2.0B.4.2.3.8-TEST)
+Agenda's seven-date selector remains a fixed navigation bar. The selected Day View owns a vertically scrollable operational timeline that may continue past midnight when that date's workday or same-load freight crosses into the following date. The midnight boundary is rendered as a subtle dated divider. Cross-midnight workday end, overnight lunch, and next-day delivery events use relative timeline minutes beyond 24:00 so their vertical positions remain chronologically true. The following calendar date still has its own Day View and carryover representation; the originating day's overnight extension is an additional continuity view, not a replacement. This presentation receives no routing, lifecycle, staging, revenue, or HOS authority.
+
+### Carryover Day Timeline Window — CS2.0B.4.2.3.9-TEST
+When a driver's previous calendar-day workday crosses midnight, the receiving date's Agenda Day View includes the carryover window beginning at 12:00 AM and marks the prior workday's actual end. This complements the originating day's extended overnight timeline: overnight work/freight can be understood from both calendar dates without converting the carryover into a new workday. Days without carryover keep the normal compact timeline. This is scheduler presentation only and does not grant lifecycle, movement, HOS, or midnight authority.
+
+### Carryover Day Timeline
+When a selected calendar date inherits work from the previous day, Agenda renders from 12:00 AM through the full receiving calendar day. The inherited workday remains distinct from that date's own Driver Workday. If operations on the receiving date extend into another date, the timeline can extend beyond midnight as needed.
+
+### Agenda 24-Hour Day View — CS2.0B.4.2.3.11
+- Every selected Agenda date renders a complete calendar-day timeline beginning at 12:00 AM and running through midnight.
+- Carryover from the previous date occupies the receiving day's early-morning hours rather than changing the timeline window.
+- If work or freight belonging to the selected operational plan truly continues into the next date, the timeline may extend beyond midnight to show that continuity.
+- This is presentation/scheduler behavior only and does not grant lifecycle, movement, HOS, or midnight authority.
+
+### Overnight map presentation (B.4.2.3.12)
+Strategic truck stops are persistent world locations and appear as compact truck-stop markers on the operations map. Driver overnight staging movement is visually interpolated between authoritative simulation ticks; the simulation remains authoritative for route progress and arrival. The driver retains the small sleep/moon status badge during overnight staging.
+
+### Map POI marker sizing
+Carrier-yard and strategic truck-stop world markers use the same 30×30 px footprint with 18×18 px glyphs. Their visual treatments may differ by location type, but neither should visually outweigh the other through size alone.
+
+## B.4.2 Closure Acceptance — CS2.0B.4.2.4-TEST
+- Every Agenda Day View owns one full calendar day.
+- Driver workday/lunch/overnight settings are stored under the selected day key; closure testing must prove neighboring dates remain independent.
+- FreightLink appointments carry pickupDayIndex/deliveryDayIndex and render calendar dates through planning/detail surfaces; closure testing must prove the dates survive booking and overnight execution.
+- LedgerDesk receivables are eligible only after a load is completed with approved POD. Midnight rollover itself has no payment/revenue authority.
+- During authorized overnight staging travel, the map shows a subdued dashed route to the selected Yard/truck stop. Freight travel remains the stronger route authority.
+
+## B.4.2 next-day movement authority
+A future appointment or communicated schedule is planning state, not off-hours movement authority. After freight is physically completed and the driver's prior workday ends, an explicit overnight staging plan may reposition the driver to its selected Yard/truck-stop destination. Planned/assigned future freight may remain visible and assigned, but it cannot auto-depart outside the driver's current scheduled workday merely because it was previously communicated. Once legitimate staging travel starts, it retains repositioning authority through arrival.
+
+## Shift End Staging Authority — B.4.2.4.2
+Post-work staging is governed by the driver's per-date scheduled SHIFT END. The dispatcher selects a Shift End Plan (Carrier Yard or fixed truck stop). If active freight extends beyond shift end, freight completes first; staging then begins. Midnight does not trigger staging. The resulting physical location persists as the driver's next routing origin. Internal overnight-named persistence fields are retained for backward save compatibility during this revision.
+
+
+### Shift End map presentation
+When Shift End staging owns driver repositioning, the driver marker uses badge-only status: 💤 while traveling and 🌙 after arrival. No staging text label is shown. A future assigned load must not replace this presentation until staging authority ends.
+
+### Shift End visual release (CS2.0B.4.2.4.4-TEST)
+A completed Shift End staging state is temporary presentation/runtime authority. When the driver's next scheduled workday begins, the staged physical position is preserved but the moon/staging runtime state is released. Normal freight operation uses the standard driver marker presentation.
+
+
+### Shift End visual release — B.4.2.4.5
+After a completed Shift End staging state releases at the next scheduled workday, the driver marker returns to the normal active blue presentation while the driver is within the scheduled workday or actively operating freight. Queue/assignment bookkeeping must not force an on-duty driver marker gray. The staged physical position remains the routing origin.
+
+## FreightLink multi-day market (B.4.2.5)
+FreightLink is a rolling seven-day planning market. Available freight can have pickup dates today or on upcoming calendar days, including midnight and early-morning appointments. The board can be filtered by pickup date. Future freight may be planned/booked in advance, but visibility or assignment never authorizes off-hours movement; normal shift and explicit dispatch authority still apply.
+
+## B.4.2-STABLE — Multi-Day Operations
+B.4.2-STABLE freezes the approved multi-day architecture. Agenda owns real calendar dates and full-day views; midnight advances the calendar without lifecycle authority; active freight and physical driver state persist across date changes; Shift End is the explicit post-work staging instruction; future freight is planning state until legitimate work/dispatch authority exists; and FreightLink exposes a rolling seven-day market with real pickup/delivery dates including early-morning appointments. Payment/revenue authority remains tied to completed freight and approved POD. The stable candidate and exact promoted real-repository source both passed on-device testing. This section describes current stable behavior and introduces no future-phase mechanics.
+

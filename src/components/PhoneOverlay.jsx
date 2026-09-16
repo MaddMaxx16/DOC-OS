@@ -30,7 +30,7 @@ import { isLunchDecisionReady } from '../utils/lunchDecisionEvents.js'
 
 function getReceivable(loads, carriers, workflows, id) { return getReceivables(loads, carriers, workflows).find((item) => item.loadId === id) }
 
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, onEvaluateFit, onAddToSchedule, onAcceptCandidateAssignment, onPlanTrip, initialScreen = 'home', initialLoadId = null, initialDriverId = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, setLedgerWorkflowByLoadId, onResetGame, onResetDayAfterCarrierApproval, onOpenDriverSchedule, onRequestScheduleApproval, onBookApprovedSchedule, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onClose }) {
+function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, setGameTime, onEvaluateFit, onAddToSchedule, onAcceptCandidateAssignment, onPlanTrip, initialScreen = 'home', initialLoadId = null, initialDriverId = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, setLedgerWorkflowByLoadId, onResetGame, onResetDayAfterCarrierApproval, onOpenDriverSchedule, onRequestScheduleApproval, onBookApprovedSchedule, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onSetupOvernightDevScenario, onClose }) {
   const [screen, setScreen] = useState(initialScreen)
   const [documentsTab, setDocumentsTab] = useState('pending')
   const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
@@ -44,6 +44,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
   const [previewAttachment, setPreviewAttachment] = useState(null)
   const [documentReturnScreen, setDocumentReturnScreen] = useState('documents')
   const [devToolsOpen, setDevToolsOpen] = useState(false)
+  const [devConfirm, setDevConfirm] = useState(null)
   const resetHoldTimer = useRef(null)
 
   const cancelResetHold = () => {
@@ -178,8 +179,14 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
         {devToolsOpen && (
           <div className="phone-reset-overlay" role="dialog" aria-modal="true" aria-labelledby="phone-dev-title">
             <div className="phone-reset-dialog phone-dev-dialog">
-              <span className="phone-reset-kicker">IPHONE DEV TOOLS</span>
-              <strong id="phone-dev-title">DOC OS Development</strong>
+              <div className="phone-dev-sticky-header">
+                <div>
+                  <span className="phone-reset-kicker">IPHONE DEV TOOLS</span>
+                  <strong id="phone-dev-title">DOC OS Development</strong>
+                </div>
+                <button type="button" className="phone-dev-close" onClick={() => { setDevConfirm(null); setDevToolsOpen(false) }} aria-label="Close developer tools">×</button>
+              </div>
+              <div className="phone-dev-scroll">
               <p>Shortcuts for repeated gameplay testing. These controls only change the current test save.</p>
 
               <div className="phone-dev-tool-list">
@@ -211,19 +218,34 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
                 <div className="phone-dev-tool-row">
                   <div>
                     <span>DAY RESET</span>
-                    <b>{carriers.some((carrier) => carrier.status === 'active') ? 'CARRIER READY' : 'CARRIER REQUIRED'}</b>
-                    <small>Restart Day 1 at 6:00 AM for planning tests while keeping the accepted carrier, signed agreement, profile, and driver roster.</small>
+                    <b>DISABLED FOR MULTI-DAY TESTING</b>
+                    <small>The legacy Day 1 reset was removed because it could destroy multi-day test state. RESET GAME is now the only full-run reset.</small>
                   </div>
-                  <button
-                    type="button"
-                    disabled={!carriers.some((carrier) => carrier.status === 'active')}
-                    onClick={() => {
-                      const reset = onResetDayAfterCarrierApproval?.()
-                      if (reset !== false) setDevToolsOpen(false)
-                    }}
-                  >
-                    RESET DAY
-                  </button>
+                </div>
+
+                <div className="phone-dev-tool-row phone-dev-tool-row-stack">
+                  <div>
+                    <span>TIME & DAY</span>
+                    <b>DAY {gameTime.gameDayIndex + 1} · {formatTime(gameTime.totalMinutesOfDay)}</b>
+                    <small>Testing shortcuts only. These controls change the game clock without dispatching, moving, completing, closing, or reassigning freight.</small>
+                  </div>
+                  <div className="phone-dev-inline-actions phone-dev-time-actions">
+                    <button type="button" disabled={!setGameTime} onClick={() => setGameTime?.((time) => ({ ...time, totalMinutesOfDay: 23 * 60 + 55 }))}>11:55 PM</button>
+                    <button type="button" disabled={!setGameTime} onClick={() => setGameTime?.((time) => { const total = time.gameDayIndex * 1440 + time.totalMinutesOfDay + 60; return { gameDayIndex: Math.floor(total / 1440), totalMinutesOfDay: total % 1440 } })}>+1 HOUR</button>
+                    <button type="button" disabled={!setGameTime} onClick={() => setGameTime?.((time) => { const total = time.gameDayIndex * 1440 + time.totalMinutesOfDay + 360; return { gameDayIndex: Math.floor(total / 1440), totalMinutesOfDay: total % 1440 } })}>+6 HOURS</button>
+                    <button type="button" disabled={!setGameTime} onClick={() => setGameTime?.((time) => ({ ...time, gameDayIndex: time.gameDayIndex + 1 }))}>+1 DAY</button>
+                  </div>
+                </div>
+
+                <div className="phone-dev-tool-row phone-dev-tool-row-stack">
+                  <div>
+                    <span>OVERNIGHT TEST</span>
+                    <b>CONTROLLED MIDNIGHT SCENARIO</b>
+                    <small>Sets the clock to 11:45 PM, places Marcus en route to a delivery due after midnight, and pauses the clock so you can inspect state before testing rollover.</small>
+                  </div>
+                  <div className="phone-dev-inline-actions">
+                    <button type="button" disabled={!onSetupOvernightDevScenario} onClick={() => { onSetupOvernightDevScenario?.(); setDevToolsOpen(false) }}>SETUP OVERNIGHT TEST</button>
+                  </div>
                 </div>
 
                 <div className="phone-dev-tool-row phone-dev-tool-row-stack">
@@ -242,9 +264,20 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
               </div>
 
               <div className="phone-reset-actions phone-dev-actions">
-                <button type="button" onClick={() => setDevToolsOpen(false)}>CLOSE</button>
-                <button type="button" className="danger" onClick={() => { onResetGame?.(); setDevToolsOpen(false) }}>RESET GAME</button>
+                <button type="button" onClick={() => { setDevConfirm(null); setDevToolsOpen(false) }}>CLOSE</button>
+                <button type="button" className="danger" onClick={() => setDevConfirm('game')}>RESET GAME</button>
               </div>
+              </div>
+              {devConfirm === 'game' && (
+                <div className="phone-dev-confirm" role="alertdialog" aria-modal="true" aria-label="Confirm reset game">
+                  <strong>RESET ENTIRE GAME?</strong>
+                  <p>This returns DOC OS to the beginning and clears the current save slot. This cannot be undone.</p>
+                  <div className="phone-reset-actions">
+                    <button type="button" onClick={() => setDevConfirm(null)}>CANCEL</button>
+                    <button type="button" className="danger" onClick={() => { setDevConfirm(null); onResetGame?.() }}>RESET GAME</button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

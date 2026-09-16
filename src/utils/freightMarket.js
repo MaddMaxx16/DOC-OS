@@ -3,6 +3,8 @@ import mapLocations from '../data/mapLocations.js'
 export const MIN_AVAILABLE_MARKET_LOADS = 10
 export const HOURLY_MARKET_ADDITIONS = 2
 export const INITIAL_MARKET_END_HOUR = 20
+export const MARKET_HORIZON_DAYS = 7
+const FUTURE_MARKET_HOURS = [0, 3, 6, 9, 12, 15, 18, 21]
 
 const FACILITY_IDS = mapLocations
   .filter((location) => ['pickup', 'delivery', 'facility'].includes(location.type))
@@ -114,6 +116,23 @@ export function refreshFreightMarket(loads, gameTime) {
   const now = gameDayIndex * 1440 + totalMinutesOfDay
   const existingIds = new Set(loads.map((load) => load.id))
   const additions = []
+
+  // B.4.2.5: FreightLink exposes a rolling seven-day planning market. Future
+  // freight is visible before that calendar day begins so dispatchers can book
+  // tomorrow's work and choose Shift End staging around it. Every future day
+  // deliberately includes midnight/early-morning opportunities. Merely seeing
+  // or booking future freight never grants movement authority before the shift.
+  for (let dayOffset = 1; dayOffset < MARKET_HORIZON_DAYS; dayOffset += 1) {
+    const targetDayIndex = gameDayIndex + dayOffset
+    for (const targetHour of FUTURE_MARKET_HOURS) {
+      if (hasHourCoverage([...loads, ...additions], targetDayIndex, targetHour, now)) continue
+      const minuteChoice = hashNumber(`future-half-${targetDayIndex}-${targetHour}`) % 2 ? 30 : 0
+      const pickupAbsolute = targetDayIndex * 1440 + targetHour * 60 + minuteChoice
+      const key = `${targetDayIndex}-future-${String(targetHour).padStart(2, '0')}-${String(minuteChoice).padStart(2, '0')}`
+      const candidate = makeGeneratedLoad({ gameDayIndex, pickupAbsolute, key, postedGameMinute: refreshMinute })
+      if (!existingIds.has(candidate.id)) { additions.push(candidate); existingIds.add(candidate.id) }
+    }
+  }
 
   // AV2.9.7: FreightLink is a planning board. From the start of operations the
   // player can see at least one actionable opportunity in every clock hour through

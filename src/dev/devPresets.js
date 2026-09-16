@@ -76,6 +76,30 @@ export async function createDevPreset(name, { gameTime, currentLoads = seedLoads
   if (name === 'at-delivery') { load.status = 'accepted'; load.tripStatus = 'at-delivery'; load.assignedDriverId = 'marcus'; load.shipment = normalizeDevShipment(load); return withDriver({ longitude: delivery.longitude, latitude: delivery.latitude }) }
   if (name === 'pod-ready') { load.status = 'accepted'; load.tripStatus = 'awaiting-pod'; load.assignedDriverId = 'marcus'; load.shipment = normalizeDevShipment(load); load.pod = createPodFromShipment(load.shipment, now, false); return withDriver({ longitude: delivery.longitude, latitude: delivery.latitude }) }
   if (name === 'load-complete') { load.status = 'completed'; load.tripStatus = 'completed'; load.assignedDriverId = null; load.completedDriverId = 'marcus'; load.shipment = normalizeDevShipment(load); load.pod = createPodFromShipment(load.shipment, now, true); return { ...base, drivers: roster.map((x) => x.id === 'marcus' ? { ...x, status: 'available', assignedLoadId: null } : x), runtimePositions: { ...currentRuntimePositions, marcus: { longitude: delivery.longitude, latitude: delivery.latitude } } } }
+  if (name === 'overnight-delivery') {
+    const origin = pickup
+    const destination = delivery
+    const route = await calculateRoute(origin, destination)
+    load.status = 'accepted'
+    load.assignedDriverId = 'marcus'
+    load.carrierId = driver.carrierId ?? null
+    load.tripStatus = 'en-route-delivery'
+    load.shipment = normalizeDevShipment(load)
+    load.pickupDayIndex = gameTime.gameDayIndex
+    load.pickupWindowStartMinutes = 22 * 60
+    load.pickupWindowEndMinutes = 23 * 60
+    load.deliveryDayIndex = gameTime.gameDayIndex + 1
+    load.deliveryWindowStartMinutes = 45
+    load.deliveryWindowEndMinutes = 90
+    load.deliveryPlanningStatus = 'route-ready'
+    load.plannedLoadedRouteGeometry = route.routeShape
+    load.plannedLoadedMiles = route.distanceMiles
+    load.plannedLoadedDriveTimeMinutes = Math.max(35, Number(route.durationMinutes) || 35)
+    load.selectedLoadedRouteId = 'recommended'
+    load.deliveryDepartureGameMinute = now
+    const p = pointAlong(route.routeShape, 0.01)
+    return { ...withDriver({ longitude: p[0], latitude: p[1] }), runtimeProgress: 0.01 }
+  }
   if (name === 'en-route-pickup' || name === 'en-route-delivery') { const origin = name === 'en-route-pickup' ? (currentRuntimePositions.marcus || driver) : pickup; const destination = name === 'en-route-pickup' ? pickup : delivery; const route = await calculateRoute(origin, destination); load.status = 'accepted'; load.assignedDriverId = 'marcus'; load.tripStatus = name; if (name === 'en-route-pickup') { load.planningStatus = 'route-ready'; load.plannedDeadheadRouteGeometry = route.routeShape; load.plannedDeadheadMiles = route.distanceMiles; load.plannedDeadheadDriveTimeMinutes = route.durationMinutes; load.selectedDeadheadRouteId = 'recommended'; load.departureGameMinute = now } else { load.deliveryPlanningStatus = 'route-ready'; load.plannedLoadedRouteGeometry = route.routeShape; load.plannedLoadedMiles = route.distanceMiles; load.plannedLoadedDriveTimeMinutes = route.durationMinutes; load.selectedLoadedRouteId = 'recommended'; load.deliveryDepartureGameMinute = now } const p = pointAlong(route.routeShape, 0.01); return { ...withDriver({ longitude: p[0], latitude: p[1] }), runtimeProgress: 0.01 } }
   throw new Error(`Unknown DEV load preset: ${name}`)
 }

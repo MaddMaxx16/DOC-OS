@@ -74,7 +74,7 @@ export function getDriverPanelModel({ driver, assignedLoad, gameTime, runtimePro
     mapLabel: operationalState === 'EN_ROUTE_PICKUP' || operationalState === 'EN_ROUTE_DELIVERY' ? 'EN ROUTE'
       : operationalState === 'CHECKING_IN_PICKUP' || operationalState === 'CHECKING_IN_DELIVERY' ? 'CHECKING IN…'
         : operationalState === 'WAITING_PICKUP' || operationalState === 'WAITING_DELIVERY' ? 'WAITING FOR DOCK'
-          : driver.idleRouteStatus === 'traveling' ? 'RETURNING TO YARD' : '',
+          : '',
     loadId: assignedLoad.id,
     driverName,
     roleLabel: 'Driver',

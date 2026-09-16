@@ -8,6 +8,7 @@ import { isDriverOnLunch, isLunchDecisionReady } from '../utils/lunchDecisionEve
 
 const DAY_START = 6 * 60
 const DAY_END = 22 * 60
+const OVERNIGHT_TIMELINE_CAP = 36 * 60
 const PX_PER_MINUTE = 0.86
 
 const DRIVER_COLOR_FAMILIES = [
@@ -29,10 +30,29 @@ function driverColors(driverId) {
 }
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)) }
+function approximateMiles(a, b) {
+  if (!a || !b) return null
+  const toRad = (value) => value * Math.PI / 180
+  const lat1 = toRad(a.latitude); const lat2 = toRad(b.latitude)
+  const dLat = lat2 - lat1; const dLon = toRad(b.longitude - a.longitude)
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2
+  return 3958.8 * 2 * Math.asin(Math.sqrt(h))
+}
 function minutesToTimeInput(minutes) {
   if (!Number.isFinite(minutes)) return ''
   const normalized = ((Math.round(minutes) % 1440) + 1440) % 1440
   return `${String(Math.floor(normalized / 60)).padStart(2, '0')}:${String(normalized % 60).padStart(2, '0')}`
+}
+function getWorkdayEndOffset(workday) {
+  if (!workday) return 0
+  if (Number.isFinite(Number(workday.endDayOffset))) return Number(workday.endDayOffset)
+  return Number(workday.endMinutes) <= Number(workday.startMinutes) ? 1 : 0
+}
+function getWorkdayEndAbsolute(dayIndex, workday) {
+  if (!workday) return null
+  const end = Number(workday.endMinutes)
+  if (!Number.isFinite(end)) return null
+  return Number(dayIndex) * 1440 + end + getWorkdayEndOffset(workday) * 1440
 }
 function timeInputToMinutes(value) {
   const match = /^(\d{1,2}):(\d{2})$/.exec(String(value || ''))
@@ -92,12 +112,14 @@ function FleetSchedulerScreen({
   const selectedDate = getCalendarDate(currentDay)
   const selectedDateLabel = selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })
   const workday = driver?.workdayByDay?.[currentDay] || null
+  const priorWorkday = currentDay > 0 ? (driver?.workdayByDay?.[currentDay - 1] || null) : null
+  const carryoverWorkday = priorWorkday && getWorkdayEndOffset(priorWorkday) === 1 ? priorWorkday : null
   const lunchDecisionReady = isLunchDecisionReady({ driver, loads, gameTime })
   const driverOnLunch = isDriverOnLunch(driver, gameTime)
   const [workdayEditorOpen, setWorkdayEditorOpen] = useState(false)
   const [workdayEditorMode, setWorkdayEditorMode] = useState('full')
   const [workdayError, setWorkdayError] = useState('')
-  const [workdayDraft, setWorkdayDraft] = useState({ start: '06:00', lunchStart: '12:00', lunchDuration: '30', end: '17:00' })
+  const [workdayDraft, setWorkdayDraft] = useState({ start: '06:00', lunchStart: '12:00', lunchDuration: '30', end: '17:00', overnightMode: '', overnightTargetLocationId: '' })
   useEffect(() => {
     setWorkdayEditorOpen(false)
     setWorkdayError('')
@@ -109,6 +131,8 @@ function FleetSchedulerScreen({
       lunchStart: minutesToTimeInput(workday?.lunchStartMinutes ?? 720),
       lunchDuration: String(workday?.lunchDurationMinutes ?? 30),
       end: minutesToTimeInput(workday?.endMinutes ?? 1020),
+      overnightMode: workday?.overnightMode || '',
+      overnightTargetLocationId: workday?.overnightTargetLocationId || '',
     })
     setWorkdayError('')
     setWorkdayEditorOpen(true)
@@ -120,20 +144,33 @@ function FleetSchedulerScreen({
       setWorkdayError('Enter a valid start and end time.')
       return
     }
-    if (endMinutes <= startMinutes) {
-      setWorkdayError('End of day must be after the driver start time.')
-      return
-    }
+    const endDayOffset = endMinutes <= startMinutes ? 1 : 0
     const existingLunchStart = Number(workday?.lunchStartMinutes)
     const existingLunchDuration = Number(workday?.lunchDurationMinutes)
-    if (Number.isFinite(existingLunchStart) && Number.isFinite(existingLunchDuration) && (existingLunchStart < startMinutes || existingLunchStart + existingLunchDuration > endMinutes)) {
-      setWorkdayError('The current lunch falls outside these hours. Adjust lunch first.')
-      return
+    if (Number.isFinite(existingLunchStart) && Number.isFinite(existingLunchDuration)) {
+      const lunchOffset = endDayOffset === 1 && existingLunchStart < startMinutes ? 1440 : 0
+      const lunchAbsolute = existingLunchStart + lunchOffset
+      const workdayEndRelative = endMinutes + endDayOffset * 1440
+      if (lunchAbsolute < startMinutes || lunchAbsolute + existingLunchDuration > workdayEndRelative) {
+        setWorkdayError('The current lunch falls outside these hours. Adjust lunch first.')
+        return
+      }
     }
-    onUpdateDriverWorkday?.(driver?.id, currentDay, { ...(workday || {}), startMinutes, endMinutes })
+    onUpdateDriverWorkday?.(driver?.id, currentDay, { ...(workday || {}), startMinutes, endMinutes, endDayOffset })
     setWorkdayError('')
     setWorkdayEditorOpen(false)
   }
+  const saveShiftEndPlan = () => {
+    if (!workday) return
+    if (!workdayDraft.overnightMode || (workdayDraft.overnightMode === 'truck-stop' && !workdayDraft.overnightTargetLocationId)) {
+      setWorkdayError('Choose a shift-end staging location.')
+      return
+    }
+    onUpdateDriverWorkday?.(driver?.id, currentDay, { ...workday, overnightMode: workdayDraft.overnightMode, overnightTargetLocationId: workdayDraft.overnightMode === 'yard' ? 'metroline-yard' : workdayDraft.overnightTargetLocationId })
+    setWorkdayError('')
+    setWorkdayEditorOpen(false)
+  }
+
   const saveLunch = () => {
     if (!workday) return
     const lunchStartMinutes = timeInputToMinutes(workdayDraft.lunchStart)
@@ -142,7 +179,11 @@ function FleetSchedulerScreen({
       setWorkdayError('Enter a valid lunch time.')
       return
     }
-    if (lunchStartMinutes < workday.startMinutes || lunchStartMinutes + lunchDurationMinutes > workday.endMinutes) {
+    const endDayOffset = getWorkdayEndOffset(workday)
+    const lunchOffset = endDayOffset === 1 && lunchStartMinutes < Number(workday.startMinutes) ? 1440 : 0
+    const lunchRelative = lunchStartMinutes + lunchOffset
+    const workdayEndRelative = Number(workday.endMinutes) + endDayOffset * 1440
+    if (lunchRelative < Number(workday.startMinutes) || lunchRelative + lunchDurationMinutes > workdayEndRelative) {
       setWorkdayError('Lunch must fit inside the driver workday.')
       return
     }
@@ -158,30 +199,56 @@ function FleetSchedulerScreen({
   }).sort((a, b) => minuteFor(a, 'pickup') - minuteFor(b, 'pickup')), [loads, driver?.id])
 
   const currentDayLoads = scheduleLoads.filter((load) => (load.pickupDayIndex ?? currentDay) === currentDay || (load.deliveryDayIndex ?? currentDay) === currentDay)
+  const relativeTimelineMinute = (load, side) => {
+    const sideDayValue = side === 'pickup' ? load.pickupDayIndex : load.deliveryDayIndex
+    const sideDay = Number.isFinite(Number(sideDayValue)) ? Number(sideDayValue) : currentDay
+    const sideMinute = Number(side === 'pickup' ? load.pickupWindowStartMinutes : load.deliveryWindowStartMinutes)
+    if (!Number.isFinite(sideMinute)) return null
+    if (sideDay === currentDay) return sideMinute
+    const pickupDay = Number.isFinite(Number(load.pickupDayIndex)) ? Number(load.pickupDayIndex) : currentDay
+    const deliveryDay = Number.isFinite(Number(load.deliveryDayIndex)) ? Number(load.deliveryDayIndex) : currentDay
+    const crossesFromSelectedDay = pickupDay === currentDay && deliveryDay === currentDay + 1
+    if (side === 'delivery' && crossesFromSelectedDay && sideDay === currentDay + 1) return 1440 + sideMinute
+    return null
+  }
 
-  // CS2.0A.12 — frame the timeline around the actual operating plan instead of
-  // forcing a mostly-empty 6 AM–10 PM canvas. Keep a useful minimum window so
-  // sparse schedules still read like a day, while dense schedules gain room.
+  // CS2.0B.4.2.3.8 — Day View remains vertically continuous when today's
+  // work or freight crosses midnight. The seven-date strip stays fixed; only
+  // the selected operational timeline extends into the next calendar date.
   const scheduleStopMinutes = currentDayLoads.flatMap((load) => [
-    (load.pickupDayIndex ?? currentDay) === currentDay ? load.pickupWindowStartMinutes : null,
-    (load.deliveryDayIndex ?? currentDay) === currentDay ? load.deliveryWindowStartMinutes : null,
+    relativeTimelineMinute(load, 'pickup'),
+    relativeTimelineMinute(load, 'delivery'),
   ]).filter(Number.isFinite)
+  const workdayEndRelative = workday ? Number(workday.endMinutes) + getWorkdayEndOffset(workday) * 1440 : null
+  const lunchStartRelative = workday && Number.isFinite(Number(workday.lunchStartMinutes))
+    ? Number(workday.lunchStartMinutes) + (getWorkdayEndOffset(workday) === 1 && Number(workday.lunchStartMinutes) < Number(workday.startMinutes) ? 1440 : 0)
+    : null
+  // CS2.0B.4.2.3.9 — If the previous workday carries into this calendar
+  // date, the receiving Day View must actually expose that post-midnight window.
+  // Midnight is minute 0 from this date's perspective; the prior workday's
+  // endMinutes is therefore already the correct receiving-day position.
+  const carryoverEndMinute = carryoverWorkday ? Number(carryoverWorkday.endMinutes) : null
   const timelineReferenceMinutes = [
     ...scheduleStopMinutes,
+    carryoverWorkday ? 0 : null,
+    carryoverEndMinute,
     workday?.startMinutes,
-    workday?.lunchStartMinutes,
-    Number.isFinite(workday?.lunchStartMinutes) && Number.isFinite(workday?.lunchDurationMinutes) ? workday.lunchStartMinutes + workday.lunchDurationMinutes : null,
-    workday?.endMinutes,
+    lunchStartRelative,
+    Number.isFinite(lunchStartRelative) && Number.isFinite(Number(workday?.lunchDurationMinutes)) ? lunchStartRelative + Number(workday.lunchDurationMinutes) : null,
+    workdayEndRelative,
   ].filter(Number.isFinite)
-  const earliestStopMinute = timelineReferenceMinutes.length ? Math.min(...timelineReferenceMinutes) : DAY_START
-  const latestStopMinute = timelineReferenceMinutes.length ? Math.max(...timelineReferenceMinutes) : DAY_END
-  const minMinute = timelineReferenceMinutes.length ? earliestStopMinute - 45 : DAY_START
-  const maxMinute = timelineReferenceMinutes.length ? latestStopMinute + 60 : DAY_END
-  const startMinute = clamp(Math.floor(minMinute / 60) * 60, 0, 23 * 60)
-  const endMinute = clamp(Math.ceil(maxMinute / 60) * 60, startMinute + 6 * 60, 24 * 60)
+  const latestStopMinute = timelineReferenceMinutes.length ? Math.max(...timelineReferenceMinutes) : 1440
+  // CS2.0B.4.2.3.11 — Every Agenda date owns one complete calendar-day canvas.
+  // This removes conditional 6 AM / 10 PM windows and makes carryover behavior
+  // predictable: midnight is always visible, the selected date always runs
+  // through midnight, and true next-day operations may extend beyond it.
+  const startMinute = 0
+  const requiredEndMinute = Math.max(1440, latestStopMinute + (latestStopMinute > 1440 ? 60 : 0))
+  const endMinute = clamp(Math.ceil(requiredEndMinute / 60) * 60, 1440, OVERNIGHT_TIMELINE_CAP)
   const baseTimelineHeight = (endMinute - startMinute) * PX_PER_MINUTE
   const hours = []
   for (let minute = startMinute; minute <= endMinute; minute += 60) hours.push(minute)
+  const crossesMidnight = endMinute > 1440
 
   const planQuality = driver ? getPlanQuality(loads, driver.id) : null
   const itineraryByStopId = new Map((planQuality?.itinerary || []).map((stop) => [stop.id, stop]))
@@ -198,8 +265,8 @@ function FleetSchedulerScreen({
           : null
   const planHasConflict = planQuality?.label === 'CONFLICT'
   const stopMinutes = currentDayLoads.flatMap((item) => [
-    (item.pickupDayIndex ?? currentDay) === currentDay ? { id: `${item.id}:pickup`, loadId: item.id, side: 'pickup', minute: item.pickupWindowStartMinutes ?? startMinute } : null,
-    (item.deliveryDayIndex ?? currentDay) === currentDay ? { id: `${item.id}:delivery`, loadId: item.id, side: 'delivery', minute: item.deliveryWindowStartMinutes ?? startMinute } : null,
+    Number.isFinite(relativeTimelineMinute(item, 'pickup')) ? { id: `${item.id}:pickup`, loadId: item.id, side: 'pickup', minute: relativeTimelineMinute(item, 'pickup') } : null,
+    Number.isFinite(relativeTimelineMinute(item, 'delivery')) ? { id: `${item.id}:delivery`, loadId: item.id, side: 'delivery', minute: relativeTimelineMinute(item, 'delivery') } : null,
   ].filter(Boolean)).sort((a, b) => a.minute - b.minute || (a.side === 'delivery' ? -1 : 1))
 
   // Collision-safe visual positions. Appointment time remains the semantic truth;
@@ -305,17 +372,24 @@ function FleetSchedulerScreen({
       </div>
 
       <section className="scheduler-workday-panel">
+        {carryoverWorkday && (
+          <div className="scheduler-lunch-choice-summary">
+            <span>OVERNIGHT WORKDAY</span>
+            <strong>Previous day continues until {formatTime(carryoverWorkday.endMinutes)}</strong>
+          </div>
+        )}
         <div className={`scheduler-workday-strip ${workday ? 'configured' : 'unset'}`}>
           <div>
             <span>DRIVER WORKDAY</span>
             {workday ? (
-              <strong>{formatTime(workday.startMinutes)} – {formatTime(workday.endMinutes)}</strong>
+              <strong>{formatTime(workday.startMinutes)} – {formatTime(workday.endMinutes)}{getWorkdayEndOffset(workday) ? ' · NEXT DAY' : ''}</strong>
             ) : (
               <strong>NOT SET <small>· Add start and end-of-day</small></strong>
             )}
           </div>
           <div className="scheduler-workday-actions">
             <button type="button" disabled={!workday || Boolean(workday?.lunchEvent?.selectedChoiceId)} onClick={() => openWorkdayEditor('lunch')}>{workday?.lunchEvent?.selectedChoiceId ? 'LUNCH SET' : 'SET LUNCH'}</button>
+            {workday && <button type="button" className="overnight" onClick={() => openWorkdayEditor('overnight')}>{workday?.overnightMode ? 'SHIFT END ✓' : 'SHIFT END'}</button>}
             <button type="button" onClick={() => openWorkdayEditor('full')}>{workday ? 'EDIT DAY' : 'SET TIME'}</button>
           </div>
         </div>
@@ -350,12 +424,17 @@ function FleetSchedulerScreen({
       }}>
         <div className="scheduler-time-canvas" style={{ height: `${timelineHeight}px` }}>
           {hours.map((minute) => <div className="scheduler-hour-line" key={minute} style={{ top: `${(minute - startMinute) * PX_PER_MINUTE}px` }}><span>{formatTime(minute)}</span><i /></div>)}
+          {crossesMidnight && <div className="scheduler-midnight-divider" style={{ top: `${(1440 - startMinute) * PX_PER_MINUTE}px` }}><span>MIDNIGHT · {formatCompactDate(currentDay + 1)}</span></div>}
+
+          {carryoverWorkday && Number.isFinite(carryoverEndMinute) && (
+            <div className="scheduler-workday-marker end" style={{ top: `${Math.max(0, (carryoverEndMinute - startMinute) * PX_PER_MINUTE)}px` }}><span>PREVIOUS DAY ENDS</span></div>
+          )}
 
           {workday && (
             <>
-              <div className="scheduler-workday-marker start" style={{ top: `${Math.max(0, (workday.startMinutes - startMinute) * PX_PER_MINUTE)}px` }}><span>SHIFT START</span></div>
-              {Number.isFinite(Number(workday.lunchStartMinutes)) && Number.isFinite(Number(workday.lunchDurationMinutes)) && <div className="scheduler-workday-lunch" style={{ top: `${Math.max(0, (workday.lunchStartMinutes - startMinute) * PX_PER_MINUTE)}px`, height: `${Math.max(18, workday.lunchDurationMinutes * PX_PER_MINUTE)}px` }}><span>{workday.lunchEvent?.title ? `${workday.lunchEvent.title.toUpperCase()} · ` : 'LUNCH · '}{workday.lunchDurationMinutes} MIN</span></div>}
-              <div className="scheduler-workday-marker end" style={{ top: `${Math.max(0, (workday.endMinutes - startMinute) * PX_PER_MINUTE)}px` }}><span>END OF DAY</span></div>
+              <div className="scheduler-workday-marker start" style={{ top: `${Math.max(0, (Number(workday.startMinutes) - startMinute) * PX_PER_MINUTE)}px` }}><span>SHIFT START</span></div>
+              {Number.isFinite(lunchStartRelative) && Number.isFinite(Number(workday.lunchDurationMinutes)) && <div className="scheduler-workday-lunch" style={{ top: `${Math.max(0, (lunchStartRelative - startMinute) * PX_PER_MINUTE)}px`, height: `${Math.max(18, Number(workday.lunchDurationMinutes) * PX_PER_MINUTE)}px` }}><span>{workday.lunchEvent?.title ? `${workday.lunchEvent.title.toUpperCase()} · ` : 'LUNCH · '}{workday.lunchDurationMinutes} MIN</span></div>}
+              {Number.isFinite(workdayEndRelative) && <div className="scheduler-workday-marker end" style={{ top: `${Math.max(0, (workdayEndRelative - startMinute) * PX_PER_MINUTE)}px` }}><span>END OF DAY</span></div>}
             </>
           )}
 
@@ -404,9 +483,11 @@ function FleetSchedulerScreen({
                   {load.id === focusLoadId && <em>NEW</em>}
                 </button>
               }
+              const pickupTimelineMinute = relativeTimelineMinute(load, 'pickup')
+              const deliveryTimelineMinute = relativeTimelineMinute(load, 'delivery')
               return [
-                (load.pickupDayIndex ?? currentDay) === currentDay ? event('pickup', pickupMinute, pickup) : null,
-                (load.deliveryDayIndex ?? currentDay) === currentDay ? event('delivery', deliveryMinute, delivery) : null,
+                Number.isFinite(pickupTimelineMinute) ? event('pickup', pickupTimelineMinute, pickup) : null,
+                Number.isFinite(deliveryTimelineMinute) ? event('delivery', deliveryTimelineMinute, delivery) : null,
               ].filter(Boolean)
             })}
             {!currentDayLoads.length && <div className="scheduler-open-day"><strong>OPEN DAY</strong><span>No routes are planned for {driver?.fullName || driver?.name || 'this driver'} yet.</span></div>}
@@ -421,11 +502,34 @@ function FleetSchedulerScreen({
               <div><span>AGENDA · DRIVER HOURS</span><strong>{driver?.fullName || driver?.name}</strong></div>
               <button type="button" onClick={() => setWorkdayEditorOpen(false)} aria-label="Close workday editor">×</button>
             </div>
-            <p>{workdayEditorMode === 'lunch' ? 'Set this day’s lunch window. You can adjust it until the driver actually begins lunch.' : 'Set the driver’s scheduled start and end time. Lunch is managed separately.'}</p>
+            <p>{workdayEditorMode === 'lunch' ? 'Set this day’s lunch window. You can adjust it until the driver actually begins lunch.' : workdayEditorMode === 'overnight' ? `Choose where ${driver?.fullName || driver?.name || 'the driver'} stages after this shift.` : 'Set the driver’s scheduled start and end time. Lunch is managed separately.'}</p>
             {workdayEditorMode === 'full' ? (
               <div className="scheduler-workday-fields scheduler-workday-time-fields">
                 <TimeStepper label="START TIME" value={workdayDraft.start} onChange={(value) => setWorkdayDraft((current) => ({ ...current, start: value }))} />
-                <TimeStepper label="END OF DAY" value={workdayDraft.end} onChange={(value) => setWorkdayDraft((current) => ({ ...current, end: value }))} />
+                <TimeStepper label="SHIFT END" value={workdayDraft.end} onChange={(value) => setWorkdayDraft((current) => ({ ...current, end: value }))} />
+                {Number.isFinite(timeInputToMinutes(workdayDraft.start)) && Number.isFinite(timeInputToMinutes(workdayDraft.end)) && timeInputToMinutes(workdayDraft.end) <= timeInputToMinutes(workdayDraft.start) && <div className="scheduler-next-day-note">ENDS NEXT CALENDAR DAY</div>}
+              </div>
+            ) : workdayEditorMode === 'overnight' ? (
+              <div className="scheduler-overnight-options">
+                {(() => {
+                  const origin = (Number.isFinite(driver?.longitude) && Number.isFinite(driver?.latitude))
+                    ? { longitude: driver.longitude, latitude: driver.latitude }
+                    : mapLocations.find((location) => location.id === (driver?.lastKnownLocationId || driver?.homeBaseLocationId))
+                  const choices = [
+                    mapLocations.find((location) => location.id === 'metroline-yard'),
+                    ...mapLocations.filter((location) => ['queens-staging-area', 'newark-fuel-stop', 'elizabeth-truck-stop'].includes(location.id)),
+                  ].filter(Boolean)
+                  return choices.map((location) => {
+                    const isYard = location.id === 'metroline-yard'
+                    const active = isYard ? workdayDraft.overnightMode === 'yard' : (workdayDraft.overnightMode === 'truck-stop' && workdayDraft.overnightTargetLocationId === location.id)
+                    const miles = approximateMiles(origin, location)
+                    return (
+                      <button type="button" key={location.id} className={active ? 'active' : ''} onClick={() => setWorkdayDraft((current) => ({ ...current, overnightMode: isYard ? 'yard' : 'truck-stop', overnightTargetLocationId: location.id }))}>
+                        <strong>{location.name.toUpperCase()}</strong><small>{Number.isFinite(miles) ? `${miles.toFixed(1)} MI FROM CURRENT POSITION` : (isYard ? 'CARRIER YARD' : 'TRUCK STOP')}</small>
+                      </button>
+                    )
+                  })
+                })()}
               </div>
             ) : (
               <div className="scheduler-workday-fields lunch-only scheduler-lunch-setting-fields">
@@ -442,7 +546,7 @@ function FleetSchedulerScreen({
             <div className="scheduler-workday-editor-actions">
               <button type="button" onClick={() => setWorkdayEditorOpen(false)}>CANCEL</button>
               {workdayEditorMode === 'full' && workday && <button type="button" onClick={() => { onUpdateDriverWorkday?.(driver?.id, currentDay, null); setWorkdayEditorOpen(false) }}>CLEAR</button>}
-              <button type="button" className="primary" onClick={workdayEditorMode === 'lunch' ? saveLunch : saveWorkday}>{workdayEditorMode === 'lunch' ? 'SET LUNCH' : 'SAVE TIME'}</button>
+              <button type="button" className="primary" onClick={workdayEditorMode === 'lunch' ? saveLunch : workdayEditorMode === 'overnight' ? saveShiftEndPlan : saveWorkday}>{workdayEditorMode === 'lunch' ? 'SET LUNCH' : workdayEditorMode === 'overnight' ? 'SAVE SHIFT END' : 'SAVE TIME'}</button>
             </div>
           </section>
         </div>

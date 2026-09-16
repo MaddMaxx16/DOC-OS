@@ -162,6 +162,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
   const driverLabelRevealTimers = useRef(new Map())
   const routeInfoPopupRef = useRef({ loadId: null, popup: null })
   const yardMarkerRefs = useRef(new Map())
+  const truckStopMarkerRefs = useRef(new Map())
   const freightBrowseMarkerRefs = useRef(new Map())
   const freightBrowseDeliveryMarkerRef = useRef(null)
   const itineraryStopMarkerRefs = useRef(new Map())
@@ -174,6 +175,13 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
   const travelingLoad = drivers.map((driver) => getAuthoritativeDriverTravelLoad(loads, driver.id)).find(Boolean) || null
   const mapOperationalLoad = travelingLoad || assignedLoad || null
   const runtimeRoute = mapOperationalLoad?.tripStatus === 'en-route-delivery' ? mapOperationalLoad.plannedLoadedRouteGeometry : mapOperationalLoad?.tripStatus === 'en-route-pickup' ? mapOperationalLoad.plannedDeadheadRouteGeometry : null
+  // B.4.2.4 closure polish: overnight repositioning remains visible as a quiet
+  // operational route. Freight travel still owns the strong active-route layer.
+  const stagingRouteDriver = !travelingLoad
+    ? drivers.find((driver) => driver.idleRouteStatus === 'traveling' && Array.isArray(driver.idleRouteGeometry) && driver.idleRouteGeometry.length >= 2)
+    : null
+  const stagingRouteGeometry = stagingRouteDriver?.idleRouteGeometry || null
+  const isStagingRoute = Boolean(stagingRouteGeometry)
   // CS2.0A.3 — Single Route Authority.
   // During live travel, the route that physically moves the driver is also the
   // only geometry allowed to render as the strong active route. Previously the
@@ -192,7 +200,9 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
   const isExplicitRoutePreview = Boolean(isDriverFitEvaluation || routeFocusMode || routeReviewLoad)
   const resolvedActiveRouteGeometry = hasAuthoritativeTravelRoute
     ? runtimeRoute
-    : (isExplicitRoutePreview && activeRouteGeometry?.length ? activeRouteGeometry : null)
+    : (isExplicitRoutePreview && activeRouteGeometry?.length
+      ? activeRouteGeometry
+      : (isStagingRoute ? stagingRouteGeometry : null))
 
   const getDriver = (driverId) => drivers.find((driver) => driver.id === driverId)
   const removeLocationMarker = (ref) => {
@@ -360,6 +370,20 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
 
         const travelingLoad = getAuthoritativeDriverTravelLoad(currentLoads, driver.id)
         if (!travelingLoad) {
+          // B.4.2.3.12: overnight staging uses the same fractional render clock as
+          // freight travel. Simulation state still owns arrival; this only removes
+          // the visible once-per-game-minute jump between persisted positions.
+          if (driver.idleRouteStatus === 'traveling'
+            && Array.isArray(driver.idleRouteGeometry)
+            && driver.idleRouteGeometry.length >= 2
+            && Number.isFinite(driver.idleRouteStartGameMinute)
+            && Number.isFinite(driver.idleRouteDurationMinutes)
+            && driver.idleRouteDurationMinutes > 0) {
+            const progress = Math.max(0, Math.min(1, (renderGameMinute - driver.idleRouteStartGameMinute) / driver.idleRouteDurationMinutes))
+            const point = routePosition(driver.idleRouteGeometry, progress)
+            if (point) marker.setLngLat(point)
+            return
+          }
           const position = currentRuntimePositions?.[driver.id]
           if (position) marker.setLngLat([position.longitude, position.latitude])
           return
@@ -476,6 +500,24 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     })
     yardMarkerRefs.current.forEach((marker, id) => {
       if (!activeYardIds.has(id)) { marker.remove(); yardMarkerRefs.current.delete(id) }
+    })
+
+    // B.4.2.3.12: strategic truck stops are persistent world locations. Keep the
+    // marker compact so it helps staging decisions without competing with drivers.
+    const stagingLocations = mapLocations.filter((location) => location.type === 'staging')
+    const activeTruckStopIds = new Set(stagingLocations.map((location) => location.id))
+    stagingLocations.forEach((location) => {
+      if (truckStopMarkerRefs.current.has(location.id)) return
+      const element = document.createElement('div')
+      element.className = 'game-marker truck-stop'
+      element.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9.5v11H5zM14.5 8h2.8l2.2 3v4h-5zM7.2 6.5h5.1v2H7.2z"/><circle cx="8" cy="17.2" r="2"/><circle cx="17.2" cy="17.2" r="2"/></svg>'
+      element.setAttribute('aria-label', location.name)
+      element.title = location.name
+      const marker = new Marker({ element }).setLngLat([location.longitude, location.latitude]).addTo(map)
+      truckStopMarkerRefs.current.set(location.id, marker)
+    })
+    truckStopMarkerRefs.current.forEach((marker, id) => {
+      if (!activeTruckStopIds.has(id)) { marker.remove(); truckStopMarkerRefs.current.delete(id) }
     })
 
     const activeDriverIds = new Set(drivers.map((driver) => driver.id))
@@ -1241,14 +1283,14 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     }
 
     if (map.getLayer('active-route-line')) {
-      map.setPaintProperty('active-route-line', 'line-color', isDriverFitEvaluation ? '#D0B8DF' : (mapOperationalLoad?.assignedDriverId ? getDriverColorFamily(mapOperationalLoad.assignedDriverId)[0] : '#E4D7EC'))
-      map.setPaintProperty('active-route-line', 'line-width', isDriverFitEvaluation ? 5.5 : 5.2)
-      map.setPaintProperty('active-route-line', 'line-opacity', 0.96)
-      map.setPaintProperty('active-route-line', 'line-dasharray', mapOperationalLoad?.tripStatus === 'en-route-pickup' ? [2.2, 1.6] : [1, 0.001])
+      map.setPaintProperty('active-route-line', 'line-color', isStagingRoute ? '#9B8BA6' : (isDriverFitEvaluation ? '#D0B8DF' : (mapOperationalLoad?.assignedDriverId ? getDriverColorFamily(mapOperationalLoad.assignedDriverId)[0] : '#E4D7EC')))
+      map.setPaintProperty('active-route-line', 'line-width', isStagingRoute ? 3.2 : (isDriverFitEvaluation ? 5.5 : 5.2))
+      map.setPaintProperty('active-route-line', 'line-opacity', isStagingRoute ? 0.58 : 0.96)
+      map.setPaintProperty('active-route-line', 'line-dasharray', isStagingRoute ? [1.4, 1.1] : (mapOperationalLoad?.tripStatus === 'en-route-pickup' ? [2.2, 1.6] : [1, 0.001]))
     }
 
     console.debug('ROUTE SOURCE UPDATE', { tripStatus: mapOperationalLoad?.tripStatus, geometryType: route ? 'active' : 'null', coordinateCount: route?.routeShape?.length || 0 })
-  }, [mapReady, resolvedActiveRouteGeometry, mapOperationalLoad?.tripStatus, mapOperationalLoad?.assignedDriverId, isDriverFitEvaluation, routeFocusMode, routeReviewLoad])
+  }, [mapReady, resolvedActiveRouteGeometry, mapOperationalLoad?.tripStatus, mapOperationalLoad?.assignedDriverId, isDriverFitEvaluation, isStagingRoute, routeFocusMode, routeReviewLoad])
 
   useEffect(() => {
     const map = mapRef.current
@@ -1383,13 +1425,48 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       if (!marker || !element) return
       const driverLoad = getDriverItineraryState(loads, driver.id).operationalLoad
       element.style.pointerEvents = ''
-      element.classList.toggle('unavailable', driver.status === 'unavailable')
+      // CS2.0B.4.2.4.4: once normal freight is physically underway, the map
+      // marker returns to its standard driver color. `unavailable` remains a
+      // roster/assignment concept; it must not visually make an on-duty driver
+      // look off-duty while working the load.
+      const activeFreightVisual = Boolean(driverLoad && ['en-route-pickup', 'waiting-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-pickup', 'loaded', 'en-route-delivery', 'waiting-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery'].includes(driverLoad.tripStatus || driverLoad.status))
+      // CS2.0B.4.2.4.5: assignment/queue bookkeeping may leave driver.status as
+      // `unavailable` while Marcus is legitimately inside his scheduled workday.
+      // Map availability styling follows duty time + active freight, not queue state.
+      const todayWorkday = driver.workdayByDay?.[String(gameTime.gameDayIndex)] || driver.workdayByDay?.[gameTime.gameDayIndex]
+      const previousWorkday = driver.workdayByDay?.[String(gameTime.gameDayIndex - 1)] || driver.workdayByDay?.[gameTime.gameDayIndex - 1]
+      const minuteOfDay = Number(gameTime.totalMinutesOfDay) || 0
+      const todayStart = Number(todayWorkday?.startMinutes)
+      const todayEnd = Number(todayWorkday?.endMinutes)
+      const previousStart = Number(previousWorkday?.startMinutes)
+      const previousEnd = Number(previousWorkday?.endMinutes)
+      const inTodayWorkday = Number.isFinite(todayStart) && Number.isFinite(todayEnd)
+        ? (todayEnd > todayStart ? minuteOfDay >= todayStart && minuteOfDay < todayEnd : minuteOfDay >= todayStart)
+        : false
+      const inPreviousCarryover = Number.isFinite(previousStart) && Number.isFinite(previousEnd) && previousEnd <= previousStart
+        ? minuteOfDay < previousEnd
+        : false
+      const inScheduledWorkday = inTodayWorkday || inPreviousCarryover
+      element.classList.toggle('unavailable', driver.status === 'unavailable' && !activeFreightVisual && !inScheduledWorkday)
       element.classList.toggle('attention', false)
       let pill = element.querySelector('.driver-status-pill')
       if (!pill) { pill = document.createElement('span'); pill.className = 'driver-status-pill'; element.append(pill) }
       element.classList.remove('waiting-progress')
       element.style.removeProperty('--wait-progress')
-      if (!driverLoad) { pill.textContent = driver.idleRouteStatus === 'traveling' ? 'RETURNING TO YARD' : ''; return }
+      element.classList.remove('overnight-status')
+      // B.4.2.4.3: Shift End staging presentation owns the driver marker even
+      // when tomorrow's freight is already assigned. Keep the map quiet: badge
+      // only (💤 while repositioning, 🌙 once staged), with no text status label.
+      const shiftEndBadge = driver.idleRouteStatus === 'traveling' ? '💤' : (driver.idleRouteStatus === 'arrived' && driver.overnightMode ? '🌙' : '')
+      if (shiftEndBadge) {
+        pill.textContent = shiftEndBadge
+        element.classList.add('overnight-status')
+        return
+      }
+      if (!driverLoad) {
+        pill.textContent = ''
+        return
+      }
       const pickup = mapLocations.find((location) => location.id === driverLoad.pickupLocationId)
       const delivery = mapLocations.find((location) => location.id === driverLoad.deliveryLocationId)
       const panel = getDriverPanelModel({ driver, assignedLoad: driverLoad, gameTime, runtimeProgress: runtimeProgressByDriver?.[driver.id] ?? 0, pickup, delivery })
