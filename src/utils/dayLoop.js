@@ -1,5 +1,5 @@
 import { getAgreementRules, getCarrierDayRelationshipChange, getCarrierRelationshipLabel } from './carrierAgreement.js'
-export const STANDARD_OPERATION_START_MINUTES = 6 * 60
+export const STANDARD_OPERATION_START_MINUTES = 7 * 60
 export const TARGET_OPERATION_CLOSE_MINUTES = 18 * 60
 export const XP_PER_LEVEL = 500
 
@@ -10,6 +10,9 @@ export const DEFAULT_DAY_LOOP_STATE = {
   report: null,
   history: [],
   lastClosedGameDayIndex: null,
+  lastBriefedGameDayIndex: null,
+  overnightAdvanceTargetGameDayIndex: null,
+  overnightAdvanceTargetMinutes: null,
 }
 
 export const DEFAULT_PLAYER_PROGRESSION = {
@@ -107,8 +110,15 @@ export function createDayReport({
   const standardCloseAbsoluteMinute = currentStartGameDayIndex * 1440 + TARGET_OPERATION_CLOSE_MINUTES
   const rawLateCloseMinutes = Math.max(0, closeAbsoluteMinute - standardCloseAbsoluteMinute)
   const lateCloseAdjustmentMinutes = rawLateCloseMinutes
-  const nextBaseDayIndex = gameTime.gameDayIndex + 1
-  const nextStartAbsoluteMinute = nextBaseDayIndex * 1440 + STANDARD_OPERATION_START_MINUTES + lateCloseAdjustmentMinutes
+  // B.4.4.3.2 — DOC OS has a fixed dispatcher operating-day start at 07:00.
+  // End Operations never resets the world; it only schedules a controlled
+  // overnight advance to the next 07:00 boundary. If closeout occurs after
+  // midnight but before 07:00, the upcoming 07:00 on the same calendar day is
+  // the target rather than skipping an extra day.
+  const nextBaseDayIndex = gameTime.totalMinutesOfDay < STANDARD_OPERATION_START_MINUTES
+    ? gameTime.gameDayIndex
+    : gameTime.gameDayIndex + 1
+  const nextStartAbsoluteMinute = nextBaseDayIndex * 1440 + STANDARD_OPERATION_START_MINUTES
   const nextStart = normalizeAbsoluteMinute(nextStartAbsoluteMinute)
 
   const completedLoads = completedLoadsForOperation(loads, operationDay)

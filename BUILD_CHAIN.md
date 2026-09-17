@@ -1,3 +1,7 @@
+## CS2.0B.4.4.3.3-TEST
+- Cumulative from CS2.0B.4.4.3.2-TEST.
+- Fixes the consumed overnight target re-trigger that caused BEGIN OPERATIONS to flash and immediately reopen the same Day Briefing.
+
 CS2.0A.12.2 — Scheduler Final Polish
 Base: CS2.0A.12.1
 Scope: scheduler presentation only; operations logic frozen.
@@ -226,3 +230,54 @@ Promoted after user acceptance of the cumulative B.4.2.6 → B.4.2.6.3 test chai
 - Locks future physical-paperwork visual treatment for the dedicated visual pass without reopening B.4.3 lifecycle architecture.
 - Replaces CS2.0B.4.2.6-STABLE as the protected checkpoint after real-repo verification and tag.
 
+
+
+## CS2.0B.4.4.1-TEST — Banking Foundation
+- Built directly from protected `CS2.0B.4.3-STABLE`.
+- Adds persistent LedgerDesk Operating Account state with $2,500 opening capital.
+- Adds bank transaction records separate from receivables; PAID invoices create one deterministic deposit per load.
+- Adds save migration/reconciliation for existing PAID receivables and duplicate-deposit protection across resume.
+- Adds a compact available-balance proof surface to current LedgerDesk without performing the B.4.4.2 UI redesign.
+- Removes dormant direct `pay` shortcut from the receivable action handler.
+- B.4.3-STABLE remains the protected stable checkpoint; B.4.4.1 is IN TEST only.
+
+
+## CS2.0B.4.4.2-TEST — LedgerDesk Account UI
+- Promotes the Operating Account to the primary LedgerDesk experience.
+- Adds Account / Receivables navigation and persistent transaction activity.
+- Keeps the proven B.4.4.1 banking engine unchanged; no status-bar cash integration yet.
+
+## CS2.0B.4.4.3-TEST — Payment & Financial Integration
+- Rewired the global CASH display to the authoritative LedgerDesk Operating Account available balance.
+- Day Briefing Available Cash now uses the Operating Account rather than lifetime collected revenue.
+- Daily Closeout captures the Operating Account balance while preserving Cash Collected as a separate business-day flow metric.
+- LedgerDesk remains the source of truth for spendable cash; receivable revenue/collected totals remain accounting metrics.
+
+
+- CS2.0B.4.4.3.1-TEST — Restored next-operation briefing after natural clock rollover without giving Closeout calendar authority.
+
+
+## CS2.0B.4.4.3.2-TEST — End Operations / 7 AM Day Handoff
+- Fixed DOC OS dispatcher operating-day start at 7:00 AM.
+- Daily Closeout remains a report and never resets/teleports world state.
+- CONTINUE TO NEXT OPERATIONS starts a controlled high-speed live-clock overnight advance.
+- Midnight, payments, driver movement, freight, and persistent world state continue through their existing authoritative systems.
+- Auto-advance pauses at 7:00 AM and presents Day Briefing before player control resumes.
+- A closeout between midnight and 7:00 AM targets that same morning's 7:00 AM start.
+- TEST only; not promoted to stable.
+
+
+## CS2.0B.4.4.3.3-TEST — Payment Integration Acceptance
+- B.4.4.3 accepted after authoritative status-bar CASH confirmation and corrected 07:00 Begin Operations handoff.
+
+## CS2.0B.4.4.4-TEST — Banking Polish & Regression
+- Cumulative from accepted CS2.0B.4.4.3.3-TEST.
+- Adds bank-transaction → invoice/receivable traceability and future-safe deposit counting.
+- Final B.4.4 test slice before stable promotion; protected stable checkpoint remains CS2.0B.4.3-STABLE until real-repo promotion is approved and verified.
+
+
+## CS2.0B.4.4-STABLE — LedgerDesk Banking
+- Promoted from the user-approved CS2.0B.4.4.4.1 test chain with no additional gameplay changes.
+- Includes persistent $2,500 Operating Account, authoritative transaction ledger, invoice-payment deposits, migration/duplicate protection, Account-first LedgerDesk UI, global CASH integration, Closeout/Briefing cash integration, transaction-to-invoice traceability, and the 07:00 End Operations handoff.
+- Replaces `CS2.0B.4.3-STABLE` as the protected recovery checkpoint after real-repo build, iPhone smoke test, commit, push, and tag verification.
+- Next phase: `CS2.0B.5 — Driver Duty & HOS`.

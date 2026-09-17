@@ -14,6 +14,7 @@ import EntryLiveMap from './components/EntryLiveMap.jsx'
 import { SAVE_SLOT_IDS, clearSave, getActiveSaveSlot, getSaveSlots, loadGame, saveGame, setActiveSaveSlot } from './utils/saveGame.js'
 import { createDevPreset } from './dev/devPresets.js'
 import { getReceivables } from './utils/ledger.js'
+import { createInitialLedgerBanking, getLedgerAccountSummary, reconcileLedgerBanking } from './utils/ledgerBanking.js'
 import { reconcileActiveCarrierDrivers } from './utils/driverRoster.js'
 import { getDriverActiveLoad, getDriverQueue, promoteNextQueuedLoad } from './utils/driverQueue.js'
 import { createDayReport, DEFAULT_DAY_LOOP_STATE, DEFAULT_PLAYER_PROGRESSION, getEndDayStatus } from './utils/dayLoop.js'
@@ -98,6 +99,7 @@ function App() {
   const [seenLedgerReceivableIds, setSeenLedgerReceivableIds] = useState([])
   const [seenLedgerPaymentReceivedIds, setSeenLedgerPaymentReceivedIds] = useState([])
   const [ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId] = useState({})
+  const [ledgerBanking, setLedgerBanking] = useState(() => createInitialLedgerBanking())
   const [carrierApplicationsById, setCarrierApplicationsById] = useState({})
   const [carrierCareerById, setCarrierCareerById] = useState(() => buildCarrierCareerById(seedCarriers))
   const [dispatcherProfile, setDispatcherProfile] = useState(null)
@@ -221,6 +223,7 @@ function App() {
     setSeenLedgerReceivableIds(Array.isArray(saved.seenLedgerReceivableIds) ? saved.seenLedgerReceivableIds : [])
     setSeenLedgerPaymentReceivedIds(Array.isArray(saved.seenLedgerPaymentReceivedIds) ? saved.seenLedgerPaymentReceivedIds : [])
     setLedgerWorkflowByLoadId(saved.ledgerWorkflowByLoadId || {})
+    setLedgerBanking(reconcileLedgerBanking(saved.ledgerBanking, hydratedLoads, hydratedCarriers, saved.ledgerWorkflowByLoadId || {}))
     const hydratedApplications = saved.carrierApplicationsById || {}
     setCarrierApplicationsById(hydratedApplications)
     setCarrierCareerById(buildCarrierCareerById(hydratedCarriers, hydratedApplications, saved.carrierCareerById || {}))
@@ -264,6 +267,7 @@ function App() {
     setSeenLedgerReceivableIds([])
     setSeenLedgerPaymentReceivedIds([])
     setLedgerWorkflowByLoadId({})
+    setLedgerBanking(createInitialLedgerBanking())
     setCarrierApplicationsById({})
     setCarrierCareerById(buildCarrierCareerById(seedCarriers))
     setDispatcherProfile(null)
@@ -290,11 +294,11 @@ function App() {
     if (stage === 'start' && !hasExistingOperation) return
     const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
     const timer = setTimeout(() => {
-      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
+      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
       setSaveSlots(getSaveSlots())
     }, 700)
     return () => clearTimeout(timer)
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
 
   // AV lifecycle persistence: critical operational boundaries flush immediately.
   // Routine animation/clock changes still use the normal debounce above.
@@ -308,8 +312,8 @@ function App() {
     if (!signature || signature === lifecycleSaveSignatureRef.current) return
     lifecycleSaveSignatureRef.current = signature
     const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
-    saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
+    saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
 
   // AU3 mobile persistence hardening: keep the normal debounce for routine
   // updates, but flush the current snapshot immediately when iOS backgrounds
@@ -318,7 +322,7 @@ function App() {
     if (!hydrated || !activeSaveSlotId) return undefined
     const flushSave = () => {
       const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
-      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
+      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
     }
     const onVisibility = () => { if (document.visibilityState === 'hidden') flushSave() }
     window.addEventListener('pagehide', flushSave)
@@ -327,7 +331,7 @@ function App() {
       window.removeEventListener('pagehide', flushSave)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
 
   // Market appointments are seeded directly; operation-day gates do not rewrite them.
 
@@ -508,6 +512,14 @@ function App() {
     })
   }, [gameTime])
 
+  // CS2.0B.4.4.1 — a paid receivable and a bank deposit are related records,
+  // not the same record. Reconcile by deterministic load ID so a payment can
+  // never post to the Operating Account twice, including after save/resume.
+  useEffect(() => {
+    if (!hydrated) return
+    setLedgerBanking((current) => reconcileLedgerBanking(current, loads, carriers, ledgerWorkflowByLoadId))
+  }, [hydrated, loads, carriers, ledgerWorkflowByLoadId])
+
 
   const applyDevPreset = async (name) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads([...preset.loads, ...loads.filter((load) => !preset.loads.some((item) => item.id === load.id)), ...seedLoads.filter((seed) => !preset.loads.some((item) => item.id === seed.id) && !loads.some((item) => item.id === seed.id))]); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgressByDriver(preset.runtimeProgressByDriver || (Number.isFinite(preset.runtimeProgress) ? { marcus: preset.runtimeProgress } : {})) } catch (error) { console.error('DEV preset route unavailable:', error) } }
   const setupOvernightDevScenario = async () => {
@@ -608,6 +620,7 @@ function App() {
     setSeenLedgerReceivableIds([])
     setSeenLedgerPaymentReceivedIds([])
     setLedgerWorkflowByLoadId({})
+    setLedgerBanking(createInitialLedgerBanking())
     setEmailMessages((current) => current.filter((message) => /application approved|agreement/i.test(`${message.subject || ''} ${message.body || ''}`)))
     setDriverMessages((current) => current.filter((message) => message.id === 'marcus-intro' || String(message.id || '').startsWith('marcus-intro-')))
     setBusinessDocuments((current) => current.filter((document) => document.type === 'dispatch-agreement'))
@@ -1107,6 +1120,35 @@ function App() {
   }, [hydrated, stage, gameTime.gameDayIndex])
 
 
+  // B.4.4.3.2 — End Operations can request a controlled overnight advance,
+  // but the live clock still owns every minute and the midnight boundary.
+  // At the fixed 07:00 DOC OS operating start, pause and surface the briefing.
+  useEffect(() => {
+    if (!hydrated || stage !== 'game' || dayLoop.phase !== 'operating') return
+    const history = Array.isArray(dayLoop.history) ? dayLoop.history : []
+    const latestReport = history[history.length - 1]
+    if (!latestReport || !Number.isFinite(dayLoop.lastClosedGameDayIndex)) return
+    // Only an explicit pending overnight target may open the briefing. Once the
+    // target is consumed at 07:00 it is cleared, so BEGIN OPERATIONS cannot
+    // immediately re-trigger the same briefing from historical report data.
+    if (!Number.isFinite(dayLoop.overnightAdvanceTargetGameDayIndex) || !Number.isFinite(dayLoop.overnightAdvanceTargetMinutes)) return
+    const targetDay = Number(dayLoop.overnightAdvanceTargetGameDayIndex)
+    const targetMinutes = Number(dayLoop.overnightAdvanceTargetMinutes)
+    const reachedStart = gameTime.gameDayIndex > targetDay
+      || (gameTime.gameDayIndex === targetDay && gameTime.totalMinutesOfDay >= targetMinutes)
+    if (!reachedStart) return
+    setDayLoop((current) => ({
+      ...current,
+      phase: 'briefing',
+      report: latestReport,
+      lastBriefedGameDayIndex: gameTime.gameDayIndex,
+      overnightAdvanceTargetGameDayIndex: null,
+      overnightAdvanceTargetMinutes: null,
+    }))
+    setSimulationSpeed(1)
+    setIsGameClockPaused(true)
+  }, [hydrated, stage, dayLoop.phase, dayLoop.history, dayLoop.lastClosedGameDayIndex, dayLoop.lastBriefedGameDayIndex, dayLoop.overnightAdvanceTargetGameDayIndex, dayLoop.overnightAdvanceTargetMinutes, gameTime.gameDayIndex, gameTime.totalMinutesOfDay])
+
   const awardLoadXp = (loadId, amount) => {
     setPlayerProgression((current) => {
       const awardedLoadXpIds = Array.isArray(current.awardedLoadXpIds) ? current.awardedLoadXpIds : []
@@ -1118,7 +1160,14 @@ function App() {
   const closeOperationDay = () => {
     const receivables = getReceivables(loads, carriers, ledgerWorkflowByLoadId)
     const closeStatus = getEndDayStatus(loads, receivables)
-    if (!closeStatus.canEnd || dayLoop.phase !== 'operating' || dayLoop.lastClosedGameDayIndex === gameTime.gameDayIndex) return
+    // B.4.4.4.1 — closeout authority belongs to the current operating session,
+    // not simply the calendar date. A prior closeout may legitimately share this
+    // calendar date when End Operations occurred after midnight and the next
+    // operating session began at 07:00. Once that morning briefing has been
+    // consumed, a later closeout on the same date must still be allowed.
+    const closedThisUnconsumedSession = dayLoop.lastClosedGameDayIndex === gameTime.gameDayIndex
+      && dayLoop.lastBriefedGameDayIndex !== gameTime.gameDayIndex
+    if (!closeStatus.canEnd || dayLoop.phase !== 'operating' || closedThisUnconsumedSession) return
 
     const baseReport = createDayReport({
       operationDay: dayLoop.operationDay,
@@ -1129,9 +1178,11 @@ function App() {
       carriers,
     })
     const reviewedGameMinute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const operatingAccountBalance = getLedgerAccountSummary(ledgerBanking).availableBalance
     const careerReviewsByCarrierId = {}
     const report = {
       ...baseReport,
+      operatingAccountBalance,
       carrierBreakdown: (baseReport.carrierBreakdown || []).map((result) => {
         const carrier = carriers.find((item) => item.id === result.carrierId)
         const reviewResult = applyCarrierPerformanceReview({
@@ -1267,34 +1318,36 @@ Open CarrierSource to review your full account history.`
   const continueToNextDayBriefing = () => {
     const report = dayLoop.report
     if (!report || dayLoop.phase !== 'results') return
-    // B.4.2.2: acknowledging Daily Closeout returns to the live world at the
-    // exact same game minute. The clock/date boundary—not this report—advances
-    // the calendar. No driver, load, route, appointment, or position is reset.
+    // B.4.4.3.2: the closeout itself still changes no world state. Continuing
+    // starts a high-speed live-clock advance to the fixed 07:00 DOC OS start.
+    // Existing simulation effects continue to own payments, routes, positions,
+    // freight, messages, and the midnight calendar boundary along the way.
     setDayLoop((current) => ({
       ...current,
       phase: 'operating',
       lastClosedGameDayIndex: report.closeGameDayIndex,
+      overnightAdvanceTargetGameDayIndex: report.nextStartGameDayIndex,
+      overnightAdvanceTargetMinutes: report.nextStartMinutes,
       report: null,
     }))
-    setSimulationSpeed(1)
+    setSimulationSpeed(60)
     setIsGameClockPaused(false)
   }
 
   const beginNextOperationDay = () => {
     const report = dayLoop.report
     if (!report || dayLoop.phase !== 'briefing') return
-    const nextOperationDay = dayLoop.operationDay + 1
-    setGameTime({ gameDayIndex: report.nextStartGameDayIndex, totalMinutesOfDay: report.nextStartMinutes })
+    // The clock already reached this operation start naturally. Beginning the
+    // briefing only dismisses the overlay; it never teleports time or freight.
     setDayLoop((current) => ({
       ...current,
-      operationDay: nextOperationDay,
       phase: 'operating',
-      currentStartGameDayIndex: report.nextStartGameDayIndex,
+      currentStartGameDayIndex: gameTime.gameDayIndex,
       report: null,
     }))
-    // The freight market continues from its own posting/expiration state across operation days.
     setSimulationSpeed(1)
     setIsGameClockPaused(false)
+    // The freight market continues from its own posting/expiration state across operation days.
   }
 
   return (
@@ -1367,6 +1420,7 @@ Open CarrierSource to review your full account history.`
             seenLedgerReceivableIds={seenLedgerReceivableIds}
             onOpenLedger={() => { const records = getReceivables(loads, carriers, ledgerWorkflowByLoadId); setSeenLedgerReceivableIds((current) => Array.from(new Set([...current, ...records.map((item) => item.loadId)]))); setSeenLedgerPaymentReceivedIds((current) => Array.from(new Set([...current, ...records.filter((item) => item.financialStatus === 'PAID').map((item) => item.loadId)]))) }}
             ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}
+            ledgerBanking={ledgerBanking}
             setLedgerWorkflowByLoadId={setLedgerWorkflowByLoadId}
             seenLedgerPaymentReadyIds={seenLedgerPaymentReceivedIds}
           />

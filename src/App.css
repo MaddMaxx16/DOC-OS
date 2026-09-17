@@ -13193,3 +13193,35 @@
 
 /* CS2.0B.4.3.3 — Rate Confirmation manual review */
 .ratecon-compare{margin-top:8px;border:1px solid rgba(255,255,255,.1);border-radius:8px;overflow:hidden}.ratecon-compare-head,.ratecon-compare-row{display:grid;grid-template-columns:.72fr 1fr 1fr .78fr;align-items:center;gap:5px;padding:6px 7px}.ratecon-compare-head{background:rgba(255,255,255,.045);font-size:6px;font-weight:900;letter-spacing:.08em;color:#8e98a8}.ratecon-compare-row{border-top:1px solid rgba(255,255,255,.07);font-size:7px}.ratecon-compare-row>strong{font-size:7px}.ratecon-compare-row>span{line-height:1.2;color:#c7ced8}.ratecon-check-actions{display:flex;gap:4px;justify-content:flex-end}.ratecon-check-actions button{width:23px;height:23px;border-radius:6px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#aeb7c5;font-weight:900}.ratecon-check-actions button.selected{background:rgba(70,170,110,.18);border-color:rgba(70,170,110,.55);color:#8de0ad}.ratecon-check-actions button.flag.selected{background:rgba(205,80,80,.17);border-color:rgba(205,80,80,.55);color:#ef9a9a}.ratecon-review-actions{display:flex;margin-top:9px}.ratecon-review-actions button{width:100%;min-height:34px;border:0;border-radius:8px;background:#e7e9ed;color:#10131a;font-size:8px;font-weight:950;letter-spacing:.06em}.ratecon-review-actions button:disabled{opacity:.28}.ratecon-confirmed{margin-top:9px;padding:9px;border-radius:8px;background:rgba(70,170,110,.12);border:1px solid rgba(70,170,110,.35);color:#8de0ad;text-align:center;font-size:8px;font-weight:950;letter-spacing:.06em}
+
+
+/* CS2.0B.4.4.1 — Banking Foundation: compact account proof surface only.
+   Full LedgerDesk banking UI remains B.4.4.2. */
+.ledger-operating-account {
+  margin: 0 16px 12px;
+  padding: 14px 15px;
+  border: 1px solid rgba(116, 166, 255, 0.28);
+  border-radius: 14px;
+  background: rgba(23, 37, 61, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ledger-operating-account div { display: grid; gap: 3px; }
+.ledger-operating-account span { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.ledger-operating-account small { font-size: 11px; opacity: .66; }
+.ledger-operating-account strong { font-size: 22px; letter-spacing: -.02em; white-space: nowrap; }
+
+/* CS2.0B.4.4.2-TEST — LedgerDesk Account UI */
+.ledger-bank-ui .ledger-toolbar{position:sticky}
+.ledger-primary-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:12px 13px 10px;padding:3px;border:1px solid #29323d;border-radius:11px;background:#151a20}
+.ledger-primary-tabs button{min-height:36px;border:0;border-radius:8px;background:transparent;color:#7f8997;font-size:8px;font-weight:800;letter-spacing:.03em}
+.ledger-primary-tabs button.active{background:#222b36;color:#f4f7fa;box-shadow:inset 0 0 0 1px #3b4858}
+.ledger-bank-hero{margin:0 13px 10px;padding:18px 16px 14px;border:1px solid rgba(116,166,255,.32);border-radius:16px;background:linear-gradient(145deg,rgba(25,43,72,.96),rgba(18,31,52,.96));display:grid;gap:4px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.ledger-bank-hero>small{color:#92a0b1;font-size:8px;margin-top:5px}.ledger-bank-hero>strong{font-size:30px;line-height:1.05;letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:#f7f9fc}
+.ledger-account-meta{display:flex;justify-content:space-between;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(170,197,235,.16);color:#8fa0b4;font-size:7px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.ledger-account-glance{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 13px 16px}.ledger-account-glance>div{display:grid;gap:5px;padding:10px 11px;border:1px solid #2d3641;border-radius:11px;background:#1a2027}.ledger-account-glance span{color:#768293;font-size:6px;font-weight:850;letter-spacing:.1em;text-transform:uppercase}.ledger-account-glance strong{color:#e7ecf2;font-size:11px;font-variant-numeric:tabular-nums}
+.ledger-activity{padding:0 13px 24px}.ledger-activity-heading{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:9px;padding:0 2px}.ledger-activity-heading>div{display:grid;gap:5px}.ledger-activity-heading h2{margin:0;color:#f1f4f7;font-size:16px;letter-spacing:-.025em}.ledger-activity-heading>small{color:#778495;font-size:7px}
+.ledger-transaction-list{overflow:hidden;border:1px solid #2d3641;border-radius:14px;background:#171d24}.ledger-transaction{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:9px;align-items:center;min-height:56px;padding:10px 11px;border-top:1px solid #29313b}.ledger-transaction:first-child{border-top:0}.ledger-transaction.linked{width:100%;border-left:0;border-right:0;border-bottom:0;text-align:left;color:inherit;font:inherit;cursor:pointer}.ledger-transaction.linked:active{background:#1c242e}.ledger-transaction.opening{opacity:.82}.ledger-transaction-icon{width:28px;height:28px;display:grid;place-items:center;border-radius:9px;font-size:15px;font-weight:900}.ledger-transaction-icon.credit{background:rgba(73,166,111,.13);color:#78cf9b}.ledger-transaction-icon.debit{background:rgba(202,91,91,.13);color:#e58c8c}.ledger-transaction-copy{min-width:0;display:grid;gap:4px}.ledger-transaction-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e5eaf0;font-size:9px}.ledger-transaction-copy span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#7f8b9b;font-size:6.5px}.ledger-transaction-amount{font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap}.ledger-transaction-amount.credit{color:#78cf9b}.ledger-transaction-amount.debit{color:#e58c8c}
+.ledger-receivables-heading{padding-top:8px}

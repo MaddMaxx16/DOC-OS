@@ -14,6 +14,7 @@ import mapLocations from '../data/mapLocations.js'
 import { calculateRoute, getLocationDistanceMiles, getRouteEndpointDistanceMiles, normalizeRouteGeometry } from '../services/routingService.js'
 import { logDocOsEvent } from '../utils/debugLogger.js'
 import { getLedgerSummary, getReceivables } from '../utils/ledger.js'
+import { getLedgerAccountSummary } from '../utils/ledgerBanking.js'
 import { PICKUP_LOADING_MINUTES } from '../data/pickupConfig.js'
 import { getEndDayStatus } from '../utils/dayLoop.js'
 import { getDriverActiveLoad, getDriverOnboardLoads, getDriverQueue, getNextQueuePosition, getProjectedDriverOrigin, promoteNextQueuedLoad } from '../utils/driverQueue.js'
@@ -285,7 +286,7 @@ function getAppointmentAlerts(loads, now) {
   return alerts
 }
 
-function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario }) {
+function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onOpenMarkets, onResetGame, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario }) {
   const [devOpen, setDevOpen] = useState(false)
   const [isPhoneOpen, setIsPhoneOpen] = useState(false)
   const [phoneInitialScreen, setPhoneInitialScreen] = useState('home')
@@ -325,6 +326,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
 
   const receivables = getReceivables(loads, carriers, ledgerWorkflowByLoadId)
   const ledgerSummary = getLedgerSummary(receivables)
+  const ledgerAccountSummary = getLedgerAccountSummary(ledgerBanking)
   const endDayStatus = getEndDayStatus(loads, receivables)
   const currentBrowseMinute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
   const freightBrowseLoads = loads.filter((load) => {
@@ -2127,7 +2129,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
 
   return (
     <div className="main-game-screen">
-      <StatusBar selectedMarket={selectedMarket} gameTime={gameTime} cash={ledgerSummary.collected} operationDay={operationDay} />
+      <StatusBar selectedMarket={selectedMarket} gameTime={gameTime} cash={ledgerAccountSummary.availableBalance} operationDay={operationDay} />
       <OperationsBar
         selectedMarket={selectedMarket}
         notificationCount={operationsNotificationCount}
@@ -2664,6 +2666,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             onPlanDeliveryRoute={(loadId) => { setIsPhoneOpen(false); startDeliveryPlanning(loadId) }}
             onOpenLedger={onOpenLedger}
             ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}
+            ledgerBanking={ledgerBanking}
             setLedgerWorkflowByLoadId={setLedgerWorkflowByLoadId}
             onEvaluateFit={startEvaluation} onAddToSchedule={addLoadToSchedule}
             onAcceptCandidateAssignment={acceptCandidateAssignment}
@@ -2691,9 +2694,9 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
 
       {dayLoopPhase === 'briefing' && (
         <DayBriefingScreen
-          operationDay={operationDay + 1}
+          operationDay={operationDay}
           report={dayReport}
-          cash={ledgerSummary.collected}
+          cash={ledgerAccountSummary.availableBalance}
           activeCarriers={carriers.filter((carrier) => carrier.status === 'active').length}
           availableDrivers={drivers.filter((driver) => driver.status === 'available' && !isDriverOnLunch(driver, gameTime)).length}
           openReceivables={ledgerSummary.outstanding}

@@ -38,6 +38,7 @@ function DayResultsScreen({ report, progression, onContinue }) {
             <div><span>Dispatch Fee</span><strong>{dispatchFeePercent}%</strong></div>
             <div><span>Dispatch Revenue</span><strong>{money(report.dispatchRevenue)}</strong></div>
             <div><span>Cash Collected</span><strong>{money(report.cashCollected)}</strong></div>
+            {Number.isFinite(report.operatingAccountBalance) && <div><span>Operating Account</span><strong>{money(report.operatingAccountBalance)}</strong></div>}
             <div><span>Open Receivables</span><strong>{money(report.pendingReceivables)}</strong></div>
           </div>
         </section>
@@ -89,15 +90,15 @@ function DayResultsScreen({ report, progression, onContinue }) {
         <section className="day-report-section next-day-outlook">
           <h2>CONTINUITY</h2>
           <div className="day-report-rows">
-            <div><span>World Clock</span><strong>UNCHANGED</strong></div>
+            <div><span>Next Operations</span><strong>7:00 AM</strong></div>
             <div><span>Open Freight</span><strong>CARRIES FORWARD</strong></div>
-            <div><span>Driver / Route State</span><strong>PRESERVED</strong></div>
+            <div><span>Overnight World State</span><strong>CONTINUES LIVE</strong></div>
           </div>
         </section>
       </div>
 
       <div className="day-loop-actions">
-        <button type="button" className="day-loop-primary" onClick={onContinue}>RETURN TO OPERATIONS</button>
+        <button type="button" className="day-loop-primary" onClick={onContinue}>CONTINUE TO NEXT OPERATIONS</button>
       </div>
     </section>
   )

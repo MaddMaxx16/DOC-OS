@@ -158,5 +158,51 @@ B.4.3 passed on-device acceptance through the cumulative B.4.3.1 → B.4.3.4 tes
 
 **Protected stable checkpoint after promotion:** `CS2.0B.4.3-STABLE — Documents & Rate Confirmation Workflow`
 
-## NEXT — CS2.0B.4.4 — LedgerDesk Banking
-Begin only after the B.4.3 stable promotion patch is applied to the real repository, rebuilt/synced, smoke-tested, committed, pushed, and tagged. Preserve the completed B.4.3 document lifecycle and all B.4.2 multi-day/Email contracts.
+## CS2.0B.4.4-STABLE — LedgerDesk Banking
+B.4.4 passed final regression and is approved for stable promotion from protected checkpoint `CS2.0B.4.3-STABLE`. LedgerDesk Banking is now the completed banking phase, preserving the B.4.3 document lifecycle and all B.4.2 multi-day/Email contracts.
+
+### CS2.0B.4.4.1-TEST — Banking Foundation
+- Establish a persistent DOC OS Operating Account with **$2,500 opening capital**.
+- Separate accounts receivable state from bank cash: `PAID` invoices generate distinct deposit transactions.
+- Use deterministic invoice-payment transaction IDs so save/resume and repeated reconciliation cannot double-post deposits.
+- Existing saves migrate safely: prior PAID receivables are reconstructed as bank deposits once.
+- Keep Revenue Earned / Outstanding / Collected accounting intact while introducing authoritative spendable cash underneath it.
+- Expose only a compact Operating Account balance proof surface in LedgerDesk; full banking UI is deferred to B.4.4.2.
+- Remove the dormant direct-pay shortcut so bank deposits have one authoritative path.
+
+**Acceptance target:** a fresh operation shows $2,500 available; an invoice becoming PAID creates exactly one bank deposit and increases available balance by the dispatch fee; save/reload does not duplicate the deposit.
+
+### Planned B.4.4 slices
+1. **B.4.4.1 — Banking Foundation** — account, transactions, opening capital, payment deposits, migration/duplicate protection.
+2. **B.4.4.2 — LedgerDesk Account UI** — Operating Account and transaction activity as first-class banking surfaces while preserving receivables.
+3. **B.4.4.3 — Payment & Financial Integration** — status bar, notifications, Daily Closeout/Briefing, documents/settlement references use authoritative bank cash.
+4. **B.4.4.4 — Banking Polish & Regression** — transaction detail, persistence, references, regression, then B.4.4-STABLE.
+
+
+### CS2.0B.4.4.2-TEST — LedgerDesk Account UI
+**Status:** PASS
+
+Account-first LedgerDesk presentation with Operating Account balance and posted transaction activity. Receivables remains the accounting workflow. Next: B.4.4.3 payment/financial integration across status bar, briefing, closeout, and document packet surfaces.
+
+### CS2.0B.4.4.3 — Payment & Financial Integration — PASS
+- Connect global CASH and Day Briefing Available Cash to the LedgerDesk Operating Account.
+- Add Operating Account balance to Daily Closeout without replacing the separate Cash Collected metric.
+- Preserve LedgerDesk as the single authority for spendable cash.
+- Next: B.4.4.4 Banking Polish & Regression, then B.4.4-STABLE.
+
+
+### B.4.4.3.1 TEST correction
+Payment & Financial Integration testing exposed a dormant day-loop handoff: Daily Closeout correctly returned to the live world, but the next-operation briefing had no reachable trigger. B.4.4.3.1 restores that briefing at the naturally reached next operation start while preserving the locked B.4.2 rule that Closeout never advances the calendar or teleports world state.
+B.4.4.3.3 fixes the BEGIN OPERATIONS handoff so the consumed 07:00 briefing cannot immediately re-open from historical closeout data.
+
+
+### CS2.0B.4.4.4 — Banking Polish & Regression — TEST
+- Payment transactions now provide a direct reference back to their linked invoice/receivable record.
+- Deposit count is explicitly derived from posted invoice-payment credits rather than generic transaction count, keeping the UI correct when future debits arrive.
+- Preserve $2,500 opening capital, one-deposit-per-paid-invoice reconciliation, save/reload persistence, authoritative global CASH, and the 07:00 operating-day handoff.
+- No new expense system, banking mechanic, or major visual redesign is introduced.
+- Final regression accepted, including transaction traceability, duplicate-deposit protection, authoritative CASH, persistent balance, and the 07:00 End Operations handoff.
+- **Protected stable checkpoint after promotion:** `CS2.0B.4.4-STABLE — LedgerDesk Banking`.
+- **Next roadmap phase:** `CS2.0B.5 — Driver Duty & HOS`.
+
+**Polish backlog:** replace/clarify the prototype `DAY #` top-bar language now that DOC OS uses real calendar dates; reduce the Operating Account hero card's vertical footprint during the dedicated visual pass.

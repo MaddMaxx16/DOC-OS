@@ -864,3 +864,40 @@ The dedicated visual pass must present operational documents as actual business 
 
 ### Promotion cleanup
 The temporary B.4.3.3.1 forced Rate Confirmation discrepancy was acceptance scaffolding only and is absent from promoted gameplay. B.4.3-STABLE preserves B.4.2 multi-day operations, Shift End authority, midnight behavior, FreightLink movement rules, compact Email workflow authority, and LedgerDesk timing.
+
+
+## CS2.0B.4.4.1 — LedgerDesk Banking Foundation (IN TEST)
+LedgerDesk now distinguishes **business accounting** from **bank cash**. Receivables continue to own invoice lifecycle (`READY_TO_INVOICE → DRAFT → AWAITING_PAYMENT → PAID`). The new Operating Account owns spendable cash.
+
+- Opening capital for a new operation is **$2,500.00**.
+- A receivable becoming `PAID` does not itself equal cash; reconciliation posts a separate `invoice-payment` credit transaction tied to that load/invoice.
+- Invoice-payment transaction identity is deterministic (`invoice-payment:<loadId>`), preventing duplicate deposits after time advancement, rerenders, save/resume, or migration.
+- Existing saves with PAID invoices but no Banking state reconstruct those historical deposits once so the transition does not erase already-collected money.
+- Current/available bank balance is derived from opening capital plus credits minus future debits. B.4.4.1 introduces credits only; expense/debit systems are intentionally not invented here.
+- The current Revenue Earned / Outstanding / Collected summary remains accounting information and is not yet replaced by the bank UI.
+- The status-bar cash and Daily Briefing integration remain unchanged until B.4.4.3; B.4.4.1 is the data-authority foundation.
+- A compact LedgerDesk Operating Account balance is exposed only so the foundation can be acceptance-tested before the full B.4.4.2 banking presentation.
+
+
+## CS2.0B.4.4.2 — LedgerDesk Account UI (IN TEST)
+LedgerDesk has two primary sections: Account and Receivables. Account is the default and reads from `ledgerBanking`; it displays the authoritative available balance and transaction history. Receivables preserves the existing invoice lifecycle and Revenue/Outstanding/Collected accounting summaries. The status bar and other global cash surfaces are not authoritative-bank integrations until B.4.4.3.
+
+### B.4.4.3 financial authority
+LedgerDesk Banking is the authoritative source for spendable cash. The global status bar and Day Briefing read the Operating Account available balance. Revenue Earned, Outstanding, Collected, and Daily Closeout Cash Collected remain accounting/per-period metrics and must not be substituted for bank cash. Daily Closeout snapshots the Operating Account balance for that business-day report.
+
+
+### Day Closeout → 07:00 Next Operations
+Daily Closeout remains a business-day report and never directly resets or increments the calendar. `CONTINUE TO NEXT OPERATIONS` starts a controlled high-speed live simulation toward the next DOC OS operating-day start at **07:00**. Midnight, payments, legitimate driver movement, Shift End staging, freight, and persistent world state continue through their existing authoritative systems while time advances. If Closeout occurs after midnight but before 07:00, the target is that upcoming 07:00. At the target, DOC OS pauses the overnight advance and surfaces Day Briefing once. BEGIN OPERATIONS consumes that pending target, restores normal 1× control at the same live time, and historical closeout data cannot re-open the consumed briefing.
+
+
+## CS2.0B.4.4.4 — Banking Polish & Regression (TEST)
+LedgerDesk payment transactions retain their bank identity while linking back to the related receivable/invoice for operational traceability. Deposit count means posted invoice-payment credits, not all transaction rows, so later debit systems cannot corrupt that metric. B.4.4.4 adds no new money source/sink and must preserve duplicate-deposit protection, save migration, multi-day persistence, authoritative Operating Account cash, and the 07:00 End Operations handoff.
+
+
+## CS2.0B.4.4-STABLE — LedgerDesk Banking
+- Operating Account starts at $2,500 opening capital.
+- Money is a resource, not a score: Revenue, Outstanding, Collected, and available bank cash remain distinct.
+- Carrier payment completion and bank deposit posting are related but separate authoritative records.
+- Global CASH reflects Operating Account balance.
+- End Operations uses a controlled overnight live-clock advance and stops at the DOC OS operating-day start of 07:00 for Day Briefing; midnight itself remains calendar-only and never resets world state.
+- Visual-pass backlog: replace/clarify top-bar DAY # language and reduce Operating Account hero-card height.
