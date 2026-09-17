@@ -24,6 +24,8 @@ import { refreshFreightMarket } from './utils/freightMarket.js'
 import { getAuthoritativeDriverTravelLoad } from './utils/driverItinerary.js'
 import { getFreightRouteName } from './utils/freightIdentity.js'
 import { getClockInMessage, getEndOfDayMessage, getRelationshipStartMessage } from './utils/driverCommunications.js'
+import { createCorrectedPodVersion, normalizePodDocument } from './utils/documentLifecycle.js'
+import { createRateConfirmation } from './utils/rateConfirmation.js'
 
 
 const IDLE_DWELL_MINUTES = 20
@@ -134,6 +136,7 @@ function App() {
       const seed = seedLoads.find((item) => item.id === load.id)
       if (!seed) return load
       const merged = { ...seed, ...load }
+      if (merged.pod) merged.pod = normalizePodDocument(merged.pod, merged.id)
       if (seed.loadNumber) merged.loadNumber = seed.loadNumber
       // Unified market-flow migration: progression/operation-day gates never control freight visibility.
       delete merged.unlockAfterLoadId
@@ -405,7 +408,30 @@ function App() {
           ? `Approved for today's plan:\n\n${lines.join('\n')}\n\nGo ahead and book the approved freight. Keep us posted if the schedule or rate changes.`
           : `Approved. Go ahead and book ${loadNumber}. Keep us posted if the schedule or rate changes.`
         const idSet = new Set(activeRequestedIds)
-        setLoads((current) => current.map((item) => idSet.has(item.id) ? { ...item, carrierApprovalStatus: 'APPROVED', carrierApprovedGameMinute: now } : item))
+        setLoads((current) => current.map((item) => idSet.has(item.id) ? { ...item, carrierApprovalStatus: 'APPROVED', carrierApprovedGameMinute: now, rateConfirmation: createRateConfirmation(item, now, carrierName) } : item))
+        const rateConfirmationEmails = activeRequestedLoads.map((approvedLoad) => {
+          const rateConfirmation = createRateConfirmation(approvedLoad, now, carrierName)
+          const routeName = getFreightRouteName(approvedLoad)
+          return {
+            id: `ratecon-email:${approvedLoad.id}:v${rateConfirmation.version || 1}`,
+            type: 'rate-confirmation-delivery',
+            direction: 'inbound',
+            senderOverride: `${carrierName} · Documentation`,
+            carrierId: pending.carrierId || pendingCarrier?.id || null,
+            workflowType: 'rate-confirmation',
+            subject: `Rate Confirmation · ${routeName}`,
+            bodyOverride: `Rate Confirmation for ${routeName} is attached. Please review the document against the FreightLink offer.`,
+            attachments: [{ id: rateConfirmation.id, type: 'rate-confirmation', title: `Rate Confirmation · ${routeName}`, meta: rateConfirmation.reference, loadId: approvedLoad.id }],
+            loadId: approvedLoad.id,
+            receivedGameMinute: now,
+            read: false,
+          }
+        })
+        setEmailMessages((current) => {
+          const existingIds = new Set(current.map((entry) => entry.id))
+          const fresh = rateConfirmationEmails.filter((entry) => !existingIds.has(entry.id))
+          return fresh.length ? [...current, ...fresh] : current
+        })
       } else {
         bodyOverride = `We can’t approve this plan yet. Please resend the request to Operations with the FreightLink offers attached.`
         const idSet = new Set(activeRequestedIds)
@@ -421,10 +447,23 @@ function App() {
         const damage = damaged > 0 ? `${damaged} pallet${damaged === 1 ? '' : 's'} noted` : 'None'
         bodyOverride = `Corrected POD for ${loadNumber} is attached. Piece count and freight condition now match the delivery record.`
         attachments = [{ id: `corrected-pod:${pending.loadId}`, type: 'pod', title: `Corrected POD · ${loadNumber}`, meta: 'Corrected copy', loadId: pending.loadId }]
-        setLoads((current) => current.map((item) => item.id === pending.loadId && item.pod ? { ...item, pod: { ...item.pod, piecesReceived, damage, correctionStatus: 'CORRECTED', correctedGameMinute: now, verification: { signature: false, pieceCount: false, damage: false, deliveryInfo: false }, verified: false, verifiedGameMinute: null } } : item))
+        setLoads((current) => current.map((item) => item.id === pending.loadId && item.pod ? { ...item, pod: createCorrectedPodVersion(item.pod, item.id, { piecesReceived, damage }, now) } : item))
       } else {
         bodyOverride = `We need the current POD and supporting exception report before we can issue a correction for ${loadNumber}. Please resend to Documentation with both attached.`
         setLoads((current) => current.map((item) => item.id === pending.loadId && item.pod ? { ...item, pod: { ...item.pod, correctionStatus: 'NEEDS_INFO' } } : item))
+      }
+    }
+
+    if (pending.workflowType === 'ratecon-correction') {
+      senderOverride = `${carrierName} · Documentation`
+      if (pending.workflowValid && load?.rateConfirmation) {
+        const prior = load.rateConfirmation
+        const nextVersion = Number(prior.version || 1) + 1
+        bodyOverride = `Corrected Rate Confirmation for ${loadNumber} is attached. Please review the revised document against the FreightLink offer.`
+        attachments = [{ id: `ratecon:${pending.loadId}:v${nextVersion}`, type: 'rate-confirmation', title: `Corrected Rate Confirmation · ${loadNumber}`, meta: `Version ${nextVersion}`, loadId: pending.loadId }]
+        setLoads((current) => current.map((item) => item.id === pending.loadId && item.rateConfirmation ? { ...item, rateConfirmation: { ...item.rateConfirmation, id: `ratecon:${item.id}:v${nextVersion}`, version: nextVersion, status: 'RECEIVED', reviewStatus: 'PENDING', reviewChecks: {}, issuedGameMinute: now, correctionRequestedGameMinute: null, pickupLocationId: item.pickupLocationId, deliveryLocationId: item.deliveryLocationId, rate: Number(item.rate), listedMiles: Number(item.listedMiles), history: [...(item.rateConfirmation.history || []), { ...item.rateConfirmation, isCurrent: false, status: 'SUPERSEDED' }] } } : item))
+      } else {
+        bodyOverride = `We need both the Rate Confirmation and FreightLink offer before we can issue a corrected document for ${loadNumber}.`
       }
     }
 

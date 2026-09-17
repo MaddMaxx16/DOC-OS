@@ -3,6 +3,7 @@ import seedLoads from '../data/loads.js'
 import mapLocations from '../data/mapLocations.js'
 import { calculateRoute } from '../services/routingService.js'
 import { reconcileActiveCarrierDrivers } from '../utils/driverRoster.js'
+import { createPodDocument } from '../utils/documentLifecycle.js'
 
 const nowOf = (t) => (t?.gameDayIndex ?? 0) * 1440 + (t?.totalMinutesOfDay ?? 360)
 const pointAlong = (route, p) => { const i = Math.min(route.length - 2, Math.floor(p * (route.length - 1))); const t = p * (route.length - 1) - i; const a = route[i]; const b = route[i + 1]; return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t] }
@@ -44,7 +45,7 @@ function createPodFromShipment(shipment, now, approved = false) {
   const damage = shipment.damagedPallets > 0
     ? `${shipment.damagedPallets} pallet${shipment.damagedPallets === 1 ? '' : 's'} noted`
     : 'None'
-  return {
+  return createPodDocument({
     status: 'complete',
     receivedGameMinute: now,
     viewedGameMinute: approved ? now : null,
@@ -65,7 +66,7 @@ function createPodFromShipment(shipment, now, approved = false) {
     verified: approved,
     verifiedGameMinute: approved ? now : null,
     ...(approved ? { approved: true, approvedGameMinute: now } : {}),
-  }
+  }, 'dev-pod')
 }
 export async function createDevPreset(name, { gameTime, currentLoads = seedLoads, currentDrivers = seedDrivers, currentRuntimePositions = {}, currentCarriers = [], selectedLoadId = 'DOC001' } = {}) {
   const load = { ...(currentLoads.find((x) => x.id === selectedLoadId) || seedLoads.find((x) => x.id === selectedLoadId)) }; if (!load.id) throw new Error(`Unknown DEV load: ${selectedLoadId}`)

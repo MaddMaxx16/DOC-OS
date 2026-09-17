@@ -146,3 +146,17 @@ IN TEST. Adds persistent truck-stop map markers and smooth visual interpolation 
 
 
 > **Stable promotion — CS2.0B.4.2.6-STABLE:** Compact Email Workflow passed acceptance testing for Schedule Approval, correction workflows, Invoice Submission, fixed Review → Send presentation, SEND-owned workflow authority, and three-attachment fit. The known repeated-correction behavior on already-corrected PODs is intentionally deferred to B.4.3 Documents architecture.
+
+## CS2.0B.4.3-STABLE — Documents & Rate Confirmation Workflow
+B.4.3 passed on-device acceptance through the cumulative B.4.3.1 → B.4.3.4 test chain. The phase establishes versioned authoritative documents, distinct pickup/POD correction states, carrier-delivered Rate Confirmations, manual FreightLink Offer vs Rate Confirmation review, Rate Confirmation correction/versioning, and permanent per-load settlement packets.
+
+**Locked gameplay contract:** manual document verification is authoritative. DOC OS does not silently correct or reject a player's verification decision. Incorrectly approved paperwork may create downstream financial, operational, relationship, or performance consequences when those systems are implemented.
+
+**Document presentation direction locked for the dedicated visual pass:** operational documents should feel like real business paperwork the dispatcher receives, reviews, corrects, files, and retrieves—not database-style UI records. Rate Confirmations, PODs, invoices, agreements, and settlement paperwork should use distinct paper/document layouts while retaining the lifecycle architecture established here.
+
+**TEST hook removed:** the temporary forced +$125 Rate Confirmation discrepancy used to validate the correction branch is not present in the promoted gameplay source.
+
+**Protected stable checkpoint after promotion:** `CS2.0B.4.3-STABLE — Documents & Rate Confirmation Workflow`
+
+## NEXT — CS2.0B.4.4 — LedgerDesk Banking
+Begin only after the B.4.3 stable promotion patch is applied to the real repository, rebuilt/synced, smoke-tested, committed, pushed, and tagged. Preserve the completed B.4.3 document lifecycle and all B.4.2 multi-day/Email contracts.

@@ -24,6 +24,7 @@ import { getFreightHaulClass, getPlanningImpact } from '../utils/planningIntelli
 import { getRouteLifecycleLabel } from '../utils/routeLifecycle.js'
 import { getDelayMessage, getDepartureMessage, getPickupExceptionMessage, getScheduleAcknowledgement, getUnloadExceptionMessage } from '../utils/driverCommunications.js'
 import { applyLunchDuration, getLunchDecisionChoices, isDriverOnLunch, isLunchDecisionReady } from '../utils/lunchDecisionEvents.js'
+import { createPodDocument } from '../utils/documentLifecycle.js'
 
 
 function getEvaluationBufferMinutes(evaluation) {
@@ -504,7 +505,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     if (load.tripStatus === 'checked-in-pickup') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-pickup-ready`, action: 'pickup', title: `${pickupName} · DOCK READY`, detail: `${driverName} has been called to a door.`, value: 'BEGIN LOADING' }]
     if (load.tripStatus === 'checked-in-delivery') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-delivery-ready`, action: 'delivery', title: `${deliveryName} · DOCK READY`, detail: `${driverName} has been called to a door.`, value: 'BEGIN UNLOADING' }]
     if (load.tripStatus === 'assigned' && !Number.isFinite(load.pickupDriverBriefedGameMinute)) return []
-    if (load.tripStatus === 'pickup-issue') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-pickup-issue`, action: 'resolve-pickup-issue', title: `${pickupName} · PICKUP ISSUE`, detail: `${driverName} is being held while the freight issue is corrected.`, value: 'REQUEST CORRECTION' }]
+    if (load.tripStatus === 'pickup-issue') return [{ ...base, id: `driver-${load.assignedDriverId}-${load.id}-pickup-issue`, action: 'resolve-pickup-issue', title: `${pickupName} · PICKUP ISSUE`, detail: `${driverName} is being held while the freight issue is corrected.`, value: 'REQUEST PICKUP CORRECTION' }]
     return []
   })
   const driverCommunicationAlerts = activeDriverLoads.flatMap((load) => {
@@ -1447,7 +1448,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
               completedGameMinute: completeMinute,
             },
           },
-          pod: {
+          pod: createPodDocument({
             status: 'complete', receivedGameMinute: completeMinute, viewedGameMinute: null, signedBy: 'Jordan Rivera',
             piecesExpected, piecesReceived: podPiecesReceived, damage: podDamageLabel,
             correctionStatus: null,
@@ -1460,7 +1461,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             },
             verification: { signature: false, pieceCount: false, damage: false, deliveryInfo: false },
             verified: false, verifiedGameMinute: null,
-          },
+          }, item.id),
         }
       })
       if (releasedDriverId && onboardNext) return updated
@@ -2079,7 +2080,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       const carrier = carriers.find((item) => item.id === load.carrierId) || carriers[0]
       setPhoneInitialEmailContext({
         workflowType: 'pickup-correction',
-        label: 'PICKUP CORRECTION',
+        label: 'PICKUP EXCEPTION CORRECTION',
         loadId: load.id,
         loadNumber: getFreightRouteName(load),
         suggestedRecipientId: `${carrier?.id || 'metroline'}-documents`,

@@ -174,3 +174,55 @@ Promoted after user acceptance of the cumulative B.4.2.6 → B.4.2.6.3 test chai
 - Fixed review surface prevents whole-screen bounce while keeping required attachments visible, including three-load schedule approval.
 - Known Documents issue deferred to B.4.3: an already-corrected POD may still expose Request Correction / stale original exception context because authoritative document-version architecture has not yet been rebuilt.
 - Protected base: CS2.0B.4.2-STABLE Multi-Day Operations.
+
+## CS2.0B.4.3.1-TEST — Document Lifecycle Foundation
+- Based on CS2.0B.4.2.6-STABLE.
+- Adds reusable POD document identity/version/history helpers.
+- Corrected POD response now creates a new authoritative version instead of overwriting the only copy.
+- Superseded POD metadata is retained in document history.
+- Existing saved PODs normalize to v1/current without resetting gameplay.
+- A corrected POD that matches the shipment record no longer immediately offers another correction request.
+- B.4.3 remains IN TEST; stable checkpoint remains CS2.0B.4.2.6-STABLE.
+- CS2.0B.4.3.1.1-TEST — correction-state clarity: distinguishes pickup exception correction from POD correction and surfaces pending POD correction state in Documents.
+
+- CS2.0B.4.3.2-TEST — Rate Confirmation Generation & Documents. Builds cumulatively on accepted B.4.3.1.1.
+
+
+## CS2.0B.4.3.2.1-TEST — Rate Confirmation Delivery & Presentation
+- Rate Confirmations are delivered by inbound carrier Documentation email with an unread Email notification and attachment.
+- The attachment opens the persistent Rate Confirmation document tied to the load.
+- Unreviewed Rate Confirmations appear in Documents > Pending rather than silently living only in Files.
+- Rate Confirmation presentation is compact and uses the established POD-style document language.
+- No review/confirmation authority is added here; manual FreightLink comparison remains the next B.4.3 workflow slice.
+- CS2.0B.4.2.6-STABLE remains the protected checkpoint.
+
+
+## CS2.0B.4.3.3-TEST — Rate Confirmation Manual Review & Correction
+- Adds manual FreightLink Offer vs Rate Confirmation field review with player-owned ✓ / X decisions.
+- A Rate Confirmation confirms only after all required fields are manually marked as matching.
+- Any flagged field enables the locked Rate Confirmation correction Email workflow with both source documents attached.
+- Sending the correction request moves the document to CORRECTION_REQUESTED; the carrier response creates a new current version and supersedes the prior copy.
+- Corrected Rate Confirmations return to Pending review with checks reset.
+- No automatic document recognition or hidden lifecycle advancement is introduced.
+- Protected stable checkpoint remains CS2.0B.4.2.6-STABLE.
+
+
+## CS2.0B.4.3.3.1-TEST — Forced Rate Con Discrepancy
+- Cumulative from CS2.0B.4.3.3-TEST.
+- Adds a temporary test-only +$125 rate discrepancy to newly generated initial Rate Confirmations.
+- Corrected v2 returns to the authoritative FreightLink/load rate.
+- Must be removed before stable promotion.
+
+## CS2.0B.4.3.4-TEST — Settlement Packet & Documents Polish
+- Built cumulatively from the accepted B.4.3.3 correction-path test chain.
+- Removed the temporary forced Rate Confirmation discrepancy from gameplay.
+- Added permanent load packets tying confirmed Rate Confirmation, approved authoritative POD, invoice, exception evidence when present, and settlement/payment state to the load record.
+- Passed on-device functional acceptance.
+
+## CS2.0B.4.3-STABLE — Documents & Rate Confirmation Workflow
+- Promoted from the user-approved cumulative B.4.3.4 test source with no new gameplay mechanics.
+- Freezes document identity/version/current-authority semantics, POD correction state, Rate Confirmation Email delivery, Pending review, manual ✓/X comparison, correction/versioning workflow, and load packets.
+- Temporary B.4.3.3.1 forced-discrepancy acceptance hook is absent from promoted gameplay.
+- Locks future physical-paperwork visual treatment for the dedicated visual pass without reopening B.4.3 lifecycle architecture.
+- Replaces CS2.0B.4.2.6-STABLE as the protected checkpoint after real-repo verification and tag.
+

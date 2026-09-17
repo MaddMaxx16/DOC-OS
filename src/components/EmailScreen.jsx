@@ -19,7 +19,7 @@ function getEmailCategory(message = {}) {
   if (message.type === 'carrier-performance-review') return { label: 'CAREER', tone: 'career' }
   if (message.type === 'carrier-application-offer') return { label: 'OFFER', tone: 'career' }
   if (message.workflowType === 'carrier-approval') return { label: 'OPERATIONS', tone: 'operations' }
-  if (message.workflowType === 'pod-correction') return { label: 'DOCUMENTS', tone: 'documents' }
+  if (message.workflowType === 'pod-correction' || message.workflowType === 'rate-confirmation') return { label: 'DOCUMENTS', tone: 'documents' }
   if (message.workflowType === 'invoice-submission') return { label: 'ACCOUNTING', tone: 'accounting' }
   const sender = String(message.senderOverride || '').toLowerCase()
   if (sender.includes('accounting')) return { label: 'ACCOUNTING', tone: 'accounting' }

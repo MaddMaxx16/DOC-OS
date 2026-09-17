@@ -848,3 +848,19 @@ The approved Email contract is formal Review → Send. Required operational emai
 
 ### Known Documents handoff for B.4.3
 The current Documents architecture may continue to expose Request Correction on a POD after a corrected copy has been received, and older exception details may surface in downstream document views. This is not part of the Email contract. B.4.3 must establish authoritative current-versus-superseded document versions and make downstream invoice/settlement workflows reference the current POD consistently.
+
+## B.4.3-STABLE — Documents & Rate Confirmation Workflow
+Documents now use explicit lifecycle semantics instead of destructive replacement. PODs have stable identity, version, current-authority state, and superseded history. A corrected POD creates a new current version while preserving the prior copy. Pickup exception correction and post-delivery POD correction remain distinct business events, and a sent POD correction stays visibly awaiting correction until the corrected document arrives.
+
+Carrier approval creates a persistent load-owned Rate Confirmation and delivers it through inbound carrier Documentation email. Unreviewed Rate Confirmations appear in Documents > Pending. The dispatcher manually compares FreightLink Offer values with the Rate Confirmation and marks required fields ✓ or X. All ✓ allows confirmation; any X enables the locked Rate Confirmation correction Email workflow. SEND moves the document to correction-requested state; a corrected carrier response creates a new current version, supersedes the prior copy, and resets manual review. No automatic recognition performs the player's verification.
+
+Completed loads can form a permanent load/settlement packet tying together the FreightLink record, confirmed Rate Confirmation, pickup/exception evidence when present, authoritative approved POD, invoice, and settlement/payment state. Existing folder views remain navigation surfaces over those load-owned records.
+
+### Manual verification authority
+The player's verification decision is authoritative. DOC OS may allow incorrect paperwork to be approved rather than blocking the decision. Such mistakes are eligible for later downstream financial, operational, relationship, or performance consequences. The consequence system is not added by B.4.3.
+
+### Physical-paperwork presentation direction
+The dedicated visual pass must present operational documents as actual business paperwork rather than generic database panels. Rate Confirmations, PODs, invoices, agreements, and settlement records should have document-specific paper layouts while retaining the lifecycle, versioning, correction, and load-packet architecture established in B.4.3.
+
+### Promotion cleanup
+The temporary B.4.3.3.1 forced Rate Confirmation discrepancy was acceptance scaffolding only and is absent from promoted gameplay. B.4.3-STABLE preserves B.4.2 multi-day operations, Shift End authority, midnight behavior, FreightLink movement rules, compact Email workflow authority, and LedgerDesk timing.

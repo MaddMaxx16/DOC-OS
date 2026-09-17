@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 import DocumentZoomOverlay from './DocumentZoomOverlay.jsx'
 import { getFreightRouteName } from '../utils/freightIdentity.js'
+import { getPodVersionLabel } from '../utils/documentLifecycle.js'
 
 function formatGameTimestamp(minutes) {
   if (!Number.isFinite(minutes)) return 'Unavailable'
@@ -42,7 +43,7 @@ function PodDetailScreen({ load, driver, delivery, onBack, onUpdateVerification,
 
   const footer = readOnly ? null : correctionPending ? <div className="pod-overlay-footer-status"><span>CORRECTION REQUEST SENT</span><strong>Waiting for corrected paperwork</strong></div> : (
     <div className="pod-overlay-actions">
-      <button type="button" className="pod-secondary-button" onClick={() => { setApprovalError(''); onRequestCorrection?.() }}>REQUEST CORRECTION</button>
+      {hasMismatch ? <button type="button" className="pod-secondary-button" onClick={() => { setApprovalError(''); onRequestCorrection?.() }}>REQUEST CORRECTION</button> : <span className="pod-current-document-status">{getPodVersionLabel(pod)} · CURRENT</span>}
       <button type="button" className="pod-approve-button" disabled={!verified} onClick={approve}>APPROVE POD</button>
     </div>
   )
@@ -58,7 +59,7 @@ function PodDetailScreen({ load, driver, delivery, onBack, onUpdateVerification,
             <div className={String(pod.damage) !== 'None' ? 'exception' : ''}><span>DAMAGE NOTED</span><strong>{pod.damage || 'Blank'}</strong></div>
           </div>
           <div className="pod-paper-signature"><span>RECEIVER SIGNATURE</span><strong>{pod.signedBy || 'Not provided'}</strong><small>Electronically captured at delivery</small></div>
-          {corrected && <div className="pod-corrected-stamp">CORRECTED COPY</div>}
+          {corrected && <div className="pod-corrected-stamp">CORRECTED COPY · V{pod.version || 2}</div>}
         </article>
 
         {!readOnly && (

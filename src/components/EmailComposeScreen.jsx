@@ -6,6 +6,7 @@ const CATEGORY_ORDER = [
   ['invoice', 'Invoices'],
   ['agreement', 'Agreements'],
   ['exception-report', 'Exception Reports'],
+  ['rate-confirmation', 'Rate Confirmations'],
 ]
 
 function attachmentCategory(item) {
@@ -27,11 +28,11 @@ function EmailComposeScreen({ contacts = [], attachments = [], context = {}, onB
   const defaultAttachmentIds = useMemo(() => {
     if (context.attachmentIds?.length) return scopedAttachments.map((item) => item.id)
     if (!context.loadId) return []
-    const required = context.workflowType === 'carrier-approval' ? ['load-offer'] : context.workflowType === 'pod-correction' ? ['pod', 'exception-report'] : context.workflowType === 'pickup-correction' ? ['exception-report'] : context.workflowType === 'invoice-submission' ? ['invoice', 'pod'] : []
+    const required = context.workflowType === 'carrier-approval' ? ['load-offer'] : context.workflowType === 'pod-correction' ? ['pod', 'exception-report'] : context.workflowType === 'pickup-correction' ? ['exception-report'] : context.workflowType === 'ratecon-correction' ? ['rate-confirmation', 'load-offer'] : context.workflowType === 'invoice-submission' ? ['invoice', 'pod'] : []
     return scopedAttachments.filter((item) => required.includes(attachmentCategory(item))).map((item) => item.id)
   }, [scopedAttachments, context.attachmentIds, context.loadId, context.workflowType])
   const [selectedAttachments, setSelectedAttachments] = useState(() => defaultAttachmentIds)
-  const [category, setCategory] = useState(context.workflowType === 'carrier-approval' ? 'load-offer' : context.workflowType === 'pod-correction' ? 'pod' : context.workflowType === 'pickup-correction' ? 'exception-report' : context.workflowType === 'invoice-submission' ? 'invoice' : '')
+  const [category, setCategory] = useState(context.workflowType === 'carrier-approval' ? 'load-offer' : context.workflowType === 'pod-correction' ? 'pod' : context.workflowType === 'pickup-correction' ? 'exception-report' : context.workflowType === 'ratecon-correction' ? 'rate-confirmation' : context.workflowType === 'invoice-submission' ? 'invoice' : '')
   const [candidateId, setCandidateId] = useState('')
   const [error, setError] = useState('')
 
