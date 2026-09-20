@@ -3,75 +3,175 @@ import { SAVE_SLOT_IDS } from '../utils/saveGame.js'
 
 const marketNames = { 'new-york': 'New York' }
 
-function slotLabel(slotId) {
-  return slotId.replace('save-', 'SAVE ')
-}
-
-function StartScreen({ saveSlots = [], activeSaveSlotId = null, onResumeSave, onDeleteSave, onStartNew }) {
+function StartScreen({
+  saveSlots = [],
+  activeSaveSlotId = null,
+  onResumeSave,
+  onStartNew,
+}) {
   const hasSavedOperation = saveSlots.length > 0
   const slotMap = new Map(saveSlots.map((slot) => [slot.id, slot]))
   const hasEmptySlot = saveSlots.length < SAVE_SLOT_IDS.length
 
+  const currentSlot =
+    (activeSaveSlotId && slotMap.get(activeSaveSlotId)) ||
+    saveSlots[0] ||
+    null
+
+  const otherSlots = currentSlot
+    ? saveSlots.filter((slot) => slot.id !== currentSlot.id)
+    : []
+
+  const currentState = currentSlot?.state || {}
+  const currentMarket =
+    marketNames[currentState.selectedMarket] || 'Operation'
+
+  const currentTime =
+    currentState.gameTime || {
+      gameDayIndex: 0,
+      totalMinutesOfDay: 360,
+    }
+
   return (
-    <div className="entry-screen start-screen start-screen-v2">
-      <section className="start-terminal-card">
-        <div className={`start-network-status ${hasSavedOperation ? 'online' : 'offline'}`}>
-          <span className="start-network-dot" aria-hidden="true" />
-          <span>{hasSavedOperation ? 'DISPATCH OPERATIONS ONLINE' : 'DISPATCH OPERATIONS OFFLINE'}</span>
-        </div>
+    <div className="entry-screen start-screen start-screen-v2 start-screen-cinematic">
+      <section className="start-cinematic-shell">
 
-        <div className="start-brand-lockup">
-          <span className="start-kicker">DISPATCH OPERATIONS CENTER</span>
+        <header className="start-cinematic-brand">
+          <div
+            className={`start-cinematic-status ${
+              hasSavedOperation ? 'online' : 'ready'
+            }`}
+          >
+            <span className="start-cinematic-status-dot" aria-hidden="true" />
+            <span>
+              {hasSavedOperation
+                ? 'DISPATCH NETWORK · ONLINE'
+                : 'DISPATCH NETWORK · READY'}
+            </span>
+          </div>
+
+          <span className="start-cinematic-kicker">
+            DISPATCH OPERATIONS CENTER
+          </span>
+
           <h1>DOC OS</h1>
-          <p>Build your carrier book. Move freight. Run the operation.</p>
-        </div>
 
-        {hasSavedOperation ? (
-          <div className="start-save-list" aria-label="Saved operations">
-            {SAVE_SLOT_IDS.map((slotId) => {
-              const slot = slotMap.get(slotId)
-              if (!slot) {
-                return (
-                  <div className="start-save-slot empty" key={slotId}>
-                    <span>{slotLabel(slotId)}</span>
-                    <small>EMPTY</small>
-                  </div>
-                )
-              }
+          <p>
+            Build your operation. Move freight.
+            <br />
+            Keep your drivers moving.
+          </p>
+        </header>
 
-              const state = slot.state || {}
-              const market = marketNames[state.selectedMarket] || 'Operation'
-              const time = state.gameTime || { gameDayIndex: 0, totalMinutesOfDay: 360 }
+        <div className="start-cinematic-menu">
+          {hasSavedOperation ? (
+            <>
+              <div className="start-cinematic-operation">
+                <span>CURRENT OPERATION</span>
 
-              return (
-                <div className={`start-save-slot saved ${activeSaveSlotId === slotId ? 'active' : ''}`} key={slotId}>
-                  <button type="button" className="start-save-resume" onClick={() => onResumeSave?.(slotId)}>
-                    <span>{slotLabel(slotId)}</span>
-                    <strong>{market}</strong>
-                    <small>{formatCompactDate(time.gameDayIndex)} · {formatTime(time.totalMinutesOfDay)}</small>
-                  </button>
-                  <button type="button" className="start-save-delete" onClick={() => onDeleteSave?.(slotId)} aria-label={`Delete ${slotLabel(slotId)}`}>×</button>
+                <strong>
+                  {currentMarket} Operation
+                </strong>
+
+                <small>
+                  {formatCompactDate(currentTime.gameDayIndex)}
+                  {' · '}
+                  {formatTime(currentTime.totalMinutesOfDay)}
+                </small>
+              </div>
+
+              <button
+                type="button"
+                className="start-menu-action primary"
+                onClick={() => onResumeSave?.(currentSlot.id)}
+              >
+                <span>CONTINUE OPERATIONS</span>
+                <span aria-hidden="true">›</span>
+              </button>
+
+              {hasEmptySlot && (
+                <button
+                  type="button"
+                  className="start-menu-action secondary"
+                  onClick={onStartNew}
+                >
+                  <span>NEW OPERATION</span>
+                  <span aria-hidden="true">›</span>
+                </button>
+              )}
+
+              {otherSlots.length > 0 && (
+                <div className="start-cinematic-other">
+                  <span>OTHER OPERATIONS</span>
+
+                  {otherSlots.map((slot) => {
+                    const state = slot.state || {}
+
+                    const market =
+                      marketNames[state.selectedMarket] || 'Operation'
+
+                    const time =
+                      state.gameTime || {
+                        gameDayIndex: 0,
+                        totalMinutesOfDay: 360,
+                      }
+
+                    return (
+                      <button
+                        type="button"
+                        className="start-operation-switch"
+                        key={slot.id}
+                        onClick={() => onResumeSave?.(slot.id)}
+                      >
+                        <span>{market}</span>
+
+                        <small>
+                          {formatCompactDate(time.gameDayIndex)}
+                          {' · '}
+                          {formatTime(time.totalMinutesOfDay)}
+                        </small>
+                      </button>
+                    )
+                  })}
                 </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="start-system-grid" aria-label="System status">
-            <div><span>NETWORK</span><strong>CONNECTED</strong></div>
-            <div><span>MARKET DATA</span><strong>LIVE</strong></div>
-            <div className="start-core-status offline"><span>DISPATCH CORE</span><strong>OFFLINE</strong></div>
-          </div>
-        )}
+              )}
+            </>
+          ) : (
+            <>
+              <div className="start-cinematic-operation new-career">
+                <span>BEGIN YOUR DISPATCH CAREER</span>
 
-        <button type="button" className="entry-button start-primary-action" onClick={onStartNew} disabled={!hasEmptySlot}>
-          <span>{hasSavedOperation ? (hasEmptySlot ? 'NEW OPERATION' : 'SAVE SLOTS FULL') : 'START NEW OPERATION'}</span>
-          <span aria-hidden="true">›</span>
-        </button>
+                <strong>
+                  Your operation starts here.
+                </strong>
 
-        <div className="start-terminal-footer">
-          <span>INDEPENDENT DISPATCH</span>
-          <span>{hasSavedOperation ? `${saveSlots.length} SAVED` : 'DAY ONE'}</span>
+                <small>
+                  Build carrier relationships, manage drivers,
+                  and keep freight moving.
+                </small>
+              </div>
+
+              <button
+                type="button"
+                className="start-menu-action primary"
+                onClick={onStartNew}
+              >
+                <span>START NEW OPERATION</span>
+                <span aria-hidden="true">›</span>
+              </button>
+            </>
+          )}
         </div>
+
+        <footer className="start-cinematic-footer">
+          <span>INDEPENDENT DISPATCH</span>
+
+          <span>
+            {hasSavedOperation
+              ? `${saveSlots.length} OPERATION${saveSlots.length === 1 ? '' : 'S'}`
+              : 'DAY ONE'}
+          </span>
+        </footer>
       </section>
     </div>
   )

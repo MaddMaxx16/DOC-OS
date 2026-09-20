@@ -11,6 +11,7 @@ import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
 import MainGameScreen from './components/MainGameScreen.jsx'
 import StartScreen from './components/StartScreen.jsx'
 import EntryLiveMap from './components/EntryLiveMap.jsx'
+import StartOfficeBackdrop from './components/StartOfficeBackdrop.jsx'
 import { SAVE_SLOT_IDS, clearSave, getActiveSaveSlot, getSaveSlots, loadGame, saveGame, setActiveSaveSlot } from './utils/saveGame.js'
 import { createDevPreset } from './dev/devPresets.js'
 import { getReceivables } from './utils/ledger.js'
@@ -102,7 +103,17 @@ function App() {
   const [playerProgression, setPlayerProgression] = useState(() => ({ ...DEFAULT_PLAYER_PROGRESSION }))
   const [saveSlots, setSaveSlots] = useState([])
   const [activeSaveSlotId, setActiveSaveSlotId] = useState(null)
+  const [majorTransition, setMajorTransition] = useState(null)
   const lifecycleSaveSignatureRef = useRef('')
+  const majorTransitionLockRef = useRef(false)
+  const majorTransitionTimersRef = useRef([])
+
+  useEffect(() => {
+    return () => {
+      majorTransitionTimersRef.current.forEach((timer) => window.clearTimeout(timer))
+      majorTransitionTimersRef.current = []
+    }
+  }, [])
 
   const approvePodAndCloseout = (loadId) => {
     const load = loads.find((item) => item.id === loadId)
@@ -536,31 +547,87 @@ function App() {
   }
   const applySelectedDevPreset = async (name, selectedLoadId) => { try { const preset = await createDevPreset(name, { gameTime, currentLoads: loads, currentDrivers: drivers, currentRuntimePositions: runtimePositions, currentCarriers: carriers, selectedLoadId }); setStage(preset.stage); setSelectedMarket(preset.selectedMarket); setLoads([...preset.loads, ...loads.filter((load) => !preset.loads.some((item) => item.id === load.id)), ...seedLoads.filter((seed) => !preset.loads.some((item) => item.id === seed.id) && !loads.some((item) => item.id === seed.id))]); setDrivers(preset.drivers); if (preset.carriers) setCarriers(preset.carriers); setRuntimePositions(preset.runtimePositions); setRuntimeProgressByDriver(preset.runtimeProgressByDriver || (Number.isFinite(preset.runtimeProgress) ? { marcus: preset.runtimeProgress } : {})) } catch (error) { console.error('DEV preset route unavailable:', error) } }
   void applyDevPreset
+  const runMajorTransition = (kind, action) => {
+    if (majorTransitionLockRef.current) return
+
+    majorTransitionLockRef.current = true
+
+    majorTransitionTimersRef.current.forEach((timer) =>
+      window.clearTimeout(timer)
+    )
+    majorTransitionTimersRef.current = []
+
+    const coverMs = 260
+    const hiddenMountMs = kind === 'operations' ? 620 : 360
+    const revealMs = 460
+
+    // Phase 1 — smoothly cover the outgoing scene.
+    setMajorTransition({ kind, phase: 'cover' })
+
+    const stageSwapTimer = window.setTimeout(() => {
+      // Phase 2 — stay completely covered while the destination mounts.
+      setMajorTransition({ kind, phase: 'hold' })
+
+      action?.()
+
+      // Wait through two browser paint opportunities before starting
+      // the concealed mount timer. This keeps MapLibre/layout work
+      // away from the visible reveal animation.
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          const revealTimer = window.setTimeout(() => {
+            // Phase 3 — destination should now be settled underneath.
+            setMajorTransition({ kind, phase: 'reveal' })
+
+            const finishTimer = window.setTimeout(() => {
+              setMajorTransition(null)
+              majorTransitionLockRef.current = false
+              majorTransitionTimersRef.current = []
+            }, revealMs)
+
+            majorTransitionTimersRef.current.push(finishTimer)
+          }, hiddenMountMs)
+
+          majorTransitionTimersRef.current.push(revealTimer)
+        })
+      })
+    }, coverMs)
+
+    majorTransitionTimersRef.current.push(stageSwapTimer)
+  }
+
   const resumeSave = (slotId) => {
     const saved = loadGame(slotId)
     if (!saved) return
-    setActiveSaveSlot(slotId)
-    setActiveSaveSlotId(slotId)
-    hydrateSavedOperation(saved)
-    setHasExistingOperation(true)
-    setStage(saved.stage && saved.stage !== 'start' ? saved.stage : (saved.selectedMarket ? 'game' : 'market'))
+
+    runMajorTransition('operations', () => {
+      setActiveSaveSlot(slotId)
+      setActiveSaveSlotId(slotId)
+      hydrateSavedOperation(saved)
+      setHasExistingOperation(true)
+      setStage(saved.stage && saved.stage !== 'start' ? saved.stage : (saved.selectedMarket ? 'game' : 'market'))
+    })
   }
+
   const startNewOperation = () => {
     const used = new Set(saveSlots.map((slot) => slot.id))
     const slotId = SAVE_SLOT_IDS.find((id) => !used.has(id))
     if (!slotId) return
-    // CS2.0B.5.3.1.1 — a new operation must be a hard state boundary.
-    // Clear the destination slot first so no prior/partial snapshot can leak
-    // driver roster, workday/HOS, runtime position, messages, or banking into
-    // the new career before CarrierSource activation.
-    clearSave(slotId)
-    lifecycleSaveSignatureRef.current = ''
-    resetOperationState()
-    setActiveSaveSlot(slotId)
-    setActiveSaveSlotId(slotId)
-    setHasExistingOperation(true)
-    setResumeStage('market')
-    setStage('market')
+
+    runMajorTransition('forward', () => {
+      // CS2.0B.5.3.1.1 — a new operation must be a hard state boundary.
+      // Clear the destination slot first so no prior/partial snapshot can leak
+      // driver roster, workday/HOS, runtime position, messages, or banking into
+      // the new career before CarrierSource activation.
+      clearSave(slotId)
+      lifecycleSaveSignatureRef.current = ''
+      resetOperationState()
+      setActiveSaveSlot(slotId)
+      setActiveSaveSlotId(slotId)
+      setHasExistingOperation(true)
+      setResumeStage('market')
+      setStage('market')
+    })
   }
   const deleteSaveSlot = (slotId) => {
     clearSave(slotId)
@@ -581,6 +648,13 @@ function App() {
     }
   }
   const resetGame = () => { clearSave(activeSaveSlotId); window.location.reload() }
+
+  const returnToTitle = () => {
+    runMajorTransition('back', () => {
+      setResumeStage('game')
+      setStage('start')
+    })
+  }
 
   // AV2.18.1 dev shortcut: restart Day 1 planning at 6:00 AM while
   // preserving the accepted carrier relationship, signed agreement, profile,
@@ -1380,7 +1454,15 @@ Open CarrierSource to review your full account history.`
   return (
     <main className="app">
       <section className="phone-shell">
-        {stage !== 'game' && <EntryLiveMap stage={stage} selectedMarket={selectedMarket} />}
+        {majorTransition && (
+          <div
+            className={`app-stage-transition ${majorTransition.phase} ${majorTransition.kind}`}
+            aria-hidden="true"
+          />
+        )}
+
+        {stage === 'start' && <StartOfficeBackdrop />}
+        {stage === 'market' && <EntryLiveMap stage={stage} selectedMarket={selectedMarket} />}
         {stage === 'start' && (
           <StartScreen
             saveSlots={saveSlots}
@@ -1394,8 +1476,16 @@ Open CarrierSource to review your full account history.`
           <MarketSelectionScreen
             selectedMarket={selectedMarket}
             onSelectMarket={() => setSelectedMarket('new-york')}
-            onBack={() => { setSelectedMarket(null); setStage('start') }}
-            onConfirm={() => { setHasExistingOperation(true); setResumeStage('game'); setIsGameClockPaused(false); setStage('game') }}
+            onBack={() => runMajorTransition('back', () => {
+              setSelectedMarket(null)
+              setStage('start')
+            })}
+            onConfirm={() => runMajorTransition('operations', () => {
+              setHasExistingOperation(true)
+              setResumeStage('game')
+              setIsGameClockPaused(false)
+              setStage('game')
+            })}
           />
         )}
         {stage === 'game' && (
@@ -1439,10 +1529,10 @@ Open CarrierSource to review your full account history.`
             setRuntimeProgressByDriver={setRuntimeProgressByDriver}
             simulationSpeed={simulationSpeed}
             setSimulationSpeed={setSimulationSpeed}
-            onOpenMarkets={() => setStage('market')}
             onApplyDevPreset={applySelectedDevPreset}
             onSetupOvernightDevScenario={setupOvernightDevScenario}
             onResetGame={resetGame}
+            onReturnToTitle={returnToTitle}
             onResetDayAfterCarrierApproval={resetDayAfterCarrierApproval}
             seenLedgerReceivableIds={seenLedgerReceivableIds}
             onOpenLedger={() => { const records = getReceivables(loads, carriers, ledgerWorkflowByLoadId); setSeenLedgerReceivableIds((current) => Array.from(new Set([...current, ...records.map((item) => item.loadId)]))); setSeenLedgerPaymentReceivedIds((current) => Array.from(new Set([...current, ...records.filter((item) => item.financialStatus === 'PAID').map((item) => item.loadId)]))) }}

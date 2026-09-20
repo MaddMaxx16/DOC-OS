@@ -54,6 +54,15 @@ function EmailIcon() {
   )
 }
 
+function SettingsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="3.25" />
+      <path d="M19 13.3v-2.6l-2-.6a7 7 0 0 0-.7-1.7l1-1.8-1.9-1.9-1.8 1a7 7 0 0 0-1.7-.7L11.3 3H8.7l-.6 2a7 7 0 0 0-1.7.7l-1.8-1-1.9 1.9 1 1.8a7 7 0 0 0-.7 1.7l-2 .6v2.6l2 .6a7 7 0 0 0 .7 1.7l-1 1.8 1.9 1.9 1.8-1a7 7 0 0 0 1.7.7l.6 2h2.6l.6-2a7 7 0 0 0 1.7-.7l1.8 1 1.9-1.9-1-1.8a7 7 0 0 0 .7-1.7l2-.6Z" />
+    </svg>
+  )
+}
+
 function AppTile({ label, description, icon, onClick, disabled = false, badgeCount = 0, badgeClassName = '' }) {
   return (
     <button type="button" className="app-icon app-grid-tile" onClick={onClick} disabled={disabled} aria-label={`${label}. ${description}${disabled ? '. Locked until a carrier joins your operation.' : ''}`}>
@@ -68,7 +77,7 @@ function AppTile({ label, description, icon, onClick, disabled = false, badgeCou
   )
 }
 
-function HomeScreen({ onOpenBrowser, onOpenAgenda, agendaLocked = false, agendaBadgeCount = 0, onOpenDocuments, onOpenLedger, onOpenMessages, onOpenEmail, emailBadgeCount = 0, messagesBadgeCount = 0, documentsBadgeCount = 0, ledgerUnreadCount = 0 }) {
+function HomeScreen({ onOpenBrowser, onOpenAgenda, agendaLocked = false, agendaBadgeCount = 0, onOpenDocuments, onOpenLedger, onOpenMessages, onOpenEmail, onOpenSettings, emailBadgeCount = 0, messagesBadgeCount = 0, documentsBadgeCount = 0, ledgerUnreadCount = 0 }) {
   return (
     <div className="phone-page home-screen docos-ui-page">
       <header className="device-home-header docos-ui-header">
@@ -89,6 +98,7 @@ function HomeScreen({ onOpenBrowser, onOpenAgenda, agendaLocked = false, agendaB
           <AppTile label="LedgerDesk" description="Invoices and receivables" icon={<LedgerIcon />} onClick={onOpenLedger} badgeCount={ledgerUnreadCount} badgeClassName="ledger-badge" />
           <AppTile label="Messages" description="Driver communication" icon={<MessagesIcon />} onClick={onOpenMessages} badgeCount={messagesBadgeCount} />
           <AppTile label="Email" description="Carrier and business mail" icon={<EmailIcon />} onClick={onOpenEmail} badgeCount={emailBadgeCount} />
+          <AppTile label="Settings" description="Game and operation settings" icon={<SettingsIcon />} onClick={onOpenSettings} />
         </div>
       </section>
 

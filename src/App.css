@@ -13416,3 +13416,616 @@
 
 /* B.5.3.3.8-DIAG — temporary lunch state trace. */
 .lunch-diag-toggle{position:absolute;z-index:130;top:10px;right:10px;min-width:58px;height:34px;border:1px solid rgba(255,255,255,.22);border-radius:8px;background:rgba(9,13,18,.92);color:#e7edf4;font:700 11px/1 Inter,system-ui,sans-serif;letter-spacing:.08em}.lunch-diag-panel{position:absolute;z-index:129;top:50px;right:10px;width:min(360px,calc(100% - 20px));max-height:52%;overflow:auto;border:1px solid rgba(195,158,90,.55);border-radius:10px;background:rgba(7,10,14,.94);color:#e7edf4;padding:10px;font:500 10px/1.25 Inter,system-ui,sans-serif;pointer-events:auto}.lunch-diag-heading{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}.lunch-diag-heading strong{color:#C39E5A;font-size:11px;letter-spacing:.06em}.lunch-diag-heading span{color:#aab6c2}.lunch-diag-grid{display:grid;grid-template-columns:92px minmax(0,1fr);gap:4px 8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.12)}.lunch-diag-grid span{color:#7f8d9b}.lunch-diag-grid b{color:#eef3f7;font-weight:650;overflow-wrap:anywhere}.lunch-diag-events{display:grid;gap:4px;margin-top:8px}.lunch-diag-events>div{display:flex;flex-wrap:wrap;gap:5px 8px;padding:5px 6px;border-radius:6px;background:rgba(255,255,255,.045)}.lunch-diag-events b{color:#C39E5A}.lunch-diag-events span{color:#c7d0d8}
+
+/* =========================================================
+   B.5.4A.2 — Cinematic Title Shell
+   ========================================================= */
+
+.start-office-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #080c12;
+}
+
+.start-office-backdrop-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+  filter:
+    brightness(.82)
+    saturate(.88)
+    contrast(1.03);
+  transform: scale(1.012);
+}
+
+.start-office-backdrop-tone {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(5, 8, 13, .40) 0%,
+      rgba(5, 8, 13, .10) 31%,
+      rgba(5, 8, 13, .08) 52%,
+      rgba(5, 8, 13, .54) 100%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(5, 8, 13, .46) 0%,
+      rgba(5, 8, 13, .12) 50%,
+      rgba(5, 8, 13, .16) 100%
+    );
+}
+
+.entry-screen.start-screen-cinematic {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  display: block;
+  overflow: hidden;
+  background: transparent;
+}
+
+.entry-screen.start-screen-cinematic::before {
+  display: none;
+}
+
+.start-cinematic-shell {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding:
+    calc(env(safe-area-inset-top) + 22px)
+    17px
+    calc(env(safe-area-inset-bottom) + 14px);
+}
+
+.start-cinematic-brand {
+  width: min(76%, 270px);
+  padding: 5px 2px 0;
+  text-shadow:
+    0 2px 12px rgba(0, 0, 0, .64),
+    0 1px 2px rgba(0, 0, 0, .72);
+}
+
+.start-cinematic-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 20px;
+  color: #B4C3CF;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .16em;
+}
+
+.start-cinematic-status-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 999px;
+  background: #59C69D;
+  box-shadow:
+    0 0 0 5px rgba(89, 198, 157, .10),
+    0 0 14px rgba(89, 198, 157, .35);
+}
+
+.start-cinematic-kicker {
+  display: block;
+  color: #B1C0CC;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .20em;
+}
+
+.start-cinematic-brand h1 {
+  margin: 6px 0 5px;
+  color: #F4F2F4;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 44px;
+  font-weight: 700;
+  line-height: .98;
+  letter-spacing: -.045em;
+}
+
+.start-cinematic-brand p {
+  margin: 0;
+  color: #D2D9DF;
+  font-size: 10px;
+  line-height: 1.46;
+}
+
+.start-cinematic-menu {
+  width: min(78%, 286px);
+  margin-top: auto;
+  margin-left: auto;
+  margin-bottom: 17px;
+}
+
+.start-cinematic-operation {
+  margin-bottom: 10px;
+  padding: 12px 13px 11px;
+  border: 1px solid rgba(124, 132, 148, .42);
+  border-radius: 11px;
+  background: rgba(9, 13, 19, .72);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 14px 32px rgba(0, 0, 0, .20),
+    inset 0 0 0 1px rgba(255, 255, 255, .018);
+}
+
+.start-cinematic-operation > span {
+  display: block;
+  color: #8796A8;
+  font-size: 6.5px;
+  font-weight: 850;
+  letter-spacing: .17em;
+}
+
+.start-cinematic-operation > strong {
+  display: block;
+  margin-top: 7px;
+  color: #F3F0F4;
+  font-size: 15px;
+  font-weight: 780;
+  line-height: 1.15;
+  text-transform: uppercase;
+  letter-spacing: .025em;
+}
+
+.start-cinematic-operation > small {
+  display: block;
+  margin-top: 6px;
+  color: #A4B0BD;
+  font-size: 7.5px;
+  font-weight: 650;
+  line-height: 1.45;
+  letter-spacing: .06em;
+}
+
+.start-cinematic-operation.new-career > strong {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.start-cinematic-operation.new-career > small {
+  letter-spacing: 0;
+}
+
+.start-menu-action {
+  width: 100%;
+  min-height: 47px;
+  margin: 0 0 8px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 11px;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .13em;
+  text-align: left;
+  transition:
+    transform .12s ease,
+    background .12s ease,
+    border-color .12s ease;
+}
+
+.start-menu-action.primary {
+  border: 1px solid rgba(157, 144, 170, .82);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(73, 56, 86, .93),
+      rgba(45, 37, 57, .95)
+    );
+  color: #F5F1F6;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .05),
+    0 8px 24px rgba(0, 0, 0, .18);
+}
+
+.start-menu-action.secondary {
+  border: 1px solid rgba(97, 111, 129, .60);
+  background: rgba(10, 15, 22, .70);
+  color: #D0D7DF;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.start-menu-action:active {
+  transform: scale(.985);
+}
+
+.start-menu-action > span:last-child {
+  color: #AEB8C5;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.start-cinematic-other {
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(111, 124, 141, .28);
+}
+
+.start-cinematic-other > span {
+  display: block;
+  margin-bottom: 6px;
+  color: #8E9BAD;
+  font-size: 6.5px;
+  font-weight: 850;
+  letter-spacing: .16em;
+}
+
+.start-operation-switch {
+  width: 100%;
+  min-height: 38px;
+  margin-top: 5px;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(84, 97, 114, .46);
+  border-radius: 9px;
+  background: rgba(8, 12, 18, .64);
+  color: #D3DAE1;
+  font: inherit;
+  text-align: left;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.start-operation-switch > span {
+  font-size: 8px;
+  font-weight: 760;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.start-operation-switch > small {
+  color: #8795A5;
+  font-size: 6.5px;
+  white-space: nowrap;
+}
+
+.start-cinematic-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: rgba(187, 199, 210, .64);
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: .15em;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, .78);
+}
+
+@media (max-height: 760px) {
+  .start-cinematic-shell {
+    padding:
+      calc(env(safe-area-inset-top) + 15px)
+      15px
+      calc(env(safe-area-inset-bottom) + 10px);
+  }
+
+  .start-cinematic-status {
+    margin-bottom: 13px;
+  }
+
+  .start-cinematic-brand h1 {
+    font-size: 39px;
+  }
+
+  .start-cinematic-menu {
+    width: min(80%, 278px);
+    margin-bottom: 10px;
+  }
+
+  .start-cinematic-operation {
+    padding: 10px 11px;
+  }
+
+  .start-menu-action {
+    min-height: 43px;
+  }
+}
+
+/* END B.5.4A.2 */
+
+/* =========================================================
+   B.5.4A.2.3 — DOC OS Major Scene Transition
+
+   COVER → HOLD → REVEAL
+
+   Expensive destination mounting occurs only during HOLD,
+   while the display is fully concealed.
+   ========================================================= */
+
+.app-stage-transition {
+  position: absolute;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: all;
+  opacity: 0;
+  transform: translateZ(0);
+  will-change: opacity;
+
+  background:
+    radial-gradient(
+      circle at 50% 42%,
+      rgba(26, 24, 31, .96) 0%,
+      rgba(8, 11, 16, .99) 58%,
+      rgba(3, 5, 9, 1) 100%
+    );
+}
+
+/* Outgoing scene disappears quickly and smoothly. */
+.app-stage-transition.cover {
+  animation:
+    docos-major-cover
+    .26s
+    cubic-bezier(.22, 1, .36, 1)
+    forwards;
+}
+
+/*
+   HOLD is intentionally static.
+
+   No opacity animation runs while MainGameScreen / MapLibre
+   initializes underneath.
+*/
+.app-stage-transition.hold {
+  opacity: 1;
+  animation: none;
+}
+
+/* Destination is already mounted before this begins. */
+.app-stage-transition.reveal {
+  opacity: 1;
+  animation:
+    docos-major-reveal
+    .46s
+    cubic-bezier(.22, 1, .36, 1)
+    forwards;
+}
+
+@keyframes docos-major-cover {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes docos-major-reveal {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.app-stage-transition.back,
+.app-stage-transition.forward,
+.app-stage-transition.operations {
+  transform: translateZ(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-stage-transition.cover {
+    animation-duration: .14s;
+  }
+
+  .app-stage-transition.reveal {
+    animation-duration: .20s;
+  }
+}
+
+/* END B.5.4A.2.3 */
+
+/* =========================================================
+   B.5.4A.2.5 — Settings / Return To Title
+   ========================================================= */
+
+.phone-navigation-bar.phone-navigation-bar-v2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.phone-settings-button svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.phone-settings-screen {
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(14, 18, 24, .98),
+      rgba(10, 14, 20, .99)
+    );
+  color: #E8EDF2;
+}
+
+.phone-settings-header {
+  min-height: 58px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border-bottom: 1px solid rgba(86, 99, 116, .30);
+}
+
+.phone-settings-back {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(88, 101, 118, .42);
+  border-radius: 8px;
+  background: rgba(22, 27, 34, .72);
+  color: #C8D1DB;
+  font: inherit;
+  font-size: 22px;
+}
+
+.phone-settings-header > div {
+  display: grid;
+  gap: 3px;
+}
+
+.phone-settings-header span {
+  color: #788798;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .16em;
+}
+
+.phone-settings-header strong {
+  color: #F1EEF2;
+  font-size: 13px;
+  letter-spacing: .08em;
+}
+
+.phone-settings-content {
+  padding: 17px 14px;
+  display: grid;
+  gap: 18px;
+}
+
+.phone-settings-section {
+  display: grid;
+  gap: 8px;
+}
+
+.phone-settings-section-label {
+  color: #7D8B9C;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .16em;
+}
+
+.phone-settings-row {
+  width: 100%;
+  min-height: 58px;
+  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(91, 105, 123, .48);
+  border-radius: 10px;
+  background: rgba(22, 27, 34, .82);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.phone-settings-row > span:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.phone-settings-row strong {
+  color: #E7E5E9;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.phone-settings-row small {
+  color: #8996A5;
+  font-size: 7px;
+  line-height: 1.4;
+}
+
+.phone-settings-return {
+  border-color: var(--docos-accent-border);
+  background: var(--docos-accent-surface);
+}
+
+.phone-settings-chevron {
+  color: #AAB5C1;
+  font-size: 20px;
+}
+
+.phone-settings-placeholder {
+  padding: 12px;
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(76, 88, 104, .32);
+  border-radius: 10px;
+  background: rgba(16, 20, 27, .62);
+}
+
+.phone-settings-placeholder strong {
+  color: #AEB8C4;
+  font-size: 8px;
+  letter-spacing: .04em;
+}
+
+.phone-settings-placeholder small {
+  color: #707D8D;
+  font-size: 7px;
+  line-height: 1.45;
+}
+
+/* END B.5.4A.2.5 */
+
+/* =========================================================
+   B.5.4A.2.6 — Phone App Grid Spacing
+   ========================================================= */
+
+.phone-app-grid {
+  column-gap: 12px !important;
+  row-gap: 18px !important;
+}
+
+/* END B.5.4A.2.6 */
+
+/* =========================================================
+   B.5.4A.2.7 — Compact Phone App Grid
+   ========================================================= */
+
+.phone-app-grid {
+  align-content: start !important;
+  grid-auto-rows: max-content !important;
+  column-gap: 12px !important;
+  row-gap: 9px !important;
+}
+
+.app-grid-tile {
+  margin: 0 !important;
+}
+
+/* END B.5.4A.2.7 */

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 
 const marketLabels = { 'new-york': 'NEW YORK' }
 
-function OperationsBar({ selectedMarket, notificationCount = 0, notifications = [], onOpenChange, onNotificationAction, showEndDay = false, endDayDisabled = false, onEndDay, onOpenMarkets }) {
+function OperationsBar({ selectedMarket, notificationCount = 0, notifications = [], onOpenChange, onNotificationAction, showEndDay = false, endDayDisabled = false, onEndDay }) {
   const [open, setOpen] = useState(false)
   const marketName = marketLabels[selectedMarket] ?? selectedMarket?.toUpperCase() ?? 'MARKET OFFLINE'
   const notificationLabel = useMemo(() => notificationCount <= 0 ? 'NO ALERTS' : notificationCount === 1 ? '1 ALERT' : `${notificationCount} ALERTS`, [notificationCount])
@@ -22,7 +22,7 @@ function OperationsBar({ selectedMarket, notificationCount = 0, notifications = 
           const Tag = notification.action ? 'button' : 'div'
           return <Tag type={notification.action ? 'button' : undefined} key={notification.id} className={`operations-drawer-item ${notification.tone || 'neutral'} ${notification.alertClass || ''} ${notification.action ? 'actionable' : ''}`} onClick={notification.action ? () => activate(notification) : undefined}><span className="operations-drawer-dot" aria-hidden="true"/><div className="operations-drawer-copy"><span className="operations-drawer-source">DOC OS</span><strong>{notification.title}</strong>{notification.detail ? <small>{notification.detail}</small> : null}</div>{notification.value ? <span className="operations-drawer-value">{notification.value}</span> : null}</Tag>
         })}</div> : <div className="operations-drawer-empty"><strong>All quiet.</strong><span>No new operational alerts right now.</span></div>}
-        <div className="operations-drawer-actions">{showEndDay && <button type="button" className="operations-end-day operations-drawer-end-day" onClick={() => { setDrawerOpen(false); onEndDay?.() }} disabled={endDayDisabled}>END OPERATIONS DAY</button>}<button type="button" className="operations-market-action" onClick={() => { setDrawerOpen(false); onOpenMarkets?.() }}><span>MARKET</span></button></div>
+        <div className="operations-drawer-actions">{showEndDay && <button type="button" className="operations-end-day operations-drawer-end-day" onClick={() => { setDrawerOpen(false); onEndDay?.() }} disabled={endDayDisabled}>END OPERATIONS DAY</button>}</div>
       </section>}
     </div>
   )
