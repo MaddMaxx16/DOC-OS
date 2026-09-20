@@ -6482,7 +6482,7 @@
 
 @keyframes docos-entry-panel-in {
   from { opacity: 0; transform: translate3d(0, 4px, 0) scale(.997); }
-  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 @keyframes docos-game-stage-in {
@@ -14275,3 +14275,119 @@
 }
 
 /* END B.5.4B.1.2 */
+
+
+/* =========================================================
+   B.5.4C.1 — Phone Navigation Feel Pass
+   ========================================================= */
+
+/*
+   Phone screens should feel like layers moving through the
+   DOC OS workspace rather than instant React page swaps.
+*/
+.phone-page {
+  animation: docos-phone-page-enter 190ms cubic-bezier(.22, .72, .28, 1) both;
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+}
+
+@keyframes docos-phone-page-enter {
+  0% {
+    opacity: 0;
+    transform: translate3d(14px, 0, 0);
+  }
+
+  55% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone-page {
+    animation: none !important;
+  }
+}
+
+/* END B.5.4C.1 */
+
+
+/* =========================================================
+   B.5.4C.2 — Directional Phone Navigation
+   ========================================================= */
+
+/*
+   Keep C.1's restrained movement, but give navigation
+   spatial meaning:
+      forward = into the workspace
+      back    = toward the previous layer
+      home    = reveal the base layer
+*/
+
+html[data-docos-phone-nav="forward"] .phone-page {
+  animation: docos-phone-forward 190ms cubic-bezier(.22, .72, .28, 1) both;
+}
+
+html[data-docos-phone-nav="back"] .phone-page {
+  animation: docos-phone-back 185ms cubic-bezier(.22, .72, .28, 1) both;
+}
+
+html[data-docos-phone-nav="home"] .phone-page {
+  animation: docos-phone-home 175ms cubic-bezier(.22, .72, .28, 1) both;
+}
+
+@keyframes docos-phone-forward {
+  0% {
+    opacity: 0;
+    transform: translate3d(14px, 0, 0);
+  }
+
+  55% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes docos-phone-back {
+  0% {
+    opacity: 0;
+    transform: translate3d(-11px, 0, 0);
+  }
+
+  55% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes docos-phone-home {
+  0% {
+    opacity: .45;
+    transform: none;
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-docos-phone-nav] .phone-page {
+    animation: none !important;
+  }
+}
+
+/* END B.5.4C.2 */

@@ -32,7 +32,78 @@ import SettingsScreen from './SettingsScreen.jsx'
 function getReceivable(loads, carriers, workflows, id) { return getReceivables(loads, carriers, workflows).find((item) => item.loadId === id) }
 
 function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, setGameTime, onEvaluateFit, onAddToSchedule, onAcceptCandidateAssignment, onPlanTrip, initialScreen = 'home', initialLoadId = null, initialDriverId = null, initialEmailComposeContext = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, ledgerBanking, setLedgerWorkflowByLoadId, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, onOpenDriverSchedule, onRequestScheduleApproval, onBookApprovedSchedule, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onPickupCorrectionSent, onSetupOvernightDevScenario, onClose }) {
-  const [screen, setScreen] = useState(initialScreen)
+  const [screen, setScreenState] = useState(initialScreen)
+
+  // =========================================================
+  // B.5.4C.2 — Directional Phone Navigation
+  // =========================================================
+  const setScreen = (nextScreen) => {
+    if (!nextScreen || nextScreen === screen) return
+
+    const backTargets = {
+      messageThread: 'messages',
+      emailDetail: 'email',
+      agreement: 'emailDetail',
+      ledgerReceivable: 'ledger',
+      businessDocumentDetail: 'documents',
+      podDetail: 'documents',
+      dispatcherProfile: 'carrierSource',
+      carrierOpportunity: 'carrierSource',
+      carrierSource: 'browser',
+      loadBoard: 'browser',
+      loadDetails: 'loadBoard',
+      scheduler: 'loadBoard',
+      driverFit: 'loadDetails',
+      tripPlan: 'loadDetails',
+      routePlanning: 'loadDetails',
+    }
+
+    const depth = {
+      home: 0,
+
+      browser: 1,
+      email: 1,
+      messages: 1,
+      ledger: 1,
+      documents: 1,
+      settings: 1,
+      agenda: 1,
+
+      carrierSource: 2,
+      loadBoard: 2,
+      emailDetail: 2,
+      emailCompose: 2,
+      messageThread: 2,
+      ledgerReceivable: 2,
+      businessDocumentDetail: 2,
+      podDetail: 2,
+
+      carrierOpportunity: 3,
+      dispatcherProfile: 3,
+      agreement: 3,
+      loadDetails: 3,
+      scheduler: 3,
+
+      driverFit: 4,
+      tripPlan: 4,
+      routePlanning: 4,
+    }
+
+    let direction = 'forward'
+
+    if (nextScreen === 'home') {
+      direction = 'home'
+    } else if (backTargets[screen] === nextScreen) {
+      direction = 'back'
+    } else if ((depth[nextScreen] ?? 1) < (depth[screen] ?? 1)) {
+      direction = 'back'
+    }
+
+    document.documentElement.dataset.docosPhoneNav = direction
+    setScreenState(nextScreen)
+  }
+
+  // END B.5.4C.2
   const [documentsTab, setDocumentsTab] = useState('pending')
   const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
   const [selectedEmailId, setSelectedEmailId] = useState(null)
@@ -415,11 +486,12 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
       ) : screen === 'podDetail' ? (
         <PodDetailScreen load={loads.find((load) => load.id === selectedLoadId)} driver={drivers.find((driver) => driver.id === (loads.find((load) => load.id === selectedLoadId)?.assignedDriverId ?? loads.find((load) => load.id === selectedLoadId)?.completedDriverId))} delivery={mapLocations.find((location) => location.id === loads.find((load) => load.id === selectedLoadId)?.deliveryLocationId)} readOnly={Boolean(loads.find((load) => load.id === selectedLoadId)?.pod?.approved)} onUpdateVerification={updatePodVerification} onApprovePod={() => onApprovePod?.(selectedLoadId)} onRequestCorrection={() => { const load = loads.find((item) => item.id === selectedLoadId); const carrier = carriers.find((item) => item.id === load?.carrierId) || carriers[0]; openComposer({ workflowType: 'pod-correction', label: 'POD CORRECTION', loadId: selectedLoadId, loadNumber: load ? getFreightRouteName(load) : 'Route', suggestedRecipientId: `${carrier?.id || 'metroline'}-documents`, subject: `POD correction required · ${load ? getFreightRouteName(load) : 'Route'}`, body: `Hello,\n\nThe submitted POD does not match the shipment record. Please review the attached POD and exception documentation and return a corrected copy.\n\nThank you,\nDOC OS Dispatch`, returnScreen: 'podDetail' }) }} onBack={() => setScreen(documentReturnScreen || 'documents')} />
       ) : screen === 'dispatcherProfile' ? (
-        <BrowserScreen page="carriersource.local/signup" onBack={() => setScreen('carrierSource')} onHome={() => setScreen('browser')} showSiteBranding={false}><DispatcherProfileScreen profile={dispatcherProfile} onBack={() => setScreen('carrierSource')} onSave={(profile) => { onSaveDispatcherProfile?.(profile); setScreen('carrierSource') }} /></BrowserScreen>
+        <BrowserScreen key={screen} page="carriersource.local/signup" onBack={() => setScreen('carrierSource')} onHome={() => setScreen('browser')} showSiteBranding={false}><DispatcherProfileScreen profile={dispatcherProfile} onBack={() => setScreen('carrierSource')} onSave={(profile) => { onSaveDispatcherProfile?.(profile); setScreen('carrierSource') }} /></BrowserScreen>
       ) : screen === 'carrierSource' || screen === 'carrierOpportunity' ? (
-        <BrowserScreen page={screen === 'carrierOpportunity' && selectedCarrier ? `carriersource.local/carriers/${selectedCarrier.id}` : 'carriersource.local'} onBack={() => setScreen(screen === 'carrierSource' ? 'browser' : 'carrierSource')} onHome={() => setScreen('browser')} siteTitle="CARRIERSOURCE" siteSubtitle="Carrier Network" showSiteBranding={false}><>{screen === 'carrierSource' && <CarrierSourceScreen carriers={carriers} applicationsById={carrierApplicationsById} careerById={carrierCareerById} dispatcherProfile={dispatcherProfile} onSignUp={() => setScreen('dispatcherProfile')} onOpenCarrier={(carrierId) => { setSelectedCarrierId(carrierId); setScreen('carrierOpportunity') }} />}{screen === 'carrierOpportunity' && <CarrierOpportunityScreen carrier={selectedCarrier} drivers={drivers} application={selectedCarrier ? carrierApplicationsById[selectedCarrier.id] : null} career={selectedCarrier ? carrierCareerById[selectedCarrier.id] : null} dispatcherProfile={dispatcherProfile} onApply={() => selectedCarrier && (dispatcherProfile?.created ? onApplyCarrier?.(selectedCarrier.id) : setScreen('dispatcherProfile'))} onOpenOffer={() => setScreen('email')} />}</></BrowserScreen>
+        <BrowserScreen key={screen} page={screen === 'carrierOpportunity' && selectedCarrier ? `carriersource.local/carriers/${selectedCarrier.id}` : 'carriersource.local'} onBack={() => setScreen(screen === 'carrierSource' ? 'browser' : 'carrierSource')} onHome={() => setScreen('browser')} siteTitle="CARRIERSOURCE" siteSubtitle="Carrier Network" showSiteBranding={false}><>{screen === 'carrierSource' && <CarrierSourceScreen carriers={carriers} applicationsById={carrierApplicationsById} careerById={carrierCareerById} dispatcherProfile={dispatcherProfile} onSignUp={() => setScreen('dispatcherProfile')} onOpenCarrier={(carrierId) => { setSelectedCarrierId(carrierId); setScreen('carrierOpportunity') }} />}{screen === 'carrierOpportunity' && <CarrierOpportunityScreen carrier={selectedCarrier} drivers={drivers} application={selectedCarrier ? carrierApplicationsById[selectedCarrier.id] : null} career={selectedCarrier ? carrierCareerById[selectedCarrier.id] : null} dispatcherProfile={dispatcherProfile} onApply={() => selectedCarrier && (dispatcherProfile?.created ? onApplyCarrier?.(selectedCarrier.id) : setScreen('dispatcherProfile'))} onOpenOffer={() => setScreen('email')} />}</></BrowserScreen>
       ) : screen === 'browser' || screen === 'loadBoard' || screen === 'loadDetails' || screen === 'scheduler' || screen === 'driverFit' || screen === 'tripPlan' || screen === 'routePlanning' ? (
         <BrowserScreen
+          key={screen}
           page={screen === 'browser' ? 'home' : screen === 'loadBoard' ? 'freightlink.local' : screen === 'loadDetails' ? `freightlink.local/load/${selectedLoadId}` : screen === 'scheduler' ? 'freightlink.local/scheduler' : screen === 'driverFit' ? `freightlink.local/load/${selectedLoadId}/driver-select` : screen === 'tripPlan' ? `freightlink.local/load/${selectedLoadId}/trip-plan` : `freightlink.local/load/${selectedLoadId}/route`}
           freightLinkLocked={!hasActiveCarrier}
           onOpenFreightLink={() => { if (hasActiveCarrier) { setSelectedDriverId(null); setScreen('loadBoard') } }}
