@@ -4,6 +4,7 @@ import { calculateRoute } from '../services/routingService.js'
 import { formatAppointment, formatCompactDate, formatTime } from '../utils/gameTime.js'
 import { getProjectedDriverOrigin } from '../utils/driverQueue.js'
 import { getFreightRouteName } from '../utils/freightIdentity.js'
+import { getDriverHosSummary, formatHosClock } from '../utils/driverHOS.js'
 
 function evaluateTiming(load, projectedStartMinute, fit) {
   const arrival = projectedStartMinute + fit.minutes
@@ -117,6 +118,7 @@ function DriverFitScreen({
               const fit = rawFit ? evaluateTiming(load, rawFit.projectedStartMinute, rawFit) : null
               const selected = selectedDriverId === driver.id
               const name = driver.fullName || driver.name
+              const hos = getDriverHosSummary(driver)
               return (
                 <button
                   type="button"
@@ -141,6 +143,7 @@ function DriverFitScreen({
                       <div><span>Deadhead</span><strong>{fit.miles.toFixed(1)} mi · {fit.minutes} min</strong></div>
                       <div><span>Projected arrival</span><strong>{formatCompactDate(fit.arrivalDay)} · {formatTime(fit.arrivalMinutes)}</strong></div>
                       <div><span>Pickup window</span><strong>{formatTime(load.pickupWindowStartMinutes)}–{formatTime(load.pickupWindowEndMinutes)}</strong></div>
+                      <div><span>HOS available</span><strong>DRIVE {hos.driving} · DUTY {hos.duty}</strong></div>
                     </div>
                   )}
                 </button>
@@ -148,6 +151,31 @@ function DriverFitScreen({
             })}
           </div>
         </section>
+
+        {selectedDriverId && selectedFit && loadedLeg && loadedLeg !== 'unavailable' && (() => {
+          const selectedDriver = drivers.find((driver) => driver.id === selectedDriverId)
+          const hos = getDriverHosSummary(selectedDriver)
+          const driveRequired = Math.max(0, Number(selectedFit.minutes) || 0) + Math.max(0, Number(loadedLeg.durationMinutes) || 0)
+          const pickupWindowStart = Number(load.pickupDayIndex || 0) * 1440 + Number(load.pickupWindowStartMinutes || 0)
+          const projectedPickupArrival = Number(selectedFit.projectedStartMinute || 0) + Math.max(0, Number(selectedFit.minutes) || 0)
+          const loadedDeparture = Math.max(projectedPickupArrival, pickupWindowStart)
+          const dutyRequired = Math.max(0, loadedDeparture + Math.max(0, Number(loadedLeg.durationMinutes) || 0) - Number(selectedFit.projectedStartMinute || 0))
+          const driveOk = driveRequired <= hos.drivingRemainingMinutes
+          const dutyOk = dutyRequired <= hos.dutyRemainingMinutes
+          const hosFit = driveOk && dutyOk
+          return (
+          <section className="docos-section hos-trip-preview">
+            <div className="docos-section-heading"><span>HOS CHECK</span><small className={hosFit ? 'hos-fit-good' : 'hos-fit-risk'}>{hosFit ? 'WITHIN HOURS' : 'HOS RISK'}</small></div>
+            <div className="docos-panel hos-trip-grid">
+              <div><span>Drive available</span><strong>{hos.driving}</strong></div>
+              <div><span>Drive required</span><strong>{formatHosClock(driveRequired)}</strong></div>
+              <div><span>Duty available</span><strong>{hos.duty}</strong></div>
+              <div><span>Duty required</span><strong>{formatHosClock(dutyRequired)}</strong></div>
+            </div>
+            {!hosFit && <p className="hos-trip-warning">This trip projects beyond Marcus's current HOS availability. DOC OS will not change or dispatch the trip automatically.</p>}
+          </section>
+          )
+        })()}
 
         {selectedDriverId && selectedFit && (
           <section className="docos-section">

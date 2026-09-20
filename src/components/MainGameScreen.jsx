@@ -1,3 +1,4 @@
+import { sampleRoutePoint } from '../utils/routeSampler.js'
 import { useEffect, useRef, useState } from 'react'
 import GameMap from './GameMap.jsx'
 import LoadingChallenge from './LoadingChallenge.jsx'
@@ -19,12 +20,13 @@ import { PICKUP_LOADING_MINUTES } from '../data/pickupConfig.js'
 import { getEndDayStatus } from '../utils/dayLoop.js'
 import { getDriverActiveLoad, getDriverOnboardLoads, getDriverQueue, getNextQueuePosition, getProjectedDriverOrigin, promoteNextQueuedLoad } from '../utils/driverQueue.js'
 import { getDriverPanelModel } from '../utils/driverOperationalState.js'
+import { getDriverHosSummary } from '../utils/driverHOS.js'
 import { buildDriverItinerary, getNextActionableDriverStop } from '../utils/driverItinerary.js'
 import { getFreightBusinessName, getFreightCommodity, getFreightRouteName } from '../utils/freightIdentity.js'
 import { getFreightHaulClass, getPlanningImpact } from '../utils/planningIntelligence.js'
 import { getRouteLifecycleLabel } from '../utils/routeLifecycle.js'
 import { getDelayMessage, getDepartureMessage, getPickupExceptionMessage, getScheduleAcknowledgement, getUnloadExceptionMessage } from '../utils/driverCommunications.js'
-import { applyLunchDuration, getLunchDecisionChoices, isDriverOnLunch, isLunchDecisionReady } from '../utils/lunchDecisionEvents.js'
+import { applyLunchDuration, getLunchDecisionChoices, hasLunchMovementAuthority, isDriverOnLunch, isLunchDecisionReady } from '../utils/lunchDecisionEvents.js'
 import { createPodDocument } from '../utils/documentLifecycle.js'
 
 
@@ -318,8 +320,13 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const [freightBrowseRouteGeometry, setFreightBrowseRouteGeometry] = useState(null)
   const [freightBrowseRouteStatus, setFreightBrowseRouteStatus] = useState('idle')
   const [lunchDecisionDriverId, setLunchDecisionDriverId] = useState(null)
+  const [lunchDecisionChoicesSnapshot, setLunchDecisionChoicesSnapshot] = useState([])
   const lunchPauseWasAlreadyPausedRef = useRef(false)
   const lunchPriorSpeedRef = useRef(1)
+  const lunchHardGateActiveRef = useRef(false)
+  const [lunchDiagOpen, setLunchDiagOpen] = useState(true)
+  const [lunchDiagEvents, setLunchDiagEvents] = useState([])
+  const lunchDiagLastSignatureRef = useRef('')
   const freightBrowseRouteRequestRef = useRef(0)
   const itineraryMovementSyncRef = useRef(new Map())
   const itineraryMovementTokenRef = useRef(0)
@@ -354,69 +361,170 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const assignedDriverOnLunch = isDriverOnLunch(drivers.find((driver) => driver.id === assignedDriverId), gameTime)
   const runtimeProgress = assignedDriverId ? (runtimeProgressByDriver?.[assignedDriverId] ?? null) : null
   const setDriverRuntimeProgress = (driverId, value) => setRuntimeProgressByDriver?.((current) => ({ ...(current || {}), [driverId]: value }))
+
+  const lunchDiagDriver = drivers.find((driver) => driver.lunchRouteStatus || Object.values(driver.workdayByDay || {}).some((day) => day?.lunchEvent?.status && day.lunchEvent.status !== 'completed'))
+    || drivers.find((driver) => driver.id === assignedDriverId)
+    || drivers[0]
+    || null
+  const lunchDiagDayKey = String(gameTime.gameDayIndex)
+  const lunchDiagWorkday = lunchDiagDriver?.workdayByDay?.[lunchDiagDayKey] || lunchDiagDriver?.workdayByDay?.[gameTime.gameDayIndex] || null
+  const lunchDiagEvent = lunchDiagWorkday?.lunchEvent || null
+  const lunchDiagLoad = lunchDiagDriver ? getDriverActiveLoad(loads, lunchDiagDriver.id) : assignedLoad
+  const lunchDiagPosition = lunchDiagDriver ? runtimePositions?.[lunchDiagDriver.id] : null
+  const lunchDiagTarget = lunchDiagDriver?.lunchTargetLocationId ? mapLocations.find((location) => location.id === lunchDiagDriver.lunchTargetLocationId) : null
+  const lunchDiagNow = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+  const lunchDiagGeometryCount = Array.isArray(lunchDiagDriver?.lunchRouteGeometry) ? lunchDiagDriver.lunchRouteGeometry.length : 0
+
+  useEffect(() => {
+    if (!lunchDiagDriver) return
+    const signature = [
+      lunchDiagNow,
+      isGameClockPaused ? 'PAUSE' : `${simulationSpeed}x`,
+      lunchDiagDriver.lunchRouteStatus || '-',
+      lunchDiagEvent?.status || '-',
+      lunchDiagLoad?.id || '-',
+      lunchDiagLoad?.tripStatus || '-',
+      lunchDiagGeometryCount,
+      Number.isFinite(lunchDiagDriver.lunchRouteStartGameMinute) ? lunchDiagDriver.lunchRouteStartGameMinute : '-',
+      Number.isFinite(lunchDiagDriver.lunchRouteDurationMinutes) ? lunchDiagDriver.lunchRouteDurationMinutes : '-',
+      Number.isFinite(lunchDiagDriver.lunchParkedAtGameMinute) ? lunchDiagDriver.lunchParkedAtGameMinute : '-',
+      Number.isFinite(lunchDiagDriver.lunchReleaseGameMinute) ? lunchDiagDriver.lunchReleaseGameMinute : '-',
+      Number.isFinite(lunchDiagLoad?.deliveryDepartureGameMinute) ? lunchDiagLoad.deliveryDepartureGameMinute : '-',
+      Number.isFinite(lunchDiagLoad?.deliveryArrivalGameMinute) ? lunchDiagLoad.deliveryArrivalGameMinute : '-',
+      lunchDiagPosition ? `${Number(lunchDiagPosition.longitude).toFixed(4)},${Number(lunchDiagPosition.latitude).toFixed(4)}` : '-',
+    ].join('|')
+    if (signature === lunchDiagLastSignatureRef.current) return
+    lunchDiagLastSignatureRef.current = signature
+    const entry = {
+      id: `${Date.now()}-${lunchDiagNow}`,
+      time: formatTime(gameTime.totalMinutesOfDay),
+      clock: isGameClockPaused ? 'PAUSED' : `${simulationSpeed}x`,
+      lunch: lunchDiagDriver.lunchRouteStatus || '-',
+      event: lunchDiagEvent?.status || '-',
+      load: lunchDiagLoad?.tripStatus || '-',
+      geometry: lunchDiagGeometryCount,
+      deliveryDepart: Number.isFinite(lunchDiagLoad?.deliveryDepartureGameMinute) ? lunchDiagLoad.deliveryDepartureGameMinute : null,
+      deliveryArrival: Number.isFinite(lunchDiagLoad?.deliveryArrivalGameMinute) ? lunchDiagLoad.deliveryArrivalGameMinute : null,
+      pos: lunchDiagPosition ? `${Number(lunchDiagPosition.longitude).toFixed(4)}, ${Number(lunchDiagPosition.latitude).toFixed(4)}` : '—',
+    }
+    setLunchDiagEvents((current) => [entry, ...current].slice(0, 8))
+  }, [lunchDiagDriver, lunchDiagEvent?.status, lunchDiagLoad?.id, lunchDiagLoad?.tripStatus, lunchDiagLoad?.deliveryDepartureGameMinute, lunchDiagLoad?.deliveryArrivalGameMinute, lunchDiagGeometryCount, lunchDiagNow, lunchDiagPosition?.longitude, lunchDiagPosition?.latitude, isGameClockPaused, simulationSpeed, gameTime.totalMinutesOfDay])
   const podNotificationCount = loads.filter((load) => load.tripStatus === 'awaiting-pod').length
   const emailUnreadCount = emailMessages?.filter((message) => !message.read).length || 0
   const currentAbsoluteGameMinute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+  // B.5.3.3.3 — async route requests must anchor movement to the game minute
+  // when the route actually resolves, not the minute when the player tapped a choice.
+  const currentAbsoluteGameMinuteRef = useRef(currentAbsoluteGameMinute)
+  currentAbsoluteGameMinuteRef.current = currentAbsoluteGameMinute
 
   // CS2.0B.4.1.3.1 — lunch is now a ready task, not an interrupt. DOC OS
   // flags eligible drivers, but the dispatcher decides when to open the decision.
   const lunchReadyDriverIds = drivers.filter((driver) => isLunchDecisionReady({ driver, loads, gameTime })).map((driver) => driver.id)
+  const lunchReadyKey = lunchReadyDriverIds.join('|')
+
+  // B.5.3.3.6 — Lunch is an action-required decision gate. The instant a driver
+  // needs a lunch plan, freeze the simulation at the authoritative game minute.
+  // This prevents freight/HOS/arrival state from racing the lunch decision.
+  useEffect(() => {
+    if (!lunchReadyDriverIds.length) return
+    if (!lunchHardGateActiveRef.current) {
+      lunchHardGateActiveRef.current = true
+      lunchPauseWasAlreadyPausedRef.current = isGameClockPaused
+      lunchPriorSpeedRef.current = Number(simulationSpeed) || 1
+    }
+    if (!isGameClockPaused) setGameClockPaused(true)
+  }, [lunchReadyKey, isGameClockPaused, simulationSpeed, setGameClockPaused])
 
   const openLunchDecisionForDriver = (driverId) => {
     const candidate = drivers.find((driver) => driver.id === driverId) || null
     if (!candidate || !isLunchDecisionReady({ driver: candidate, loads, gameTime })) return false
-    lunchPauseWasAlreadyPausedRef.current = isGameClockPaused
-    lunchPriorSpeedRef.current = Number(simulationSpeed) || 1
-    setSimulationSpeed(0.75)
-    setGameClockPaused(false)
+    // The hard gate already captured the pre-alert pause/speed state. If this is
+    // opened through another surface before the effect runs, capture it here.
+    if (!lunchHardGateActiveRef.current) {
+      lunchHardGateActiveRef.current = true
+      lunchPauseWasAlreadyPausedRef.current = isGameClockPaused
+      lunchPriorSpeedRef.current = Number(simulationSpeed) || 1
+    }
+    setGameClockPaused(true)
+    const candidateWorkday = candidate?.workdayByDay?.[String(gameTime.gameDayIndex)] || candidate?.workdayByDay?.[gameTime.gameDayIndex] || null
+    const choices = candidateWorkday
+      ? getLunchDecisionChoices({ driver: candidate, loads, gameTime, operationDay, runtimePosition: runtimePositions?.[candidate.id] || null })
+      : []
+    // Freeze the offered set for this planning session. Reopening Lunch Planning
+    // creates a fresh route-ahead scan; an open panel does not continuously reshuffle.
+    setLunchDecisionChoicesSnapshot(choices)
     setLunchDecisionDriverId(candidate.id)
     setIsPhoneOpen(false)
     return true
   }
 
   const closeLunchDecision = () => {
+    // Closing the chooser does NOT dismiss the action-required gate. The driver
+    // still needs a lunch plan, so the world remains frozen until a stop is chosen.
     setLunchDecisionDriverId(null)
-    setSimulationSpeed(lunchPriorSpeedRef.current || 1)
-    setGameClockPaused(lunchPauseWasAlreadyPausedRef.current)
+    setLunchDecisionChoicesSnapshot([])
+    setGameClockPaused(true)
   }
 
   const lunchDecisionDriver = drivers.find((driver) => driver.id === lunchDecisionDriverId) || null
   const lunchDecisionWorkday = lunchDecisionDriver?.workdayByDay?.[String(gameTime.gameDayIndex)] || lunchDecisionDriver?.workdayByDay?.[gameTime.gameDayIndex] || null
   const lunchDecisionChoices = lunchDecisionDriver && lunchDecisionWorkday
-    ? getLunchDecisionChoices({ driver: lunchDecisionDriver, loads, gameTime, operationDay })
+    ? lunchDecisionChoicesSnapshot
     : []
+  const lunchCandidateLocations = lunchDecisionChoices.map((choice) => choice.lunchStop).filter(Boolean)
+  const activeLunchTargetLocations = drivers
+    .filter((driver) => ['calculating', 'traveling', 'arrived', 'resume-calculating'].includes(driver.lunchRouteStatus) && driver.lunchTargetLocationId)
+    .map((driver) => mapLocations.find((location) => location.id === driver.lunchTargetLocationId))
+    .filter(Boolean)
+  const lunchMapLocations = [...new Map([...lunchCandidateLocations, ...activeLunchTargetLocations].map((location) => [location.id, location])).values()]
 
-  const chooseLunchDecision = (choice) => {
-    if (!choice || !lunchDecisionDriver || !lunchDecisionWorkday) return
+  const chooseLunchDecision = async (choice) => {
+    if (!choice || !lunchDecisionDriver || !lunchDecisionWorkday || !choice.lunchStop) return
+    const driverId = lunchDecisionDriver.id
     const offeredChoiceIds = lunchDecisionChoices.map((item) => item.id)
     const dayKey = String(gameTime.gameDayIndex)
     const relationshipDelta = Number(choice.effects?.relationship || 0)
-    const actualLunchStartMinutes = Number(gameTime.totalMinutesOfDay || lunchDecisionWorkday.lunchStartMinutes || 0)
+    const selectedAt = currentAbsoluteGameMinute
     const nextDuration = applyLunchDuration(lunchDecisionWorkday.lunchDurationMinutes, choice.effects?.durationOverrideMinutes)
-    const lunchEnd = Math.min(Number(lunchDecisionWorkday.endMinutes || 1440), actualLunchStartMinutes + nextDuration)
-    const duration = Math.max(20, lunchEnd - actualLunchStartMinutes)
+    const activeLoad = loads.find((load) => load.assignedDriverId === driverId && ['en-route-pickup', 'en-route-delivery'].includes(load.tripStatus)) || null
+    const interruptedPhase = activeLoad?.tripStatus === 'en-route-delivery' ? 'delivery' : activeLoad?.tripStatus === 'en-route-pickup' ? 'pickup' : null
+    const origin = runtimePositions?.[driverId]
+      || (Number.isFinite(lunchDecisionDriver.longitude) && Number.isFinite(lunchDecisionDriver.latitude) ? lunchDecisionDriver : null)
+      || mapLocations.find((location) => location.id === lunchDecisionDriver.homeBaseLocationId)
 
+    // B.5.3.3.5 AUDIT FIX — restore the proven .2.5 authority sequence.
+    // Lunch claims driver movement BEFORE async routing begins. App.jsx already
+    // treats calculating/traveling/on-lunch/resume-calculating as stronger than
+    // freight movement, so the interrupted load must keep its original clocks.
+    // Rewriting those clocks here created a second competing lifecycle.
     setDrivers((current) => current.map((driver) => {
-      if (driver.id !== lunchDecisionDriver.id) return driver
+      if (driver.id !== driverId) return driver
       const workdayByDay = { ...(driver.workdayByDay || {}) }
       const currentWorkday = workdayByDay[dayKey] || lunchDecisionWorkday
       if (currentWorkday?.lunchEvent?.selectedChoiceId) return driver
       workdayByDay[dayKey] = {
         ...currentWorkday,
-        lunchStartMinutes: actualLunchStartMinutes,
-        lunchDurationMinutes: duration,
         lunchEvent: {
           selectedChoiceId: choice.id,
           title: choice.title,
           category: choice.category,
-          selectedGameMinute: currentAbsoluteGameMinute,
+          status: 'routing',
+          selectedGameMinute: selectedAt,
+          scheduledStartMinutes: currentWorkday.lunchStartMinutes,
+          durationMinutes: nextDuration,
+          scheduledDurationMinutes: nextDuration,
+          targetLocationId: choice.lunchStop.id,
+          targetLocationName: choice.lunchStop.name,
+          targetType: choice.lunchStop.lunchStopType,
+          interruptedLoadId: activeLoad?.id || null,
+          interruptedPhase,
           offeredChoiceIds,
           effects: { ...(choice.effects || {}) },
         },
       }
       const lunchOfferHistory = [
         ...(Array.isArray(driver.lunchOfferHistory) ? driver.lunchOfferHistory : []).filter((entry) => entry?.dayIndex !== gameTime.gameDayIndex),
-        { dayIndex: gameTime.gameDayIndex, optionIds: offeredChoiceIds, selectedChoiceId: choice.id },
+        { dayIndex: gameTime.gameDayIndex, optionIds: offeredChoiceIds, selectedChoiceId: choice.id, targetLocationId: choice.lunchStop.id },
       ].slice(-6)
       const lunchEffectsByDay = {
         ...(driver.lunchEffectsByDay || {}),
@@ -433,14 +541,265 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         workdayByDay,
         lunchOfferHistory,
         lunchEffectsByDay,
+        lunchRouteStatus: 'calculating',
+        lunchRouteGeometry: null,
+        lunchRouteStartGameMinute: null,
+        lunchRouteDurationMinutes: null,
+        lunchParkedAtGameMinute: null,
+        lunchReleaseGameMinute: null,
+        lunchTargetLocationId: choice.lunchStop.id,
+        lunchInterruptedLoadId: activeLoad?.id || null,
+        lunchInterruptedPhase: interruptedPhase,
         communicationRapport: Math.max(0, Math.min(100, Number(driver.communicationRapport ?? 50) + relationshipDelta)),
       }
     }))
 
     setLunchDecisionDriverId(null)
-    setSimulationSpeed(lunchPriorSpeedRef.current || 1)
-    setGameClockPaused(lunchPauseWasAlreadyPausedRef.current)
+    setLunchDecisionChoicesSnapshot([])
+    if (!origin) {
+      setDrivers((current) => current.map((driver) => {
+        if (driver.id !== driverId) return driver
+        const workdayByDay = { ...(driver.workdayByDay || {}) }
+        const workday = workdayByDay[dayKey]
+        workdayByDay[dayKey] = workday ? { ...workday, lunchEvent: null } : workday
+        return { ...driver, workdayByDay, lunchRouteStatus: null, lunchTargetLocationId: null, lunchInterruptedLoadId: null, lunchInterruptedPhase: null }
+      }))
+      lunchHardGateActiveRef.current = true
+      setGameClockPaused(true)
+      return
+    }
+
+    try {
+      const route = await calculateRoute(origin, choice.lunchStop)
+      if (!Array.isArray(route?.routeShape) || route.routeShape.length < 2) throw new Error('Lunch route returned no usable geometry')
+      // The game is still hard-paused here, so this timestamp is the same frozen
+      // authoritative minute used for the decision. Install geometry + authority
+      // first, then release the gate as one ordered handoff.
+      const routeStartAt = currentAbsoluteGameMinuteRef.current
+      setDrivers((current) => current.map((driver) => driver.id === driverId && driver.lunchRouteStatus === 'calculating'
+        ? {
+          ...driver,
+          lunchRouteStatus: 'traveling',
+          lunchRouteGeometry: route.routeShape,
+          lunchRouteStartGameMinute: routeStartAt,
+          lunchRouteDurationMinutes: Math.max(1, Number(route.durationMinutes || 1)),
+        }
+        : driver))
+      lunchHardGateActiveRef.current = false
+      setSimulationSpeed(lunchPriorSpeedRef.current || 1)
+      setGameClockPaused(lunchPauseWasAlreadyPausedRef.current)
+    } catch (error) {
+      console.warn('DOC OS LUNCH ROUTE UNAVAILABLE', error)
+      // Route failure is still action-required. Roll the selection back so the
+      // dispatcher can reopen Lunch Planning; never release time without a route.
+      setDrivers((current) => current.map((driver) => {
+        if (driver.id !== driverId) return driver
+        const workdayByDay = { ...(driver.workdayByDay || {}) }
+        const workday = workdayByDay[dayKey]
+        workdayByDay[dayKey] = workday ? { ...workday, lunchEvent: null } : workday
+        return { ...driver, workdayByDay, lunchRouteStatus: null, lunchRouteGeometry: null, lunchRouteStartGameMinute: null, lunchRouteDurationMinutes: null, lunchTargetLocationId: null, lunchInterruptedLoadId: null, lunchInterruptedPhase: null }
+      }))
+      lunchHardGateActiveRef.current = true
+      setGameClockPaused(true)
+    }
   }
+
+  // B.5.3.2.3 — lunch is a physical world event. The truck diverts to the
+  // selected route-corridor POI, parks, takes the break, then resumes the
+  // interrupted freight leg from that actual position.
+  useEffect(() => {
+    const now = currentAbsoluteGameMinute
+    const positionUpdates = {}
+    const arrivals = []
+    drivers.forEach((driver) => {
+      if (!['traveling', 'resume-access'].includes(driver.lunchRouteStatus)) return
+      if (!Array.isArray(driver.lunchRouteGeometry) || driver.lunchRouteGeometry.length < 2) return
+      if (!Number.isFinite(driver.lunchRouteStartGameMinute) || !Number.isFinite(driver.lunchRouteDurationMinutes)) return
+      const progress = Math.max(0, Math.min(1, (now - driver.lunchRouteStartGameMinute) / driver.lunchRouteDurationMinutes))
+      const point = sampleRoutePoint(driver.lunchRouteGeometry, progress)
+      if (point) positionUpdates[driver.id] = point
+      if (progress >= 1 && driver.lunchRouteStatus === 'traveling') arrivals.push(driver.id)
+    })
+    if (Object.keys(positionUpdates).length) setRuntimePositions?.((current) => ({ ...(current || {}), ...positionUpdates }))
+    if (!arrivals.length) return
+    const arrivedSet = new Set(arrivals)
+    setDrivers((current) => current.map((driver) => {
+      if (!arrivedSet.has(driver.id)) return driver
+      const dayKey = String(gameTime.gameDayIndex)
+      const workdayByDay = { ...(driver.workdayByDay || {}) }
+      const workday = workdayByDay[dayKey]
+      const event = workday?.lunchEvent
+      if (!event || event.status !== 'routing') return { ...driver, lunchRouteStatus: 'arrived' }
+      // B.5.3.3.7 — the Agenda time is the DUE/TRIGGER time, not the end of the
+      // physical break. The full scheduled duration begins only after the truck
+      // actually parks at the selected lunch stop. Keep an explicit driver-owned
+      // release minute so no schedule-window/HOS helper can accidentally end lunch.
+      const duration = Math.max(20, Number(event.scheduledDurationMinutes || event.durationMinutes || workday.lunchDurationMinutes || 30))
+      const releaseAt = now + duration
+      workdayByDay[dayKey] = {
+        ...workday,
+        lunchEvent: { ...event, status: 'on-lunch', actualStartGameMinute: now, endGameMinute: releaseAt, actualDurationMinutes: duration },
+      }
+      return {
+        ...driver,
+        workdayByDay,
+        lunchRouteStatus: 'arrived',
+        lunchParkedAtGameMinute: now,
+        lunchReleaseGameMinute: releaseAt,
+        lastKnownLocationId: driver.lunchTargetLocationId,
+      }
+    }))
+  }, [gameTime, drivers, currentAbsoluteGameMinute, setRuntimePositions])
+
+  useEffect(() => {
+    const now = currentAbsoluteGameMinute
+    drivers.forEach((driver) => {
+      const dayKey = String(gameTime.gameDayIndex)
+      const workday = driver.workdayByDay?.[dayKey] || driver.workdayByDay?.[gameTime.gameDayIndex]
+      const event = workday?.lunchEvent
+      // Completion is anchored to physical ARRIVAL, never the original Agenda
+      // lunch window. This prevents a 12:00/30-minute lunch from expiring while
+      // Marcus is still driving to the selected stop.
+      const releaseAt = Number(driver.lunchReleaseGameMinute)
+      if (!event || event.status !== 'on-lunch' || !Number.isFinite(releaseAt) || now < releaseAt) return
+      if (['resume-calculating', 'resume-access'].includes(driver.lunchRouteStatus)) return
+      const interruptedLoad = loads.find((load) => load.id === event.interruptedLoadId && load.assignedDriverId === driver.id)
+      if (!interruptedLoad || !['pickup', 'delivery'].includes(event.interruptedPhase)) {
+        setDrivers((current) => current.map((item) => item.id === driver.id ? {
+          ...item,
+          lunchRouteStatus: null,
+          lunchRouteGeometry: null,
+          lunchRouteStartGameMinute: null,
+          lunchRouteDurationMinutes: null,
+          lunchParkedAtGameMinute: null,
+          lunchReleaseGameMinute: null,
+          workdayByDay: {
+            ...(item.workdayByDay || {}),
+            [dayKey]: { ...(item.workdayByDay?.[dayKey] || workday), lunchEvent: { ...(item.workdayByDay?.[dayKey]?.lunchEvent || event), status: 'completed', completedGameMinute: now } },
+          },
+        } : item))
+        return
+      }
+      const destinationId = event.interruptedPhase === 'delivery' ? interruptedLoad.deliveryLocationId : interruptedLoad.pickupLocationId
+      const destination = mapLocations.find((location) => location.id === destinationId)
+      const origin = runtimePositions?.[driver.id] || mapLocations.find((location) => location.id === driver.lunchTargetLocationId)
+      if (!origin || !destination) return
+      setDrivers((current) => current.map((item) => item.id === driver.id ? { ...item, lunchRouteStatus: 'resume-calculating' } : item))
+      calculateRoute(origin, destination).then((route) => {
+        // B.5.3.3.10.6 — facility egress is its own physical movement segment.
+        // The road router is allowed to snap its origin to the nearest routable
+        // roadway; DOC OS owns the short parking-position -> road-entry movement.
+        // Only after that egress completes does normal freight travel take over.
+        const parkedOrigin = { longitude: Number(origin.longitude), latitude: Number(origin.latitude) }
+        const routedShape = Array.isArray(route.routeShape) ? route.routeShape : []
+        if (routedShape.length < 2) throw new Error('Lunch resume route returned no usable geometry')
+        const first = routedShape[0]
+        const roadStart = Array.isArray(first) ? { longitude: Number(first[0]), latitude: Number(first[1]) } : parkedOrigin
+        const accessMiles = getLocationDistanceMiles(parkedOrigin, roadStart)
+        const routedDriveMinutes = Math.max(1, Number(route.durationMinutes || 1))
+        const accessMinutes = accessMiles > 0.001 ? Math.max(2, Math.min(5, Math.ceil((accessMiles / 5) * 60))) : 0
+
+        if (accessMinutes > 0) {
+          const accessStart = currentAbsoluteGameMinuteRef.current
+          setRuntimePositions?.((current) => ({
+            ...(current || {}),
+            [driver.id]: { ...(current?.[driver.id] || {}), ...parkedOrigin },
+          }))
+          setDriverRuntimeProgress(driver.id, 0)
+          setDrivers((current) => current.map((item) => item.id === driver.id ? {
+            ...item,
+            lunchRouteStatus: 'resume-access',
+            lunchRouteGeometry: [[parkedOrigin.longitude, parkedOrigin.latitude], [roadStart.longitude, roadStart.latitude]],
+            lunchRouteStartGameMinute: accessStart,
+            lunchRouteDurationMinutes: accessMinutes,
+            lunchResumeRouteGeometry: routedShape,
+            lunchResumeRouteDurationMinutes: routedDriveMinutes,
+            lunchResumeLoadId: interruptedLoad.id,
+            lunchResumePhase: event.interruptedPhase,
+          } : item))
+          return
+        }
+
+        const resumeAt = currentAbsoluteGameMinuteRef.current + 1
+        setRuntimePositions?.((current) => ({
+          ...(current || {}),
+          [driver.id]: { ...(current?.[driver.id] || {}), ...parkedOrigin },
+        }))
+        setDriverRuntimeProgress(driver.id, 0)
+        setLoads((current) => current.map((load) => {
+          if (load.id !== interruptedLoad.id) return load
+          if (event.interruptedPhase === 'delivery') return { ...load, tripStatus: 'en-route-delivery', plannedLoadedRouteGeometry: routedShape, plannedLoadedDriveTimeMinutes: routedDriveMinutes, deliveryDepartureGameMinute: resumeAt }
+          return { ...load, tripStatus: 'en-route-pickup', plannedDeadheadRouteGeometry: routedShape, plannedDeadheadDriveTimeMinutes: routedDriveMinutes, departureGameMinute: resumeAt }
+        }))
+        setDrivers((current) => current.map((item) => {
+          if (item.id !== driver.id) return item
+          const nextWorkdayByDay = { ...(item.workdayByDay || {}) }
+          const nextWorkday = nextWorkdayByDay[dayKey] || workday
+          nextWorkdayByDay[dayKey] = { ...nextWorkday, lunchEvent: { ...(nextWorkday.lunchEvent || event), status: 'completed', completedGameMinute: now } }
+          return { ...item, workdayByDay: nextWorkdayByDay, lunchRouteStatus: null, lunchRouteGeometry: null, lunchRouteStartGameMinute: null, lunchRouteDurationMinutes: null, lunchParkedAtGameMinute: null, lunchReleaseGameMinute: null, lunchTargetLocationId: null, lunchResumeRouteGeometry: null, lunchResumeRouteDurationMinutes: null, lunchResumeLoadId: null, lunchResumePhase: null }
+        }))
+      }).catch((error) => {
+        console.warn('DOC OS LUNCH RESUME ROUTE UNAVAILABLE', error)
+        setDrivers((current) => current.map((item) => item.id === driver.id ? { ...item, lunchRouteStatus: 'arrived' } : item))
+      })
+    })
+  }, [gameTime, drivers, loads, runtimePositions, currentAbsoluteGameMinute])
+
+
+  // B.5.3.3.10.6 — finish the physical facility egress before freight routing
+  // regains authority. This removes the parking-lot -> snapped-road teleport.
+  useEffect(() => {
+    const now = currentAbsoluteGameMinute
+    drivers.forEach((driver) => {
+      if (driver.lunchRouteStatus !== 'resume-access') return
+      const start = Number(driver.lunchRouteStartGameMinute)
+      const duration = Number(driver.lunchRouteDurationMinutes)
+      if (!Number.isFinite(start) || !Number.isFinite(duration) || duration <= 0 || now < start + duration) return
+      const roadRoute = Array.isArray(driver.lunchResumeRouteGeometry) ? driver.lunchResumeRouteGeometry : []
+      const loadId = driver.lunchResumeLoadId
+      const phase = driver.lunchResumePhase
+      if (roadRoute.length < 2 || !loadId || !['pickup', 'delivery'].includes(phase)) return
+      const roadStart = roadRoute[0]
+      const resumeAt = now + 1
+      const driveMinutes = Math.max(1, Number(driver.lunchResumeRouteDurationMinutes || 1))
+      const dayKey = String(gameTime.gameDayIndex)
+
+      setRuntimePositions?.((current) => ({
+        ...(current || {}),
+        [driver.id]: { ...(current?.[driver.id] || {}), longitude: Number(roadStart[0]), latitude: Number(roadStart[1]) },
+      }))
+      setDriverRuntimeProgress(driver.id, 0)
+      setLoads((current) => current.map((load) => {
+        if (load.id !== loadId) return load
+        if (phase === 'delivery') return { ...load, tripStatus: 'en-route-delivery', plannedLoadedRouteGeometry: roadRoute, plannedLoadedDriveTimeMinutes: driveMinutes, deliveryDepartureGameMinute: resumeAt }
+        return { ...load, tripStatus: 'en-route-pickup', plannedDeadheadRouteGeometry: roadRoute, plannedDeadheadDriveTimeMinutes: driveMinutes, departureGameMinute: resumeAt }
+      }))
+      setDrivers((current) => current.map((item) => {
+        if (item.id !== driver.id) return item
+        const workdayByDay = { ...(item.workdayByDay || {}) }
+        const workday = workdayByDay[dayKey] || workdayByDay[gameTime.gameDayIndex]
+        if (workday?.lunchEvent) {
+          workdayByDay[dayKey] = { ...workday, lunchEvent: { ...workday.lunchEvent, status: 'completed', completedGameMinute: now } }
+        }
+        return {
+          ...item,
+          workdayByDay,
+          lunchRouteStatus: null,
+          lunchRouteGeometry: null,
+          lunchRouteStartGameMinute: null,
+          lunchRouteDurationMinutes: null,
+          lunchParkedAtGameMinute: null,
+          lunchReleaseGameMinute: null,
+          lunchTargetLocationId: null,
+          lunchResumeRouteGeometry: null,
+          lunchResumeRouteDurationMinutes: null,
+          lunchResumeLoadId: null,
+          lunchResumePhase: null,
+        }
+      }))
+    })
+  }, [gameTime, drivers, currentAbsoluteGameMinute])
+
 
   const ledgerNotificationCount = loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved && !seenLedgerReceivableIds.includes(load.id)).length + receivables.filter((item) => item.financialStatus === 'PAID' && !seenLedgerPaymentReadyIds.includes(item.loadId)).length
   const lifecycleDriverMessages = loads.flatMap((load) => {
@@ -492,8 +851,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       id: `driver-${driverId}-lunch-ready-${gameTime.gameDayIndex}`,
       driverId, alertClass: 'action', tone: 'attention', action: 'lunch-decision',
       title: `${driverName} · LUNCH READY`,
-      detail: 'Lunch window is open. Choose the afternoon strategy when ready.',
-      value: 'CHOOSE LUNCH',
+      detail: 'Lunch window is open. Choose a route-ahead stop.',
+      value: 'PLAN STOP',
     }
   })
 
@@ -679,9 +1038,14 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     if (pendingLoadingHandoff) return
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     drivers.forEach((driver) => {
-      // CS2.0B.4.1.3.2 — lunch pauses only this driver. The world and other
-      // drivers continue, but this driver cannot start or advance a new leg.
-      if (isDriverOnLunch(driver, gameTime)) return
+      // B.5.3.3.9 — lunch movement authority freezes freight reconciliation for
+      // this driver from the moment the diversion is claimed until the physical
+      // lunch has completed and a fresh resume route has been installed. Checking
+      // only isDriverOnLunch() was too late: while Marcus was still DRIVING to
+      // lunch, itinerary reconciliation could resurrect en-route-delivery with an
+      // old departure timestamp. That stale clock is what produced the post-lunch
+      // teleport seen in the B.5.3.3.8 diagnostic trace.
+      if (hasLunchMovementAuthority(driver, gameTime) || isDriverOnLunch(driver, gameTime)) return
       const nextStop = getNextActionableDriverStop(loads, driver.id)
       if (!nextStop) return
       const nextLoad = loads.find((item) => item.id === nextStop.loadId)
@@ -1008,13 +1372,13 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     }
   }
 
-  const addLoadToSchedule = async (loadId) => {
+  const addLoadToSchedule = async (loadId, planningDriverId = null) => {
     const load = loads.find((item) => item.id === loadId)
     const eligible = drivers.filter((driver) => driver.carrierId)
     if (!load || !eligible.length) return false
     // AV2.9: with one eligible driver, DOC OS evaluates the schedule automatically.
     // Driver selection only returns when there is an actual staffing decision.
-    const driver = eligible.length === 1 ? eligible[0] : eligible[0]
+    const driver = eligible.find((item) => item.id === planningDriverId) || eligible[0]
     const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
     const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
     const projection = getProjectedDriverOrigin({ driver, loads, runtimePositions, gameTime })
@@ -2154,6 +2518,25 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         onOpenMarkets={onOpenMarkets}
       />
       <div className={`map-area ${operationsOpen ? 'operations-open' : ''}`}>
+        <button type="button" className="lunch-diag-toggle" onClick={() => setLunchDiagOpen((open) => !open)}>DIAG</button>
+        {lunchDiagOpen && (
+          <div className="lunch-diag-panel" aria-live="polite">
+            <div className="lunch-diag-heading"><strong>LUNCH STATE TRACE</strong><span>{formatTime(gameTime.totalMinutesOfDay)} · {isGameClockPaused ? 'PAUSED' : `${simulationSpeed}×`}</span></div>
+            <div className="lunch-diag-grid">
+              <span>DRIVER</span><b>{lunchDiagDriver?.fullName || lunchDiagDriver?.name || '—'}</b>
+              <span>LUNCH ROUTE</span><b>{lunchDiagDriver?.lunchRouteStatus || '—'} · GEO {lunchDiagGeometryCount}</b>
+              <span>LUNCH EVENT</span><b>{lunchDiagEvent?.status || '—'}</b>
+              <span>TARGET</span><b>{lunchDiagTarget?.name || lunchDiagDriver?.lunchTargetLocationId || '—'}</b>
+              <span>PARK / RELEASE</span><b>{Number.isFinite(lunchDiagDriver?.lunchParkedAtGameMinute) ? `${lunchDiagDriver.lunchParkedAtGameMinute} / ${lunchDiagDriver.lunchReleaseGameMinute ?? '—'}` : '—'}</b>
+              <span>LOAD</span><b>{lunchDiagLoad ? `${lunchDiagLoad.id} · ${lunchDiagLoad.tripStatus}` : '—'}</b>
+              <span>DEL DEP / ARR</span><b>{Number.isFinite(lunchDiagLoad?.deliveryDepartureGameMinute) ? lunchDiagLoad.deliveryDepartureGameMinute : '—'} / {Number.isFinite(lunchDiagLoad?.deliveryArrivalGameMinute) ? lunchDiagLoad.deliveryArrivalGameMinute : '—'}</b>
+              <span>RUNTIME POS</span><b>{lunchDiagPosition ? `${Number(lunchDiagPosition.longitude).toFixed(4)}, ${Number(lunchDiagPosition.latitude).toFixed(4)}` : '—'}</b>
+            </div>
+            <div className="lunch-diag-events">
+              {lunchDiagEvents.map((entry) => <div key={entry.id}><b>{entry.time}</b><span>{entry.clock}</span><span>L:{entry.lunch}/{entry.event}</span><span>G:{entry.geometry}</span><span>LOAD:{entry.load}</span><span>D:{entry.deliveryDepart ?? '—'}→{entry.deliveryArrival ?? '—'}</span></div>)}
+            </div>
+          </div>
+        )}
         {import.meta.env.DEV && <><button type="button" className="dev-button" onClick={() => setDevOpen((open) => !open)}>DEV</button>{devOpen && <div className="dev-menu"><div className="dev-menu-header"><strong>DEV TOOLS</strong><button type="button" onClick={() => setDevOpen(false)} aria-label="Close developer tools">×</button></div><div className="dev-presets"><strong>TIME</strong><span>DAY {gameTime.gameDayIndex + 1}<br />{formatCompactDate(gameTime.gameDayIndex)} • {formatTime(gameTime.totalMinutesOfDay)}</span>{[60, 360].map((minutes) => <button type="button" key={minutes} onClick={() => setGameTime((time) => { const total = time.gameDayIndex * 1440 + time.totalMinutesOfDay + minutes; return { gameDayIndex: Math.floor(total / 1440), totalMinutesOfDay: total % 1440 } })}>+{minutes === 60 ? '1 HR' : '6 HR'}</button>)}{[1, 3, 7].map((days) => <button type="button" key={days} onClick={() => setGameTime((time) => ({ ...time, gameDayIndex: time.gameDayIndex + days }))}>+{days} DAY{days > 1 ? 'S' : ''}</button>)}</div><button type="button" className="dev-reset" onClick={() => { onResetGame(); setDevOpen(false) }}>RESET GAME</button></div>}</>}
         {!freightBrowseMode && !planningMode && !deliveryPlanning && (
           <button type="button" className="board-view-control" onClick={() => setBoardViewRequest((value) => value + 1)} aria-label="Fit all active operations on map">
@@ -2226,7 +2609,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             onComplete={completeUnloadSequence}
           />
         )}
-        <GameMap boardViewRequest={boardViewRequest} driverFocusRequest={driverFocusRequest} driverFocusId={driverFocusId} facilityFocusRequest={facilityFocusRequest} facilityFocusRole={facilityFocusRole} loads={loads} activeRouteGeometry={freightBrowseMode ? freightBrowseRouteGeometry : activeRouteGeometry} routeFocusMode={freightBrowseMode && freightBrowseRouteGeometry ? 'freight-browse' : planningMode || deliveryPlanning ? 'planning' : null} routeReviewLoad={planningLoad || deliveryPlanningLoad} tripStatus={assignedLoad?.tripStatus} drivers={drivers.map((driver) => isDriverOnLunch(driver, gameTime) ? { ...driver, status: 'unavailable' } : driver)} carriers={carriers} runtimePositions={runtimePositions} runtimeProgressByDriver={runtimeProgressByDriver} simulationSpeed={simulationSpeed} isGameClockPaused={isGameClockPaused} assignedLoad={assignedLoad} evaluationLoad={null} isDriverFitEvaluation={false} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} freightBrowseMode={freightBrowseMode} freightBrowseLoads={freightBrowseLoads} freightBrowseSelectedLoadId={freightBrowseLoadId} onFreightBrowseSelect={selectFreightBrowseLoad} />
+        <GameMap boardViewRequest={boardViewRequest} driverFocusRequest={driverFocusRequest} driverFocusId={driverFocusId} facilityFocusRequest={facilityFocusRequest} facilityFocusRole={facilityFocusRole} loads={loads} activeRouteGeometry={freightBrowseMode ? freightBrowseRouteGeometry : activeRouteGeometry} routeFocusMode={freightBrowseMode && freightBrowseRouteGeometry ? 'freight-browse' : planningMode || deliveryPlanning ? 'planning' : null} routeReviewLoad={planningLoad || deliveryPlanningLoad} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgressByDriver={runtimeProgressByDriver} simulationSpeed={simulationSpeed} isGameClockPaused={isGameClockPaused} assignedLoad={assignedLoad} evaluationLoad={null} isDriverFitEvaluation={false} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} freightBrowseMode={freightBrowseMode} freightBrowseLoads={freightBrowseLoads} freightBrowseSelectedLoadId={freightBrowseLoadId} onFreightBrowseSelect={selectFreightBrowseLoad} lunchCandidateLocations={lunchMapLocations} />
         {freightBrowseMode && (
           <>
             <div className="freight-browse-mode-bar">
@@ -2502,7 +2885,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                     const driverName = driver.fullName || driver.name || 'Driver'
                     const panel = driverLoad ? getDriverPanelModel({ driver, assignedLoad: driverLoad, gameTime, runtimeProgress: runtimeProgressByDriver?.[driver.id] ?? 0, pickup: mapLocations.find((location) => location.id === driverLoad.pickupLocationId), delivery: mapLocations.find((location) => location.id === driverLoad.deliveryLocationId) }) : null
                     const lunchReady = lunchReadyDriverIds.includes(driver.id)
-                    const driverStatus = isDriverOnLunch(driver, gameTime) ? 'ON LUNCH' : lunchReady ? 'LUNCH READY' : (panel?.statusLabel?.toUpperCase() || (driver.status === 'available' ? 'AVAILABLE' : String(driver.status || 'OFF DUTY').replaceAll('-', ' ').toUpperCase()))
+                    const hos = getDriverHosSummary(driver)
+                    const driverStatus = isDriverOnLunch(driver, gameTime) ? 'ON LUNCH' : lunchReady ? 'LUNCH READY' : (panel?.statusLabel?.toUpperCase() || hos.statusLabel)
                     const nextLoad = followingStop
                       ? loads.find((item) => item.id === followingStop.loadId) || null
                       : driverQueue.find((item) => item.id !== driverLoad?.id) || null
@@ -2521,19 +2905,21 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
                         type="button"
                         className={`driver-hub-row state-${driverLoad?.tripStatus || driver.status || 'idle'}`}
                         key={driver.id}
-                        onClick={() => { if (lunchReady) { openLunchDecisionForDriver(driver.id); return } setExpandedDriverScheduleId((current) => current === driver.id ? null : driver.id); setDriverFocusId(driver.id); setDriverFocusRequest((value) => value + 1) }}
+                        onClick={() => { setExpandedDriverScheduleId((current) => current === driver.id ? null : driver.id); setDriverFocusId(driver.id); setDriverFocusRequest((value) => value + 1) }}
                       >
                         <span className="driver-hub-avatar">{driverName.charAt(0).toUpperCase()}</span>
                         <span className="driver-hub-copy">
                           <strong>{driverName}{driverLoad ? <small> · {getFreightRouteName(driverLoad)}</small> : null}</strong>
                           <span>{driverStatus}</span>
                           {driverLoad ? <small>{getActiveDriverMeta(driverLoad, gameTime, runtimeProgressByDriver?.[driver.id] ?? null)}</small> : null}
+                          <span className={`driver-hos-compact hos-${hos.status}`}><b>DRIVE {hos.driving}</b><i /> <b>DUTY {hos.duty}</b></span>
                           {nextLoad ? <small>NEXT · {nextStopRole ? `${nextStopRole} · ` : ''}{nextStopLocation?.name || getFreightRouteName(nextLoad)}{nextStopWindow ? ` · ${nextStopWindow}` : ''}</small> : null}
                           <small>AVAILABLE · {availableLabel}</small>
+                          {expandedDriverScheduleId === driver.id && <span className="driver-hos-detail"><b>HOS</b>{hos.resting ? <span className="driver-hos-rest"><small>REST</small><strong>{hos.rest} / 10:00</strong><em>RESET IN {hos.restRemaining}</em></span> : <><span><small>DRIVE</small><strong>{hos.driving}</strong><em>11:00 MAX</em></span><span><small>DUTY</small><strong>{hos.duty}</strong><em>14:00 MAX</em></span></>}</span>}
                           {expandedDriverScheduleId === driver.id && <span className="driver-card-full-schedule"><b>TODAY'S SCHEDULE</b>{daySchedule.filter((entry) => entry.driverId === driver.id && !entry.isCompleted).sort((a,b) => (a.sortMinute || 0) - (b.sortMinute || 0)).map((entry) => <span className="driver-card-schedule-stop" key={entry.id}><strong>{entry.pickupName} → {entry.deliveryName}</strong><small>{entry.status} · {formatTime(entry.start)}{Number.isFinite(entry.end) ? `–${formatTime(entry.end)}` : ''}</small></span>)}{!daySchedule.some((entry) => entry.driverId === driver.id && !entry.isCompleted) ? <small>NO ROUTES SCHEDULED</small> : null}</span>}
                           <span className="driver-relationship"><span className="driver-relationship-label"><small>RELATIONSHIP</small><small>{Number(driver.communicationRapport ?? 50) >= 80 ? 'STRONG' : Number(driver.communicationRapport ?? 50) >= 65 ? 'TRUSTED' : Number(driver.communicationRapport ?? 50) >= 45 ? 'PROFESSIONAL' : Number(driver.communicationRapport ?? 50) >= 25 ? 'STRAINED' : 'POOR'}</small></span><span className="driver-relationship-track"><i style={{ width: `${Math.max(4, Math.min(100, Number(driver.communicationRapport ?? 50)))}%` }} /></span></span>
                         </span>
-                        <span className={`driver-hub-jump${lunchReady ? ' lunch-ready' : ''}`}>{lunchReady ? 'CHOOSE LUNCH →' : expandedDriverScheduleId === driver.id ? 'COLLAPSE ↑' : 'SCHEDULE ↑'}</span>
+                        <span className="driver-hub-jump">{expandedDriverScheduleId === driver.id ? 'COLLAPSE ↑' : 'SCHEDULE ↑'}</span>
                       </button>
                     )
                   })}

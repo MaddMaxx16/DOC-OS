@@ -1,4 +1,6 @@
 import { buildDriverItinerary } from './driverItinerary.js'
+import mapLocations from '../data/mapLocations.js'
+import { getLocationDistanceMiles } from '../services/routingService.js'
 
 function hashText(value = '') {
   let hash = 0
@@ -126,6 +128,94 @@ export const LUNCH_DECISION_OPTIONS = [
   },
 ]
 
+
+function getNearestRouteIndex(location, routeShape = []) {
+  if (!location || !Array.isArray(routeShape) || !routeShape.length) return { index: -1, distanceMiles: Number.POSITIVE_INFINITY }
+  let bestIndex = -1
+  let bestDistance = Number.POSITIVE_INFINITY
+  for (let index = 0; index < routeShape.length; index += 1) {
+    const point = routeShape[index]
+    if (!Array.isArray(point) || point.length < 2) continue
+    const distanceMiles = getLocationDistanceMiles(location, { longitude: point[0], latitude: point[1] })
+    if (distanceMiles < bestDistance) {
+      bestDistance = distanceMiles
+      bestIndex = index
+    }
+  }
+  return { index: bestIndex, distanceMiles: bestDistance }
+}
+
+function getRouteMilesBetween(routeShape = [], startIndex = 0, endIndex = 0) {
+  if (!Array.isArray(routeShape) || routeShape.length < 2) return Number.POSITIVE_INFINITY
+  const start = Math.max(0, Math.min(routeShape.length - 1, startIndex))
+  const end = Math.max(start, Math.min(routeShape.length - 1, endIndex))
+  let miles = 0
+  for (let index = start + 1; index <= end; index += 1) {
+    const previous = routeShape[index - 1]
+    const point = routeShape[index]
+    if (!Array.isArray(previous) || !Array.isArray(point)) continue
+    miles += getLocationDistanceMiles(
+      { longitude: previous[0], latitude: previous[1] },
+      { longitude: point[0], latitude: point[1] },
+    )
+  }
+  return miles
+}
+
+export function getLunchCandidateStops({ driver, loads = [], runtimePosition = null }) {
+  if (!driver) return []
+  const activeLoad = loads.find((load) => load.assignedDriverId === driver.id && ['en-route-pickup', 'en-route-delivery'].includes(load.tripStatus))
+    || loads.find((load) => load.assignedDriverId === driver.id && !['completed', 'delivered', 'expired', 'queued'].includes(load.tripStatus))
+    || null
+  const activeRoute = activeLoad?.tripStatus === 'en-route-delivery'
+    ? activeLoad.plannedLoadedRouteGeometry
+    : activeLoad?.plannedDeadheadRouteGeometry
+  const origin = runtimePosition || (Number.isFinite(driver.longitude) && Number.isFinite(driver.latitude) ? driver : null)
+  const hasLiveRoute = Array.isArray(activeRoute) && activeRoute.length >= 2 && origin
+  const originProjection = hasLiveRoute ? getNearestRouteIndex(origin, activeRoute) : { index: -1, distanceMiles: Number.POSITIVE_INFINITY }
+  const minimumForwardMiles = 0.2
+  const candidates = mapLocations.filter((location) => ['staging', 'lunch-food'].includes(location.type))
+    .map((location) => {
+      const projection = hasLiveRoute ? getNearestRouteIndex(location, activeRoute) : { index: -1, distanceMiles: Number.POSITIVE_INFINITY }
+      const aheadOnRoute = hasLiveRoute && projection.index >= originProjection.index
+      const forwardRouteMiles = aheadOnRoute ? getRouteMilesBetween(activeRoute, originProjection.index, projection.index) : Number.POSITIVE_INFINITY
+      const fromDriverMiles = origin ? getLocationDistanceMiles(origin, location) : Number.POSITIVE_INFINITY
+      return {
+        ...location,
+        offRouteMiles: projection.distanceMiles,
+        fromDriverMiles,
+        forwardRouteMiles,
+        aheadOnRoute: aheadOnRoute && forwardRouteMiles >= minimumForwardMiles,
+        lunchStopType: location.type === 'staging' ? 'TRUCK STOP' : 'FOOD STOP',
+      }
+    })
+
+  // B.5.3.2.4 — route direction is authoritative. Prefer stops projected onto
+  // the remaining route ahead of the truck so a lunch suggestion never asks the
+  // dispatcher to send the driver backward just because that POI is nearby.
+  const aheadCorridor = candidates.filter((location) => location.aheadOnRoute && Number.isFinite(location.offRouteMiles) && location.offRouteMiles <= 5.5)
+  const aheadFallback = candidates.filter((location) => location.aheadOnRoute)
+  // B.5.3.3.2 — never let a sparse route corridor erase Lunch Planning.
+  // Prefer true route-ahead stops, then fill any missing slots from the nearest
+  // remaining physical lunch POIs. This keeps the three-choice workflow usable
+  // near the end of a leg without continuously reshuffling the open panel.
+  const preferred = hasLiveRoute ? (aheadCorridor.length >= 3 ? aheadCorridor : aheadFallback) : candidates
+  const preferredIds = new Set(preferred.map((location) => location.id))
+  const source = preferred.length >= 3 ? preferred : [
+    ...preferred,
+    ...candidates.filter((location) => !preferredIds.has(location.id)),
+  ]
+  return source
+    .sort((a, b) => {
+      const aBehindPenalty = a.aheadOnRoute ? 0 : 10000
+      const bBehindPenalty = b.aheadOnRoute ? 0 : 10000
+      const aScore = aBehindPenalty + (a.offRouteMiles * 4) + (Number.isFinite(a.forwardRouteMiles) ? a.forwardRouteMiles * 0.08 : a.fromDriverMiles * 0.2)
+      const bScore = bBehindPenalty + (b.offRouteMiles * 4) + (Number.isFinite(b.forwardRouteMiles) ? b.forwardRouteMiles * 0.08 : b.fromDriverMiles * 0.2)
+      return aScore - bScore
+    })
+    .slice(0, 3)
+}
+
 export function getLunchOptionById(id) {
   return LUNCH_DECISION_OPTIONS.find((option) => option.id === id) || null
 }
@@ -174,38 +264,28 @@ function pickOne(list, seed, usedIds = new Set()) {
   return source[hashText(seed) % source.length]
 }
 
-export function getLunchDecisionChoices({ driver, loads = [], gameTime, operationDay = 1 }) {
-  const context = getContext({ driver, loads, gameTime })
-  const history = Array.isArray(driver?.lunchOfferHistory) ? driver.lunchOfferHistory : []
-  const recentIds = new Set(history.slice(-2).flatMap((entry) => Array.isArray(entry?.optionIds) ? entry.optionIds : []))
-  const allowed = LUNCH_DECISION_OPTIONS.filter((option) => optionAllowed(option, context))
-  const used = new Set()
-  const categories = ['recovery', 'efficiency', 'opportunity']
-  const choices = categories.map((category, index) => {
-    const categoryOptions = allowed.filter((option) => option.category === category && !recentIds.has(option.id))
-    const fallback = allowed.filter((option) => option.category === category)
-    const choice = pickOne(categoryOptions.length ? categoryOptions : fallback, `${driver?.id}:${operationDay}:${category}:${index}`, used)
-    if (choice) used.add(choice.id)
-    return choice
-  }).filter(Boolean)
-
-  if (choices.length < 3) {
-    const remaining = allowed.filter((option) => !used.has(option.id) && !recentIds.has(option.id))
-    while (choices.length < 3 && remaining.length) {
-      const choice = pickOne(remaining, `${driver?.id}:${operationDay}:fill:${choices.length}`, used)
-      if (!choice) break
-      choices.push(choice)
-      used.add(choice.id)
-    }
-  }
-
-  return choices.slice(0, 3)
+export function getLunchDecisionChoices({ driver, loads = [], gameTime, operationDay = 1, runtimePosition = null }) {
+  // B.5.3.2.5 — physical locations are now the lunch decision itself. The old
+  // recovery/efficiency/opportunity cards were a separate gameplay system and
+  // caused two competing lunch concepts to appear at once.
+  const stops = getLunchCandidateStops({ driver, loads, runtimePosition })
+  return stops.slice(0, 3).map((stop, index) => ({
+    id: `lunch-stop:${stop.id}`,
+    category: stop.type === 'staging' ? 'truck-stop' : 'food-stop',
+    eyebrow: stop.lunchStopType || (stop.type === 'staging' ? 'TRUCK STOP' : 'FOOD STOP'),
+    title: stop.name,
+    description: Number.isFinite(stop.forwardRouteMiles)
+      ? `${stop.forwardRouteMiles.toFixed(1)} mi ahead on the remaining route.`
+      : 'Available near the current route.',
+    effectLabels: [],
+    effects: {},
+    lunchStop: stop,
+    optionIndex: index,
+  }))
 }
 
 
-
 const LUNCH_DECISION_UNSAFE_STATUSES = new Set([
-  'en-route-pickup', 'en-route-delivery',
   'checking-in-pickup', 'checking-in-delivery',
   'checked-in-pickup', 'checked-in-delivery',
   'loading-at-pickup', 'unloading-delivery', 'pickup-issue',
@@ -228,14 +308,25 @@ export function isLunchDecisionReady({ driver, loads = [], gameTime }) {
   return true
 }
 
-export function isDriverOnLunch(driver, gameTime) {
-  if (!driver || !gameTime) return false
+export function getDriverLunchEvent(driver, gameTime) {
+  if (!driver || !gameTime) return null
   const dayIndex = Number(gameTime.gameDayIndex || 0)
   const workday = driver.workdayByDay?.[String(dayIndex)] || driver.workdayByDay?.[dayIndex]
-  if (!workday?.lunchEvent?.selectedChoiceId) return false
-  const now = Number(gameTime.totalMinutesOfDay || 0)
-  const start = Number(workday.lunchStartMinutes)
-  const end = start + Number(workday.lunchDurationMinutes || 0)
+  return workday?.lunchEvent || null
+}
+
+export function hasLunchMovementAuthority(driver, gameTime) {
+  const event = getDriverLunchEvent(driver, gameTime)
+  return ['calculating', 'traveling', 'arrived', 'on-lunch', 'resume-calculating', 'resume-access'].includes(driver?.lunchRouteStatus)
+    || ['routing', 'on-lunch', 'resuming'].includes(event?.status)
+}
+
+export function isDriverOnLunch(driver, gameTime) {
+  const event = getDriverLunchEvent(driver, gameTime)
+  if (!event || event.status !== 'on-lunch') return false
+  const now = Number(gameTime.gameDayIndex || 0) * 1440 + Number(gameTime.totalMinutesOfDay || 0)
+  const start = Number(event.actualStartGameMinute)
+  const end = Number(event.endGameMinute)
   return Number.isFinite(start) && Number.isFinite(end) && now >= start && now < end
 }
 

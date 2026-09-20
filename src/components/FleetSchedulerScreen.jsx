@@ -62,22 +62,23 @@ function timeInputToMinutes(value) {
   if (!Number.isInteger(hour) || !Number.isInteger(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return null
   return hour * 60 + minute
 }
-function TimeStepper({ label, value, onChange }) {
+function TimeStepper({ label, value, onChange, disabled = false, lockedLabel = '' }) {
   const current = timeInputToMinutes(value)
   const display = Number.isFinite(current) ? formatTime(current) : '--:--'
   const adjust = (delta) => {
     const base = Number.isFinite(current) ? current : 0
-    onChange(minutesToTimeInput(clamp(base + delta, 0, 1439)))
+    if (!disabled) onChange(minutesToTimeInput(clamp(base + delta, 0, 1439)))
   }
   return (
-    <div className="scheduler-time-stepper">
+    <div className={`scheduler-time-stepper${disabled ? ' is-locked' : ''}`}>
       <span>{label}</span>
       <strong>{display}</strong>
+      {disabled && lockedLabel ? <small className="scheduler-time-stepper-lock">{lockedLabel}</small> : null}
       <div className="scheduler-time-stepper-actions">
-        <button type="button" onClick={() => adjust(-60)}>−1H</button>
-        <button type="button" onClick={() => adjust(-15)}>−15</button>
-        <button type="button" onClick={() => adjust(15)}>+15</button>
-        <button type="button" onClick={() => adjust(60)}>+1H</button>
+        <button type="button" disabled={disabled} onClick={() => adjust(-60)}>−1H</button>
+        <button type="button" disabled={disabled} onClick={() => adjust(-15)}>−15</button>
+        <button type="button" disabled={disabled} onClick={() => adjust(15)}>+15</button>
+        <button type="button" disabled={disabled} onClick={() => adjust(60)}>+1H</button>
       </div>
     </div>
   )
@@ -92,11 +93,14 @@ function toneFor(load) { return getRouteLifecycleTone(load) }
 
 function FleetSchedulerScreen({
   loads = [], drivers = [], carriers = [], gameTime, focusLoadId = null, initialDriverId = null,
-  onBackToFreightLink, onRequestScheduleApproval, onBookRoute, onBookApprovedSchedule, onRemoveFromPlan, onSendDriverSchedule, onUpdateDriverWorkday, onOpenLunchDecision,
+  onBackToFreightLink, onRequestScheduleApproval, onBookRoute, onBookApprovedSchedule, onRemoveFromPlan, onSendDriverSchedule, onUpdateDriverWorkday, onOpenLunchDecision, onDriverContextChange,
 }) {
   const focusLoad = loads.find((load) => load.id === focusLoadId)
   const firstDriverId = initialDriverId || focusLoad?.candidateDriverId || focusLoad?.assignedDriverId || drivers.find((driver) => driver.carrierId)?.id || drivers[0]?.id || null
   const [driverId, setDriverId] = useState(firstDriverId)
+  useEffect(() => {
+    if (driverId) onDriverContextChange?.(driverId)
+  }, [driverId, onDriverContextChange])
   const [selectedLoadId, setSelectedLoadId] = useState(focusLoadId)
   useEffect(() => {
     if (focusLoadId) setSelectedLoadId(focusLoadId)
@@ -112,6 +116,9 @@ function FleetSchedulerScreen({
   const selectedDate = getCalendarDate(currentDay)
   const selectedDateLabel = selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })
   const workday = driver?.workdayByDay?.[currentDay] || null
+  const dutySessionDayIndex = driver?.hours?.dutySessionDayIndex
+  const dutySessionStartGameMinute = driver?.hours?.dutySessionStartGameMinute
+  const dutyStartLocked = dutySessionDayIndex !== null && dutySessionDayIndex !== undefined && dutySessionStartGameMinute !== null && dutySessionStartGameMinute !== undefined && Number(dutySessionDayIndex) === Number(currentDay) && Number.isFinite(Number(dutySessionStartGameMinute))
   const priorWorkday = currentDay > 0 ? (driver?.workdayByDay?.[currentDay - 1] || null) : null
   const carryoverWorkday = priorWorkday && getWorkdayEndOffset(priorWorkday) === 1 ? priorWorkday : null
   const lunchDecisionReady = isLunchDecisionReady({ driver, loads, gameTime })
@@ -119,7 +126,8 @@ function FleetSchedulerScreen({
   const [workdayEditorOpen, setWorkdayEditorOpen] = useState(false)
   const [workdayEditorMode, setWorkdayEditorMode] = useState('full')
   const [workdayError, setWorkdayError] = useState('')
-  const [workdayDraft, setWorkdayDraft] = useState({ start: '06:00', lunchStart: '12:00', lunchDuration: '30', end: '17:00', overnightMode: '', overnightTargetLocationId: '' })
+  const [pendingLunchChange, setPendingLunchChange] = useState(null)
+  const [workdayDraft, setWorkdayDraft] = useState({ start: '', lunchStart: '12:00', lunchDuration: '30', end: '', overnightMode: '', overnightTargetLocationId: '' })
   useEffect(() => {
     setWorkdayEditorOpen(false)
     setWorkdayError('')
@@ -127,10 +135,10 @@ function FleetSchedulerScreen({
   const openWorkdayEditor = (mode = 'full') => {
     setWorkdayEditorMode(mode)
     setWorkdayDraft({
-      start: minutesToTimeInput(workday?.startMinutes ?? 360),
+      start: Number.isFinite(Number(workday?.startMinutes)) ? minutesToTimeInput(workday.startMinutes) : '',
       lunchStart: minutesToTimeInput(workday?.lunchStartMinutes ?? 720),
       lunchDuration: String(workday?.lunchDurationMinutes ?? 30),
-      end: minutesToTimeInput(workday?.endMinutes ?? 1020),
+      end: Number.isFinite(Number(workday?.endMinutes)) ? minutesToTimeInput(workday.endMinutes) : '',
       overnightMode: workday?.overnightMode || '',
       overnightTargetLocationId: workday?.overnightTargetLocationId || '',
     })
@@ -138,10 +146,15 @@ function FleetSchedulerScreen({
     setWorkdayEditorOpen(true)
   }
   const saveWorkday = () => {
-    const startMinutes = timeInputToMinutes(workdayDraft.start)
+    const startMinutes = dutyStartLocked && Number.isFinite(Number(workday?.startMinutes)) ? Number(workday.startMinutes) : timeInputToMinutes(workdayDraft.start)
     const endMinutes = timeInputToMinutes(workdayDraft.end)
     if (![startMinutes, endMinutes].every(Number.isFinite)) {
-      setWorkdayError('Enter a valid start and end time.')
+      setWorkdayError('Choose a shift start and end time.')
+      return
+    }
+    // B.5.3.1.3 — carrier activation is not permission to backdate duty.
+    if (!workday && Number(currentDay) === Number(liveDay) && startMinutes < Number(gameTime?.totalMinutesOfDay || 0)) {
+      setWorkdayError('Today’s shift start cannot be earlier than the current game time.')
       return
     }
     const endDayOffset = endMinutes <= startMinutes ? 1 : 0
@@ -171,8 +184,19 @@ function FleetSchedulerScreen({
     setWorkdayEditorOpen(false)
   }
 
+  const commitLunchChange = (nextWorkday) => {
+    onUpdateDriverWorkday?.(driver?.id, currentDay, nextWorkday)
+    setPendingLunchChange(null)
+    setWorkdayError('')
+    setWorkdayEditorOpen(false)
+  }
+
   const saveLunch = () => {
     if (!workday) return
+    if (workday?.lunchEvent?.selectedChoiceId || ['calculating', 'traveling', 'arrived', 'on-lunch', 'resume-calculating'].includes(driver?.lunchRouteStatus)) {
+      setWorkdayError('Lunch is already in execution and can no longer be moved.')
+      return
+    }
     const lunchStartMinutes = timeInputToMinutes(workdayDraft.lunchStart)
     const lunchDurationMinutes = Number(workdayDraft.lunchDuration)
     if (!Number.isFinite(lunchStartMinutes) || !Number.isFinite(lunchDurationMinutes)) {
@@ -187,10 +211,31 @@ function FleetSchedulerScreen({
       setWorkdayError('Lunch must fit inside the driver workday.')
       return
     }
-    onUpdateDriverWorkday?.(driver?.id, currentDay, { ...workday, lunchStartMinutes, lunchDurationMinutes })
-    setWorkdayError('')
-    setWorkdayEditorOpen(false)
+    const nextWorkday = { ...workday, lunchStartMinutes, lunchDurationMinutes }
+    const changed = Number(workday.lunchStartMinutes) !== lunchStartMinutes || Number(workday.lunchDurationMinutes) !== lunchDurationMinutes
+    const affectedLoads = loads.filter((load) => {
+      const belongsToDriver = load.assignedDriverId === driver?.id || load.candidateDriverId === driver?.id
+      const inPlan = belongsToDriver && !['completed', 'delivered', 'expired'].includes(load.status) && !['completed', 'delivered', 'expired'].includes(load.tripStatus)
+      if (!inPlan) return false
+      const pickupDay = Number.isFinite(Number(load.pickupDayIndex)) ? Number(load.pickupDayIndex) : currentDay
+      const deliveryDay = Number.isFinite(Number(load.deliveryDayIndex)) ? Number(load.deliveryDayIndex) : currentDay
+      const pickupStart = pickupDay === currentDay ? Number(load.pickupWindowStartMinutes) : null
+      const pickupEnd = pickupDay === currentDay ? Number(load.pickupWindowEndMinutes ?? load.pickupWindowStartMinutes) : null
+      const deliveryStart = deliveryDay === currentDay ? Number(load.deliveryWindowStartMinutes) : null
+      const deliveryEnd = deliveryDay === currentDay ? Number(load.deliveryWindowEndMinutes ?? load.deliveryWindowStartMinutes) : null
+      const lunchEnd = lunchStartMinutes + lunchDurationMinutes
+      const overlaps = (a, b) => Number.isFinite(a) && Number.isFinite(b) && lunchStartMinutes < b && lunchEnd > a
+      return overlaps(pickupStart, pickupEnd) || overlaps(deliveryStart, deliveryEnd)
+    })
+    const planLoads = loads.filter((load) => load.candidateDriverId === driver?.id && load.scheduleApprovalQueued && load.status === 'available')
+    const committedLoads = loads.filter((load) => load.assignedDriverId === driver?.id && !['completed', 'delivered', 'expired'].includes(load.status) && !['completed', 'delivered', 'expired'].includes(load.tripStatus))
+    if (changed && (planLoads.length || committedLoads.length)) {
+      setPendingLunchChange({ nextWorkday, affectedLoads, planCount: planLoads.length, committedCount: committedLoads.length })
+      return
+    }
+    commitLunchChange(nextWorkday)
   }
+
 
   const scheduleLoads = useMemo(() => loads.filter((load) => {
     const assigned = load.assignedDriverId === driver?.id && !['completed', 'delivered', 'expired'].includes(load.status) && !['completed', 'delivered'].includes(load.tripStatus)
@@ -251,6 +296,10 @@ function FleetSchedulerScreen({
   const crossesMidnight = endMinute > 1440
 
   const planQuality = driver ? getPlanQuality(loads, driver.id) : null
+  const planningLoadCount = currentDayLoads.filter((load) => load.status === 'available' && load.scheduleApprovalQueued).length
+  const committedLoadCount = currentDayLoads.filter((load) => load.status !== 'available' && !['completed', 'delivered', 'expired'].includes(load.status)).length
+  const executingLoadCount = currentDayLoads.filter((load) => Number.isFinite(load.departureGameMinute) || Number.isFinite(load.pickupArrivalGameMinute) || ['en-route-pickup','at-pickup','loaded','en-route-delivery','at-delivery'].includes(load.tripStatus)).length
+  const commitmentLabel = executingLoadCount ? 'EXECUTION' : committedLoadCount ? 'COMMITTED' : planningLoadCount ? 'PLANNING' : 'OPEN'
   const itineraryByStopId = new Map((planQuality?.itinerary || []).map((stop) => [stop.id, stop]))
   const worstStop = planQuality?.worstStopId ? itineraryByStopId.get(planQuality.worstStopId) : null
   const worstStopLocation = worstStop ? mapLocations.find((location) => location.id === worstStop.locationId) : null
@@ -393,20 +442,11 @@ function FleetSchedulerScreen({
             <button type="button" onClick={() => openWorkdayEditor('full')}>{workday ? 'EDIT DAY' : 'SET TIME'}</button>
           </div>
         </div>
-        {lunchDecisionReady && !workday?.lunchEvent?.selectedChoiceId && (
-          <div className="scheduler-lunch-ready-summary">
-            <div>
-              <span>LUNCH READY</span>
-              <strong>Choose how {driver?.fullName || driver?.name || 'the driver'} uses today’s break.</strong>
-            </div>
-            <button type="button" onClick={() => onOpenLunchDecision?.(driver?.id)}>CHOOSE LUNCH</button>
-          </div>
-        )}
         {workday?.lunchEvent?.selectedChoiceId && (
           <div className="scheduler-lunch-choice-summary">
-            <span>SCHEDULED LUNCH</span>
-            <strong>{workday.lunchEvent.title}</strong>
-            <small>{Number(workday.lunchEvent.effects?.recovery || 0) > 0 ? `RECOVERY +${workday.lunchEvent.effects.recovery}` : Number(workday.lunchEvent.effects?.recovery || 0) < 0 ? `RECOVERY ${workday.lunchEvent.effects.recovery}` : 'RECOVERY NEUTRAL'}{Number(workday.lunchEvent.effects?.earlyCheckInBonusMinutes || 0) > 0 ? ` · EARLY CHECK +${workday.lunchEvent.effects.earlyCheckInBonusMinutes}` : ''}{Number(workday.lunchEvent.effects?.relationship || 0) ? ` · RELATIONSHIP ${Number(workday.lunchEvent.effects.relationship) > 0 ? '+' : ''}${workday.lunchEvent.effects.relationship}` : ''}</small>
+            <span>LUNCH PLAN</span>
+            <strong>{workday.lunchEvent.targetLocationName || workday.lunchEvent.title || 'Lunch stop selected'}</strong>
+            <small>{workday.lunchEvent.targetType || 'PHYSICAL STOP'} · {workday.lunchDurationMinutes || workday.lunchEvent.durationMinutes || 30} MIN</small>
           </div>
         )}
       </section>
@@ -415,6 +455,8 @@ function FleetSchedulerScreen({
         <strong>{planQuality?.label || (currentDayLoads.length ? 'PLANNED' : 'OPEN')}</strong>
         <span>·</span>
         <strong>{currentDayLoads.length} ROUTE{currentDayLoads.length === 1 ? '' : 'S'}</strong>
+        <span>·</span>
+        <strong>{commitmentLabel}</strong>
         {planSummaryDetail && <small>{planSummaryDetail}</small>}
       </section>
 
@@ -505,7 +547,7 @@ function FleetSchedulerScreen({
             <p>{workdayEditorMode === 'lunch' ? 'Set this day’s lunch window. You can adjust it until the driver actually begins lunch.' : workdayEditorMode === 'overnight' ? `Choose where ${driver?.fullName || driver?.name || 'the driver'} stages after this shift.` : 'Set the driver’s scheduled start and end time. Lunch is managed separately.'}</p>
             {workdayEditorMode === 'full' ? (
               <div className="scheduler-workday-fields scheduler-workday-time-fields">
-                <TimeStepper label="START TIME" value={workdayDraft.start} onChange={(value) => setWorkdayDraft((current) => ({ ...current, start: value }))} />
+                <TimeStepper label="START TIME" value={workdayDraft.start} disabled={dutyStartLocked} lockedLabel="LOCKED · DUTY STARTED" onChange={(value) => setWorkdayDraft((current) => ({ ...current, start: value }))} />
                 <TimeStepper label="SHIFT END" value={workdayDraft.end} onChange={(value) => setWorkdayDraft((current) => ({ ...current, end: value }))} />
                 {Number.isFinite(timeInputToMinutes(workdayDraft.start)) && Number.isFinite(timeInputToMinutes(workdayDraft.end)) && timeInputToMinutes(workdayDraft.end) <= timeInputToMinutes(workdayDraft.start) && <div className="scheduler-next-day-note">ENDS NEXT CALENDAR DAY</div>}
               </div>
@@ -545,8 +587,29 @@ function FleetSchedulerScreen({
             {workdayError && <div className="scheduler-workday-error">{workdayError}</div>}
             <div className="scheduler-workday-editor-actions">
               <button type="button" onClick={() => setWorkdayEditorOpen(false)}>CANCEL</button>
-              {workdayEditorMode === 'full' && workday && <button type="button" onClick={() => { onUpdateDriverWorkday?.(driver?.id, currentDay, null); setWorkdayEditorOpen(false) }}>CLEAR</button>}
+              {workdayEditorMode === 'full' && workday && <button type="button" disabled={dutyStartLocked} onClick={() => { onUpdateDriverWorkday?.(driver?.id, currentDay, null); setWorkdayEditorOpen(false) }}>CLEAR</button>}
               <button type="button" className="primary" onClick={workdayEditorMode === 'lunch' ? saveLunch : workdayEditorMode === 'overnight' ? saveShiftEndPlan : saveWorkday}>{workdayEditorMode === 'lunch' ? 'SET LUNCH' : workdayEditorMode === 'overnight' ? 'SAVE SHIFT END' : 'SAVE TIME'}</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {pendingLunchChange && (
+        <div className="scheduler-workday-editor-backdrop" role="presentation" onClick={() => setPendingLunchChange(null)}>
+          <section className="scheduler-workday-editor" role="dialog" aria-modal="true" aria-label="Lunch schedule impact" onClick={(event) => event.stopPropagation()}>
+            <div className="scheduler-workday-editor-heading">
+              <div><span>AGENDA · SCHEDULE IMPACT</span><strong>REVALIDATE LUNCH</strong></div>
+              <button type="button" onClick={() => setPendingLunchChange(null)} aria-label="Close schedule impact">×</button>
+            </div>
+            <p>This day already has {pendingLunchChange.planCount ? `${pendingLunchChange.planCount} planned` : ''}{pendingLunchChange.planCount && pendingLunchChange.committedCount ? ' and ' : ''}{pendingLunchChange.committedCount ? `${pendingLunchChange.committedCount} committed` : ''} route{pendingLunchChange.planCount + pendingLunchChange.committedCount === 1 ? '' : 's'}. Moving lunch changes the assumptions DOC OS uses for the day.</p>
+            {pendingLunchChange.affectedLoads.length > 0 ? (
+              <div className="scheduler-workday-error">CONFLICT WARNING · The new lunch window overlaps {pendingLunchChange.affectedLoads.length} freight appointment{pendingLunchChange.affectedLoads.length === 1 ? '' : 's'}.</div>
+            ) : (
+              <div className="scheduler-next-day-note">PLAN RECHECK · No appointment window directly overlaps the new lunch time, but the plan should be reviewed after the change.</div>
+            )}
+            <div className="scheduler-workday-editor-actions">
+              <button type="button" onClick={() => setPendingLunchChange(null)}>KEEP CURRENT LUNCH</button>
+              <button type="button" className="primary" onClick={() => commitLunchChange(pendingLunchChange.nextWorkday)}>APPLY & REVALIDATE</button>
             </div>
           </section>
         </div>

@@ -3,18 +3,21 @@ import { formatAppointment } from '../utils/gameTime.js'
 import { getAgreementRules } from '../utils/carrierAgreement.js'
 import { getFreightCommodity, getFreightRouteName } from '../utils/freightIdentity.js'
 import { getFreightHaulClass } from '../utils/planningIntelligence.js'
+import { getLoadHosEvaluation } from '../utils/hosPlanning.js'
+import { formatHosClock, getDriverHosSummary } from '../utils/driverHOS.js'
 
 function formatMiles(value) {
   if (Number.isFinite(value)) return `${value.toFixed(1)} mi`
   return value === 'unavailable' ? 'Unavailable' : 'Not listed'
 }
 
-function LoadDetailsScreen({ loads, drivers, carriers = [], loadId, onAddToSchedule, onOpenScheduler, onSendLoadDetails, onBack }) {
+function LoadDetailsScreen({ loads, drivers, carriers = [], loadId, planningDriverId = null, runtimePositions = {}, gameTime, onAddToSchedule, onOpenScheduler, onSendLoadDetails, onBack }) {
   const load = loads.find((item) => item.id === loadId)
   const pickup = load && mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = load && mapLocations.find((location) => location.id === load.deliveryLocationId)
   const eligibleDrivers = drivers.filter((driver) => driver.carrierId)
   const candidateDriver = load ? drivers.find((driver) => driver.id === load.candidateDriverId) : null
+  const planningDriver = drivers.find((driver) => driver.id === planningDriverId) || candidateDriver || null
 
   // AW1.7: viewing a FreightLink load is read-only. The plan is only mutated
   // after the dispatcher explicitly taps ADD TO PLAN.
@@ -28,10 +31,12 @@ function LoadDetailsScreen({ loads, drivers, carriers = [], loadId, onAddToSched
   const rpm = Number.isFinite(load.listedMiles) && load.listedMiles > 0 ? load.rate / load.listedMiles : null
   const rateFit = !Number.isFinite(rules.minimumRatePerLoadedMile) || !Number.isFinite(rpm) || rpm >= rules.minimumRatePerLoadedMile
   const haulClass = getFreightHaulClass(load)
+  const hosEvaluation = isAvailable && planningDriver ? getLoadHosEvaluation({ load, driver: planningDriver, loads, runtimePositions, gameTime }) : null
+  const planningHos = planningDriver ? getDriverHosSummary(planningDriver) : null
 
   const addToPlan = async () => {
     if (!candidateDriver) {
-      const ok = await onAddToSchedule?.(load.id)
+      const ok = await onAddToSchedule?.(load.id, planningDriver?.id || null)
       if (ok === false) return
     }
     onOpenScheduler?.(load.id)
@@ -74,6 +79,17 @@ function LoadDetailsScreen({ loads, drivers, carriers = [], loadId, onAddToSched
           <div><span>MILES</span><strong>{formatMiles(load.listedMiles)}</strong></div>
           <div><span>RATE / MI</span><strong>{Number.isFinite(rpm) ? `$${rpm.toFixed(2)}` : '—'}</strong></div>
         </section>
+
+        {isAvailable && planningDriver && hosEvaluation && <section className="freight-route-hos-check" aria-label="HOS evaluation">
+          <div className="freight-route-section-title"><span>HOS CHECK · {planningDriver.fullName || planningDriver.name}</span><strong className={`freight-hos-detail-status ${hosEvaluation.tone}`}>{hosEvaluation.label}</strong></div>
+          <div className="freight-route-hos-grid">
+            <span><b>DRIVE AVAILABLE</b><strong>{planningHos?.driving || '—'}</strong></span>
+            <span><b>DRIVE REQUIRED</b><strong>{formatHosClock(hosEvaluation.driveRequiredMinutes)}</strong></span>
+            <span><b>DUTY AVAILABLE</b><strong>{planningHos?.duty || '—'}</strong></span>
+            <span><b>DUTY REQUIRED</b><strong>{formatHosClock(hosEvaluation.dutyRequiredMinutes)}</strong></span>
+          </div>
+          {hosEvaluation.tone === 'risk' && <p>Current HOS does not cover this load commitment. DOC OS will not alter the route or dispatch automatically.</p>}
+        </section>}
 
         {isAvailable && <section className="freight-route-initial-check freight-route-check-strip">
           <div className="freight-route-section-title"><span>INITIAL CHECK</span></div>

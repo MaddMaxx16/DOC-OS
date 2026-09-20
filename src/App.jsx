@@ -27,6 +27,9 @@ import { getFreightRouteName } from './utils/freightIdentity.js'
 import { getClockInMessage, getEndOfDayMessage, getRelationshipStartMessage } from './utils/driverCommunications.js'
 import { createCorrectedPodVersion, normalizePodDocument } from './utils/documentLifecycle.js'
 import { createRateConfirmation } from './utils/rateConfirmation.js'
+import { advanceDriverHours, normalizeDriverHours } from './utils/driverHOS.js'
+import { resolveDriverMovementOwner } from './utils/driverMovementOwner.js'
+import { sampleRoutePoint } from './utils/routeSampler.js'
 
 
 const IDLE_DWELL_MINUTES = 20
@@ -39,17 +42,6 @@ function getOvernightTruckStopId(origin) {
     const nearestDistance = ((nearest.longitude - origin.longitude) ** 2) + ((nearest.latitude - origin.latitude) ** 2)
     return distance < nearestDistance ? location : nearest
   }).id
-}
-
-function pointAlongRoute(route, progress) {
-  if (!Array.isArray(route) || route.length < 2) return null
-  const clamped = Math.max(0, Math.min(1, progress))
-  const scaled = clamped * (route.length - 1)
-  const index = Math.min(route.length - 2, Math.floor(scaled))
-  const local = scaled - index
-  const a = route[index]
-  const b = route[index + 1]
-  return { longitude: a[0] + (b[0] - a[0]) * local, latitude: a[1] + (b[1] - a[1]) * local }
 }
 
 function reconcileDriverRuntimeState(driver, activeLoad, savedPosition, now) {
@@ -67,7 +59,7 @@ function reconcileDriverRuntimeState(driver, activeLoad, savedPosition, now) {
 
   if (Array.isArray(route) && route.length >= 2 && Number.isFinite(departure) && Number.isFinite(duration) && duration > 0) {
     const progress = Math.max(0, Math.min(1, (now - departure) / duration))
-    const position = pointAlongRoute(route, progress)
+    const position = sampleRoutePoint(route, progress)
     if (position) return { position, progress }
   }
 
@@ -199,9 +191,10 @@ function App() {
     hydratedDrivers = hydratedDrivers.map((driver) => {
       const assigned = getDriverActiveLoad(hydratedLoads, driver.id)
       const queued = getDriverQueue(hydratedLoads, driver.id)
+      const hours = normalizeDriverHours(driver.hours, savedNow)
       return assigned
-        ? { ...driver, status: 'unavailable', assignedLoadId: assigned.id, queuedLoadIds: queued.map((load) => load.id) }
-        : { ...driver, status: queued.length ? 'unavailable' : driver.status, assignedLoadId: null, queuedLoadIds: queued.map((load) => load.id) }
+        ? { ...driver, hours, status: 'unavailable', assignedLoadId: assigned.id, queuedLoadIds: queued.map((load) => load.id) }
+        : { ...driver, hours, status: queued.length ? 'unavailable' : driver.status, assignedLoadId: null, queuedLoadIds: queued.map((load) => load.id) }
     })
 
     const nextPositions = { ...(saved.runtimePositions || {}) }
@@ -556,9 +549,15 @@ function App() {
     const used = new Set(saveSlots.map((slot) => slot.id))
     const slotId = SAVE_SLOT_IDS.find((id) => !used.has(id))
     if (!slotId) return
+    // CS2.0B.5.3.1.1 — a new operation must be a hard state boundary.
+    // Clear the destination slot first so no prior/partial snapshot can leak
+    // driver roster, workday/HOS, runtime position, messages, or banking into
+    // the new career before CarrierSource activation.
+    clearSave(slotId)
+    lifecycleSaveSignatureRef.current = ''
+    resetOperationState()
     setActiveSaveSlot(slotId)
     setActiveSaveSlotId(slotId)
-    resetOperationState()
     setHasExistingOperation(true)
     setResumeStage('market')
     setStage('market')
@@ -629,6 +628,7 @@ function App() {
     return true
   }
   const activateCarrier = (carrierId = 'metroline') => {
+    const wasActive = carriers.some((carrier) => carrier.id === carrierId && carrier.status === 'active')
     const nextCarriers = carriers.map((carrier) => carrier.id === carrierId ? { ...carrier, status: 'active' } : carrier)
     setCarriers(nextCarriers)
     const activatedCarrier = nextCarriers.find((carrier) => carrier.id === carrierId)
@@ -637,13 +637,25 @@ function App() {
       [carrierId]: mergeCarrierCareerEntry(current[carrierId], activatedCarrier, { relationshipState: CARRIER_RELATIONSHIP_STATES.ACTIVE }),
     }))
     setDrivers((current) => {
-      const nextDrivers = reconcileActiveCarrierDrivers(current, nextCarriers)
+      // B.5.3.1.2 — accepting a carrier agreement is the driver's activation
+      // boundary, not a duty-start event. On the first inactive -> active
+      // transition, build that carrier's roster from pristine seed drivers so
+      // stale workdays/HOS from another operation can never clock the driver in.
+      const carrierDriverIds = new Set(activatedCarrier?.driverIds || [])
+      const base = wasActive ? current : current.filter((driver) => !carrierDriverIds.has(driver.id))
+      const nextDrivers = reconcileActiveCarrierDrivers(base, nextCarriers)
       setRuntimePositions((positions) => {
         const next = { ...positions }
         nextDrivers.forEach((driver) => {
-          if (next[driver.id]) return
           const home = mapLocations.find((location) => location.id === driver.homeBaseLocationId)
-          if (home) next[driver.id] = { longitude: home.longitude, latitude: home.latitude }
+          if (!home) return
+          // First activation owns the spawn point. A newly activated driver
+          // always begins at the carrier yard/home base, never a stale position.
+          if (!wasActive && carrierDriverIds.has(driver.id)) {
+            next[driver.id] = { longitude: home.longitude, latitude: home.latitude }
+            return
+          }
+          if (!next[driver.id]) next[driver.id] = { longitude: home.longitude, latitude: home.latitude }
         })
         return next
       })
@@ -706,19 +718,9 @@ function App() {
       acknowledgment: `These are ${carrier.name}’s operating goals, not absolute rules. Freight markets change throughout the day. Use reasonable judgment when balancing carrier goals, driver preferences, appointment requirements, and available freight.`,
     }])
 
-    // CS2.0B.4.1.2 — relationship start remains immediate, but clock-in is now
-    // driven by the dispatcher-authored Agenda workday and fires when game time
-    // reaches that driver's scheduled start.
-    if (carrierId === 'metroline') {
-      const marcus = seedDrivers.find((driver) => driver.id === 'marcus')
-      setDriverMessages((current) => {
-        if (current.some((message) => message.id === 'marcus-relationship-start')) return current
-        return [...current, {
-          id: 'marcus-relationship-start', driverId: 'marcus', sender: marcus?.fullName || 'Marcus Reed', senderRole: 'Driver', direction: 'inbound',
-          body: getRelationshipStartMessage(marcus), messageIntent: 'relationship-start', requiresResponse: false, receivedGameMinute: now, read: false,
-        }]
-      })
-    }
+    // B.5.3.1.3 — agreement acceptance activates the carrier relationship and
+    // roster only. Driver communication begins with an actual operational event,
+    // not simply because the dispatcher signed a carrier agreement.
     return true
   }
 
@@ -812,7 +814,10 @@ function App() {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     // AV2.12: physical movement is driver-owned. A driver can carry many loads,
     // but only the canonical next itinerary stop is allowed to move the truck.
-    const travelingLoads = drivers.map((driver) => getAuthoritativeDriverTravelLoad(loads, driver.id)).filter(Boolean)
+    const travelingLoads = drivers.map((driver) => {
+      const owner = resolveDriverMovementOwner({ driver, gameTime, loads })
+      return owner.type === 'freight' ? owner.load : null
+    }).filter(Boolean)
     if (!travelingLoads.length) return
 
     const progressUpdates = {}
@@ -827,7 +832,7 @@ function App() {
       if (!Array.isArray(route) || route.length < 2 || !Number.isFinite(departure) || !Number.isFinite(duration) || duration <= 0) return
       const progress = Math.max(0, Math.min(1, (now - departure) / duration))
       progressUpdates[load.assignedDriverId] = progress
-      const position = pointAlongRoute(route, progress)
+      const position = sampleRoutePoint(route, progress)
       const destination = mapLocations.find((location) => location.id === (delivery ? load.deliveryLocationId : load.pickupLocationId))
       if (progress >= 1 && destination) positionUpdates[load.assignedDriverId] = { longitude: destination.longitude, latitude: destination.latitude }
       else if (position) positionUpdates[load.assignedDriverId] = position
@@ -1078,7 +1083,7 @@ function App() {
       if (driver.idleRouteStatus !== 'traveling') return
       if (!Array.isArray(driver.idleRouteGeometry) || driver.idleRouteGeometry.length < 2 || !Number.isFinite(driver.idleRouteStartGameMinute) || !Number.isFinite(driver.idleRouteDurationMinutes)) return
       const progress = Math.max(0, Math.min(1, (now - driver.idleRouteStartGameMinute) / driver.idleRouteDurationMinutes))
-      const position = pointAlongRoute(driver.idleRouteGeometry, progress)
+      const position = sampleRoutePoint(driver.idleRouteGeometry, progress)
       if (position) positionUpdates[driver.id] = position
       if (progress >= 1) arrivedDriverIds.add(driver.id)
     })
@@ -1090,6 +1095,28 @@ function App() {
     }))
   }, [gameTime, drivers, loads])
 
+
+  // CS2.0B.5.1 — Driver Duty Clock Foundation. Agenda clock-in owns the
+  // beginning of the 14-hour duty window. Actual movement consumes Driving;
+  // all active-duty elapsed time consumes Duty. This slice is observational:
+  // it does not block dispatch or add rest/reset legality yet.
+  useEffect(() => {
+    if (!hydrated || stage !== 'game') return
+    const activeCarrierIds = new Set(carriers.filter((carrier) => carrier.status === 'active').map((carrier) => carrier.id))
+    setDrivers((current) => {
+      let changed = false
+      const next = current.map((driver) => {
+        // HOS has no authority until the carrier relationship is actually
+        // activated. A prospect/pending carrier can never put its driver on
+        // duty merely because stale schedule data exists.
+        if (!activeCarrierIds.has(driver.carrierId)) return driver
+        const updated = advanceDriverHours(driver, loads, gameTime)
+        if (updated !== driver) changed = true
+        return updated
+      })
+      return changed ? next : current
+    })
+  }, [hydrated, stage, gameTime.gameDayIndex, gameTime.totalMinutesOfDay, loads, carriers])
 
   useEffect(() => {
     if (stage !== 'game' || isGameClockPaused) return undefined

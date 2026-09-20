@@ -13225,3 +13225,194 @@
 .ledger-activity{padding:0 13px 24px}.ledger-activity-heading{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:9px;padding:0 2px}.ledger-activity-heading>div{display:grid;gap:5px}.ledger-activity-heading h2{margin:0;color:#f1f4f7;font-size:16px;letter-spacing:-.025em}.ledger-activity-heading>small{color:#778495;font-size:7px}
 .ledger-transaction-list{overflow:hidden;border:1px solid #2d3641;border-radius:14px;background:#171d24}.ledger-transaction{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:9px;align-items:center;min-height:56px;padding:10px 11px;border-top:1px solid #29313b}.ledger-transaction:first-child{border-top:0}.ledger-transaction.linked{width:100%;border-left:0;border-right:0;border-bottom:0;text-align:left;color:inherit;font:inherit;cursor:pointer}.ledger-transaction.linked:active{background:#1c242e}.ledger-transaction.opening{opacity:.82}.ledger-transaction-icon{width:28px;height:28px;display:grid;place-items:center;border-radius:9px;font-size:15px;font-weight:900}.ledger-transaction-icon.credit{background:rgba(73,166,111,.13);color:#78cf9b}.ledger-transaction-icon.debit{background:rgba(202,91,91,.13);color:#e58c8c}.ledger-transaction-copy{min-width:0;display:grid;gap:4px}.ledger-transaction-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e5eaf0;font-size:9px}.ledger-transaction-copy span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#7f8b9b;font-size:6.5px}.ledger-transaction-amount{font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap}.ledger-transaction-amount.credit{color:#78cf9b}.ledger-transaction-amount.debit{color:#e58c8c}
 .ledger-receivables-heading{padding-top:8px}
+
+/* CS2.0B.5.1 — compact per-driver HOS presentation. Driver surfaces own HOS;
+   the global DOC OS status bar remains business-focused. */
+.driver-hos-compact{display:flex!important;align-items:center;gap:6px;margin-top:2px;color:#aebdca!important;font-size:8.5px!important;font-weight:900!important;letter-spacing:.055em!important}
+.driver-hos-compact b{font:inherit;color:inherit}.driver-hos-compact i{width:3px;height:3px;border-radius:50%;background:#53616e;flex:0 0 auto}
+.driver-hos-compact.hos-driving{color:#c8d9e6!important}.driver-hos-compact.hos-off-duty{color:#71808d!important}
+.driver-hos-detail{display:grid!important;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;padding-top:8px;border-top:1px solid #34404a}
+.driver-hos-detail>b{grid-column:1/-1;color:#91a5b7;font-size:8px;letter-spacing:.1em}
+.driver-hos-detail>span{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:1px 5px;min-width:0;padding:7px 7px;border:1px solid #303a44;border-radius:8px;background:rgba(255,255,255,.025)}
+.driver-hos-detail small{color:#7f91a1;font-size:7px;font-weight:900;letter-spacing:.08em}.driver-hos-detail strong{color:#e4edf4!important;font-size:12px!important;line-height:1;white-space:nowrap}.driver-hos-detail em{grid-column:1/-1;color:#657583;font-size:6.5px;font-style:normal;font-weight:800;letter-spacing:.06em}
+
+/* CS2.0B.5.2 — off-duty recovery is a driver-owned HOS state. */
+.driver-hos-detail>span.driver-hos-rest{grid-column:1/-1;grid-template-columns:minmax(0,1fr) auto}
+.driver-hos-detail>span.driver-hos-rest strong{font-size:11px!important}
+.scheduler-time-stepper.is-locked{opacity:.72}
+.scheduler-time-stepper.is-locked .scheduler-time-stepper-actions button{opacity:.38;cursor:not-allowed}
+.scheduler-time-stepper-lock{display:block;margin-top:3px;color:#788a99;font-size:6.5px;font-weight:900;letter-spacing:.08em}
+
+/* CS2.0B.5.3.1 — HOS-aware Driver Select preview */
+.hos-trip-grid { display:grid; grid-template-columns:1fr 1fr; padding:0; overflow:hidden; }
+.hos-trip-grid > div { display:flex; flex-direction:column; gap:3px; padding:9px 10px; border-right:1px solid #29333c; border-bottom:1px solid #29333c; min-width:0; }
+.hos-trip-grid > div:nth-child(2n) { border-right:0; }
+.hos-trip-grid > div:nth-last-child(-n+2) { border-bottom:0; }
+.hos-trip-grid span { color:#738493; font-size:9px; text-transform:uppercase; letter-spacing:.05em; }
+.hos-trip-grid strong { color:#eef3f7; font-size:12px; white-space:nowrap; }
+.hos-fit-good { color:#8dd4b4 !important; }
+.hos-fit-risk { color:#e59d95 !important; }
+.hos-trip-warning { margin:7px 2px 0; color:#d7a29c; font-size:10px; line-height:1.35; }
+
+/* CS2.0B.5.3.1.5 — Agenda-owned driver context carried into FreightLink. */
+.freightlink-driver-context { margin: 8px 12px 10px; padding: 10px 12px; border: 1px solid rgba(142,163,183,.22); border-radius: 8px; background: rgba(15,18,21,.72); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.freightlink-driver-context-copy { min-width: 0; display: grid; gap: 1px; }
+.freightlink-driver-context-copy span, .freightlink-driver-context-hos span { font-size: 9px; letter-spacing: .12em; color: #8EA3B7; font-weight: 700; }
+.freightlink-driver-context-copy strong { font-size: 13px; color: #E8EEF5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.freightlink-driver-context-copy small { font-size: 10px; color: #B9C7D4; }
+.freightlink-driver-context-hos { display: flex; gap: 12px; flex: 0 0 auto; }
+.freightlink-driver-context-hos div { display: grid; gap: 1px; text-align: right; }
+.freightlink-driver-context-hos strong { font-size: 13px; color: #E8EEF5; font-variant-numeric: tabular-nums; }
+
+
+/* CS2.0B.5.3.1.6 — selectable FreightLink planning context. */
+.freightlink-driver-select { position: relative; display: inline-flex; align-items: center; margin-top: 4px; max-width: 100%; }
+.freightlink-driver-select select { appearance: none; -webkit-appearance: none; width: 100%; min-width: 190px; padding: 0 28px 0 0; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer; outline: none; }
+.freightlink-driver-select b { position: absolute; right: 2px; pointer-events: none; font-size: 12px; opacity: .72; }
+.freightlink-driver-context.needs-driver { align-items: center; }
+.freightlink-driver-context.needs-driver .freightlink-driver-context-copy { flex: 1; }
+.freightlink-driver-context-empty { max-width: 180px; text-align: right; font-size: 10px; line-height: 1.35; letter-spacing: .12em; opacity: .62; }
+
+
+/* CS2.0B.5.3.1.7 — DOC OS planning-driver menu; replaces native iOS select chrome. */
+.freightlink-driver-select { position: relative; display: block; margin-top: 3px; max-width: 100%; }
+.freightlink-driver-select-trigger { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; padding: 0; border: 0; background: transparent; color: #E8EEF5; text-align: left; cursor: pointer; }
+.freightlink-driver-select-trigger strong { font-size: 13px; color: #E8EEF5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.freightlink-driver-select-trigger b { flex: 0 0 auto; color: #8EA3B7; font-size: 10px; line-height: 1; }
+.freightlink-driver-menu { position: absolute; z-index: 80; top: calc(100% + 8px); left: -8px; width: min(360px, calc(100vw - 92px)); overflow: hidden; border: 1px solid rgba(142,163,183,.34); border-radius: 10px; background: #10161c; box-shadow: 0 18px 42px rgba(0,0,0,.52); }
+.freightlink-driver-menu-title { padding: 10px 12px 8px; border-bottom: 1px solid rgba(142,163,183,.16); color: #8EA3B7; font-size: 9px; font-weight: 800; letter-spacing: .14em; }
+.freightlink-driver-menu-option { width: 100%; display: grid; grid-template-columns: 18px minmax(0,1fr) auto; align-items: center; gap: 9px; padding: 11px 12px; border: 0; border-bottom: 1px solid rgba(142,163,183,.12); background: transparent; color: #E8EEF5; text-align: left; cursor: pointer; }
+.freightlink-driver-menu-option:last-child { border-bottom: 0; }
+.freightlink-driver-menu-option.active { background: rgba(47,141,238,.10); }
+.freightlink-driver-menu-option:active { background: rgba(47,141,238,.16); }
+.freightlink-driver-menu-check { color: #8EA3B7; font-size: 12px; font-weight: 800; }
+.freightlink-driver-menu-driver { min-width: 0; display: grid; gap: 2px; }
+.freightlink-driver-menu-driver strong { overflow: hidden; color: #E8EEF5; font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
+.freightlink-driver-menu-driver small { color: #B9C7D4; font-size: 9px; letter-spacing: .08em; }
+.freightlink-driver-menu-hos { display: flex; gap: 9px; }
+.freightlink-driver-menu-hos small { display: grid; gap: 1px; color: #738493; font-size: 8px; font-weight: 700; letter-spacing: .08em; text-align: right; }
+.freightlink-driver-menu-hos b { color: #E8EEF5; font-size: 10px; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+
+/* CS2.0B.5.3.2 — HOS-aware load evaluation. Operational FIT/TIGHT/CONFLICT
+   remains separate; HOS is a second planning signal for the active driver. */
+.freight-hos-hint{display:inline-flex;align-items:center;justify-content:center;padding:2px 7px;border:1px solid #3d5262;border-radius:999px;font-style:normal;font-size:7px;font-weight:900;letter-spacing:.12em;white-space:nowrap}
+.freight-hos-hint.good{color:#9bc9b1;border-color:#365c49;background:#14231d}
+.freight-hos-hint.risk{color:#e0a7ad;border-color:#71434a;background:#29171a}
+.freight-route-hos-check{margin-top:10px;padding:12px;border:1px solid #34434f;border-radius:10px;background:#10161b;display:grid;gap:10px}
+.freight-route-hos-check .freight-route-section-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.freight-hos-detail-status{font-size:8px;font-weight:900;letter-spacing:.12em;border:1px solid #3d5262;border-radius:999px;padding:4px 7px;white-space:nowrap}
+.freight-hos-detail-status.good{color:#9bc9b1;border-color:#365c49;background:#14231d}
+.freight-hos-detail-status.risk{color:#e0a7ad;border-color:#71434a;background:#29171a}
+.freight-route-hos-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.freight-route-hos-grid>span{display:grid;gap:2px;padding:8px;border:1px solid #293641;border-radius:8px;background:#12191f}
+.freight-route-hos-grid b{color:#788b9b;font-size:6px;letter-spacing:.12em}
+.freight-route-hos-grid strong{color:#edf3f7;font-size:13px}
+.freight-route-hos-check p{margin:0;color:#c69aa0;font-size:8px;line-height:1.45}
+
+/* B.5.3.2.3 — physical lunch-stop planning */
+.game-marker.lunch-stop {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  background: #1b1f24;
+  border: 1px solid #617184;
+  box-shadow: 0 4px 10px rgba(0,0,0,.35);
+  color: #c2d5e7;
+  z-index: 66 !important;
+  box-sizing: border-box;
+}
+.game-marker.lunch-stop svg { width: 18px; height: 18px; fill: currentColor; }
+.game-marker.truck-stop.lunch-candidate,
+.game-marker.lunch-stop.lunch-candidate {
+  /* B.5.3.2.4 — highlight candidates without enlarging them. Lunch POIs now
+     keep the exact same footprint as the established yard/truck-stop markers. */
+  box-shadow: 0 0 0 2px rgba(194,213,231,.34), 0 4px 12px rgba(0,0,0,.42);
+}
+.lunch-option-stop {
+  margin: 8px 0 2px;
+  padding: 8px 10px;
+  border: 1px solid rgba(142,163,183,.25);
+  border-radius: 8px;
+  background: rgba(15,18,21,.58);
+  display: grid;
+  gap: 2px;
+}
+.lunch-option-stop > span { font-size: 10px; letter-spacing: .12em; color: #8ea3b7; }
+.lunch-option-stop > b { font-size: 12px; color: #c2d5e7; }
+.lunch-option-stop > small { font-size: 10px; color: #8ea3b7; }
+
+/* B.5.3.2.5 — unified physical lunch workflow. Lunch cards are locations, not
+   a second RPG decision system; the alert is the single execution entry point. */
+.lunch-option-card.category-truck-stop,
+.lunch-option-card.category-food-stop { border-color: rgba(142,163,183,.26); }
+.lunch-option-card.category-truck-stop .lunch-option-eyebrow,
+.lunch-option-card.category-food-stop .lunch-option-eyebrow { color:#8ea3b7; }
+
+
+/* B.5.3.2.6 — Lunch Operations Polish */
+/* One map layering rule: drivers are always above world POIs and facilities. */
+.game-marker.driver { z-index: 90 !important; }
+.game-marker.lunch-stop,
+.game-marker.truck-stop.lunch-candidate { z-index: 52 !important; }
+.game-marker.driver.lunch-status .driver-status-pill {
+  display: block;
+  bottom: 25px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  border-radius: 999px;
+  border: 1px solid rgba(195,158,90,.58);
+  background: rgba(25,21,14,.96);
+  color: #d2ae6d;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 2px 7px rgba(0,0,0,.34);
+}
+
+/* B.5.3.3.8-DIAG — temporary lunch state trace. Remove after root cause is fixed. */
+.lunch-diag-toggle {
+  position: absolute;
+  z-index: 130;
+  top: 10px;
+  right: 10px;
+  min-width: 58px;
+  height: 34px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 8px;
+  background: rgba(9,13,18,.92);
+  color: #e7edf4;
+  font: 700 11px/1 Inter, system-ui, sans-serif;
+  letter-spacing: .08em;
+}
+.lunch-diag-panel {
+  position: absolute;
+  z-index: 129;
+  top: 50px;
+  right: 10px;
+  width: min(360px, calc(100% - 20px));
+  max-height: 52%;
+  overflow: auto;
+  border: 1px solid rgba(195,158,90,.55);
+  border-radius: 10px;
+  background: rgba(7,10,14,.94);
+  color: #e7edf4;
+  padding: 10px;
+  font: 500 10px/1.25 Inter, system-ui, sans-serif;
+  pointer-events: auto;
+}
+.lunch-diag-heading { display:flex; justify-content:space-between; gap:8px; align-items:center; margin-bottom:8px; }
+.lunch-diag-heading strong { color:#C39E5A; font-size:11px; letter-spacing:.06em; }
+.lunch-diag-heading span { color:#aab6c2; }
+.lunch-diag-grid { display:grid; grid-template-columns: 92px minmax(0,1fr); gap:4px 8px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,.12); }
+.lunch-diag-grid span { color:#7f8d9b; }
+.lunch-diag-grid b { color:#eef3f7; font-weight:650; overflow-wrap:anywhere; }
+.lunch-diag-events { display:grid; gap:4px; margin-top:8px; }
+.lunch-diag-events > div { display:flex; flex-wrap:wrap; gap:5px 8px; padding:5px 6px; border-radius:6px; background:rgba(255,255,255,.045); }
+.lunch-diag-events b { color:#C39E5A; }
+.lunch-diag-events span { color:#c7d0d8; }
+
+/* B.5.3.3.8-DIAG — temporary lunch state trace. */
+.lunch-diag-toggle{position:absolute;z-index:130;top:10px;right:10px;min-width:58px;height:34px;border:1px solid rgba(255,255,255,.22);border-radius:8px;background:rgba(9,13,18,.92);color:#e7edf4;font:700 11px/1 Inter,system-ui,sans-serif;letter-spacing:.08em}.lunch-diag-panel{position:absolute;z-index:129;top:50px;right:10px;width:min(360px,calc(100% - 20px));max-height:52%;overflow:auto;border:1px solid rgba(195,158,90,.55);border-radius:10px;background:rgba(7,10,14,.94);color:#e7edf4;padding:10px;font:500 10px/1.25 Inter,system-ui,sans-serif;pointer-events:auto}.lunch-diag-heading{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}.lunch-diag-heading strong{color:#C39E5A;font-size:11px;letter-spacing:.06em}.lunch-diag-heading span{color:#aab6c2}.lunch-diag-grid{display:grid;grid-template-columns:92px minmax(0,1fr);gap:4px 8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.12)}.lunch-diag-grid span{color:#7f8d9b}.lunch-diag-grid b{color:#eef3f7;font-weight:650;overflow-wrap:anywhere}.lunch-diag-events{display:grid;gap:4px;margin-top:8px}.lunch-diag-events>div{display:flex;flex-wrap:wrap;gap:5px 8px;padding:5px 6px;border-radius:6px;background:rgba(255,255,255,.045)}.lunch-diag-events b{color:#C39E5A}.lunch-diag-events span{color:#c7d0d8}

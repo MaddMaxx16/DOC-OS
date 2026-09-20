@@ -901,3 +901,11 @@ LedgerDesk payment transactions retain their bank identity while linking back to
 - Global CASH reflects Operating Account balance.
 - End Operations uses a controlled overnight live-clock advance and stops at the DOC OS operating-day start of 07:00 for Day Briefing; midnight itself remains calendar-only and never resets world state.
 - Visual-pass backlog: replace/clarify top-bar DAY # language and reduce Operating Account hero-card height.
+
+## B.5 HOS contract — Rest and duty-session history
+- HOS state is driver-scoped, never global.
+- A scheduled clock-in begins the driver's duty session. Once that session starts, its start time is historical and cannot be edited away.
+- Driving consumes Drive + Duty; non-driving on-duty activity consumes Duty; OFF DUTY consumes neither.
+- A new 11/14 availability reset requires 10 continuous hours OFF DUTY. Calendar midnight, Daily Closeout, End Operations, and the 07:00 dispatcher operating-day handoff are not HOS reset events.
+- Active freight and legitimate Shift End staging retain movement authority until complete; rest begins only after the driver is no longer actively working or repositioning.
+- Agenda is a player-facing operational view over a real 24-hour calendar. Future presentation may suppress empty midnight-first space, but must never remove real overnight/cross-midnight activity or mutate the underlying calendar.

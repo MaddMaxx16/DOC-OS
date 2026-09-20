@@ -41,6 +41,17 @@ const mapLocations = [
   { id: 'queens-staging-area', name: 'Queens Truck & Rest Stop', type: 'staging', longitude: -73.8990, latitude: 40.7470 },
   { id: 'newark-fuel-stop', name: 'Newark Fuel & Rest Stop', type: 'staging', longitude: -74.1485, latitude: 40.7200 },
   { id: 'elizabeth-truck-stop', name: 'Elizabeth Truck & Travel Stop', type: 'staging', longitude: -74.1910, latitude: 40.6695 },
+
+  // B.5.3.2.3 — lunch-world POIs. These are compact operational stops used only
+  // when DOC OS is resolving a scheduled lunch against the driver's live route.
+  { id: 'brooklyn-express-deli', name: 'Brooklyn Express Deli', type: 'lunch-food', longitude: -74.0138, latitude: 40.6466 },
+  { id: 'queens-roadside-grill', name: 'Queens Roadside Grill', type: 'lunch-food', longitude: -73.9066, latitude: 40.7353 },
+  { id: 'bronx-route-cafe', name: 'Bronx Route Cafe', type: 'lunch-food', longitude: -73.8848, latitude: 40.8098 },
+  { id: 'newark-road-kitchen', name: 'Newark Road Kitchen', type: 'lunch-food', longitude: -74.1747, latitude: 40.7153 },
+  { id: 'bayway-quick-eat', name: 'Bayway Quick Eat', type: 'lunch-food', longitude: -74.2043, latitude: 40.6558 },
+  { id: 'allentown-travel-kitchen', name: 'Allentown Travel Kitchen', type: 'lunch-food', longitude: -75.4593, latitude: 40.5968 },
+  { id: 'philadelphia-road-deli', name: 'Philadelphia Road Deli', type: 'lunch-food', longitude: -75.1889, latitude: 39.9658 },
+  { id: 'pittsburgh-travel-grill', name: 'Pittsburgh Travel Grill', type: 'lunch-food', longitude: -79.9827, latitude: 40.4518 },
 ]
 
 export default mapLocations

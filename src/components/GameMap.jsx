@@ -9,10 +9,12 @@ import { formatAppointment } from '../utils/gameTime.js'
 import { logDocOsState } from '../utils/debugLogger.js'
 import { getDriverPanelModel } from '../utils/driverOperationalState.js'
 import { getAuthoritativeDriverTravelLoad, getDriverItineraryState } from '../utils/driverItinerary.js'
+import { resolveDriverMovementOwner } from '../utils/driverMovementOwner.js'
+import { hasLunchMovementAuthority, isDriverOnLunch } from '../utils/lunchDecisionEvents.js'
+import { sampleRoutePosition } from '../utils/routeSampler.js'
 
 setWorkerUrl(workerUrl)
 
-const routeMetricsCache = new WeakMap()
 const DRIVER_COLOR_FAMILIES = [
   ['#8BB8F7', '#6EA2E8', '#4F86D4', '#3C6DB8'],
   ['#F0BE69', '#DEA650', '#C98E35', '#A87025'],
@@ -83,8 +85,8 @@ function routeMatchesEndpoints(route, origin, destination, toleranceMiles = 1.5)
 }
 
 function routeLabelBearing(route, progress = 0.5) {
-  const before = routePosition(route, Math.max(0, progress - 0.025))
-  const after = routePosition(route, Math.min(1, progress + 0.025))
+  const before = sampleRoutePosition(route, Math.max(0, progress - 0.025))
+  const after = sampleRoutePosition(route, Math.min(1, progress + 0.025))
   if (!before || !after) return 0
   const avgLat = ((before[1] + after[1]) / 2) * Math.PI / 180
   const dx = (after[0] - before[0]) * Math.cos(avgLat)
@@ -99,48 +101,7 @@ function routeLabelBearing(route, progress = 0.5) {
   return angle
 }
 
-function getRouteMetrics(route) {
-  if (!Array.isArray(route) || route.length < 2) return null
-  const cached = routeMetricsCache.get(route)
-  if (cached) return cached
-
-  const cumulative = [0]
-  let total = 0
-  for (let index = 1; index < route.length; index += 1) {
-    const a = route[index - 1]
-    const b = route[index]
-    total += Math.hypot(b[0] - a[0], b[1] - a[1])
-    cumulative.push(total)
-  }
-  const metrics = { cumulative, total }
-  routeMetricsCache.set(route, metrics)
-  return metrics
-}
-
-function routePosition(route, progress) {
-  const metrics = getRouteMetrics(route)
-  if (!metrics) return null
-  if (metrics.total <= 0) return route[0] || null
-
-  const target = metrics.total * Math.max(0, Math.min(1, progress))
-  let low = 1
-  let high = metrics.cumulative.length - 1
-  while (low < high) {
-    const mid = Math.floor((low + high) / 2)
-    if (metrics.cumulative[mid] < target) low = mid + 1
-    else high = mid
-  }
-  const endIndex = Math.max(1, low)
-  const startIndex = endIndex - 1
-  const segmentStart = metrics.cumulative[startIndex]
-  const segmentLength = metrics.cumulative[endIndex] - segmentStart
-  const amount = segmentLength > 0 ? (target - segmentStart) / segmentLength : 0
-  const a = route[startIndex]
-  const b = route[endIndex]
-  return [a[0] + (b[0] - a[0]) * amount, a[1] + (b[1] - a[1]) * amount]
-}
-
-function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId = null, facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgressByDriver = {}, simulationSpeed = 1, isGameClockPaused = false, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, freightBrowseMode = false, freightBrowseLoads = [], freightBrowseSelectedLoadId = null, onFreightBrowseSelect }) {
+function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId = null, facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgressByDriver = {}, simulationSpeed = 1, isGameClockPaused = false, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, freightBrowseMode = false, freightBrowseLoads = [], freightBrowseSelectedLoadId = null, onFreightBrowseSelect, lunchCandidateLocations = [] }) {
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const markerRecords = useRef([])
@@ -148,7 +109,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
   const idleAnimationFrame = useRef(null)
   const motionStateRef = useRef(null)
   const cameraInitialized = useRef(false)
-  const activeTravelKey = useRef(null)
+  const activeTravelKey = useRef(new Map())
   const travelCameraKey = useRef(null)
   const boardCameraKey = useRef(null)
   const handledBoardViewRequest = useRef(0)
@@ -163,6 +124,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
   const routeInfoPopupRef = useRef({ loadId: null, popup: null })
   const yardMarkerRefs = useRef(new Map())
   const truckStopMarkerRefs = useRef(new Map())
+  const lunchStopMarkerRefs = useRef(new Map())
   const freightBrowseMarkerRefs = useRef(new Map())
   const freightBrowseDeliveryMarkerRef = useRef(null)
   const itineraryStopMarkerRefs = useRef(new Map())
@@ -172,8 +134,23 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
   const [facilityPopupOpen, setFacilityPopupOpen] = useState(false)
   // AW1 — operational focus. A tapped driver becomes the visual authority on the map.
   const [focusedDriverId, setFocusedDriverId] = useState(null)
+  // B.5.3.3.10 — lunch owns map-route presentation whenever its physical diversion is active.
+  // Keep the owner separate from geometry so planned freight lines can be suppressed for the
+  // whole diversion/lunch/resume handoff, while amber geometry itself is shown only in travel.
+  const lunchVisualOwner = drivers.find((driver) => ['calculating', 'traveling', 'arrived', 'resume-calculating', 'resume-access'].includes(driver.lunchRouteStatus)) || null
+  const lunchVisualOwnerId = lunchVisualOwner?.id || null
+  const lunchRouteDriver = drivers.find((driver) => ['traveling', 'resume-access'].includes(driver.lunchRouteStatus) && Array.isArray(driver.lunchRouteGeometry) && driver.lunchRouteGeometry.length >= 2) || null
+  const lunchRouteGeometry = lunchRouteDriver?.lunchRouteGeometry || null
+  const isLunchAccessRoute = lunchRouteDriver?.lunchRouteStatus === 'resume-access'
   const travelingLoad = drivers.map((driver) => getAuthoritativeDriverTravelLoad(loads, driver.id)).find(Boolean) || null
   const mapOperationalLoad = travelingLoad || assignedLoad || null
+  // B.5.3.3.10.1 — route styling must survive the lunch -> freight handoff.
+  // During the first render of a freshly resumed delivery, the authoritative travel
+  // lookup and the selected/assigned load can settle on adjacent React updates.
+  // Keep the route's driver color anchored to the freight owner instead of falling
+  // through to the neutral fallback during that handoff. Visual-only; no lifecycle.
+  const activeRouteDriverId = mapOperationalLoad?.assignedDriverId || assignedLoad?.assignedDriverId || travelingLoad?.assignedDriverId || null
+  const activeRouteColor = activeRouteDriverId ? getDriverColorFamily(activeRouteDriverId)[0] : '#E4D7EC'
   const runtimeRoute = mapOperationalLoad?.tripStatus === 'en-route-delivery' ? mapOperationalLoad.plannedLoadedRouteGeometry : mapOperationalLoad?.tripStatus === 'en-route-pickup' ? mapOperationalLoad.plannedDeadheadRouteGeometry : null
   // B.4.2.4 closure polish: overnight repositioning remains visible as a quiet
   // operational route. Freight travel still owns the strong active-route layer.
@@ -198,11 +175,13 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
   // disappear with the stop marker instead of lingering as historical map data.
   // Preview/review modes may still render their explicit route geometry.
   const isExplicitRoutePreview = Boolean(isDriverFitEvaluation || routeFocusMode || routeReviewLoad)
-  const resolvedActiveRouteGeometry = hasAuthoritativeTravelRoute
-    ? runtimeRoute
-    : (isExplicitRoutePreview && activeRouteGeometry?.length
-      ? activeRouteGeometry
-      : (isStagingRoute ? stagingRouteGeometry : null))
+  const resolvedActiveRouteGeometry = lunchRouteGeometry?.length
+    ? lunchRouteGeometry
+    : (hasAuthoritativeTravelRoute
+      ? runtimeRoute
+      : (isExplicitRoutePreview && activeRouteGeometry?.length
+        ? activeRouteGeometry
+        : (isStagingRoute ? stagingRouteGeometry : null)))
 
   const getDriver = (driverId) => drivers.find((driver) => driver.id === driverId)
   const removeLocationMarker = (ref) => {
@@ -257,7 +236,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
             type: 'line',
             source: 'active-route',
             paint: {
-              'line-color': mapOperationalLoad?.assignedDriverId ? getDriverColorFamily(mapOperationalLoad.assignedDriverId)[0] : '#E4D7EC',
+              'line-color': lunchRouteGeometry?.length ? (isLunchAccessRoute ? activeRouteColor : '#C39E5A') : activeRouteColor,
               'line-width': 5.2,
               'line-opacity': 0.96,
               'line-dasharray': mapOperationalLoad?.tripStatus === 'en-route-pickup' ? [2.2, 1.6] : [1, 0.001],
@@ -351,6 +330,10 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       currentDrivers.forEach((driver) => {
         const marker = driverMarkerRefs.current.get(driver.id)
         if (!marker) return
+        // Lunch owns the driver's physical marker until its diversion/rest/resume
+        // lifecycle is complete. A stale freight facility state must never snap the
+        // marker to pickup/delivery while lunch has authority.
+        if (hasLunchMovementAuthority(driver, state.gameTime)) return
         const facilityPosition = getDriverFacilityPosition(currentLoads, driver.id)
         if (!facilityPosition) return
         marker.setLngLat([facilityPosition.longitude, facilityPosition.latitude])
@@ -368,26 +351,20 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
         const marker = driverMarkerRefs.current.get(driver.id)
         if (!marker || facilityLockedDriverIds.has(driver.id)) return
 
-        const travelingLoad = getAuthoritativeDriverTravelLoad(currentLoads, driver.id)
-        if (!travelingLoad) {
-          // B.4.2.3.12: overnight staging uses the same fractional render clock as
-          // freight travel. Simulation state still owns arrival; this only removes
-          // the visible once-per-game-minute jump between persisted positions.
-          if (driver.idleRouteStatus === 'traveling'
-            && Array.isArray(driver.idleRouteGeometry)
-            && driver.idleRouteGeometry.length >= 2
-            && Number.isFinite(driver.idleRouteStartGameMinute)
-            && Number.isFinite(driver.idleRouteDurationMinutes)
-            && driver.idleRouteDurationMinutes > 0) {
-            const progress = Math.max(0, Math.min(1, (renderGameMinute - driver.idleRouteStartGameMinute) / driver.idleRouteDurationMinutes))
-            const point = routePosition(driver.idleRouteGeometry, progress)
-            if (point) marker.setLngLat(point)
-            return
-          }
+        const movementOwner = resolveDriverMovementOwner({ driver, gameTime: state.gameTime, loads: currentLoads })
+        if (movementOwner.type === 'lunch-route' || movementOwner.type === 'idle-route') {
+          const progress = Math.max(0, Math.min(1, (renderGameMinute - movementOwner.start) / movementOwner.duration))
+          const point = sampleRoutePosition(movementOwner.route, progress)
+          if (point) marker.setLngLat(point)
+          return
+        }
+        if (movementOwner.type === 'lunch-hold' || movementOwner.type === 'runtime-hold') {
           const position = currentRuntimePositions?.[driver.id]
           if (position) marker.setLngLat([position.longitude, position.latitude])
           return
         }
+
+        const travelingLoad = movementOwner.load
 
         const delivery = travelingLoad.tripStatus === 'en-route-delivery'
         const route = delivery ? travelingLoad.plannedLoadedRouteGeometry : travelingLoad.plannedDeadheadRouteGeometry
@@ -395,19 +372,31 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
         const duration = delivery ? travelingLoad.plannedLoadedDriveTimeMinutes : travelingLoad.plannedDeadheadDriveTimeMinutes
         if (!Array.isArray(route) || route.length < 2 || !Number.isFinite(departure) || !Number.isFinite(duration) || duration <= 0) return
 
+        // B.5.3.3.10.5 — a newly installed travel leg must render route point 0
+        // before the fractional visual clock is allowed to advance it. The shared
+        // render clock can legitimately lead the integer game clock by nearly one
+        // game minute. At the lunch -> freight handoff that lead was enough to
+        // consume the short parking-lot access segment on the very first frame,
+        // making Marcus appear to snap directly onto the road even though the
+        // resumed geometry correctly began at his parked lunch coordinates.
+        // Track the live leg per driver (future multi-driver safe), pin its first
+        // rendered frame to the exact route origin, then let normal interpolation
+        // take over on following frames.
+        const travelKey = `${travelingLoad.id}:${travelingLoad.tripStatus}:${departure}`
+        const previousTravelKey = activeTravelKey.current.get(driver.id)
+        if (previousTravelKey !== travelKey) {
+          activeTravelKey.current.set(driver.id, travelKey)
+          renderGameMinute = Math.min(renderGameMinute, departure)
+          const routeOrigin = route[0]
+          if (Array.isArray(routeOrigin) && routeOrigin.length >= 2) marker.setLngLat(routeOrigin)
+          return
+        }
+
         const fractionalProgress = Math.max(0, Math.min(1, (renderGameMinute - departure) / duration))
-        const authoritativeRuntimeProgress = currentRuntimeProgress?.[driver.id]
-
-        // Never visually trail behind persisted simulation progress, but otherwise
-        // let the fractional render clock provide the continuous road motion.
-        const boundedRuntimeProgress = Number.isFinite(authoritativeRuntimeProgress)
-          ? Math.max(0, Math.min(1, authoritativeRuntimeProgress))
-          : null
-        const progress = boundedRuntimeProgress !== null && boundedRuntimeProgress - fractionalProgress > 0.08
-          ? boundedRuntimeProgress
-          : fractionalProgress
-
-        const point = routePosition(route, progress)
+        // Authoritative simulation and visual rendering now share the same
+        // distance-weighted sampler. The render clock may interpolate between
+        // game-minute ticks without reconciling against a second parameterization.
+        const point = sampleRoutePosition(route, fractionalProgress)
         if (point) marker.setLngLat(point)
       })
 
@@ -520,6 +509,28 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       if (!activeTruckStopIds.has(id)) { marker.remove(); truckStopMarkerRefs.current.delete(id) }
     })
 
+    // B.5.3.2.3 — when lunch planning is open, show the three route-corridor
+    // candidates directly on the operations map. Existing truck-stop markers are
+    // highlighted; food stops get the same compact 30px footprint.
+    const lunchCandidateIds = new Set((lunchCandidateLocations || []).map((location) => location.id))
+    truckStopMarkerRefs.current.forEach((marker, id) => {
+      const element = marker.getElement?.()
+      if (element) element.classList.toggle('lunch-candidate', lunchCandidateIds.has(id))
+    })
+    ;(lunchCandidateLocations || []).filter((location) => location.type === 'lunch-food').forEach((location) => {
+      if (lunchStopMarkerRefs.current.has(location.id)) return
+      const element = document.createElement('div')
+      element.className = 'game-marker lunch-stop lunch-candidate'
+      element.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h2v7h1V3h2v7c0 2-1.2 3.4-3 3.8V21H7v-7.2C5.2 13.4 4 12 4 10V3h2v6h1V3zm9 0h2v18h-2v-7h-2V8c0-2.8.7-5 2-5z"/></svg>'
+      element.setAttribute('aria-label', location.name)
+      element.title = location.name
+      const marker = new Marker({ element }).setLngLat([location.longitude, location.latitude]).addTo(map)
+      lunchStopMarkerRefs.current.set(location.id, marker)
+    })
+    lunchStopMarkerRefs.current.forEach((marker, id) => {
+      if (!lunchCandidateIds.has(id)) { marker.remove(); lunchStopMarkerRefs.current.delete(id) }
+    })
+
     const activeDriverIds = new Set(drivers.map((driver) => driver.id))
     driverMarkerRefs.current.forEach((marker, id) => { if (!activeDriverIds.has(id)) { marker.remove(); driverMarkerRefs.current.delete(id); markerRecords.current = markerRecords.current.filter((record) => record.marker !== marker) } })
     drivers.forEach((driver) => {
@@ -532,7 +543,8 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
         markerRecords.current = markerRecords.current.filter((record) => record.marker !== existingDriverMarker)
       }
       const home = mapLocations.find((location) => location.id === driver.homeBaseLocationId)
-      const position = getDriverFacilityPosition(loads, driver.id) || runtimePositions[driver.id] || home
+      const lunchOwnsMarker = hasLunchMovementAuthority(driver, gameTime)
+      const position = (lunchOwnsMarker ? runtimePositions[driver.id] : getDriverFacilityPosition(loads, driver.id)) || runtimePositions[driver.id] || home
       if (!position) return
       const element = document.createElement('div'); element.className = 'game-marker driver'; element.textContent = driver.name?.charAt(0)?.toUpperCase() || 'D'; element.style.setProperty('--driver-color', getDriverColorFamily(driver.id)[1])
       element.setAttribute('aria-label', `${driver.fullName || driver.name || 'Driver'} map position`)
@@ -550,7 +562,8 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
         driverLabelRevealTimers.current.set(driver.id, timer)
         setMarkerRefreshToken((value) => value + 1)
       })
-      element.style.zIndex = '55'
+      // B.5.3.2.6 — drivers always sit above world POIs/facilities.
+      element.style.zIndex = '90'
       const marker = new Marker({ element }).setLngLat([position.longitude, position.latitude]).addTo(map)
       driverMarkerRefs.current.set(driver.id, marker); markerRecords.current.push({ location: { id: driver.id, name: driver.name, type: 'driver' }, marker, markerElement: element, popup: null })
     })
@@ -753,6 +766,11 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     loads.forEach((load) => {
       const routeDriverId = load?.assignedDriverId
       if (!routeDriverId || finishedStates.has(load.tripStatus) || deliveryTravelCompleteStates.has(load.tripStatus)) return
+      // B.5.3.3.10 — when lunch owns this driver, hide the driver's cached freight
+      // itinerary completely. The old pickup/delivery geometry is planning history, not
+      // the road Marcus is physically following during the diversion. It returns only
+      // after lunch releases movement authority and the fresh delivery route is installed.
+      if (lunchVisualOwnerId && routeDriverId === lunchVisualOwnerId) return
       const pickupLocation = mapLocations.find((location) => location.id === load.pickupLocationId)
       const deliveryLocation = mapLocations.find((location) => location.id === load.deliveryLocationId)
       if (!pickupLocation || !deliveryLocation) return
@@ -785,9 +803,14 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       const loadedGeometry = Array.isArray(load.plannedLoadedRouteGeometry) && load.plannedLoadedRouteGeometry.length >= 2
         ? load.plannedLoadedRouteGeometry
         : null
-      const routedGeometry = loadedGeometry && routeMatchesEndpoints(loadedGeometry, pickupLocation, deliveryLocation, 2.0)
-        ? loadedGeometry
-        : null
+      // B.5.3.3.10.9 — during live delivery travel, plannedLoadedRouteGeometry is
+      // the authoritative movement geometry and may legitimately begin at a lunch/access
+      // handoff instead of the original pickup. Keep endpoint validation for future/planned
+      // routes, but always render the current authoritative delivery geometry.
+      const routedGeometry = loadedGeometry && (
+        isCurrentDeliveryTravel
+        || routeMatchesEndpoints(loadedGeometry, pickupLocation, deliveryLocation, 2.0)
+      ) ? loadedGeometry : null
 
       // CS2.0A.9 route grammar remains permanent:
       // dashed = empty/deadhead movement to pickup; solid = loaded movement to delivery.
@@ -850,6 +873,32 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       })
     })
 
+    // B.5.3.3.10 — render the lunch diversion through the already-proven
+    // itinerary GeoJSON pipeline as well as the live active-route source. This is
+    // visual-only and deliberately carries no loadId, so it cannot affect freight
+    // lifecycle or route interactions. Using the established route source avoids
+    // WKWebView dropping a one-off lunch-only layer while preserving amber ownership.
+    if (lunchVisualOwnerId && Array.isArray(lunchRouteGeometry) && lunchRouteGeometry.length >= 2) {
+      features.push({
+        type: 'Feature',
+        properties: {
+          key: `lunch:${lunchVisualOwnerId}`,
+          legType: 'delivery',
+          loadId: '',
+          loadLabel: 'Lunch diversion',
+          color: isLunchAccessRoute ? activeRouteColor : '#C39E5A',
+          opacity: 1,
+          width: 5.8,
+          priority: 0,
+          driverId: lunchVisualOwnerId,
+          routeVisualState: 'lunch-diversion',
+          routeStatus: 'LUNCH DIVERSION',
+          completed: 0,
+        },
+        geometry: { type: 'LineString', coordinates: lunchRouteGeometry },
+      })
+    }
+
     const data = { type: 'FeatureCollection', features }
     const source = map.getSource('itinerary-routes')
     if (!source) {
@@ -895,7 +944,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       if (!existing || feature.properties.legType === 'delivery') anchorByLoad.set(loadId, feature)
     })
     const anchorFeatures = Array.from(anchorByLoad.values()).map((feature) => {
-      const point = routePosition(feature.geometry.coordinates, 0.5)
+      const point = sampleRoutePosition(feature.geometry.coordinates, 0.5)
       if (!point) return null
       return {
         type: 'Feature',
@@ -1003,7 +1052,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       // the itinerary source after a driver-focus or status refresh. The popup owns
       // its own close lifecycle (same-dot toggle, another dot, X, or empty map tap).
     }
-  }, [mapReady, markerRefreshToken, drivers, loads, runtimePositions, mapOperationalLoad?.id, mapOperationalLoad?.assignedDriverId, mapOperationalLoad?.tripStatus, mapOperationalLoad?.pickupLocationId, mapOperationalLoad?.deliveryLocationId, routeFocusMode, routeReviewLoad?.id, routeReviewLoad?.pickupLocationId, routeReviewLoad?.deliveryLocationId, isDriverFitEvaluation, evaluationLoad?.id, carriers, focusedDriverId, freightBrowseMode, suppressAttention])
+  }, [mapReady, markerRefreshToken, drivers, loads, runtimePositions, mapOperationalLoad?.id, mapOperationalLoad?.assignedDriverId, mapOperationalLoad?.tripStatus, mapOperationalLoad?.pickupLocationId, mapOperationalLoad?.deliveryLocationId, routeFocusMode, routeReviewLoad?.id, routeReviewLoad?.pickupLocationId, routeReviewLoad?.deliveryLocationId, isDriverFitEvaluation, evaluationLoad?.id, carriers, focusedDriverId, freightBrowseMode, suppressAttention, lunchCandidateLocations])
 
   // AW1.7.2 — restore FreightLink browse markers removed during the authority cleanup.
   useEffect(() => {
@@ -1263,6 +1312,68 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     })
   }, [assignedLoad?.tripStatus, assignedLoad?.id])
 
+  // B.5.3.3.9 — robust lunch-route renderer. The diagnostic build proved the
+  // route geometry exists while Marcus physically follows it (hundreds of route
+  // points), so this layer is deliberately VISUAL ONLY. Re-ensure it after map
+  // style/idle events as well as ordinary React updates; WKWebView/MapLibre can
+  // transiently report an unloaded style and the old one-shot effect would then
+  // miss the only geometry transition.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return undefined
+    const coordinates = Array.isArray(lunchRouteGeometry) ? lunchRouteGeometry : []
+    let cancelled = false
+
+    const ensureLunchRouteVisual = () => {
+      if (cancelled || !mapRef.current || mapRef.current !== map) return
+      if (!map.isStyleLoaded()) return
+      const data = { type: 'Feature', properties: { role: 'lunch-diversion' }, geometry: { type: 'LineString', coordinates } }
+      let source = map.getSource('lunch-route-visual')
+      if (!source) {
+        map.addSource('lunch-route-visual', { type: 'geojson', data })
+        source = map.getSource('lunch-route-visual')
+      } else source.setData(data)
+
+      if (!map.getLayer('lunch-route-visual-line')) {
+        map.addLayer({
+          id: 'lunch-route-visual-line',
+          type: 'line',
+          source: 'lunch-route-visual',
+          paint: { 'line-color': isLunchAccessRoute ? activeRouteColor : '#C39E5A', 'line-width': 6.4, 'line-opacity': coordinates.length >= 2 ? 1 : 0 },
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+        })
+      } else {
+        map.setPaintProperty('lunch-route-visual-line', 'line-color', isLunchAccessRoute ? activeRouteColor : '#C39E5A')
+        map.setPaintProperty('lunch-route-visual-line', 'line-width', 6.4)
+        map.setPaintProperty('lunch-route-visual-line', 'line-opacity', coordinates.length >= 2 ? 1 : 0)
+      }
+
+      // Always keep the active lunch diversion above other route-plan layers.
+      if (coordinates.length >= 2 && map.getLayer('lunch-route-visual-line')) {
+        try { map.moveLayer('lunch-route-visual-line') } catch (error) { console.debug('LUNCH ROUTE LAYER MOVE DEFERRED', error) }
+      }
+      console.debug('LUNCH ROUTE VISUAL', {
+        coordinateCount: coordinates.length,
+        sourceReady: Boolean(map.getSource('lunch-route-visual')),
+        layerReady: Boolean(map.getLayer('lunch-route-visual-line')),
+      })
+    }
+
+    ensureLunchRouteVisual()
+    const retryFrame = window.requestAnimationFrame(ensureLunchRouteVisual)
+    const retryTimer = window.setTimeout(ensureLunchRouteVisual, 120)
+    map.on('idle', ensureLunchRouteVisual)
+    map.on('styledata', ensureLunchRouteVisual)
+
+    return () => {
+      cancelled = true
+      window.cancelAnimationFrame(retryFrame)
+      window.clearTimeout(retryTimer)
+      map.off('idle', ensureLunchRouteVisual)
+      map.off('styledata', ensureLunchRouteVisual)
+    }
+  }, [mapReady, lunchRouteGeometry, isLunchAccessRoute, activeRouteColor])
+
   useEffect(() => {
     const map = mapRef.current
     if (!map || !map.isStyleLoaded()) return
@@ -1279,18 +1390,18 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     // source during a WKWebView/style refresh. Recreate the live route layer when
     // needed instead of leaving Marcus moving with an invisible route.
     if (route && !map.getLayer('active-route-line')) {
-      map.addLayer({ id: 'active-route-line', type: 'line', source: 'active-route', paint: { 'line-color': mapOperationalLoad?.assignedDriverId ? getDriverColorFamily(mapOperationalLoad.assignedDriverId)[0] : '#E4D7EC', 'line-width': 5.2, 'line-opacity': 0.96, 'line-dasharray': mapOperationalLoad?.tripStatus === 'en-route-pickup' ? [2.2, 1.6] : [1, 0.001] }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
+      map.addLayer({ id: 'active-route-line', type: 'line', source: 'active-route', paint: { 'line-color': lunchRouteGeometry?.length ? (isLunchAccessRoute ? activeRouteColor : '#C39E5A') : activeRouteColor, 'line-width': 5.2, 'line-opacity': 0.96, 'line-dasharray': mapOperationalLoad?.tripStatus === 'en-route-pickup' ? [2.2, 1.6] : [1, 0.001] }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
     }
 
     if (map.getLayer('active-route-line')) {
-      map.setPaintProperty('active-route-line', 'line-color', isStagingRoute ? '#9B8BA6' : (isDriverFitEvaluation ? '#D0B8DF' : (mapOperationalLoad?.assignedDriverId ? getDriverColorFamily(mapOperationalLoad.assignedDriverId)[0] : '#E4D7EC')))
+      map.setPaintProperty('active-route-line', 'line-color', lunchRouteGeometry?.length ? (isLunchAccessRoute ? activeRouteColor : '#C39E5A') : (isStagingRoute ? '#9B8BA6' : (isDriverFitEvaluation ? '#D0B8DF' : activeRouteColor)))
       map.setPaintProperty('active-route-line', 'line-width', isStagingRoute ? 3.2 : (isDriverFitEvaluation ? 5.5 : 5.2))
       map.setPaintProperty('active-route-line', 'line-opacity', isStagingRoute ? 0.58 : 0.96)
       map.setPaintProperty('active-route-line', 'line-dasharray', isStagingRoute ? [1.4, 1.1] : (mapOperationalLoad?.tripStatus === 'en-route-pickup' ? [2.2, 1.6] : [1, 0.001]))
     }
 
     console.debug('ROUTE SOURCE UPDATE', { tripStatus: mapOperationalLoad?.tripStatus, geometryType: route ? 'active' : 'null', coordinateCount: route?.routeShape?.length || 0 })
-  }, [mapReady, resolvedActiveRouteGeometry, mapOperationalLoad?.tripStatus, mapOperationalLoad?.assignedDriverId, isDriverFitEvaluation, isStagingRoute, routeFocusMode, routeReviewLoad])
+  }, [mapReady, resolvedActiveRouteGeometry, mapOperationalLoad?.tripStatus, activeRouteDriverId, activeRouteColor, isDriverFitEvaluation, isStagingRoute, routeFocusMode, routeReviewLoad, lunchRouteGeometry])
 
   useEffect(() => {
     const map = mapRef.current
@@ -1447,7 +1558,8 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
         ? minuteOfDay < previousEnd
         : false
       const inScheduledWorkday = inTodayWorkday || inPreviousCarryover
-      element.classList.toggle('unavailable', driver.status === 'unavailable' && !activeFreightVisual && !inScheduledWorkday)
+      const hosOffDuty = (driver.hours?.status || 'off-duty') === 'off-duty'
+      element.classList.toggle('unavailable', hosOffDuty && !activeFreightVisual && !inScheduledWorkday)
       element.classList.toggle('attention', false)
       let pill = element.querySelector('.driver-status-pill')
       if (!pill) { pill = document.createElement('span'); pill.className = 'driver-status-pill'; element.append(pill) }
@@ -1457,6 +1569,13 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       // B.4.2.4.3: Shift End staging presentation owns the driver marker even
       // when tomorrow's freight is already assigned. Keep the map quiet: badge
       // only (💤 while repositioning, 🌙 once staged), with no text status label.
+      const lunchBadgeActive = ['calculating', 'traveling', 'arrived'].includes(driver.lunchRouteStatus) || isDriverOnLunch(driver, gameTime)
+      if (lunchBadgeActive) {
+        pill.textContent = '🍴'
+        element.classList.add('lunch-status')
+        return
+      }
+      element.classList.remove('lunch-status')
       const shiftEndBadge = driver.idleRouteStatus === 'traveling' ? '💤' : (driver.idleRouteStatus === 'arrived' && driver.overnightMode ? '🌙' : '')
       if (shiftEndBadge) {
         pill.textContent = shiftEndBadge

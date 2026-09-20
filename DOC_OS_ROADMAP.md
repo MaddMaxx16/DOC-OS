@@ -3,7 +3,7 @@
 Canonical roadmap introduced with CS2.0B.4.2. This file is the source of truth for phase order and status.
 
 ## CURRENT STABLE CHECKPOINT
-**CS2.0B.4.2.6-STABLE — Compact Email Workflow**
+**CS2.0B.4.4-STABLE — LedgerDesk Banking**
 
 ## COMPLETE — STABLE
 ### CS2.0B.4.2 — Multi-Day Planning & Shift End Operations
@@ -40,7 +40,15 @@ Rate Confirmation compare/verify/correction workflow; permanent load packet; Doc
 Available Cash, Pending Deposits, Accounts Receivable, transaction feed, and dispatcher-fee-only banking.
 
 ### CS2.0B.5 — Driver Duty & HOS
+**CURRENT PHASE — B.5.1 IN TEST**
 Per-driver duty state, HOS across midnight, schedule-vs-legal-hours evaluation, and HOS operational communication.
+
+- [IN TEST] B.5.1 Driver Duty Clock Foundation — scheduled clock-in starts duty; Driving and Duty clocks become live and visible in driver surfaces.
+- [PLANNED] B.5.2 Rest & HOS Recovery.
+- [PLANNED] B.5.3 HOS-Aware Dispatch Planning.
+- [PLANNED] B.5.4 HOS Operations Polish & Regression.
+
+**Protected stable checkpoint:** `CS2.0B.4.4-STABLE — LedgerDesk Banking`.
 
 ### CS2.0C.0 — Second Carrier + Second Driver
 Add one meaningfully different carrier and second driver to prove generic multi-driver architecture.
@@ -206,3 +214,13 @@ B.4.4.3.3 fixes the BEGIN OPERATIONS handoff so the consumed 07:00 briefing cann
 - **Next roadmap phase:** `CS2.0B.5 — Driver Duty & HOS`.
 
 **Polish backlog:** replace/clarify the prototype `DAY #` top-bar language now that DOC OS uses real calendar dates; reduce the Operating Account hero card's vertical footprint during the dedicated visual pass.
+
+### CS2.0B.5.1.1 — Driver Hub HOS Readability — TEST
+B.5.1 duty/driving clock behavior passed on device. This micro-patch only corrects Driver Hub clock readability before B.5.2 Rest & HOS Recovery; it does not alter HOS calculations or authority.
+
+### CS2.0B.5.2 — Rest & HOS Recovery (TEST)
+- Continuous 10-hour off-duty recovery restores 11-hour Drive / 14-hour Duty availability.
+- Shift End movement and active freight must finish before off-duty recovery begins.
+- Current duty-session start becomes immutable once the driver has gone on duty; future schedule starts remain editable.
+- Agenda presentation cleanup is queued inside B.5 polish: operationally focused timeline, while real cross-midnight events remain visible.
+- Next after acceptance: B.5.3 HOS-aware dispatch planning.

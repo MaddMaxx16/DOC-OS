@@ -5,6 +5,8 @@ import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 import { getFreightHaulClass, getPlanQuality } from '../utils/planningIntelligence.js'
 import { MARKET_HORIZON_DAYS } from '../utils/freightMarket.js'
 import FreightLinkMarketMap from './FreightLinkMarketMap.jsx'
+import { getDriverHosSummary } from '../utils/driverHOS.js'
+import { getLoadHosEvaluation } from '../utils/hosPlanning.js'
 
 function formatListedMiles(value) {
   if (value === null) return 'CALCULATING'
@@ -23,11 +25,12 @@ function bucketFor(load) {
   return 'active'
 }
 
-function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime, operationDay = 1, embedded = false, onBack, onSelectLoad, onOpenScheduler }) {
+function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime, operationDay = 1, embedded = false, planningDriverId = null, onPlanningDriverChange, onBack, onSelectLoad, onOpenScheduler }) {
   const [sortMode, setSortMode] = useState('pickup')
   const [mapOpen, setMapOpen] = useState(false)
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const [pickupDateFilter, setPickupDateFilter] = useState('all')
+  const [driverMenuOpen, setDriverMenuOpen] = useState(false)
   const now = (gameTime?.gameDayIndex ?? 0) * 1440 + (gameTime?.totalMinutesOfDay ?? 360)
 
   const unlockedLoads = loads.filter((load) => {
@@ -41,13 +44,16 @@ function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime,
   const [filterMode, setFilterMode] = useState(() => counts.available ? 'available' : counts.active ? 'active' : 'history')
 
   const decisionMode = true
-  const planningDriver = drivers.find((driver) => driver.carrierId) || null
+  const activeDrivers = drivers.filter((driver) => driver.carrierId)
+  const planningDriver = activeDrivers.find((driver) => driver.id === planningDriverId) || null
+  const planningHos = planningDriver ? getDriverHosSummary(planningDriver) : null
   const loadViews = useMemo(() => unlockedLoads.map((load) => {
     const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
     const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
     const pickupAbsoluteMinute = (load.pickupDayIndex ?? gameTime?.gameDayIndex ?? 0) * 1440 + (load.pickupWindowStartMinutes || 0)
     const rpm = Number.isFinite(load.listedMiles) && load.listedMiles > 0 ? load.rate / load.listedMiles : null
     let planningHint = null
+    let hosHint = null
     if (planningDriver && load.status === 'available') {
       const simulatedLoads = loads.map((item) => item.id === load.id ? {
         ...item,
@@ -60,9 +66,11 @@ function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime,
         : quality?.label === 'TIGHT'
           ? { label: 'TIGHT', tone: 'tight' }
           : { label: 'FIT', tone: 'fit' }
+      const hosEvaluation = getLoadHosEvaluation({ load, driver: planningDriver, loads, runtimePositions, gameTime })
+      if (hosEvaluation) hosHint = { label: hosEvaluation.label, tone: hosEvaluation.tone }
     }
-    return { load, pickup, delivery, rpm, pickupAbsoluteMinute, haulClass: getFreightHaulClass(load), planningHint }
-  }).filter((item) => item.pickup && item.delivery), [unlockedLoads, gameTime?.gameDayIndex, planningDriver?.id, loads])
+    return { load, pickup, delivery, rpm, pickupAbsoluteMinute, haulClass: getFreightHaulClass(load), planningHint, hosHint }
+  }).filter((item) => item.pickup && item.delivery), [unlockedLoads, gameTime?.gameDayIndex, gameTime?.totalMinutesOfDay, planningDriver?.id, planningDriver?.hours, loads, runtimePositions])
 
   const marketDayIndex = gameTime?.gameDayIndex ?? 0
   const marketDays = useMemo(() => Array.from({ length: MARKET_HORIZON_DAYS }, (_, offset) => marketDayIndex + offset), [marketDayIndex])
@@ -97,6 +105,49 @@ function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime,
           </button>
         </div>
       </header>
+
+      <section className={`freightlink-driver-context ${planningDriver ? 'has-driver' : 'needs-driver'}`} aria-label="FreightLink planning driver">
+        <div className="freightlink-driver-context-copy">
+          <span>PLANNING FOR</span>
+          <div className="freightlink-driver-select">
+            <button type="button" className="freightlink-driver-select-trigger" aria-haspopup="menu" aria-expanded={driverMenuOpen} onClick={() => setDriverMenuOpen((open) => !open)}>
+              <strong>{planningDriver?.fullName || planningDriver?.name || 'SELECT DRIVER'}</strong>
+              <b aria-hidden="true">▾</b>
+            </button>
+            {driverMenuOpen && (
+              <div className="freightlink-driver-menu" role="menu" aria-label="Select planning driver">
+                <div className="freightlink-driver-menu-title">SELECT PLANNING DRIVER</div>
+                {activeDrivers.map((driver) => {
+                  const hos = getDriverHosSummary(driver)
+                  const selected = driver.id === planningDriver?.id
+                  return (
+                    <button key={driver.id} type="button" role="menuitemradio" aria-checked={selected} className={`freightlink-driver-menu-option ${selected ? 'active' : ''}`} onClick={() => { onPlanningDriverChange?.(driver.id); setDriverMenuOpen(false) }}>
+                      <span className="freightlink-driver-menu-check" aria-hidden="true">{selected ? '✓' : ''}</span>
+                      <span className="freightlink-driver-menu-driver">
+                        <strong>{driver.fullName || driver.name}</strong>
+                        <small>{hos.statusLabel}</small>
+                      </span>
+                      <span className="freightlink-driver-menu-hos">
+                        <small>DRIVE <b>{hos.driving}</b></small>
+                        <small>DUTY <b>{hos.duty}</b></small>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          {planningHos && <small>{planningHos.statusLabel}</small>}
+        </div>
+        {planningHos ? (
+          <div className="freightlink-driver-context-hos">
+            <div><span>DRIVE</span><strong>{planningHos.driving}</strong></div>
+            <div><span>DUTY</span><strong>{planningHos.duty}</strong></div>
+          </div>
+        ) : (
+          <div className="freightlink-driver-context-empty">SELECT A DRIVER TO EVALUATE THE BOARD</div>
+        )}
+      </section>
 
       <div className="freightlink-filter-row aw15" aria-label="Load status filter and sort controls">
         {['available', 'active', 'history'].map((mode) => <button key={mode} type="button" className={filterMode === mode ? 'active' : ''} onClick={() => changeFilter(mode)}>{mode.toUpperCase()} <span>{counts[mode]}</span></button>)}
@@ -136,12 +187,12 @@ function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime,
         {filterMode !== 'available' && <div className="freightlink-loads-toolbar aw13"><div className="freightlink-section-label">{filterMode.toUpperCase()}</div></div>}
         {sortedLoadViews.length ? (
           <div className={`load-list ${decisionMode ? 'decision-load-list' : ''}`}>
-            {sortedLoadViews.map(({ load, pickup, delivery, rpm, haulClass, planningHint }) => decisionMode && filterMode === 'available' ? (
+            {sortedLoadViews.map(({ load, pickup, delivery, rpm, haulClass, planningHint, hosHint }) => decisionMode && filterMode === 'available' ? (
               <button type="button" className="freight-decision-row phase2 av27" key={load.id} onClick={() => onSelectLoad(load.id)}>
                 <div className="freight-decision-time"><span>PICKUP · {formatCompactDate(load.pickupDayIndex)}</span><strong>{formatTime(load.pickupWindowStartMinutes)}</strong><em className={`freight-haul-tag ${haulClass.tone}`}>{haulClass.label}</em></div>
                 <div className="freight-decision-body">
                   <div className="freight-decision-top"><div className="freight-decision-id"><strong>{pickup.name} → {delivery.name}</strong><small>{getFreightCommodity(load)}</small></div><div className="freight-decision-rate"><strong>${load.rate}</strong><span>{rpm ? `$${rpm.toFixed(2)}/MI` : 'RATE'}</span></div></div>
-                  <div className="freight-decision-meta"><span>LOAD {formatListedMiles(load.listedMiles)}</span><span>DELIVERY {formatCompactDate(load.deliveryDayIndex)} · {formatTime(load.deliveryWindowStartMinutes)}</span>{planningHint && <em className={`freight-plan-hint ${planningHint.tone}`}>{planningHint.label}</em>}</div>
+                  <div className="freight-decision-meta"><span>LOAD {formatListedMiles(load.listedMiles)}</span><span>DELIVERY {formatCompactDate(load.deliveryDayIndex)} · {formatTime(load.deliveryWindowStartMinutes)}</span>{planningHint && <em className={`freight-plan-hint ${planningHint.tone}`}>{planningHint.label}</em>}{hosHint && <em className={`freight-hos-hint ${hosHint.tone}`}>{hosHint.label}</em>}</div>
                 </div>
               </button>
             ) : (
