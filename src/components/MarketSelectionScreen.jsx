@@ -6,13 +6,13 @@ function MarketSelectionScreen({ selectedMarket, onSelectMarket, onConfirm, onBa
       <section className="market-terminal-card">
         <header className="market-selection-header">
           <div className="market-selection-topline">
-            <button type="button" className="market-back-button" onClick={onBack} aria-label="Back to save selection">‹ BACK</button>
-            <span className="market-kicker">OPERATION SETUP</span>
+            <button type="button" className="market-back-button" onClick={onBack} aria-label="Back to dispatch setup">‹ BACK</button>
+            <span className="market-kicker">STARTING MARKET · 02 / 02</span>
           </div>
           <div className="market-heading-row">
             <div>
-              <h1>Choose Your Market</h1>
-              <p>Every market will bring its own freight patterns, operating pressure and lane strategy.</p>
+              <h1>Choose Your Starting Market</h1>
+              <p>Choose where your dispatch business will begin. New markets can be unlocked as the operation grows.</p>
             </div>
             <span className="market-count">01 / 03</span>
           </div>

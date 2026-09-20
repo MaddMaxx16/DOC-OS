@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { Capacitor } from '@capacitor/core'
+import { Keyboard, KeyboardResize, KeyboardStyle } from '@capacitor/keyboard'
 import './App.css'
 import seedLoads from './data/loads.js'
 import seedCarriers from './data/carriers.js'
@@ -8,6 +10,7 @@ import { DELIVERY_CHECKIN_MINUTES, PICKUP_CHECKIN_MINUTES, getDeliveryDockWaitMi
 import { logDocOsState } from './utils/debugLogger.js'
 import { getDriverPanelModel } from './utils/driverOperationalState.js'
 import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
+import CareerSetupScreen from './components/CareerSetupScreen.jsx'
 import MainGameScreen from './components/MainGameScreen.jsx'
 import StartScreen from './components/StartScreen.jsx'
 import EntryLiveMap from './components/EntryLiveMap.jsx'
@@ -107,6 +110,16 @@ function App() {
   const lifecycleSaveSignatureRef = useRef('')
   const majorTransitionLockRef = useRef(false)
   const majorTransitionTimersRef = useRef([])
+
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'ios') return
+
+    Promise.allSettled([
+      Keyboard.setStyle({ style: KeyboardStyle.Dark }),
+      Keyboard.setResizeMode({ mode: KeyboardResize.None }),
+      Keyboard.setAccessoryBarVisible({ isVisible: false }),
+    ])
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -625,8 +638,8 @@ function App() {
       setActiveSaveSlot(slotId)
       setActiveSaveSlotId(slotId)
       setHasExistingOperation(true)
-      setResumeStage('market')
-      setStage('market')
+      setResumeStage('careerSetup')
+      setStage('careerSetup')
     })
   }
   const deleteSaveSlot = (slotId) => {
@@ -1461,7 +1474,7 @@ Open CarrierSource to review your full account history.`
           />
         )}
 
-        {stage === 'start' && <StartOfficeBackdrop />}
+        {(stage === 'start' || stage === 'careerSetup') && <StartOfficeBackdrop />}
         {stage === 'market' && <EntryLiveMap stage={stage} selectedMarket={selectedMarket} />}
         {stage === 'start' && (
           <StartScreen
@@ -1472,15 +1485,34 @@ Open CarrierSource to review your full account history.`
             onStartNew={startNewOperation}
           />
         )}
+        {stage === 'careerSetup' && (
+          <CareerSetupScreen
+            profile={dispatcherProfile}
+            onBack={() => runMajorTransition('back', () => {
+              setResumeStage('careerSetup')
+              setStage('start')
+            })}
+            onContinue={(profile) => runMajorTransition('forward', () => {
+              setDispatcherProfile(profile)
+              setResumeStage('market')
+              setStage('market')
+            })}
+          />
+        )}
         {stage === 'market' && (
           <MarketSelectionScreen
             selectedMarket={selectedMarket}
             onSelectMarket={() => setSelectedMarket('new-york')}
             onBack={() => runMajorTransition('back', () => {
               setSelectedMarket(null)
-              setStage('start')
+              setResumeStage('careerSetup')
+              setStage('careerSetup')
             })}
             onConfirm={() => runMajorTransition('operations', () => {
+              setDispatcherProfile((current) => current ? {
+                ...current,
+                homeMarket: 'New York Metro',
+              } : current)
               setHasExistingOperation(true)
               setResumeStage('game')
               setIsGameClockPaused(false)

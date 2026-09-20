@@ -14029,3 +14029,249 @@
 }
 
 /* END B.5.4A.2.7 */
+
+/* =========================================================
+   B.5.4B.1 — New Player Career Start
+   ========================================================= */
+
+.career-setup-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 18px 17px 22px;
+  overflow-y: auto;
+  color: #edf2f6;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10, 13, 18, .20) 0%,
+      rgba(10, 13, 18, .45) 31%,
+      rgba(10, 13, 18, .91) 68%,
+      rgba(10, 13, 18, .98) 100%
+    );
+}
+
+.career-setup-topbar {
+  position: absolute;
+  top: 17px;
+  left: 17px;
+  right: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.career-setup-topbar > span {
+  color: rgba(221, 229, 237, .62);
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .14em;
+}
+
+.career-setup-back {
+  padding: 7px 9px;
+  border: 1px solid rgba(185, 199, 212, .22);
+  border-radius: 7px;
+  background: rgba(12, 16, 22, .58);
+  color: #d6dee7;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  backdrop-filter: blur(10px);
+}
+
+.career-setup-panel {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 17px;
+  display: grid;
+  gap: 15px;
+  border: 1px solid rgba(185, 199, 212, .20);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(24, 29, 37, .94),
+      rgba(15, 19, 26, .96)
+    );
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, .40),
+    inset 0 1px 0 rgba(255, 255, 255, .035);
+  backdrop-filter: blur(18px);
+}
+
+.career-setup-header {
+  display: grid;
+  gap: 6px;
+}
+
+.career-setup-kicker {
+  color: #9cafc1;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .17em;
+}
+
+.career-setup-header h1 {
+  margin: 0;
+  color: #f3f0f3;
+  font-size: 25px;
+  line-height: 1.04;
+  letter-spacing: -.025em;
+}
+
+.career-setup-header p {
+  margin: 0;
+  max-width: 330px;
+  color: #8f9dab;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.career-setup-form {
+  display: grid;
+  gap: 10px;
+}
+
+.career-setup-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.career-setup-form label > span,
+.career-business-type > span,
+.career-identity-preview > span {
+  color: #748496;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.career-setup-form input {
+  width: 100%;
+  height: 43px;
+  box-sizing: border-box;
+  padding: 0 11px;
+  border: 1px solid rgba(142, 163, 183, .28);
+  border-radius: 8px;
+  outline: none;
+  background: rgba(10, 14, 20, .72);
+  color: #eef3f7;
+  font: inherit;
+  font-size: 11px;
+}
+
+.career-setup-form input::placeholder {
+  color: #596675;
+}
+
+.career-setup-form input:focus {
+  border-color: rgba(194, 213, 231, .58);
+  box-shadow: 0 0 0 2px rgba(194, 213, 231, .06);
+}
+
+.career-business-type {
+  min-height: 43px;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  border: 1px solid rgba(120, 84, 118, .31);
+  border-radius: 8px;
+  background: rgba(88, 56, 84, .14);
+}
+
+.career-business-type strong {
+  color: #d8dfe7;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.career-identity-preview {
+  padding: 11px 12px;
+  display: grid;
+  gap: 4px;
+  border-left: 2px solid rgba(142, 163, 183, .52);
+  border-radius: 2px 8px 8px 2px;
+  background: rgba(11, 15, 21, .50);
+}
+
+.career-identity-preview strong {
+  color: #eef1f4;
+  font-size: 11px;
+  letter-spacing: .015em;
+}
+
+.career-identity-preview small {
+  color: #8795a4;
+  font-size: 8px;
+}
+
+.career-continue-button {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(194, 213, 231, .38);
+  border-radius: 9px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(83, 103, 122, .96),
+      rgba(54, 71, 88, .98)
+    );
+  color: #f5f7f9;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+
+.career-continue-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.career-continue-button:disabled {
+  opacity: .34;
+}
+
+/* END B.5.4B.1 */
+
+/* =========================================================
+   B.5.4B.1.1 — Career Setup iOS Input Fix
+   ========================================================= */
+
+/* Prevent iOS focus zoom without altering keyboard/layout behavior. */
+.career-setup-form input {
+  font-size: 16px !important;
+}
+
+/* END B.5.4B.1.1 */
+
+/* =========================================================
+   B.5.4B.1.2 — Career Setup Adaptive Position
+   ========================================================= */
+
+/* Resting state: let the artwork breathe and keep the panel grounded. */
+.career-setup-screen {
+  justify-content: flex-end !important;
+  padding-top: 18px !important;
+}
+
+.career-setup-panel {
+  margin-top: 0 !important;
+  transition: transform 220ms ease;
+}
+
+/* Editing state: lift only the panel above the overlaid keyboard. */
+.career-setup-screen.input-active {
+  justify-content: flex-start !important;
+  padding-top: 58px !important;
+}
+
+/* END B.5.4B.1.2 */
