@@ -1,14 +1,49 @@
+import { useState } from 'react'
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 import { SAVE_SLOT_IDS } from '../utils/saveGame.js'
 
 const marketNames = { 'new-york': 'New York' }
 
+function getOperationInfo(slot) {
+  const state = slot?.state || {}
+
+  const market =
+    marketNames[state.selectedMarket] ||
+    state.dispatcherProfile?.homeMarket ||
+    'Operation'
+
+  const time =
+    state.gameTime || {
+      gameDayIndex: 0,
+      totalMinutesOfDay: 360,
+    }
+
+  const businessName =
+    state.dispatcherProfile?.businessName ||
+    state.dispatcherProfile?.displayName ||
+    null
+
+  return {
+    name: businessName || `${market} Operation`,
+    market,
+    time,
+    operationDay:
+      Number(state.dayLoop?.operationDay) ||
+      Number(time.gameDayIndex || 0) + 1,
+  }
+}
+
+// B.5.4C — Manage Operations
 function StartScreen({
   saveSlots = [],
   activeSaveSlotId = null,
   onResumeSave,
+  onDeleteSave,
   onStartNew,
 }) {
+  const [manageOpen, setManageOpen] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState(null)
+
   const hasSavedOperation = saveSlots.length > 0
   const slotMap = new Map(saveSlots.map((slot) => [slot.id, slot]))
   const hasEmptySlot = saveSlots.length < SAVE_SLOT_IDS.length
@@ -18,19 +53,14 @@ function StartScreen({
     saveSlots[0] ||
     null
 
-  const otherSlots = currentSlot
-    ? saveSlots.filter((slot) => slot.id !== currentSlot.id)
-    : []
+  const currentInfo = currentSlot
+    ? getOperationInfo(currentSlot)
+    : null
 
-  const currentState = currentSlot?.state || {}
-  const currentMarket =
-    marketNames[currentState.selectedMarket] || 'Operation'
-
-  const currentTime =
-    currentState.gameTime || {
-      gameDayIndex: 0,
-      totalMinutesOfDay: 360,
-    }
+  const handleDelete = (slotId) => {
+    onDeleteSave?.(slotId)
+    setPendingDeleteId(null)
+  }
 
   return (
     <div className="entry-screen start-screen start-screen-v2 start-screen-cinematic">
@@ -64,19 +94,157 @@ function StartScreen({
         </header>
 
         <div className="start-cinematic-menu">
-          {hasSavedOperation ? (
+          {manageOpen ? (
+            <section className="start-operation-manager">
+              <header className="start-operation-manager-header">
+                <button
+                  type="button"
+                  className="start-operation-manager-back"
+                  onClick={() => {
+                    setPendingDeleteId(null)
+                    setManageOpen(false)
+                  }}
+                >
+                  ‹ BACK
+                </button>
+
+                <div>
+                  <span>DISPATCH NETWORK</span>
+                  <h2>Manage Operations</h2>
+                  <p>
+                    Continue an existing career, clear an old save,
+                    or begin a fresh operation.
+                  </p>
+                </div>
+              </header>
+
+              <div className="start-operation-slots">
+                {SAVE_SLOT_IDS.map((slotId, index) => {
+                  const slot = slotMap.get(slotId)
+
+                  if (!slot) {
+                    return (
+                      <article
+                        className="start-operation-slot empty"
+                        key={slotId}
+                      >
+                        <div className="start-operation-slot-heading">
+                          <span>
+                            OPERATION SLOT {String(index + 1).padStart(2, '0')}
+                          </span>
+                          <small>EMPTY</small>
+                        </div>
+
+                        <strong>New Dispatch Operation</strong>
+
+                        <p>
+                          Create a new business and begin from Day 1.
+                        </p>
+
+                        <button
+                          type="button"
+                          className="start-operation-slot-action new"
+                          onClick={() => onStartNew?.(slotId)}
+                        >
+                          START NEW OPERATION
+                          <span aria-hidden="true">›</span>
+                        </button>
+                      </article>
+                    )
+                  }
+
+                  const info = getOperationInfo(slot)
+                  const deleting = pendingDeleteId === slotId
+                  const active = activeSaveSlotId === slotId
+
+                  return (
+                    <article
+                      className={`start-operation-slot${active ? ' active' : ''}`}
+                      key={slotId}
+                    >
+                      <div className="start-operation-slot-heading">
+                        <span>
+                          OPERATION SLOT {String(index + 1).padStart(2, '0')}
+                        </span>
+
+                        {active && <small>CURRENT</small>}
+                      </div>
+
+                      <strong>{info.name}</strong>
+
+                      <p>
+                        {info.market}
+                        {' · '}
+                        Day {info.operationDay}
+                        {' · '}
+                        {formatCompactDate(info.time.gameDayIndex)}
+                        {' · '}
+                        {formatTime(info.time.totalMinutesOfDay)}
+                      </p>
+
+                      {!deleting ? (
+                        <div className="start-operation-slot-actions">
+                          <button
+                            type="button"
+                            className="start-operation-slot-action continue"
+                            onClick={() => onResumeSave?.(slotId)}
+                          >
+                            CONTINUE
+                          </button>
+
+                          <button
+                            type="button"
+                            className="start-operation-slot-delete"
+                            onClick={() => setPendingDeleteId(slotId)}
+                          >
+                            DELETE
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="start-operation-delete-confirm">
+                          <div>
+                            <strong>Delete this operation?</strong>
+                            <small>
+                              This career and its progress will be permanently removed.
+                            </small>
+                          </div>
+
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => setPendingDeleteId(null)}
+                            >
+                              CANCEL
+                            </button>
+
+                            <button
+                              type="button"
+                              className="danger"
+                              onClick={() => handleDelete(slotId)}
+                            >
+                              DELETE PERMANENTLY
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </article>
+                  )
+                })}
+              </div>
+            </section>
+          ) : hasSavedOperation ? (
             <>
               <div className="start-cinematic-operation">
                 <span>CURRENT OPERATION</span>
 
-                <strong>
-                  {currentMarket} Operation
-                </strong>
+                <strong>{currentInfo?.name}</strong>
 
                 <small>
-                  {formatCompactDate(currentTime.gameDayIndex)}
+                  {currentInfo?.market}
                   {' · '}
-                  {formatTime(currentTime.totalMinutesOfDay)}
+                  Day {currentInfo?.operationDay}
+                  {' · '}
+                  {formatTime(currentInfo?.time.totalMinutesOfDay)}
                 </small>
               </div>
 
@@ -93,57 +261,28 @@ function StartScreen({
                 <button
                   type="button"
                   className="start-menu-action secondary"
-                  onClick={onStartNew}
+                  onClick={() => onStartNew?.()}
                 >
                   <span>NEW OPERATION</span>
                   <span aria-hidden="true">›</span>
                 </button>
               )}
 
-              {otherSlots.length > 0 && (
-                <div className="start-cinematic-other">
-                  <span>OTHER OPERATIONS</span>
-
-                  {otherSlots.map((slot) => {
-                    const state = slot.state || {}
-
-                    const market =
-                      marketNames[state.selectedMarket] || 'Operation'
-
-                    const time =
-                      state.gameTime || {
-                        gameDayIndex: 0,
-                        totalMinutesOfDay: 360,
-                      }
-
-                    return (
-                      <button
-                        type="button"
-                        className="start-operation-switch"
-                        key={slot.id}
-                        onClick={() => onResumeSave?.(slot.id)}
-                      >
-                        <span>{market}</span>
-
-                        <small>
-                          {formatCompactDate(time.gameDayIndex)}
-                          {' · '}
-                          {formatTime(time.totalMinutesOfDay)}
-                        </small>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+              <button
+                type="button"
+                className="start-menu-action tertiary"
+                onClick={() => setManageOpen(true)}
+              >
+                <span>MANAGE OPERATIONS</span>
+                <span aria-hidden="true">›</span>
+              </button>
             </>
           ) : (
             <>
               <div className="start-cinematic-operation new-career">
                 <span>BEGIN YOUR DISPATCH CAREER</span>
 
-                <strong>
-                  Your operation starts here.
-                </strong>
+                <strong>Your operation starts here.</strong>
 
                 <small>
                   Build carrier relationships, manage drivers,
@@ -154,9 +293,18 @@ function StartScreen({
               <button
                 type="button"
                 className="start-menu-action primary"
-                onClick={onStartNew}
+                onClick={() => onStartNew?.()}
               >
                 <span>START NEW OPERATION</span>
+                <span aria-hidden="true">›</span>
+              </button>
+
+              <button
+                type="button"
+                className="start-menu-action tertiary"
+                onClick={() => setManageOpen(true)}
+              >
+                <span>MANAGE OPERATIONS</span>
                 <span aria-hidden="true">›</span>
               </button>
             </>

@@ -622,9 +622,18 @@ function App() {
     })
   }
 
-  const startNewOperation = () => {
+  const startNewOperation = (preferredSlotId = null) => {
     const used = new Set(saveSlots.map((slot) => slot.id))
-    const slotId = SAVE_SLOT_IDS.find((id) => !used.has(id))
+
+    const preferredAvailable =
+      preferredSlotId &&
+      SAVE_SLOT_IDS.includes(preferredSlotId) &&
+      !used.has(preferredSlotId)
+
+    const slotId = preferredAvailable
+      ? preferredSlotId
+      : SAVE_SLOT_IDS.find((id) => !used.has(id))
+
     if (!slotId) return
 
     runMajorTransition('forward', () => {

@@ -14391,3 +14391,1097 @@ html[data-docos-phone-nav="home"] .phone-page {
 }
 
 /* END B.5.4C.2 */
+
+
+/* =========================================================
+   B.5.4C.3A — Physical Paper Foundation
+   ========================================================= */
+
+/*
+   Paper is a physical object placed over the existing
+   DOC OS workspace. The underlying application remains
+   visible and spatially stable.
+*/
+
+.document-zoom-overlay.paperwork-sheet {
+  background: rgba(5, 8, 11, .46);
+  padding:
+    calc(18px + env(safe-area-inset-top))
+    16px
+    calc(18px + env(safe-area-inset-bottom));
+  align-items: center;
+  justify-content: center;
+  animation: docos-paper-backdrop-in 180ms ease-out both;
+}
+
+/* The shell itself becomes the sheet of paper. */
+.document-zoom-overlay.paperwork-sheet .document-zoom-shell {
+  position: relative;
+  width: min(92vw, 680px);
+  max-height: min(89dvh, 860px);
+  overflow: visible;
+
+  border: 1px solid #C5B59E;
+  border-radius: 5px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.12),
+      rgba(116,88,55,.025)
+    ),
+    #E9DFCF;
+
+  box-shadow:
+    0 18px 45px rgba(0,0,0,.38),
+    inset 0 0 0 1px rgba(255,255,255,.18);
+
+  animation: docos-paper-place 220ms cubic-bezier(.22,.72,.28,1) both;
+  transform-origin: center bottom;
+}
+
+/* Remove the app-like document toolbar. */
+.document-zoom-overlay.paperwork-sheet .document-zoom-toolbar {
+  position: absolute;
+  z-index: 5;
+  top: -44px;
+  left: 0;
+  right: 0;
+
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+
+  pointer-events: none;
+}
+
+.document-zoom-overlay.paperwork-sheet .document-zoom-toolbar > div {
+  display: none;
+}
+
+/* Only the close control floats above the physical sheet. */
+.document-zoom-overlay.paperwork-sheet .document-zoom-toolbar button {
+  pointer-events: auto;
+  margin-left: auto;
+
+  width: 36px;
+  height: 36px;
+
+  border: 1px solid rgba(109,122,138,.48);
+  border-radius: 18px;
+
+  background: rgba(15,18,21,.94);
+  color: #E4EAF0;
+
+  box-shadow: 0 7px 18px rgba(0,0,0,.28);
+}
+
+/* Paper owns the scroll area. */
+.document-zoom-overlay.paperwork-sheet .document-zoom-scroll {
+  min-height: 0;
+  padding: 0;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  background: transparent;
+  border-radius: 5px 5px 0 0;
+
+  color: #413830;
+  touch-action: pan-y;
+}
+
+/* Existing agreement becomes content printed on the sheet. */
+.document-zoom-overlay.paperwork-sheet .agreement-paper,
+.document-zoom-overlay.paperwork-sheet .docos-document-surface {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+
+  padding: 24px 20px 20px;
+
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+
+  color: #413830;
+}
+
+/* Masthead */
+.document-zoom-overlay.paperwork-sheet .agreement-paper-masthead {
+  border-bottom: 1px solid #C9BBA6;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-paper-masthead span {
+  color: #665A4E;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-paper-masthead h2 {
+  color: #2B241E;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-paper-masthead p {
+  color: #665A4E;
+}
+
+/* Labels + values */
+.document-zoom-overlay.paperwork-sheet
+:is(
+  .agreement-contract-parties,
+  .agreement-key-terms,
+  .agreement-operational-consequence,
+  .agreement-signature-form
+) span {
+  color: #665A4E !important;
+}
+
+.document-zoom-overlay.paperwork-sheet
+:is(
+  .agreement-contract-parties,
+  .agreement-key-terms,
+  .agreement-operational-consequence,
+  .agreement-signature-form
+) strong {
+  color: #2B241E !important;
+}
+
+/* Contract party divider */
+.document-zoom-overlay.paperwork-sheet .agreement-contract-parties {
+  border-bottom-color: #CFC1AD;
+}
+
+/* Interactive contract sections now resemble printed form blocks. */
+.document-zoom-overlay.paperwork-sheet .agreement-key-terms button {
+  background: rgba(255,255,255,.18);
+  border-color: #C9BBA6;
+  color: #413830;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-key-terms button small {
+  color: #665A4E !important;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-key-terms button b {
+  color: #5B5147;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-key-terms button.reviewed {
+  border-color: rgba(77,97,116,.72);
+  background: rgba(77,97,116,.075);
+}
+
+.document-zoom-overlay.paperwork-sheet
+.agreement-key-terms button.reviewed b {
+  color: #4D6174;
+}
+
+/* Printed callout / clause area */
+.document-zoom-overlay.paperwork-sheet .agreement-operational-consequence {
+  background: #E4D8C5;
+  border-color: #C5B59E;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-operational-consequence p {
+  color: #665A4E !important;
+}
+
+/* Signature area */
+.document-zoom-overlay.paperwork-sheet .agreement-signature-form {
+  border-color: #BFB099;
+  background: rgba(255,255,255,.13);
+}
+
+.document-zoom-overlay.paperwork-sheet .electronic-signature-copy p {
+  color: #665A4E !important;
+}
+
+/*
+   Footer visually continues the sheet instead of becoming
+   a separate dark software toolbar.
+*/
+.document-zoom-overlay.paperwork-sheet .document-zoom-footer {
+  border-top: 1px solid #C5B59E;
+  background: #E4D8C5;
+
+  padding:
+    12px 14px
+    calc(12px + env(safe-area-inset-bottom));
+
+  border-radius: 0 0 5px 5px;
+}
+
+/* Existing action retained; only its visual material changes. */
+.document-zoom-overlay.paperwork-sheet .document-sign-action {
+  min-height: 46px;
+
+  border: 1px solid #2B241E;
+  border-radius: 5px;
+
+  background: #2B241E;
+  color: #F2EADC;
+
+  box-shadow: none;
+}
+
+.document-zoom-overlay.paperwork-sheet .document-sign-action:disabled {
+  border-color: #A99B87;
+  background: #CFC1AD;
+  color: #786C5E;
+}
+
+/* Opening: paper is placed onto the workspace. No zoom. */
+@keyframes docos-paper-backdrop-in {
+  from { background-color: rgba(5,8,11,0); }
+  to   { background-color: rgba(5,8,11,.46); }
+}
+
+@keyframes docos-paper-place {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Closing: gently remove the sheet. */
+.document-zoom-overlay.paperwork-sheet.closing {
+  animation: docos-paper-backdrop-out 175ms ease-in both;
+}
+
+.document-zoom-overlay.paperwork-sheet.closing .document-zoom-shell {
+  animation: docos-paper-remove 175ms ease-in both;
+  pointer-events: none;
+}
+
+@keyframes docos-paper-backdrop-out {
+  from { background-color: rgba(5,8,11,.46); }
+  to   { background-color: rgba(5,8,11,0); }
+}
+
+@keyframes docos-paper-remove {
+  from {
+    opacity: 1;
+    transform: translate3d(0,0,0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(0,22px,0);
+  }
+}
+
+@media (max-width: 420px) {
+  .document-zoom-overlay.paperwork-sheet {
+    padding:
+      calc(54px + env(safe-area-inset-top))
+      14px
+      calc(22px + env(safe-area-inset-bottom));
+  }
+
+  .document-zoom-overlay.paperwork-sheet .document-zoom-shell {
+    width: 92vw;
+    max-height: 86dvh;
+  }
+
+  .document-zoom-overlay.paperwork-sheet .agreement-paper,
+  .document-zoom-overlay.paperwork-sheet .docos-document-surface {
+    padding: 21px 17px 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .document-zoom-overlay.paperwork-sheet,
+  .document-zoom-overlay.paperwork-sheet .document-zoom-shell,
+  .document-zoom-overlay.paperwork-sheet.closing,
+  .document-zoom-overlay.paperwork-sheet.closing .document-zoom-shell {
+    animation: none !important;
+  }
+}
+
+/* END B.5.4C.3A */
+
+
+/* =========================================================
+   B.5.4C — Manage Operations
+   ========================================================= */
+
+.start-menu-action.tertiary {
+  border-color: rgba(142,163,183,.28);
+  background: rgba(15,18,21,.48);
+  color: #AEBCCA;
+}
+
+.start-menu-action.tertiary:active {
+  background: rgba(27,32,38,.76);
+}
+
+.start-operation-manager {
+  width: min(430px, 92vw);
+  max-height: min(67vh, 620px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(142,163,183,.22);
+  border-radius: 12px;
+  background: rgba(12,15,18,.86);
+  box-shadow: 0 24px 60px rgba(0,0,0,.34);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: docos-operation-manager-in 180ms ease-out both;
+}
+
+.start-operation-manager-header {
+  display: grid;
+  gap: 12px;
+}
+
+.start-operation-manager-back {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  color: #9FB0BF;
+  padding: 0;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.start-operation-manager-header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.start-operation-manager-header span {
+  color: #8EA3B7;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.start-operation-manager-header h2 {
+  margin: 0;
+  color: #EEF3F7;
+  font-size: 22px;
+}
+
+.start-operation-manager-header p {
+  margin: 0;
+  color: #91A0AE;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.start-operation-slots {
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 9px;
+  padding-right: 2px;
+}
+
+.start-operation-slot {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(95,109,124,.44);
+  border-radius: 9px;
+  background: rgba(20,24,29,.82);
+}
+
+.start-operation-slot.active {
+  border-color: rgba(181,154,203,.50);
+  box-shadow: inset 2px 0 0 rgba(181,154,203,.62);
+}
+
+.start-operation-slot.empty {
+  border-style: dashed;
+  background: rgba(15,18,21,.54);
+}
+
+.start-operation-slot-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.start-operation-slot-heading > span {
+  color: #7F91A2;
+  font-size: 7.5px;
+  font-weight: 900;
+  letter-spacing: .13em;
+}
+
+.start-operation-slot-heading > small {
+  color: #B59ACB;
+  font-size: 7.5px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.start-operation-slot > strong {
+  color: #E4ECF3;
+  font-size: 13px;
+}
+
+.start-operation-slot > p {
+  margin: 0;
+  color: #8EA3B7;
+  font-size: 9px;
+}
+
+.start-operation-slot-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.start-operation-slot-action,
+.start-operation-slot-delete {
+  min-height: 36px;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .09em;
+}
+
+.start-operation-slot-action {
+  border: 1px solid rgba(142,163,183,.36);
+  background: rgba(39,47,56,.82);
+  color: #DFE8EF;
+}
+
+.start-operation-slot-action.new {
+  width: 100%;
+}
+
+.start-operation-slot-delete {
+  padding: 0 12px;
+  border: 1px solid rgba(155,88,88,.34);
+  background: rgba(89,44,44,.14);
+  color: #C9A5A5;
+}
+
+.start-operation-delete-confirm {
+  display: grid;
+  gap: 9px;
+  padding-top: 3px;
+}
+
+.start-operation-delete-confirm > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.start-operation-delete-confirm strong {
+  color: #E7D7D7;
+  font-size: 10px;
+}
+
+.start-operation-delete-confirm small {
+  color: #A88F8F;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.start-operation-delete-confirm > div:last-child {
+  display: grid;
+  grid-template-columns: .75fr 1.25fr;
+  gap: 7px;
+}
+
+.start-operation-delete-confirm button {
+  min-height: 35px;
+  border: 1px solid #3A454F;
+  border-radius: 7px;
+  background: #191E23;
+  color: #AEBAC5;
+  font: inherit;
+  font-size: 7.5px;
+  font-weight: 900;
+  letter-spacing: .07em;
+}
+
+.start-operation-delete-confirm button.danger {
+  border-color: rgba(181,86,86,.55);
+  background: rgba(111,48,48,.30);
+  color: #E0B0B0;
+}
+
+@keyframes docos-operation-manager-in {
+  from {
+    opacity: 0;
+    transform: translate3d(10px,0,0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0,0,0);
+  }
+}
+
+@media (max-width: 520px) {
+  .start-operation-manager {
+    width: 100%;
+    max-height: 64vh;
+    padding: 13px;
+  }
+}
+
+/* END B.5.4C — Manage Operations */
+
+/* =========================================================
+   B.5.4C.3A.1 — Paper Realism Pass
+   ========================================================= */
+
+/* This pass makes the agreement feel less like a beige modal
+   and more like a physical cream business document. */
+
+.document-zoom-overlay.paperwork-sheet {
+  background: rgba(5, 8, 11, .38);
+}
+
+/* The sheet itself should feel flatter, sharper, and more physical. */
+.document-zoom-overlay.paperwork-sheet .document-zoom-shell {
+  border-radius: 2px !important;
+  border: 1px solid #C7B79F !important;
+
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.16), rgba(140,110,75,.035)),
+    linear-gradient(90deg, rgba(255,255,255,.04), rgba(0,0,0,.015)),
+    #E9DFCF !important;
+
+  box-shadow:
+    0 22px 54px rgba(0,0,0,.36),
+    0 1px 0 rgba(255,255,255,.26) inset,
+    0 -1px 0 rgba(166,148,123,.18) inset !important;
+
+  overflow: hidden;
+}
+
+/* Light paper texture */
+.document-zoom-overlay.paperwork-sheet .document-zoom-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .18;
+  background-image:
+    radial-gradient(rgba(90,70,45,.07) .6px, transparent .7px),
+    radial-gradient(rgba(255,255,255,.22) .45px, transparent .55px);
+  background-size: 8px 8px, 13px 13px;
+  background-position: 0 0, 4px 5px;
+  mix-blend-mode: multiply;
+}
+
+/* Slight page-edge depth */
+.document-zoom-overlay.paperwork-sheet .document-zoom-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    inset 0 0 18px rgba(120,96,68,.05);
+}
+
+/* Less "floating app" close button, more subtle utility control */
+.document-zoom-overlay.paperwork-sheet .document-zoom-toolbar button {
+  width: 34px;
+  height: 34px;
+  border-radius: 17px;
+  border: 1px solid rgba(113,124,137,.42);
+  background: rgba(10, 13, 17, .88);
+  color: #E7EDF2;
+}
+
+/* Content should feel printed, not padded like an app card */
+.document-zoom-overlay.paperwork-sheet .agreement-paper,
+.document-zoom-overlay.paperwork-sheet .docos-document-surface {
+  padding: 26px 22px 18px !important;
+  border-radius: 0 !important;
+}
+
+/* Sharpen masthead print feeling */
+.document-zoom-overlay.paperwork-sheet .agreement-paper-masthead {
+  border-bottom-color: #C8B8A0 !important;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-paper-masthead span {
+  color: #726658 !important;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-paper-masthead h2 {
+  color: #2B241E !important;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-paper-masthead p {
+  color: #6C6054 !important;
+}
+
+/* Make info areas look more like printed document sections */
+.document-zoom-overlay.paperwork-sheet .agreement-contract-parties {
+  border-bottom: 1px solid #CFC1AD !important;
+  padding-bottom: 14px;
+}
+
+/* The big offender: these look like app cards.
+   Flatten them and make them feel like printed form blocks. */
+.document-zoom-overlay.paperwork-sheet .agreement-key-terms button {
+  border-radius: 2px !important;
+  border: 1px solid #C9BBA6 !important;
+  background: rgba(255,255,255,.10) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -1px 0 rgba(170,149,121,.06) !important;
+  color: #413830 !important;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-key-terms button:hover,
+.document-zoom-overlay.paperwork-sheet .agreement-key-terms button:active {
+  background: rgba(255,255,255,.14) !important;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-key-terms button small {
+  color: #73675A !important;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-key-terms button strong {
+  color: #2F2923 !important;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-key-terms button b {
+  color: #62564B !important;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-key-terms button.reviewed {
+  background: rgba(77,97,116,.06) !important;
+  border-color: #A7AAAE !important;
+}
+
+.document-zoom-overlay.paperwork-sheet .agreement-key-terms button.reviewed b {
+  color: #4D6174 !important;
+}
+
+/* Callout block should read like a boxed note on paper */
+.document-zoom-overlay.paperwork-sheet .agreement-operational-consequence {
+  border-radius: 2px !important;
+  background: rgba(224, 214, 196, .72) !important;
+  border: 1px solid #C4B49B !important;
+}
+
+/* Signature area should feel like form area, not software card */
+.document-zoom-overlay.paperwork-sheet .agreement-signature-form {
+  border-radius: 2px !important;
+  border: 1px solid #BFAF98 !important;
+  background: rgba(255,255,255,.08) !important;
+}
+
+/* Bottom should feel like the end of the document, not a modal footer */
+.document-zoom-overlay.paperwork-sheet .document-zoom-footer {
+  border-top: 1px solid #C5B59E !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(146,118,82,.03)),
+    #E4D8C5 !important;
+  padding: 14px 14px calc(12px + env(safe-area-inset-bottom)) !important;
+}
+
+.document-zoom-overlay.paperwork-sheet .document-sign-action {
+  min-height: 44px !important;
+  border-radius: 2px !important;
+  border: 1px solid #A99A84 !important;
+  background: rgba(198,184,162,.55) !important;
+  color: #786C5E !important;
+  letter-spacing: .16em !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 -1px 0 rgba(138,118,91,.08) !important;
+}
+
+.document-zoom-overlay.paperwork-sheet .document-sign-action:not(:disabled) {
+  border-color: #2B241E !important;
+  background: #2B241E !important;
+  color: #F2EADC !important;
+}
+
+/* Slightly reduce visual "card" vibe on mobile */
+@media (max-width: 420px) {
+  .document-zoom-overlay.paperwork-sheet .agreement-paper,
+  .document-zoom-overlay.paperwork-sheet .docos-document-surface {
+    padding: 24px 18px 18px !important;
+  }
+}
+
+/* END B.5.4C.3A.1 */
+
+/* =========================================================
+   B.5.4C.3A.2 — Printed Contract Structure
+   ========================================================= */
+
+/* Paper stock */
+.document-zoom-overlay.paperwork-sheet .document-zoom-shell {
+  border-radius: 1px !important;
+  border-color: #C9B99F !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.20),
+      rgba(128,96,58,.025)
+    ),
+    #F0E6D4 !important;
+
+  box-shadow:
+    0 24px 58px rgba(0,0,0,.36),
+    inset 0 0 0 1px rgba(255,255,255,.20) !important;
+}
+
+.document-zoom-overlay.paperwork-sheet {
+  background: rgba(5,8,11,.34) !important;
+}
+
+/* Main document */
+.document-zoom-overlay.paperwork-sheet
+.agreement-paper-v2 {
+  padding: 30px 24px 26px !important;
+  background: transparent !important;
+  color: #3E352C !important;
+}
+
+/* Header */
+.agreement-v2-masthead {
+  display: grid;
+  gap: 7px;
+  padding-bottom: 19px;
+  border-bottom: 1px solid #C6B69E;
+}
+
+.agreement-v2-masthead > span {
+  color: #726456;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .18em;
+}
+
+.agreement-v2-masthead h2 {
+  margin: 0;
+  color: #29221C;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 25px;
+  line-height: 1.05;
+  font-weight: 700;
+}
+
+.agreement-v2-document-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 14px;
+}
+
+.agreement-v2-document-meta p,
+.agreement-v2-document-meta small {
+  margin: 0;
+  color: #6D6052;
+}
+
+.agreement-v2-document-meta p {
+  font-size: 10px;
+}
+
+.agreement-v2-document-meta small {
+  flex: 0 0 auto;
+  font-size: 8px;
+  letter-spacing: .04em;
+}
+
+/* Parties */
+.agreement-v2-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  padding: 17px 0 18px;
+  border-bottom: 1px solid #CFC1AD;
+}
+
+.agreement-v2-parties > div {
+  display: grid;
+  gap: 4px;
+}
+
+.agreement-v2-parties span {
+  color: #75685A;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.agreement-v2-parties strong {
+  color: #322A23;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13px;
+}
+
+/* Contract clauses — intentionally NOT cards */
+.agreement-v2-clauses {
+  display: grid;
+}
+
+.agreement-v2-clause {
+  width: 100%;
+  min-height: 0;
+
+  display: grid;
+  grid-template-columns: 28px 1fr 23px;
+  gap: 10px;
+  align-items: start;
+
+  padding: 16px 0;
+
+  border: 0;
+  border-bottom: 1px solid #D2C5B2;
+  border-radius: 0;
+
+  background: transparent;
+
+  color: #40372F;
+  text-align: left;
+  font: inherit;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+.agreement-v2-clause:first-child {
+  border-top: 0;
+}
+
+.agreement-v2-number {
+  padding-top: 2px;
+
+  color: #887A6B;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.agreement-v2-clause-copy {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.agreement-v2-clause-copy > span {
+  color: #756759;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.agreement-v2-clause-copy strong {
+  color: #2D2721;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.agreement-v2-clause-copy p {
+  margin: 0;
+
+  color: #6A5F53;
+  font-size: 9.5px;
+  line-height: 1.45;
+}
+
+/* Small printed checkbox */
+.agreement-v2-check {
+  width: 19px;
+  height: 19px;
+
+  display: grid;
+  place-items: center;
+
+  margin-top: 1px;
+
+  border: 1px solid #A99B88;
+  border-radius: 1px;
+
+  color: transparent;
+
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.agreement-v2-clause.reviewed
+.agreement-v2-check {
+  border-color: #526779;
+  background: #526779;
+  color: #F1E7D5;
+}
+
+.agreement-v2-clause.reviewed
+.agreement-v2-clause-copy > span {
+  color: #526779;
+}
+
+/* Small printed operational note */
+.agreement-v2-system-note {
+  margin: 18px 0 0;
+  padding: 0 0 0 12px;
+
+  border-left: 2px solid #AFA18D;
+}
+
+.agreement-v2-system-note span {
+  color: #77695B;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.agreement-v2-system-note p {
+  margin: 5px 0 0;
+
+  color: #62574C;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+/* Signature area is part of the document */
+.agreement-v2-signature {
+  display: grid;
+  gap: 15px;
+
+  margin-top: 24px;
+  padding-top: 19px;
+
+  border-top: 1px solid #BFAF98;
+}
+
+.agreement-v2-signature-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.agreement-v2-signature-heading span {
+  color: #756759;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.agreement-v2-signature-heading p {
+  margin: 0;
+
+  color: #6A5E52;
+  font-size: 9px;
+}
+
+.agreement-v2-signature-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 15px;
+  align-items: end;
+}
+
+.agreement-v2-signature-line {
+  display: grid;
+  gap: 5px;
+}
+
+.agreement-v2-signature-line span {
+  color: #817364;
+  font-size: 7.5px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.agreement-v2-signature-line strong {
+  color: #332B24;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13px;
+}
+
+.agreement-v2-signature-line i {
+  display: block;
+  height: 1px;
+  background: #9E8F7B;
+}
+
+/* Compact form action, not giant software footer */
+.agreement-v2-sign {
+  min-width: 126px;
+  min-height: 38px;
+
+  padding: 0 13px;
+
+  border: 1px solid #8F806D;
+  border-radius: 1px;
+
+  background: transparent;
+  color: #554A40;
+
+  font: inherit;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+
+.agreement-v2-sign:not(:disabled) {
+  border-color: #354B5E;
+  background: #354B5E;
+  color: #F1E7D5;
+}
+
+.agreement-v2-sign:disabled {
+  opacity: .56;
+}
+
+.agreement-v2-acceptance-note {
+  color: #817466;
+  font-size: 7.5px;
+  line-height: 1.4;
+}
+
+/* Remove any leftover app-footer presentation */
+.document-zoom-overlay.paperwork-sheet
+.document-zoom-footer {
+  display: none !important;
+}
+
+/* Mobile */
+@media (max-width: 420px) {
+
+  .document-zoom-overlay.paperwork-sheet
+  .agreement-paper-v2 {
+    padding: 26px 18px 23px !important;
+  }
+
+  .agreement-v2-masthead h2 {
+    font-size: 23px;
+  }
+
+  .agreement-v2-clause {
+    grid-template-columns: 25px 1fr 21px;
+    gap: 8px;
+    padding: 15px 0;
+  }
+
+  .agreement-v2-signature-row {
+    grid-template-columns: 1fr;
+  }
+
+  .agreement-v2-sign {
+    width: 100%;
+  }
+}
+
+/* END B.5.4C.3A.2 */
