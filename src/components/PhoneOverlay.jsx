@@ -24,6 +24,7 @@ import BusinessDocumentDetailScreen from './BusinessDocumentDetailScreen.jsx'
 import OperationalDocumentViewer from './OperationalDocumentViewer.jsx'
 // B.5.4C.4.1 — Rate Confirmation Comparison Desk
 import RateConfirmationWorkspace from './RateConfirmationWorkspace.jsx'
+import PodReviewWorkspace from './PodReviewWorkspace.jsx'
 import mapLocations from '../data/mapLocations.js'
 import { getReceivables } from '../utils/ledger.js'
 import { formatTime } from '../utils/gameTime.js'
@@ -527,7 +528,39 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
       ) : screen === 'businessDocumentDetail' ? (
         <BusinessDocumentDetailScreen document={businessDocuments.find((document) => document.id === selectedBusinessDocumentId)} onBack={() => { if (documentReturnScreen === 'documents') setDocumentsTab('archive'); setScreen(documentReturnScreen || 'documents') }} />
       ) : screen === 'podDetail' ? (
-        <PodDetailScreen load={loads.find((load) => load.id === selectedLoadId)} driver={drivers.find((driver) => driver.id === (loads.find((load) => load.id === selectedLoadId)?.assignedDriverId ?? loads.find((load) => load.id === selectedLoadId)?.completedDriverId))} delivery={mapLocations.find((location) => location.id === loads.find((load) => load.id === selectedLoadId)?.deliveryLocationId)} readOnly={Boolean(loads.find((load) => load.id === selectedLoadId)?.pod?.approved)} onUpdateVerification={updatePodVerification} onApprovePod={() => onApprovePod?.(selectedLoadId)} onRequestCorrection={() => { const load = loads.find((item) => item.id === selectedLoadId); const carrier = carriers.find((item) => item.id === load?.carrierId) || carriers[0]; openComposer({ workflowType: 'pod-correction', label: 'POD CORRECTION', loadId: selectedLoadId, loadNumber: load ? getFreightRouteName(load) : 'Route', suggestedRecipientId: `${carrier?.id || 'metroline'}-documents`, subject: `POD correction required · ${load ? getFreightRouteName(load) : 'Route'}`, body: `Hello,\n\nThe submitted POD does not match the shipment record. Please review the attached POD and exception documentation and return a corrected copy.\n\nThank you,\nDOC OS Dispatch`, returnScreen: 'podDetail' }) }} onBack={() => setScreen(documentReturnScreen || 'documents')} />
+        <PodReviewWorkspace
+          load={loads.find((load) => load.id === selectedLoadId)}
+          driver={drivers.find((driver) =>
+            driver.id === (
+              loads.find((load) => load.id === selectedLoadId)?.assignedDriverId ??
+              loads.find((load) => load.id === selectedLoadId)?.completedDriverId
+            )
+          )}
+          delivery={mapLocations.find((location) =>
+            location.id === loads.find((load) => load.id === selectedLoadId)?.deliveryLocationId
+          )}
+          readOnly={Boolean(loads.find((load) => load.id === selectedLoadId)?.pod?.approved)}
+          onUpdateVerification={updatePodVerification}
+          onApprovePod={() => onApprovePod?.(selectedLoadId)}
+          onRequestCorrection={() => {
+            const load = loads.find((item) => item.id === selectedLoadId)
+            const carrier =
+              carriers.find((item) => item.id === load?.carrierId) ||
+              carriers[0]
+        
+            openComposer({
+              workflowType: 'pod-correction',
+              label: 'POD CORRECTION',
+              loadId: selectedLoadId,
+              loadNumber: load ? getFreightRouteName(load) : 'Route',
+              suggestedRecipientId: `${carrier?.id || 'metroline'}-documents`,
+              subject: `POD correction required · ${load ? getFreightRouteName(load) : 'Route'}`,
+              body: `Hello,\n\nThe submitted POD does not match the shipment record. Please review the attached POD and exception documentation and return a corrected copy.\n\nThank you,\nDOC OS Dispatch`,
+              returnScreen: 'podDetail',
+            })
+          }}
+          onBack={() => setScreen(documentReturnScreen || 'documents')}
+        />
       ) : screen === 'dispatcherProfile' ? (
         <BrowserScreen key={screen} page="carriersource.local/signup" onBack={() => setScreen('carrierSource')} onHome={() => setScreen('browser')} showSiteBranding={false}><DispatcherProfileScreen profile={dispatcherProfile} onBack={() => setScreen('carrierSource')} onSave={(profile) => { onSaveDispatcherProfile?.(profile); setScreen('carrierSource') }} /></BrowserScreen>
       ) : screen === 'carrierSource' || screen === 'carrierOpportunity' ? (
