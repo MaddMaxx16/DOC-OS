@@ -22,6 +22,8 @@ import MessagesScreen from './MessagesScreen.jsx'
 import DriverMessageThreadScreen from './DriverMessageThreadScreen.jsx'
 import BusinessDocumentDetailScreen from './BusinessDocumentDetailScreen.jsx'
 import OperationalDocumentViewer from './OperationalDocumentViewer.jsx'
+// B.5.4C.4.1 — Rate Confirmation Comparison Desk
+import RateConfirmationWorkspace from './RateConfirmationWorkspace.jsx'
 import mapLocations from '../data/mapLocations.js'
 import { getReceivables } from '../utils/ledger.js'
 import { formatTime } from '../utils/gameTime.js'
@@ -561,7 +563,82 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
         </BrowserScreen>
       ) : null}
         </div>
-        {previewAttachment && <OperationalDocumentViewer attachment={previewAttachment} loads={loads} workflows={ledgerWorkflowByLoadId} businessDocuments={businessDocuments} onClose={() => setPreviewAttachment(null)} onRateConCheck={(loadId, key, value) => setLoads((current) => current.map((load) => load.id === loadId && load.rateConfirmation ? { ...load, rateConfirmation: { ...load.rateConfirmation, reviewChecks: { ...(load.rateConfirmation.reviewChecks || {}), [key]: value }, reviewStatus: 'IN_REVIEW' } } : load))} onConfirmRateCon={(loadId) => setLoads((current) => current.map((load) => load.id === loadId && load.rateConfirmation ? { ...load, rateConfirmation: { ...load.rateConfirmation, status: 'CONFIRMED', reviewStatus: 'CONFIRMED', confirmedGameMinute: nowGameMinute } } : load))} onRequestRateConCorrection={(loadId) => { const load = loads.find((item) => item.id === loadId); const carrier = carriers.find((item) => item.id === load?.carrierId) || carriers[0]; setPreviewAttachment(null); openComposer({ workflowType: 'ratecon-correction', label: 'RATE CONFIRMATION CORRECTION', loadId, loadNumber: load ? getFreightRouteName(load) : 'Route', suggestedRecipientId: `${carrier?.id || 'metroline'}-documents`, subject: `Rate Confirmation correction required · ${load ? getFreightRouteName(load) : 'Route'}`, body: `Please review the attached FreightLink offer and Rate Confirmation. The Rate Confirmation contains a discrepancy and a corrected copy is required.`, attachmentIds: [`load-offer:${loadId}`, load?.rateConfirmation?.id].filter(Boolean), returnScreen: 'documents' }) }} />}
+        {previewAttachment?.type === 'rate-confirmation' && (
+          <RateConfirmationWorkspace
+            attachment={previewAttachment}
+            loads={loads}
+            onClose={() => setPreviewAttachment(null)}
+            onRateConCheck={(loadId, key, value) =>
+              setLoads((current) =>
+                current.map((load) =>
+                  load.id === loadId && load.rateConfirmation
+                    ? {
+                        ...load,
+                        rateConfirmation: {
+                          ...load.rateConfirmation,
+                          reviewChecks: {
+                            ...(load.rateConfirmation.reviewChecks || {}),
+                            [key]: value,
+                          },
+                          reviewStatus: 'IN_REVIEW',
+                        },
+                      }
+                    : load
+                )
+              )
+            }
+            onConfirmRateCon={(loadId) =>
+              setLoads((current) =>
+                current.map((load) =>
+                  load.id === loadId && load.rateConfirmation
+                    ? {
+                        ...load,
+                        rateConfirmation: {
+                          ...load.rateConfirmation,
+                          status: 'CONFIRMED',
+                          reviewStatus: 'CONFIRMED',
+                          confirmedGameMinute: nowGameMinute,
+                        },
+                      }
+                    : load
+                )
+              )
+            }
+            onRequestRateConCorrection={(loadId) => {
+              const load = loads.find((item) => item.id === loadId)
+              const carrier =
+                carriers.find((item) => item.id === load?.carrierId) ||
+                carriers[0]
+        
+              setPreviewAttachment(null)
+        
+              openComposer({
+                workflowType: 'ratecon-correction',
+                label: 'RATE CONFIRMATION CORRECTION',
+                loadId,
+                loadNumber: load ? getFreightRouteName(load) : 'Route',
+                suggestedRecipientId: `${carrier?.id || 'metroline'}-documents`,
+                subject: `Rate Confirmation correction required · ${load ? getFreightRouteName(load) : 'Route'}`,
+                body: 'Please review the attached FreightLink offer and Rate Confirmation. The Rate Confirmation contains a discrepancy and a corrected copy is required.',
+                attachmentIds: [
+                  `load-offer:${loadId}`,
+                  load?.rateConfirmation?.id,
+                ].filter(Boolean),
+                returnScreen: 'documents',
+              })
+            }}
+          />
+        )}
+
+        {previewAttachment && previewAttachment.type !== 'rate-confirmation' && (
+          <OperationalDocumentViewer
+            attachment={previewAttachment}
+            loads={loads}
+            workflows={ledgerWorkflowByLoadId}
+            businessDocuments={businessDocuments}
+            onClose={() => setPreviewAttachment(null)}
+          />
+        )}
         <div className="phone-navigation-bar">
           <button type="button" className="phone-home-button" onClick={() => setScreen('home')} aria-label="Phone home">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 10.5 12 4l7.5 6.5v8.75H14v-5.5h-4v5.5H4.5V10.5Z"/></svg>

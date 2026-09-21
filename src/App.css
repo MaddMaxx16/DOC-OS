@@ -16989,3 +16989,606 @@ html[data-docos-phone-nav="home"] .phone-page {
 }
 
 /* END B.5.4C.3.2.2 */
+
+
+/* =========================================================
+   B.5.4C.4.1 — Rate Confirmation Comparison Desk
+   ========================================================= */
+
+.ratecon-workspace-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 21000;
+  overflow: hidden;
+  background: rgba(4, 6, 8, .72);
+  backdrop-filter: blur(2px) brightness(.55);
+  -webkit-backdrop-filter: blur(2px) brightness(.55);
+  animation: ratecon-workspace-open 190ms ease-out both;
+}
+
+.ratecon-workspace-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse at 48% 38%,
+      rgba(70, 59, 45, .28),
+      transparent 58%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(20, 19, 16, .88),
+      rgba(9, 10, 10, .94)
+    );
+  color: #D8E1E8;
+}
+
+.ratecon-workspace-toolbar {
+  position: relative;
+  z-index: 30;
+  flex: 0 0 auto;
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding:
+    calc(6px + env(safe-area-inset-top))
+    12px
+    6px;
+  border-bottom: 1px solid rgba(150,132,108,.18);
+  background: rgba(8,10,11,.68);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.ratecon-workspace-toolbar > button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(141,153,164,.32);
+  border-radius: 50%;
+  background: rgba(23,27,31,.74);
+  color: #D8E1E8;
+  font-size: 20px;
+}
+
+.ratecon-workspace-toolbar > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.ratecon-workspace-toolbar span {
+  color: #968B7C;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.ratecon-workspace-toolbar strong {
+  overflow: hidden;
+  color: #E2E7EA;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ratecon-workspace-toolbar > small {
+  color: #9A8E7E;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+.ratecon-desk {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ratecon-desk-folder {
+  position: absolute;
+  z-index: 1;
+  left: 6%;
+  top: 19%;
+  width: 88%;
+  height: 68%;
+  padding: 20px;
+  transform: rotate(-1.2deg);
+  border: 1px solid #897554;
+  border-radius: 2px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.08), transparent 42%),
+    #B49B72;
+  color: #54452F;
+  box-shadow: 0 18px 38px rgba(0,0,0,.28);
+}
+
+.ratecon-desk-folder span {
+  display: block;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.ratecon-desk-folder strong {
+  display: block;
+  margin-top: 4px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14px;
+}
+
+.ratecon-desk-folder small {
+  display: block;
+  margin-top: 3px;
+  font-size: 8px;
+}
+
+.ratecon-paper-layer {
+  position: absolute;
+  transition:
+    transform 210ms cubic-bezier(.22,.72,.28,1),
+    left 210ms cubic-bezier(.22,.72,.28,1),
+    top 210ms cubic-bezier(.22,.72,.28,1);
+}
+
+.ratecon-paper-layer.front {
+  z-index: 10;
+}
+
+.ratecon-paper-layer.rear {
+  z-index: 5;
+}
+
+.ratecon-paper-layer.rear > *:not(.ratecon-paper-hitbox) {
+  pointer-events: none;
+}
+
+.ratecon-paper-hitbox {
+  position: absolute;
+  z-index: 40;
+  inset: 0;
+  border: 0;
+  background: transparent;
+}
+
+.ratecon-offer-layer {
+  left: 3%;
+  top: 12%;
+  width: 76%;
+  height: 76%;
+}
+
+.ratecon-offer-layer.rear {
+  transform: translate3d(-13px, 24px, 0) rotate(-3deg);
+}
+
+.ratecon-offer-layer.front {
+  left: 11%;
+  top: 7%;
+  width: 78%;
+  height: 82%;
+  transform: rotate(-.45deg);
+}
+
+.ratecon-document-layer {
+  left: 14%;
+  top: 4%;
+  width: 81%;
+  height: 91%;
+}
+
+.ratecon-document-layer.front {
+  transform: rotate(.35deg);
+}
+
+.ratecon-document-layer.rear {
+  transform: translate3d(27px, 28px, 0) rotate(2.2deg);
+}
+
+.ratecon-physical-paper {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 1px;
+  box-shadow: 0 26px 58px rgba(0,0,0,.40);
+}
+
+.freightlink-offer-paper {
+  padding: 23px 20px;
+  border: 1px solid #B8C0BD;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.28), rgba(75,95,100,.02)),
+    #E7E9E4;
+  color: #303834;
+}
+
+.carrier-ratecon-paper {
+  display: grid;
+  grid-template-rows: auto auto auto auto minmax(0,1fr) auto;
+  padding: 19px 17px 14px;
+  border: 1px solid #C9B99F;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.16), rgba(128,96,58,.02)),
+    #F0E6D4;
+  color: #3E352C;
+}
+
+.ratecon-paper-masthead {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #C4B7A3;
+}
+
+.ratecon-paper-masthead span {
+  color: #6F746C;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+
+.ratecon-paper-masthead h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  line-height: 1.05;
+}
+
+.ratecon-paper-masthead p {
+  margin: 0;
+  color: #6B6257;
+  font-size: 8px;
+}
+
+.ratecon-paper-masthead.offer {
+  border-bottom-color: #AEBBB9;
+}
+
+.ratecon-paper-masthead.offer span {
+  color: #586F73;
+}
+
+.ratecon-paper-masthead.offer h2 {
+  color: #2D3838;
+}
+
+.ratecon-offer-route,
+.ratecon-carrier-route {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(124,112,95,.30);
+}
+
+.ratecon-offer-route > div,
+.ratecon-carrier-route > div,
+.ratecon-carrier-meta > div,
+.ratecon-carrier-money > div,
+.ratecon-offer-grid > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.ratecon-offer-route span,
+.ratecon-carrier-route span,
+.ratecon-carrier-meta span,
+.ratecon-carrier-money span,
+.ratecon-offer-grid span {
+  color: #756A5D;
+  font-size: 6.5px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.ratecon-offer-route strong,
+.ratecon-carrier-route strong,
+.ratecon-carrier-meta strong,
+.ratecon-carrier-money strong,
+.ratecon-offer-grid strong {
+  overflow-wrap: anywhere;
+  font-size: 9px;
+}
+
+.ratecon-offer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid #B9C0BB;
+  border-left: 1px solid #B9C0BB;
+  margin-top: 14px;
+}
+
+.ratecon-offer-grid > div {
+  padding: 11px 9px;
+  border-right: 1px solid #B9C0BB;
+  border-bottom: 1px solid #B9C0BB;
+}
+
+.ratecon-offer-reference {
+  margin-top: 18px;
+  padding: 11px 0 0;
+  border-top: 1px solid #B8BEB9;
+}
+
+.ratecon-offer-reference span {
+  color: #5D7274;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.ratecon-offer-reference p {
+  margin: 5px 0 0;
+  color: #616B66;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.ratecon-carrier-meta,
+.ratecon-carrier-money {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid #D1C4B2;
+}
+
+.ratecon-physical-review {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0,1fr);
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid #BFAF98;
+}
+
+.ratecon-physical-review > header {
+  display: grid;
+  gap: 2px;
+}
+
+.ratecon-physical-review > header span {
+  color: #716456;
+  font-size: 6.5px;
+  font-weight: 900;
+  letter-spacing: .13em;
+}
+
+.ratecon-physical-review > header p {
+  margin: 0;
+  color: #756A5D;
+  font-size: 6.8px;
+  line-height: 1.25;
+}
+
+.ratecon-review-lines {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: repeat(4, minmax(0,1fr));
+  margin-top: 5px;
+}
+
+.ratecon-review-line {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 0;
+  border-bottom: 1px solid #D4C8B6;
+}
+
+.ratecon-review-field {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.ratecon-review-field > span {
+  color: #75685A;
+  font-size: 6px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.ratecon-review-field strong {
+  overflow: hidden;
+  color: #302922;
+  font-size: 8.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ratecon-review-field small {
+  overflow: hidden;
+  color: #83776A;
+  font-size: 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ratecon-review-marks {
+  display: grid;
+  grid-template-columns: 24px 24px;
+  gap: 4px;
+}
+
+.ratecon-review-marks button {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #AA9C89;
+  border-radius: 1px;
+  background: transparent;
+  color: #74685C;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.ratecon-review-marks button.selected.match {
+  border-color: #526979;
+  background: #526979;
+  color: #F2E8D6;
+}
+
+.ratecon-review-marks button.selected.flag {
+  border-color: #8B5149;
+  background: #8B5149;
+  color: #F5E7D9;
+}
+
+.ratecon-review-marks button:disabled {
+  opacity: .72;
+}
+
+.ratecon-paper-action {
+  padding-top: 8px;
+  border-top: 1px solid #BFAF98;
+}
+
+.ratecon-primary-action {
+  width: 100%;
+  min-height: 32px;
+  border: 1px solid #354B5E;
+  border-radius: 1px;
+  background: #354B5E;
+  color: #F1E7D5;
+  font: inherit;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.ratecon-primary-action:disabled {
+  border-color: #B8AA94;
+  background: #D0C2AF;
+  color: #85786A;
+}
+
+.ratecon-primary-action.correction {
+  border-color: #754C45;
+  background: #754C45;
+}
+
+.ratecon-paper-status {
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid #84909A;
+}
+
+.ratecon-paper-status span {
+  font-size: 6px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.ratecon-paper-status strong {
+  font-size: 7px;
+}
+
+.ratecon-paper-status.confirmed {
+  border-color: #607986;
+  color: #405A66;
+  background: rgba(82,105,121,.08);
+}
+
+.ratecon-paper-status.waiting {
+  border-color: #9A735D;
+  color: #75523E;
+  background: rgba(154,115,93,.08);
+}
+
+.ratecon-workspace-footer {
+  position: relative;
+  z-index: 30;
+  flex: 0 0 auto;
+  min-height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding:
+    4px 10px
+    calc(4px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(132,118,100,.18);
+  background: rgba(7,9,10,.66);
+}
+
+.ratecon-workspace-footer span {
+  color: #887E70;
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: .07em;
+}
+
+.ratecon-workspace-missing {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  color: #A8B3BC;
+}
+
+@keyframes ratecon-workspace-open {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 420px) {
+  .ratecon-offer-layer {
+    left: 1%;
+    top: 14%;
+    width: 76%;
+    height: 72%;
+  }
+
+  .ratecon-offer-layer.front {
+    left: 9%;
+    top: 7%;
+    width: 82%;
+    height: 82%;
+  }
+
+  .ratecon-document-layer {
+    left: 12%;
+    top: 3%;
+    width: 84%;
+    height: 93%;
+  }
+
+  .freightlink-offer-paper {
+    padding: 20px 16px;
+  }
+
+  .carrier-ratecon-paper {
+    padding: 16px 14px 11px;
+  }
+
+  .ratecon-paper-masthead h2 {
+    font-size: 19px;
+  }
+
+  .ratecon-review-line {
+    padding: 4px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ratecon-workspace-overlay,
+  .ratecon-paper-layer {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* END B.5.4C.4.1 */
