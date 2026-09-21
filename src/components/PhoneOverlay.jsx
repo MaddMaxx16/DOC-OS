@@ -109,6 +109,8 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
   // END B.5.4C.2
   const [documentsTab, setDocumentsTab] = useState('pending')
   const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
+  // B.5.4C.5.2 — Context-Aware Load Return
+  const [loadReturnScreen, setLoadReturnScreen] = useState(null)
   const [selectedEmailId, setSelectedEmailId] = useState(null)
   const [selectedCarrierId, setSelectedCarrierId] = useState(() => carriers[0]?.id || null)
   const [emailReturnScreen, setEmailReturnScreen] = useState('email')
@@ -263,6 +265,29 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
   const devApprovalLoad = selectedLoad || loads.find((load) => load.carrierApprovalStatus === 'PENDING') || loads.find((load) => load.status === 'available' || load.status === 'accepted') || null
   const devApprovalPickup = devApprovalLoad ? mapLocations.find((location) => location.id === devApprovalLoad.pickupLocationId) : null
   const devApprovalDelivery = devApprovalLoad ? mapLocations.find((location) => location.id === devApprovalLoad.deliveryLocationId) : null
+  const openLoadDetails = (loadId, returnScreen = null) => {
+    setSelectedLoadId(loadId)
+    setLoadReturnScreen(returnScreen)
+    setScreen('loadDetails')
+  }
+
+  const returnFromBrowserContext = () => {
+    if (!loadReturnScreen) return
+    const destination = loadReturnScreen
+    setLoadReturnScreen(null)
+    setScreen(destination)
+  }
+
+  // B.5.4C.5.2S — System Nav Context Return
+  const browserContextScreens = ['browser', 'loadBoard', 'loadDetails', 'scheduler', 'driverFit', 'tripPlan', 'routePlanning']
+  const showSystemContextReturn = Boolean(loadReturnScreen) && browserContextScreens.includes(screen)
+  const systemContextReturnLabel =
+    loadReturnScreen === 'emailDetail'
+      ? 'Email'
+      : loadReturnScreen === 'documents'
+        ? 'Documents'
+        : 'Previous app'
+
   const updatePodVerification = (field, checked) => setLoads((current) => current.map((load) => { if (load.id !== selectedLoadId || !load.pod) return load; const verification = { signature: false, pieceCount: false, damage: false, deliveryInfo: false, ...(load.pod.verification || {}), [field]: checked }; const verified = Object.values(verification).every(Boolean); return { ...load, pod: { ...load.pod, verification, verified, verifiedGameMinute: verified ? gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay : null } } }))
 
   return (
@@ -491,7 +516,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
                 ? 'agreement'
                 : 'carrierSource'
           )
-        }} onOpenAttachment={openAttachment} onOpenRelated={(type, id) => { if (type === 'schedule') { const related = loads.find((item) => item.id === id); setSelectedLoadId(null); setSelectedDriverId(related?.candidateDriverId || related?.assignedDriverId || null); setScreen('scheduler'); return } if (type === 'load') { setSelectedLoadId(id); setScreen('loadDetails') } else if (type === 'pod') { setDocumentReturnScreen('emailDetail'); setSelectedLoadId(id); setScreen('podDetail') } else if (type === 'invoice') { setSelectedLoadId(id); setScreen('ledgerReceivable') } else if (type === 'document') {
+        }} onOpenAttachment={openAttachment} onOpenRelated={(type, id) => { if (type === 'schedule') { const related = loads.find((item) => item.id === id); setSelectedLoadId(null); setSelectedDriverId(related?.candidateDriverId || related?.assignedDriverId || null); setScreen('scheduler'); return } if (type === 'load') { openLoadDetails(id, 'emailDetail') } else if (type === 'pod') { setDocumentReturnScreen('emailDetail'); setSelectedLoadId(id); setScreen('podDetail') } else if (type === 'invoice') { setSelectedLoadId(id); setScreen('ledgerReceivable') } else if (type === 'document') {
       setDocumentReturnScreen('emailDetail')
       setSelectedBusinessDocumentId(id)
       const document = businessDocuments.find((item) => item.id === id)
@@ -519,7 +544,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
       ) : screen === 'ledgerReceivable' ? (
         <LedgerReceivableScreen receivable={getReceivable(loads, carriers, ledgerWorkflowByLoadId, selectedLoadId)} currentGameMinute={gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay} onBack={() => setScreen('ledger')} onAction={(action) => { const current = ledgerWorkflowByLoadId[selectedLoadId] || {}; if (action === 'create') { setLedgerWorkflowByLoadId((previous) => { const numbers = Object.values(previous).map((item) => Number(String(item.invoiceNumber || '').replace('INV-', ''))).filter(Number.isFinite); const next = Math.max(0, ...numbers) + 1; const existing = previous[selectedLoadId] || {}; return { ...previous, [selectedLoadId]: { ...existing, financialStatus: 'DRAFT', invoiceNumber: existing.invoiceNumber || `INV-${String(next).padStart(4, '0')}`, invoiceCreatedGameMinute: existing.invoiceCreatedGameMinute ?? gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay, invoiceSentGameMinute: null, paymentReceivedGameMinute: null } } }) } if (action === 'send') { const load = loads.find((item) => item.id === selectedLoadId); const carrier = carriers.find((item) => item.id === load?.carrierId) || carriers[0]; openComposer({ workflowType: 'invoice-submission', label: 'INVOICE SUBMISSION', loadId: selectedLoadId, loadNumber: load ? getFreightRouteName(load) : 'Route', suggestedRecipientId: `${carrier?.id || 'metroline'}-accounting`, subject: `Invoice ${current.invoiceNumber || ''} · ${load ? getFreightRouteName(load) : 'Route'}`, body: `Hello,\n\nPlease find our dispatch invoice and supporting POD attached for ${load ? getFreightRouteName(load) : 'Route'}.\n\nThank you,\nDOC OS Dispatch`, returnScreen: 'ledgerReceivable' }) } }} />
       ) : screen === 'documents' ? (
-        <DocumentsScreen loads={loads} businessDocuments={businessDocuments} ledgerWorkflowByLoadId={ledgerWorkflowByLoadId} activeTab={documentsTab} onChangeTab={setDocumentsTab} onBack={() => setScreen('home')} onOpenLoad={(id) => { setSelectedLoadId(id); setScreen('loadDetails') }} onOpenInvoice={(id) => { setSelectedLoadId(id); setScreen('ledgerReceivable') }} onOpenRateConfirmation={(id) => { const load = loads.find((item) => item.id === id); if (!load?.rateConfirmation) return; setPreviewAttachment({ id: load.rateConfirmation.id, type: 'rate-confirmation', title: `Rate Confirmation · ${getFreightRouteName(load)}`, meta: load.rateConfirmation.reference, loadId: id }); }} onOpenSettlementPacket={(id) => { const load = loads.find((item) => item.id === id); if (!load) return; setPreviewAttachment({ id: `packet:${id}`, type: 'settlement-packet', title: `Load Packet · ${getFreightRouteName(load)}`, meta: 'Permanent load record', loadId: id }); }} onOpenBusinessDocument={(id) => {
+        <DocumentsScreen loads={loads} businessDocuments={businessDocuments} ledgerWorkflowByLoadId={ledgerWorkflowByLoadId} activeTab={documentsTab} onChangeTab={setDocumentsTab} onBack={() => setScreen('home')} onOpenLoad={(id) => openLoadDetails(id, 'documents')} onOpenInvoice={(id) => { setSelectedLoadId(id); setScreen('ledgerReceivable') }} onOpenRateConfirmation={(id) => { const load = loads.find((item) => item.id === id); if (!load?.rateConfirmation) return; setPreviewAttachment({ id: load.rateConfirmation.id, type: 'rate-confirmation', title: `Rate Confirmation · ${getFreightRouteName(load)}`, meta: load.rateConfirmation.reference, loadId: id }); }} onOpenSettlementPacket={(id) => { const load = loads.find((item) => item.id === id); if (!load) return; setPreviewAttachment({ id: `packet:${id}`, type: 'settlement-packet', title: `Load Packet · ${getFreightRouteName(load)}`, meta: 'Permanent load record', loadId: id }); }} onOpenBusinessDocument={(id) => {
       setDocumentReturnScreen('documents')
       setSelectedBusinessDocumentId(id)
       const document = businessDocuments.find((item) => item.id === id)
@@ -584,7 +609,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           onHome={() => setScreen('browser')}
           showSiteBranding={false}
         >
-          {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => { setSelectedLoadId(loadId); setScreen('loadDetails') }} onOpenScheduler={() => { setSelectedLoadId(null); setSelectedDriverId((current) => current || drivers.find((driver) => driver.carrierId)?.id || null); setScreen('scheduler') }} />}
+          {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => openLoadDetails(loadId, null)} onOpenScheduler={() => { setSelectedLoadId(null); setSelectedDriverId((current) => current || drivers.find((driver) => driver.carrierId)?.id || null); setScreen('scheduler') }} />}
           {screen === 'loadDetails' && <LoadDetailsScreen loads={loads} drivers={drivers} carriers={carriers} loadId={selectedLoadId} planningDriverId={selectedDriverId} runtimePositions={runtimePositions} gameTime={gameTime} onAddToSchedule={(loadId, driverId) => onAddToSchedule?.(loadId, driverId)} onOpenScheduler={async (loadId) => { const target = loads.find((item) => item.id === loadId); if (target?.status === 'available' && !target.scheduleApprovalQueued) { const ok = target.candidateDriverId ? true : await onAddToSchedule?.(loadId); if (ok === false) return; setLoads((current) => current.map((item) => item.id === loadId ? { ...item, scheduleApprovalQueued: true } : item)); } setSelectedLoadId(loadId); setSelectedDriverId(target?.candidateDriverId || target?.assignedDriverId || selectedDriverId || drivers.find((driver) => driver.carrierId)?.id || null); setScreen('scheduler') }} onSendLoadDetails={(loadId, driverId) => { const targetLoad = loads.find((item) => item.id === loadId); if (!Number.isFinite(targetLoad?.pickupDriverBriefedGameMinute)) onSendDriverLoadUpdate?.(loadId, driverId); setSelectedLoadId(loadId); setSelectedDriverId(driverId); setMessageLoadContextId(loadId); setScreen('messageThread') }} onBack={() => setScreen('loadBoard')} />}
           {screen === 'scheduler' && <FleetSchedulerScreen loads={loads} drivers={drivers} carriers={carriers} gameTime={gameTime} focusLoadId={selectedLoadId} initialDriverId={selectedDriverId} onBackToFreightLink={() => setScreen('loadBoard')} onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)} onBookRoute={(loadId) => onAcceptCandidateAssignment?.(loadId)} onBookApprovedSchedule={(driverId) => onBookApprovedSchedule?.(driverId)} onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)} onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)} onUpdateDriverWorkday={updateDriverWorkday} onOpenLunchDecision={onOpenLunchDecision} onDriverContextChange={setSelectedDriverId} />}
           {screen === 'driverFit' && <DriverFitScreen load={loads.find((load) => load.id === selectedLoadId)} loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} candidateDriverId={loads.find((load) => load.id === selectedLoadId)?.candidateDriverId} onEvaluate={(driverId, fit) => {
@@ -673,6 +698,22 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           />
         )}
         <div className="phone-navigation-bar">
+          {showSystemContextReturn && (
+            <button
+              type="button"
+              className="phone-context-return-button"
+              onClick={returnFromBrowserContext}
+              aria-label={`Return to ${systemContextReturnLabel}`}
+              title={`Return to ${systemContextReturnLabel}`}
+            >
+              {/* B.5.4C.5.2S.1 — DOC OS Return Control */}
+              <svg className="phone-context-return-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 6.5 4.5 11 9 15.5" />
+                <path d="M5 11h8.25c3.65 0 5.75 1.95 5.75 5.5" />
+              </svg>
+            </button>
+          )}
+
           <button type="button" className="phone-home-button" onClick={() => setScreen('home')} aria-label="Phone home">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 10.5 12 4l7.5 6.5v8.75H14v-5.5h-4v5.5H4.5V10.5Z"/></svg>
           </button>

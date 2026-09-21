@@ -1,3 +1,4 @@
+// B.5.4C.5.2R — Browser History + Context Return
 function BrowserScreen({ page, children, onOpenFreightLink, onOpenCarrierSource, onBack, onHome, siteTitle = 'FREIGHTLINK', siteSubtitle = 'Load Board', showSiteBranding = true, freightLinkLocked = false }) {
   return (
     <div className="phone-page browser-screen">
@@ -8,6 +9,7 @@ function BrowserScreen({ page, children, onOpenFreightLink, onOpenCarrierSource,
         <button type="button" className="browser-home-control" onClick={onHome} aria-label="Browser home">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 10.5 12 4l7.5 6.5v8.75H14v-5.5h-4v5.5H4.5V10.5Z"/></svg>
         </button>
+
       </div>
       {page === 'home' ? (
         <div className="browser-home browser-home-v2">

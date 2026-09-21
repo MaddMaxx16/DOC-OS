@@ -19133,3 +19133,135 @@ html[data-docos-phone-nav="home"] .phone-page {
 }
 
 /* END B.5.4C.5.1.1 */
+
+
+/* B.5.4C.5.2R — Browser History + Context Return */
+.browser-return-control {
+  width:30px; height:30px; flex:0 0 30px; display:grid; place-items:center;
+  border:1px solid rgba(124,143,160,.34); border-radius:7px;
+  background:rgba(31,38,45,.76); color:#B9CBD8; font:inherit;
+}
+.browser-return-control span { font-size:17px; line-height:1; font-weight:700; transform:translateY(-1px); }
+.browser-return-control:active { transform:translateY(1px); background:rgba(44,54,63,.88); }
+@media (max-width:420px) { .browser-return-control { width:28px; height:28px; flex-basis:28px; } }
+/* END B.5.4C.5.2R */
+
+
+/* =========================================================
+   B.5.4C.5.2S — System Nav Context Return
+   ========================================================= */
+
+.browser-return-control { display: none !important; }
+
+.phone-navigation-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+}
+
+.phone-navigation-bar .phone-home-button {
+  position: static !important;
+  transform: none !important;
+  margin: 0 !important;
+}
+
+.phone-context-return-button {
+  width: 58px;
+  height: 44px;
+  flex: 0 0 58px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(75, 94, 116, .62);
+  border-radius: 15px;
+  background: linear-gradient(180deg, rgba(25,32,43,.98), rgba(14,19,27,.98));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.025), 0 7px 17px rgba(0,0,0,.24);
+  color: #BFCFDC;
+  font: inherit;
+}
+
+.phone-context-return-button span {
+  display: block;
+  transform: translateY(-1px);
+  font-size: 21px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.phone-context-return-button:active {
+  transform: translateY(1px);
+  border-color: rgba(97, 120, 146, .72);
+}
+
+@media (max-width: 420px) {
+  .phone-navigation-bar { gap: 10px !important; }
+  .phone-context-return-button {
+    width: 54px;
+    height: 42px;
+    flex-basis: 54px;
+    border-radius: 14px;
+  }
+}
+
+/* END B.5.4C.5.2S */
+
+
+/* =========================================================
+   B.5.4C.5.2S.1 — DOC OS Return Control
+   Remove the emoji/glossy look and match DOC OS system chrome.
+   ========================================================= */
+
+.phone-context-return-button {
+  width: 58px !important;
+  height: 44px !important;
+  flex: 0 0 58px !important;
+  border: 1px solid #334252 !important;
+  border-radius: 12px !important;
+  background: #151b22 !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.018),
+    0 5px 12px rgba(0,0,0,.18) !important;
+  color: #9fb2c2 !important;
+}
+
+.phone-context-return-button:hover {
+  border-color: #425466 !important;
+  background: #182029 !important;
+}
+
+.phone-context-return-button:active {
+  transform: translateY(1px) !important;
+  border-color: #53697e !important;
+  background: #1b2530 !important;
+}
+
+.phone-context-return-icon {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.phone-context-return-button span {
+  display: none !important;
+}
+
+@media (max-width: 420px) {
+  .phone-context-return-button {
+    width: 54px !important;
+    height: 42px !important;
+    flex-basis: 54px !important;
+    border-radius: 12px !important;
+  }
+
+  .phone-context-return-icon {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* END B.5.4C.5.2S.1 */
