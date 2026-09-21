@@ -25,6 +25,8 @@ import OperationalDocumentViewer from './OperationalDocumentViewer.jsx'
 // B.5.4C.4.1 — Rate Confirmation Comparison Desk
 import RateConfirmationWorkspace from './RateConfirmationWorkspace.jsx'
 import PodReviewWorkspace from './PodReviewWorkspace.jsx'
+// B.5.4C.6.1 — Invoice & Billing Workspace
+import InvoiceWorkspace from './InvoiceWorkspace.jsx'
 import mapLocations from '../data/mapLocations.js'
 import { getReceivables } from '../utils/ledger.js'
 import { formatTime } from '../utils/gameTime.js'
@@ -542,7 +544,51 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
       ) : screen === 'ledger' ? (
         <LedgerDeskScreen loads={loads} carriers={carriers} ledgerWorkflowByLoadId={ledgerWorkflowByLoadId} ledgerBanking={ledgerBanking} onBack={() => setScreen('home')} onOpenReceivable={(item) => { setSelectedLoadId(item.loadId); setScreen('ledgerReceivable') }} />
       ) : screen === 'ledgerReceivable' ? (
-        <LedgerReceivableScreen receivable={getReceivable(loads, carriers, ledgerWorkflowByLoadId, selectedLoadId)} currentGameMinute={gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay} onBack={() => setScreen('ledger')} onAction={(action) => { const current = ledgerWorkflowByLoadId[selectedLoadId] || {}; if (action === 'create') { setLedgerWorkflowByLoadId((previous) => { const numbers = Object.values(previous).map((item) => Number(String(item.invoiceNumber || '').replace('INV-', ''))).filter(Number.isFinite); const next = Math.max(0, ...numbers) + 1; const existing = previous[selectedLoadId] || {}; return { ...previous, [selectedLoadId]: { ...existing, financialStatus: 'DRAFT', invoiceNumber: existing.invoiceNumber || `INV-${String(next).padStart(4, '0')}`, invoiceCreatedGameMinute: existing.invoiceCreatedGameMinute ?? gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay, invoiceSentGameMinute: null, paymentReceivedGameMinute: null } } }) } if (action === 'send') { const load = loads.find((item) => item.id === selectedLoadId); const carrier = carriers.find((item) => item.id === load?.carrierId) || carriers[0]; openComposer({ workflowType: 'invoice-submission', label: 'INVOICE SUBMISSION', loadId: selectedLoadId, loadNumber: load ? getFreightRouteName(load) : 'Route', suggestedRecipientId: `${carrier?.id || 'metroline'}-accounting`, subject: `Invoice ${current.invoiceNumber || ''} · ${load ? getFreightRouteName(load) : 'Route'}`, body: `Hello,\n\nPlease find our dispatch invoice and supporting POD attached for ${load ? getFreightRouteName(load) : 'Route'}.\n\nThank you,\nDOC OS Dispatch`, returnScreen: 'ledgerReceivable' }) } }} />
+        <InvoiceWorkspace
+          load={loads.find((item) => item.id === selectedLoadId)}
+          carrier={carriers.find((item) => item.id === loads.find((load) => load.id === selectedLoadId)?.carrierId) || carriers[0]}
+          dispatcherProfile={dispatcherProfile}
+          workflow={ledgerWorkflowByLoadId[selectedLoadId] || {}}
+          receivable={getReceivable(loads, carriers, ledgerWorkflowByLoadId, selectedLoadId)}
+          onBack={() => setScreen('ledger')}
+          onCreateInvoice={() => {
+            setLedgerWorkflowByLoadId((previous) => {
+              const numbers = Object.values(previous)
+                .map((item) => Number(String(item.invoiceNumber || '').replace('INV-', '')))
+                .filter(Number.isFinite)
+              const next = Math.max(0, ...numbers) + 1
+              const existing = previous[selectedLoadId] || {}
+              return {
+                ...previous,
+                [selectedLoadId]: {
+                  ...existing,
+                  financialStatus: 'DRAFT',
+                  invoiceNumber: existing.invoiceNumber || `INV-${String(next).padStart(4, '0')}`,
+                  invoiceCreatedGameMinute:
+                    existing.invoiceCreatedGameMinute ??
+                    gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay,
+                  invoiceSentGameMinute: null,
+                  paymentReceivedGameMinute: null,
+                },
+              }
+            })
+          }}
+          onSendInvoice={() => {
+            const current = ledgerWorkflowByLoadId[selectedLoadId] || {}
+            const load = loads.find((item) => item.id === selectedLoadId)
+            const carrier = carriers.find((item) => item.id === load?.carrierId) || carriers[0]
+            openComposer({
+              workflowType: 'invoice-submission',
+              label: 'INVOICE SUBMISSION',
+              loadId: selectedLoadId,
+              loadNumber: load ? getFreightRouteName(load) : 'Route',
+              suggestedRecipientId: `${carrier?.id || 'metroline'}-accounting`,
+              subject: `Invoice ${current.invoiceNumber || ''} · ${load ? getFreightRouteName(load) : 'Route'}`,
+              body: `Hello,\n\nPlease find our dispatch invoice and supporting POD attached for ${load ? getFreightRouteName(load) : 'Route'}.\n\nThank you,\nDOC OS Dispatch`,
+              returnScreen: 'ledgerReceivable',
+            })
+          }}
+        />
       ) : screen === 'documents' ? (
         <DocumentsScreen loads={loads} businessDocuments={businessDocuments} ledgerWorkflowByLoadId={ledgerWorkflowByLoadId} activeTab={documentsTab} onChangeTab={setDocumentsTab} onBack={() => setScreen('home')} onOpenLoad={(id) => openLoadDetails(id, 'documents')} onOpenInvoice={(id) => { setSelectedLoadId(id); setScreen('ledgerReceivable') }} onOpenRateConfirmation={(id) => { const load = loads.find((item) => item.id === id); if (!load?.rateConfirmation) return; setPreviewAttachment({ id: load.rateConfirmation.id, type: 'rate-confirmation', title: `Rate Confirmation · ${getFreightRouteName(load)}`, meta: load.rateConfirmation.reference, loadId: id }); }} onOpenSettlementPacket={(id) => { const load = loads.find((item) => item.id === id); if (!load) return; setPreviewAttachment({ id: `packet:${id}`, type: 'settlement-packet', title: `Load Packet · ${getFreightRouteName(load)}`, meta: 'Permanent load record', loadId: id }); }} onOpenBusinessDocument={(id) => {
       setDocumentReturnScreen('documents')
