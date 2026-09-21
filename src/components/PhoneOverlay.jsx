@@ -17,7 +17,7 @@ import LedgerReceivableScreen from './LedgerReceivableScreen.jsx'
 import EmailScreen from './EmailScreen.jsx'
 import EmailDetailScreen from './EmailDetailScreen.jsx'
 import EmailComposeScreen from './EmailComposeScreen.jsx'
-import DispatchAgreementScreen from './DispatchAgreementScreen.jsx'
+import PaperworkWorkspace from './PaperworkWorkspace.jsx'
 import MessagesScreen from './MessagesScreen.jsx'
 import DriverMessageThreadScreen from './DriverMessageThreadScreen.jsx'
 import BusinessDocumentDetailScreen from './BusinessDocumentDetailScreen.jsx'
@@ -466,9 +466,45 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
       ) : screen === 'emailCompose' ? (
         <EmailComposeScreen contacts={emailContacts} attachments={emailAttachments} context={emailComposeContext} onBack={() => setScreen(emailComposeContext.returnScreen || 'email')} onSend={sendOperationalEmail} onOpenAttachment={openAttachment} />
       ) : screen === 'emailDetail' ? (
-        <EmailDetailScreen message={emailMessages.find((item) => item.id === selectedEmailId)} loads={loads} carrier={carriers.find((item) => item.id === emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId)} onBack={() => { setScreen(emailReturnScreen || 'email') }} onReview={(destination) => { const messageCarrierId = emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId; if (messageCarrierId) setSelectedCarrierId(messageCarrierId); setScreen(destination === 'freightlink' ? 'loadBoard' : destination === 'agreement' ? 'agreement' : 'carrierSource') }} onOpenAttachment={openAttachment} onOpenRelated={(type, id) => { if (type === 'schedule') { const related = loads.find((item) => item.id === id); setSelectedLoadId(null); setSelectedDriverId(related?.candidateDriverId || related?.assignedDriverId || null); setScreen('scheduler'); return } if (type === 'load') { setSelectedLoadId(id); setScreen('loadDetails') } else if (type === 'pod') { setDocumentReturnScreen('emailDetail'); setSelectedLoadId(id); setScreen('podDetail') } else if (type === 'invoice') { setSelectedLoadId(id); setScreen('ledgerReceivable') } else if (type === 'document') { setDocumentReturnScreen('emailDetail'); setSelectedBusinessDocumentId(id); setScreen('businessDocumentDetail') } }} />
+        <EmailDetailScreen message={emailMessages.find((item) => item.id === selectedEmailId)} loads={loads} carrier={carriers.find((item) => item.id === emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId)} agreementSigned={Boolean(emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId && carrierCareerById?.[emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId]?.agreementAccepted)} onBack={() => { setScreen(emailReturnScreen || 'email') }} onReview={(destination) => {
+          const messageCarrierId = emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId
+          if (messageCarrierId) setSelectedCarrierId(messageCarrierId)
+
+          if (
+            destination === 'agreement' &&
+            messageCarrierId &&
+            carrierCareerById?.[messageCarrierId]?.agreementAccepted
+          ) {
+            setSelectedBusinessDocumentId(`${messageCarrierId}-dispatch-agreement`)
+            setDocumentReturnScreen('emailDetail')
+            setScreen('signedAgreement')
+            return
+          }
+
+          setScreen(
+            destination === 'freightlink'
+              ? 'loadBoard'
+              : destination === 'agreement'
+                ? 'agreement'
+                : 'carrierSource'
+          )
+        }} onOpenAttachment={openAttachment} onOpenRelated={(type, id) => { if (type === 'schedule') { const related = loads.find((item) => item.id === id); setSelectedLoadId(null); setSelectedDriverId(related?.candidateDriverId || related?.assignedDriverId || null); setScreen('scheduler'); return } if (type === 'load') { setSelectedLoadId(id); setScreen('loadDetails') } else if (type === 'pod') { setDocumentReturnScreen('emailDetail'); setSelectedLoadId(id); setScreen('podDetail') } else if (type === 'invoice') { setSelectedLoadId(id); setScreen('ledgerReceivable') } else if (type === 'document') {
+      setDocumentReturnScreen('emailDetail')
+      setSelectedBusinessDocumentId(id)
+      const document = businessDocuments.find((item) => item.id === id)
+      setScreen(document?.type === 'dispatch-agreement' ? 'signedAgreement' : 'businessDocumentDetail')
+    } }} />
+      ) : screen === 'signedAgreement' ? (
+        <PaperworkWorkspace
+          carrier={carriers.find((item) => item.id === businessDocuments.find((document) => document.id === selectedBusinessDocumentId)?.carrierId) || carriers.find((item) => item.id === emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId) || carriers[0]}
+          dispatcherProfile={dispatcherProfile}
+          gameTime={gameTime}
+          signedDocument={businessDocuments.find((document) => document.id === selectedBusinessDocumentId) || null}
+          onBack={() => setScreen(documentReturnScreen || 'emailDetail')}
+        />
       ) : screen === 'agreement' ? (
-        <DispatchAgreementScreen
+        // B.5.4C.3.2.1 — Signed Agreement Re-entry Guard
+        <PaperworkWorkspace
           carrier={carriers.find((item) => item.id === emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId) || carriers[0]}
           dispatcherProfile={dispatcherProfile}
           gameTime={gameTime}
@@ -480,7 +516,12 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
       ) : screen === 'ledgerReceivable' ? (
         <LedgerReceivableScreen receivable={getReceivable(loads, carriers, ledgerWorkflowByLoadId, selectedLoadId)} currentGameMinute={gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay} onBack={() => setScreen('ledger')} onAction={(action) => { const current = ledgerWorkflowByLoadId[selectedLoadId] || {}; if (action === 'create') { setLedgerWorkflowByLoadId((previous) => { const numbers = Object.values(previous).map((item) => Number(String(item.invoiceNumber || '').replace('INV-', ''))).filter(Number.isFinite); const next = Math.max(0, ...numbers) + 1; const existing = previous[selectedLoadId] || {}; return { ...previous, [selectedLoadId]: { ...existing, financialStatus: 'DRAFT', invoiceNumber: existing.invoiceNumber || `INV-${String(next).padStart(4, '0')}`, invoiceCreatedGameMinute: existing.invoiceCreatedGameMinute ?? gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay, invoiceSentGameMinute: null, paymentReceivedGameMinute: null } } }) } if (action === 'send') { const load = loads.find((item) => item.id === selectedLoadId); const carrier = carriers.find((item) => item.id === load?.carrierId) || carriers[0]; openComposer({ workflowType: 'invoice-submission', label: 'INVOICE SUBMISSION', loadId: selectedLoadId, loadNumber: load ? getFreightRouteName(load) : 'Route', suggestedRecipientId: `${carrier?.id || 'metroline'}-accounting`, subject: `Invoice ${current.invoiceNumber || ''} · ${load ? getFreightRouteName(load) : 'Route'}`, body: `Hello,\n\nPlease find our dispatch invoice and supporting POD attached for ${load ? getFreightRouteName(load) : 'Route'}.\n\nThank you,\nDOC OS Dispatch`, returnScreen: 'ledgerReceivable' }) } }} />
       ) : screen === 'documents' ? (
-        <DocumentsScreen loads={loads} businessDocuments={businessDocuments} ledgerWorkflowByLoadId={ledgerWorkflowByLoadId} activeTab={documentsTab} onChangeTab={setDocumentsTab} onBack={() => setScreen('home')} onOpenLoad={(id) => { setSelectedLoadId(id); setScreen('loadDetails') }} onOpenInvoice={(id) => { setSelectedLoadId(id); setScreen('ledgerReceivable') }} onOpenRateConfirmation={(id) => { const load = loads.find((item) => item.id === id); if (!load?.rateConfirmation) return; setPreviewAttachment({ id: load.rateConfirmation.id, type: 'rate-confirmation', title: `Rate Confirmation · ${getFreightRouteName(load)}`, meta: load.rateConfirmation.reference, loadId: id }); }} onOpenSettlementPacket={(id) => { const load = loads.find((item) => item.id === id); if (!load) return; setPreviewAttachment({ id: `packet:${id}`, type: 'settlement-packet', title: `Load Packet · ${getFreightRouteName(load)}`, meta: 'Permanent load record', loadId: id }); }} onOpenBusinessDocument={(id) => { setDocumentReturnScreen('documents'); setSelectedBusinessDocumentId(id); setScreen('businessDocumentDetail') }} onOpenPod={(id) => { const load = loads.find((item) => item.id === id); if (load?.pod && !load.pod.approved && !Number.isFinite(load.pod.viewedGameMinute)) { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setLoads((current) => current.map((item) => item.id === id ? { ...item, pod: { ...item.pod, viewedGameMinute: now } } : item)) } setDocumentReturnScreen('documents'); setSelectedLoadId(id); setScreen('podDetail') }} />
+        <DocumentsScreen loads={loads} businessDocuments={businessDocuments} ledgerWorkflowByLoadId={ledgerWorkflowByLoadId} activeTab={documentsTab} onChangeTab={setDocumentsTab} onBack={() => setScreen('home')} onOpenLoad={(id) => { setSelectedLoadId(id); setScreen('loadDetails') }} onOpenInvoice={(id) => { setSelectedLoadId(id); setScreen('ledgerReceivable') }} onOpenRateConfirmation={(id) => { const load = loads.find((item) => item.id === id); if (!load?.rateConfirmation) return; setPreviewAttachment({ id: load.rateConfirmation.id, type: 'rate-confirmation', title: `Rate Confirmation · ${getFreightRouteName(load)}`, meta: load.rateConfirmation.reference, loadId: id }); }} onOpenSettlementPacket={(id) => { const load = loads.find((item) => item.id === id); if (!load) return; setPreviewAttachment({ id: `packet:${id}`, type: 'settlement-packet', title: `Load Packet · ${getFreightRouteName(load)}`, meta: 'Permanent load record', loadId: id }); }} onOpenBusinessDocument={(id) => {
+      setDocumentReturnScreen('documents')
+      setSelectedBusinessDocumentId(id)
+      const document = businessDocuments.find((item) => item.id === id)
+      setScreen(document?.type === 'dispatch-agreement' ? 'signedAgreement' : 'businessDocumentDetail')
+    }} onOpenPod={(id) => { const load = loads.find((item) => item.id === id); if (load?.pod && !load.pod.approved && !Number.isFinite(load.pod.viewedGameMinute)) { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setLoads((current) => current.map((item) => item.id === id ? { ...item, pod: { ...item.pod, viewedGameMinute: now } } : item)) } setDocumentReturnScreen('documents'); setSelectedLoadId(id); setScreen('podDetail') }} />
       ) : screen === 'businessDocumentDetail' ? (
         <BusinessDocumentDetailScreen document={businessDocuments.find((document) => document.id === selectedBusinessDocumentId)} onBack={() => { if (documentReturnScreen === 'documents') setDocumentsTab('archive'); setScreen(documentReturnScreen || 'documents') }} />
       ) : screen === 'podDetail' ? (

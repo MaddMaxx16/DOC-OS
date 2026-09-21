@@ -15485,3 +15485,1507 @@ html[data-docos-phone-nav="home"] .phone-page {
 }
 
 /* END B.5.4C.3A.2 */
+
+/* =========================================================
+   B.5.4C.3.1 — Paperwork Workspace Foundation
+   ========================================================= */
+
+.paperwork-workspace-screen {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+
+  background:
+    radial-gradient(
+      circle at 50% 22%,
+      rgba(73, 61, 48, .26),
+      transparent 44%
+    ),
+    linear-gradient(
+      180deg,
+      #171511 0%,
+      #11100E 54%,
+      #0C0D0D 100%
+    );
+
+  color: #D8E1E8;
+}
+
+.paperwork-workspace-toolbar {
+  position: relative;
+  z-index: 20;
+
+  min-height: 58px;
+
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 10px;
+  align-items: center;
+
+  padding: 8px 12px;
+
+  border-bottom: 1px solid rgba(132, 118, 100, .22);
+
+  background: rgba(10, 12, 13, .72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.paperwork-workspace-toolbar > button {
+  width: 34px;
+  height: 34px;
+
+  border: 1px solid rgba(141,153,164,.32);
+  border-radius: 50%;
+
+  background: rgba(23,27,31,.74);
+  color: #D8E1E8;
+
+  font-size: 20px;
+}
+
+.paperwork-workspace-toolbar > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.paperwork-workspace-toolbar span {
+  color: #968B7C;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.paperwork-workspace-toolbar strong {
+  overflow: hidden;
+  color: #E2E7EA;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paperwork-workspace-toolbar > small {
+  color: #807669;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+/* Desk */
+.paperwork-desk {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Manila carrier folder */
+.paperwork-carrier-folder {
+  position: absolute;
+  z-index: 1;
+
+  left: 7%;
+  top: 13%;
+
+  width: 86%;
+  height: 76%;
+
+  transform: rotate(-1.4deg) translateY(24px);
+
+  border: 1px solid #8C7958;
+  border-radius: 2px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,255,255,.09),
+      transparent 42%
+    ),
+    #B8A077;
+
+  box-shadow: 0 18px 38px rgba(0,0,0,.28);
+}
+
+.paperwork-carrier-folder::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+
+  border: 1px solid rgba(104,84,54,.24);
+
+  pointer-events: none;
+}
+
+.paperwork-folder-tab {
+  position: absolute;
+  left: 18px;
+  top: -22px;
+
+  min-width: 126px;
+  height: 23px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 12px;
+
+  border: 1px solid #8C7958;
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+
+  background: #B8A077;
+  color: #54452F;
+
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.paperwork-folder-label {
+  position: absolute;
+  left: 22px;
+  bottom: 28px;
+
+  display: grid;
+  gap: 3px;
+
+  color: #574930;
+}
+
+.paperwork-folder-label span {
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.paperwork-folder-label strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14px;
+}
+
+.paperwork-folder-label small {
+  font-size: 8px;
+}
+
+/* Shared stacked-paper layer */
+.paperwork-layer {
+  position: absolute;
+  transition:
+    transform 210ms cubic-bezier(.22,.72,.28,1),
+    top 210ms cubic-bezier(.22,.72,.28,1),
+    left 210ms cubic-bezier(.22,.72,.28,1),
+    box-shadow 210ms ease;
+}
+
+.paperwork-layer.front {
+  z-index: 8;
+}
+
+.paperwork-layer.rear {
+  z-index: 4;
+}
+
+.paperwork-layer.rear > *:not(.paperwork-layer-hitbox) {
+  pointer-events: none;
+}
+
+.paperwork-layer-hitbox {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+
+  border: 0;
+  background: transparent;
+
+  cursor: pointer;
+}
+
+/* Carrier profile sheet */
+.paperwork-profile-layer {
+  left: 8%;
+  top: 12%;
+
+  width: 78%;
+  height: 70%;
+}
+
+.paperwork-profile-layer.rear {
+  transform:
+    translate3d(-18px, 25px, 0)
+    rotate(-3deg);
+}
+
+.paperwork-profile-layer.front {
+  left: 11%;
+  top: 8%;
+
+  transform: rotate(-.4deg);
+}
+
+.paperwork-support-paper {
+  width: 100%;
+  height: 100%;
+
+  overflow: hidden;
+
+  padding: 24px 20px;
+
+  border: 1px solid #B7B5A9;
+  border-radius: 1px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.22),
+      rgba(84,100,102,.025)
+    ),
+    #E5E5DD;
+
+  color: #333832;
+
+  box-shadow: 0 20px 42px rgba(0,0,0,.34);
+}
+
+.carrier-profile-paper header {
+  display: grid;
+  gap: 4px;
+
+  padding-bottom: 16px;
+
+  border-bottom: 2px solid #6D7D7D;
+}
+
+.carrier-profile-paper header > span {
+  color: #647474;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .17em;
+}
+
+.carrier-profile-paper h2 {
+  margin: 0;
+
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+
+  color: #28302D;
+}
+
+.carrier-profile-paper header p {
+  margin: 0;
+
+  color: #69716D;
+  font-size: 9px;
+}
+
+.carrier-profile-reference {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+
+  margin-top: 15px;
+
+  border-top: 1px solid #BABCAF;
+  border-left: 1px solid #BABCAF;
+}
+
+.carrier-profile-reference > div {
+  min-width: 0;
+
+  display: grid;
+  gap: 4px;
+
+  padding: 11px 9px;
+
+  border-right: 1px solid #BABCAF;
+  border-bottom: 1px solid #BABCAF;
+}
+
+.carrier-profile-reference span,
+.carrier-profile-status span {
+  color: #748079;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+
+.carrier-profile-reference strong {
+  overflow-wrap: anywhere;
+
+  color: #303733;
+  font-size: 10px;
+}
+
+.carrier-profile-status {
+  display: grid;
+  gap: 5px;
+
+  margin-top: 17px;
+  padding: 12px 0;
+
+  border-top: 1px solid #B9BBB0;
+  border-bottom: 1px solid #B9BBB0;
+}
+
+.carrier-profile-status strong {
+  color: #536564;
+  font-size: 10px;
+}
+
+.carrier-profile-status p {
+  margin: 0;
+
+  color: #626963;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.carrier-profile-paper footer {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+
+  color: #777C76;
+}
+
+.carrier-profile-paper footer span {
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+.carrier-profile-paper footer small {
+  font-size: 7px;
+}
+
+/* Agreement sheet */
+.paperwork-agreement-layer {
+  left: 7%;
+  top: 7%;
+
+  width: 86%;
+  height: 78%;
+}
+
+.paperwork-agreement-layer.rear {
+  transform:
+    translate3d(22px, 31px, 0)
+    rotate(2.2deg);
+}
+
+.paperwork-agreement-layer.front {
+  transform: rotate(.35deg);
+}
+
+.paperwork-agreement-sheet {
+  width: 100%;
+  height: 100%;
+
+  border: 1px solid #C9B99F;
+  border-radius: 1px;
+
+  background: #F0E6D4;
+
+  box-shadow: 0 24px 52px rgba(0,0,0,.39);
+
+  overflow: hidden;
+}
+
+.paperwork-document-scroll {
+  width: 100%;
+  height: 100%;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  overscroll-behavior: contain;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.16),
+      rgba(128,96,58,.025)
+    ),
+    #F0E6D4;
+
+  touch-action: pan-y;
+}
+
+/* Existing agreement becomes one sheet on the desk. */
+.paperwork-workspace-screen .agreement-paper-v2 {
+  width: 100%;
+  max-width: none;
+
+  margin: 0;
+  padding: 27px 21px 26px !important;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  background: transparent !important;
+  box-shadow: none !important;
+
+  color: #3E352C;
+}
+
+.paperwork-workspace-footer {
+  position: relative;
+  z-index: 20;
+
+  min-height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 5px 12px calc(5px + env(safe-area-inset-bottom));
+
+  border-top: 1px solid rgba(132,118,100,.18);
+
+  background: rgba(8,10,11,.78);
+}
+
+.paperwork-workspace-footer span {
+  color: #82796C;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+/* Entrance feels like paperwork placed onto a desk. */
+.paperwork-carrier-folder {
+  animation: paperwork-folder-place 240ms ease-out both;
+}
+
+.paperwork-profile-layer {
+  animation: paperwork-profile-place 270ms cubic-bezier(.22,.72,.28,1) both;
+}
+
+.paperwork-agreement-layer {
+  animation: paperwork-agreement-place 300ms cubic-bezier(.22,.72,.28,1) both;
+}
+
+@keyframes paperwork-folder-place {
+  from {
+    opacity: 0;
+    transform:
+      translate3d(0, 34px, 0)
+      rotate(-1.4deg);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translate3d(0, 24px, 0)
+      rotate(-1.4deg);
+  }
+}
+
+@keyframes paperwork-profile-place {
+  from {
+    opacity: 0;
+    transform:
+      translate3d(-18px, 48px, 0)
+      rotate(-3deg);
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes paperwork-agreement-place {
+  from {
+    opacity: 0;
+    transform:
+      translate3d(18px, 48px, 0)
+      rotate(2deg);
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 420px) {
+  .paperwork-workspace-toolbar {
+    min-height: 54px;
+    padding: 7px 10px;
+  }
+
+  .paperwork-agreement-layer {
+    left: 7%;
+    top: 6%;
+    width: 86%;
+    height: 80%;
+  }
+
+  .paperwork-profile-layer {
+    width: 79%;
+    height: 72%;
+  }
+
+  .paperwork-support-paper {
+    padding: 20px 16px;
+  }
+
+  .carrier-profile-paper footer {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .paperwork-workspace-screen .agreement-paper-v2 {
+    padding: 24px 18px 25px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paperwork-layer,
+  .paperwork-carrier-folder,
+  .paperwork-profile-layer,
+  .paperwork-agreement-layer {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* END B.5.4C.3.1 */
+
+/* =========================================================
+   B.5.4C.3.1.1 — Full-Screen Paperwork Desk
+   ========================================================= */
+
+/*
+   The phone launches paperwork.
+   The paperwork workspace itself belongs to the full DOC OS scene.
+*/
+
+.paperwork-workspace-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+
+  overflow: hidden;
+
+  background: rgba(4, 6, 8, .72);
+
+  backdrop-filter: blur(2px) brightness(.54);
+  -webkit-backdrop-filter: blur(2px) brightness(.54);
+
+  animation: paperwork-workspace-open 200ms ease-out both;
+}
+
+.paperwork-workspace-overlay .paperwork-workspace-screen {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      ellipse at 50% 40%,
+      rgba(78, 62, 44, .27),
+      transparent 58%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(19, 18, 15, .86),
+      rgba(10, 11, 11, .91)
+    );
+
+  color: #D8E1E8;
+}
+
+/* ---------------------------------------------------------
+   TOOLBAR
+   --------------------------------------------------------- */
+
+.paperwork-workspace-overlay .paperwork-workspace-toolbar {
+  flex: 0 0 auto;
+
+  min-height: 50px;
+
+  padding:
+    calc(6px + env(safe-area-inset-top))
+    12px
+    6px;
+
+  background: rgba(8, 10, 11, .66);
+
+  border-bottom:
+    1px solid rgba(150, 132, 108, .18);
+}
+
+/* ---------------------------------------------------------
+   DESK
+   --------------------------------------------------------- */
+
+.paperwork-workspace-overlay .paperwork-desk {
+  position: relative;
+
+  flex: 1 1 auto;
+  min-height: 0;
+
+  overflow: hidden;
+}
+
+/*
+   Folder becomes a background object instead of filling the
+   little phone viewport.
+*/
+.paperwork-workspace-overlay .paperwork-carrier-folder {
+  left: 6%;
+  top: 18%;
+
+  width: 88%;
+  height: 68%;
+
+  transform:
+    translate3d(0, 10px, 0)
+    rotate(-1.4deg);
+}
+
+/* ---------------------------------------------------------
+   CARRIER PROFILE
+   --------------------------------------------------------- */
+
+.paperwork-workspace-overlay .paperwork-profile-layer {
+  left: 4%;
+  top: 16%;
+
+  width: 64%;
+  height: 65%;
+}
+
+.paperwork-workspace-overlay
+.paperwork-profile-layer.rear {
+  transform:
+    translate3d(-10px, 22px, 0)
+    rotate(-3deg);
+}
+
+.paperwork-workspace-overlay
+.paperwork-profile-layer.front {
+  left: 14%;
+  top: 8%;
+
+  width: 72%;
+  height: 76%;
+
+  transform: rotate(-.35deg);
+}
+
+/* ---------------------------------------------------------
+   WHOLE AGREEMENT PAGE
+   --------------------------------------------------------- */
+
+.paperwork-workspace-overlay .paperwork-agreement-layer {
+  left: 10%;
+  top: 4%;
+
+  width: 80%;
+  height: 91%;
+}
+
+.paperwork-workspace-overlay
+.paperwork-agreement-layer.front {
+  transform: rotate(.25deg);
+}
+
+.paperwork-workspace-overlay
+.paperwork-agreement-layer.rear {
+  transform:
+    translate3d(30px, 30px, 0)
+    rotate(2.1deg);
+}
+
+/*
+   It is now a PAGE, not a scrolling browser viewport.
+*/
+.paperwork-workspace-overlay .paperwork-agreement-sheet {
+  width: 100%;
+  height: 100%;
+
+  overflow: hidden;
+
+  border: 1px solid #C9B99F;
+  border-radius: 1px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.15),
+      rgba(128,96,58,.022)
+    ),
+    #F0E6D4;
+
+  box-shadow:
+    0 28px 64px rgba(0,0,0,.42),
+    inset 0 1px 0 rgba(255,255,255,.20);
+}
+
+/*
+   Compress only the agreement's print layout enough to fit
+   the entire contract onto one physical page.
+*/
+.paperwork-workspace-overlay .agreement-paper-v2 {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  margin: 0;
+
+  padding: 18px 16px 15px !important;
+
+  overflow: hidden;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Header */
+.paperwork-workspace-overlay .agreement-v2-masthead {
+  flex: 0 0 auto;
+
+  gap: 3px;
+
+  padding-bottom: 9px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-masthead > span {
+  font-size: 6.5px;
+  letter-spacing: .16em;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-masthead h2 {
+  font-size: 18px;
+  line-height: 1.03;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-document-meta p {
+  font-size: 7.5px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-document-meta small {
+  font-size: 6.5px;
+}
+
+/* Parties */
+.paperwork-workspace-overlay .agreement-v2-parties {
+  flex: 0 0 auto;
+
+  gap: 14px;
+
+  padding: 8px 0 9px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-parties span {
+  font-size: 6.5px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-parties strong {
+  font-size: 10px;
+}
+
+/* Clauses */
+.paperwork-workspace-overlay .agreement-v2-clauses {
+  flex: 0 0 auto;
+}
+
+.paperwork-workspace-overlay .agreement-v2-clause {
+  grid-template-columns: 20px 1fr 17px;
+  gap: 7px;
+
+  padding: 8px 0;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-number {
+  font-size: 6.5px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-clause-copy {
+  gap: 2px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-clause-copy > span {
+  font-size: 6.5px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-clause-copy strong {
+  font-size: 9.5px;
+  line-height: 1.18;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-clause-copy p {
+  font-size: 7.2px;
+  line-height: 1.28;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-check {
+  width: 16px;
+  height: 16px;
+
+  font-size: 9px;
+}
+
+/* Operating note */
+.paperwork-workspace-overlay
+.agreement-v2-system-note {
+  flex: 0 0 auto;
+
+  margin-top: 9px;
+  padding-left: 8px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-system-note span {
+  font-size: 6.5px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-system-note p {
+  margin-top: 3px;
+
+  font-size: 7px;
+  line-height: 1.28;
+}
+
+/* Signature stays anchored toward the bottom of the sheet. */
+.paperwork-workspace-overlay
+.agreement-v2-signature {
+  flex: 0 0 auto;
+
+  margin-top: auto;
+  padding-top: 9px;
+
+  gap: 7px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-signature-heading {
+  gap: 2px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-signature-heading span {
+  font-size: 6.5px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-signature-heading p {
+  font-size: 7px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-signature-row {
+  grid-template-columns: 1fr 104px;
+
+  gap: 9px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-signature-line {
+  gap: 3px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-signature-line span {
+  font-size: 6px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-signature-line strong {
+  font-size: 9.5px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-sign {
+  min-width: 0;
+  min-height: 30px;
+
+  padding: 0 7px;
+
+  font-size: 6.5px;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-acceptance-note {
+  font-size: 6px;
+}
+
+/* ---------------------------------------------------------
+   WORKSPACE FOOTER
+   --------------------------------------------------------- */
+
+.paperwork-workspace-overlay .paperwork-workspace-footer {
+  flex: 0 0 auto;
+
+  min-height: 24px;
+
+  padding:
+    4px 10px
+    calc(4px + env(safe-area-inset-bottom));
+
+  background: rgba(7, 9, 10, .64);
+}
+
+/* ---------------------------------------------------------
+   PHONE / NARROW VIEW
+   --------------------------------------------------------- */
+
+@media (max-width: 520px) {
+
+  .paperwork-workspace-overlay
+  .paperwork-workspace-toolbar {
+    min-height: 48px;
+  }
+
+  .paperwork-workspace-overlay
+  .paperwork-carrier-folder {
+    left: 5%;
+    top: 18%;
+
+    width: 90%;
+    height: 69%;
+  }
+
+  .paperwork-workspace-overlay
+  .paperwork-profile-layer {
+    left: 2%;
+    top: 17%;
+
+    width: 68%;
+    height: 63%;
+  }
+
+  .paperwork-workspace-overlay
+  .paperwork-profile-layer.front {
+    left: 10%;
+    top: 8%;
+
+    width: 80%;
+    height: 76%;
+  }
+
+  .paperwork-workspace-overlay
+  .paperwork-agreement-layer {
+    left: 8%;
+    top: 3%;
+
+    width: 84%;
+    height: 93%;
+  }
+
+  .paperwork-workspace-overlay
+  .agreement-paper-v2 {
+    padding: 17px 14px 13px !important;
+  }
+
+  .paperwork-workspace-overlay
+  .agreement-v2-masthead h2 {
+    font-size: 17px;
+  }
+
+  .paperwork-workspace-overlay
+  .agreement-v2-clause {
+    padding: 7px 0;
+  }
+}
+
+/* ---------------------------------------------------------
+   MOTION
+   --------------------------------------------------------- */
+
+@keyframes paperwork-workspace-open {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* END B.5.4C.3.1.1 */
+
+
+/* =========================================================
+   B.5.4C.3.1.2 — Agreement Page Formatting
+   ========================================================= */
+
+.paperwork-workspace-overlay .agreement-paper-v2 {
+  display: grid !important;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto !important;
+  width: 100%;
+  height: 100%;
+  padding: 19px 18px 15px !important;
+  overflow: hidden;
+}
+
+.paperwork-workspace-overlay .agreement-v2-masthead {
+  gap: 4px;
+  padding-bottom: 10px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-masthead > span {
+  font-size: 7px;
+  letter-spacing: .17em;
+}
+
+.paperwork-workspace-overlay .agreement-v2-masthead h2 {
+  font-size: 20px;
+  line-height: 1.02;
+}
+
+.paperwork-workspace-overlay .agreement-v2-document-meta {
+  margin-top: 2px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-document-meta p {
+  font-size: 8px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-document-meta small {
+  font-size: 6.8px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-parties {
+  gap: 18px;
+  padding: 10px 0 11px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-parties > div {
+  gap: 3px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-parties span {
+  font-size: 6.7px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-parties strong {
+  font-size: 10.5px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-clauses {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+}
+
+.paperwork-workspace-overlay .agreement-v2-clause {
+  min-height: 0;
+  grid-template-columns: 21px minmax(0, 1fr) 18px;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 0;
+}
+
+.paperwork-workspace-overlay .agreement-v2-number {
+  align-self: start;
+  padding-top: 3px;
+  font-size: 6.8px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-clause-copy {
+  gap: 3px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-clause-copy > span {
+  font-size: 6.8px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-clause-copy strong {
+  font-size: 10.4px;
+  line-height: 1.18;
+}
+
+.paperwork-workspace-overlay .agreement-v2-clause-copy p {
+  font-size: 7.7px;
+  line-height: 1.32;
+}
+
+.paperwork-workspace-overlay .agreement-v2-check {
+  width: 17px;
+  height: 17px;
+  align-self: center;
+  font-size: 9.5px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-system-note {
+  margin: 8px 0 0;
+  padding: 6px 0 6px 9px;
+  border-left-width: 2px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-system-note span {
+  font-size: 6.5px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-system-note p {
+  margin-top: 3px;
+  font-size: 7.2px;
+  line-height: 1.3;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature {
+  margin: 8px 0 0;
+  padding-top: 9px;
+  gap: 7px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature-heading {
+  gap: 2px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature-heading span {
+  font-size: 6.6px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature-heading p {
+  font-size: 7px;
+}
+
+.agreement-v2-signature-fields {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.15fr)
+    minmax(0, 1.15fr)
+    minmax(55px, .7fr);
+  gap: 9px;
+}
+
+.agreement-v2-signature-field {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.agreement-v2-signature-field span {
+  color: #817364;
+  font-size: 5.8px;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+
+.agreement-v2-signature-field strong {
+  overflow: hidden;
+  color: #332B24;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 8.6px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agreement-v2-signature-field i {
+  display: block;
+  height: 1px;
+  margin-top: 2px;
+  background: #9E8F7B;
+}
+
+.agreement-v2-signature-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.paperwork-workspace-overlay .agreement-v2-acceptance-note {
+  max-width: 56%;
+  color: #817466;
+  font-size: 6px;
+  line-height: 1.3;
+}
+
+.paperwork-workspace-overlay .agreement-v2-sign {
+  flex: 0 0 auto;
+  min-width: 116px;
+  min-height: 31px;
+  padding: 0 9px;
+  font-size: 6.7px;
+  letter-spacing: .1em;
+}
+
+@media (max-width: 420px) {
+  .paperwork-workspace-overlay .agreement-paper-v2 {
+    padding: 18px 15px 14px !important;
+  }
+
+  .paperwork-workspace-overlay .agreement-v2-masthead h2 {
+    font-size: 18.5px;
+  }
+
+  .paperwork-workspace-overlay .agreement-v2-clause-copy strong {
+    font-size: 9.8px;
+  }
+
+  .paperwork-workspace-overlay .agreement-v2-clause-copy p {
+    font-size: 7.3px;
+  }
+
+  .agreement-v2-signature-fields {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr)
+      58px;
+    gap: 7px;
+  }
+
+  .paperwork-workspace-overlay .agreement-v2-sign {
+    min-width: 105px;
+  }
+}
+
+/* END B.5.4C.3.1.2 */
+
+
+/* =========================================================
+   B.5.4C.3.1.3 — Agreement Fit Pass
+   ========================================================= */
+
+/*
+   Keep the current paper/workspace look.
+   This pass only makes the complete agreement fit inside
+   the physical sheet without clipping the signature action.
+*/
+
+.paperwork-workspace-overlay .paperwork-agreement-layer {
+  top: 2% !important;
+  height: 94% !important;
+}
+
+.paperwork-workspace-overlay .agreement-paper-v2 {
+  padding: 16px 15px 11px !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-masthead {
+  padding-bottom: 8px !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-parties {
+  padding: 8px 0 9px !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-clause {
+  padding: 5px 0 !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-system-note {
+  margin-top: 5px !important;
+  padding: 4px 0 4px 8px !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature {
+  margin-top: 5px !important;
+  padding-top: 6px !important;
+  gap: 4px !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature-heading {
+  gap: 1px !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature-heading p {
+  margin: 0 !important;
+  font-size: 6.5px !important;
+  line-height: 1.2 !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature-fields {
+  gap: 6px !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature-field {
+  gap: 2px !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature-field span {
+  font-size: 5.4px !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature-field strong {
+  font-size: 8.2px !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature-field i {
+  margin-top: 1px !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature-action {
+  gap: 6px !important;
+  align-items: center !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-acceptance-note {
+  max-width: 52% !important;
+  font-size: 5.4px !important;
+  line-height: 1.15 !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-sign {
+  min-width: 100px !important;
+  min-height: 26px !important;
+  padding: 0 7px !important;
+  font-size: 6.2px !important;
+}
+
+/* iPhone portrait: give the sheet every safe pixel we can
+   without touching the full-screen desk architecture. */
+@media (max-width: 420px) {
+  .paperwork-workspace-overlay .paperwork-agreement-layer {
+    top: 1.5% !important;
+    height: 95% !important;
+  }
+
+  .paperwork-workspace-overlay .agreement-paper-v2 {
+    padding: 15px 14px 10px !important;
+  }
+
+  .paperwork-workspace-overlay .agreement-v2-clause {
+    padding: 4px 0 !important;
+  }
+
+  .paperwork-workspace-overlay .agreement-v2-sign {
+    min-width: 96px !important;
+    min-height: 25px !important;
+  }
+}
+
+/* END B.5.4C.3.1.3 */
+
+
+/* =========================================================
+   B.5.4C.3.1.4 — Agreement Containment Fix
+   ========================================================= */
+
+/*
+   Root cause: the agreement content was using height:100%
+   while padding was being added outside that height.
+   The parent sheet hides overflow, so the bottom of the
+   contract was being clipped regardless of spacing tweaks.
+*/
+
+.paperwork-workspace-overlay .paperwork-agreement-sheet {
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.paperwork-workspace-overlay .agreement-paper-v2 {
+  box-sizing: border-box !important;
+
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+
+  overflow: hidden !important;
+
+  align-content: stretch !important;
+}
+
+/* Every direct grid section must be allowed to shrink inside
+   the physical sheet instead of forcing the page taller. */
+.paperwork-workspace-overlay .agreement-paper-v2 > * {
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* Let the clause region absorb remaining page height cleanly. */
+.paperwork-workspace-overlay .agreement-v2-clauses {
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Prevent signature/action margins from extending beyond
+   the final grid row. */
+.paperwork-workspace-overlay .agreement-v2-signature {
+  min-height: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-signature-action {
+  min-height: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.paperwork-workspace-overlay .agreement-v2-sign {
+  box-sizing: border-box !important;
+  margin-bottom: 0 !important;
+}
+
+/* Keep the full paper inside the available desk area. */
+.paperwork-workspace-overlay .paperwork-agreement-layer {
+  box-sizing: border-box !important;
+  bottom: 2% !important;
+  height: auto !important;
+}
+
+@media (max-width: 420px) {
+  .paperwork-workspace-overlay .paperwork-agreement-layer {
+    top: 1.5% !important;
+    bottom: 1.5% !important;
+    height: auto !important;
+  }
+}
+
+/* END B.5.4C.3.1.4 */
+
+
+/* =========================================================
+   B.5.4C.3.2.2 — Signed Agreement Presentation
+   ========================================================= */
+
+.paperwork-workspace-overlay
+.agreement-paper-v2.signed-copy
+.agreement-v2-clause:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.paperwork-workspace-overlay
+.agreement-v2-sign.signed,
+.paperwork-workspace-overlay
+.agreement-v2-sign.signed:disabled {
+  opacity: 1;
+  border-color: #526979 !important;
+  background: #526979 !important;
+  color: #F2E8D6 !important;
+}
+
+/* END B.5.4C.3.2.2 */

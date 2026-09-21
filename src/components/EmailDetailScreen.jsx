@@ -59,7 +59,8 @@ function signedDelta(value) {
   return `${number >= 0 ? '+' : ''}${number}`
 }
 
-function EmailDetailScreen({ message, carrier, loads = [], onReview, onOpenRelated, onOpenAttachment, onBack }) {
+// B.5.4C.3.2.2 — Signed Agreement Presentation
+function EmailDetailScreen({ message, carrier, loads = [], agreementSigned = false, onReview, onOpenRelated, onOpenAttachment, onBack }) {
   if (!message) {
     return <div className="phone-page email-detail-screen email-detail-missing"><header className="email-detail-toolbar"><button type="button" className="email-detail-back" onClick={onBack} aria-label="Back to inbox">‹</button></header><div className="email-detail-scroll"><p>Message unavailable.</p></div></div>
   }
@@ -79,7 +80,11 @@ function EmailDetailScreen({ message, carrier, loads = [], onReview, onOpenRelat
   let action = null
   if (template?.action === 'OPEN CARRIERSOURCE') action = { label: 'OPEN CARRIERSOURCE', target: 'open-carriersource', destination: 'carrierSource' }
   else if (template?.action === 'OPEN FREIGHTLINK') action = { label: 'OPEN FREIGHTLINK', target: 'open-freightlink', destination: 'freightlink' }
-  else if (message.type === 'carrier-application-offer') action = { label: 'REVIEW & SIGN AGREEMENT', target: 'review-agreement', destination: 'agreement' }
+  else if (message.type === 'carrier-application-offer') action = {
+    label: agreementSigned ? 'SIGNED' : 'REVIEW & SIGN AGREEMENT',
+    target: 'review-agreement',
+    destination: 'agreement',
+  }
   else if (message.type === 'carrier-performance-review') action = { label: 'OPEN CARRIERSOURCE', target: 'open-carriersource', destination: 'carrierSource' }
 
   return (
@@ -119,7 +124,16 @@ function EmailDetailScreen({ message, carrier, loads = [], onReview, onOpenRelat
             <section className="email-detail-attachments compact agreement-email-link">
               <span>ATTACHMENT · 1</span>
               <button type="button" className="email-detail-file-link" onClick={() => onReview?.('agreement')}>
-                <b aria-hidden="true">📎</b><p><strong>{carrier?.name || 'Carrier'} Dispatch Operating Agreement</strong><small>Open full document · review terms · sign</small></p><i>Open</i>
+                <b aria-hidden="true">📎</b>
+                <p>
+                  <strong>{carrier?.name || 'Carrier'} Dispatch Operating Agreement</strong>
+                  <small>
+                    {agreementSigned
+                      ? 'Signed agreement · view filed copy'
+                      : 'Open full document · review terms · sign'}
+                  </small>
+                </p>
+                <i>{agreementSigned ? 'Signed' : 'Open'}</i>
               </button>
             </section>
           )}

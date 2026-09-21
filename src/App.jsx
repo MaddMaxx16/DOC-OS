@@ -774,8 +774,23 @@ function App() {
   const acceptCarrierAgreement = (carrierId = 'metroline') => {
     const carrier = carriers.find((item) => item.id === carrierId)
     if (!carrier) return false
+
+    // B.5.4C.3.2.1 — Signed Agreement Re-entry Guard
+    const alreadyAccepted =
+      Boolean(carrierCareerById?.[carrierId]?.agreementAccepted) ||
+      businessDocuments.some(
+        (document) =>
+          document.id === agreementId &&
+          document.status === 'SIGNED'
+      )
+
+    if (alreadyAccepted) return false
+
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    const signedBy = dispatcherProfile?.displayName || 'Authorized Dispatcher'
+    const signedBy =
+      dispatcherProfile?.dispatcherName ||
+      dispatcherProfile?.displayName ||
+      'Authorized Dispatcher'
     const rules = getAgreementRules(carrier)
     setCarrierApplicationsById((current) => ({ ...current, [carrierId]: { ...current[carrierId], status: 'ACCEPTED', acceptedGameMinute: now } }))
     setCarrierCareerById((current) => ({
