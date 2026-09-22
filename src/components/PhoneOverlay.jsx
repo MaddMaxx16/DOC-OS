@@ -27,10 +27,19 @@ import RateConfirmationWorkspace from './RateConfirmationWorkspace.jsx'
 import PodReviewWorkspace from './PodReviewWorkspace.jsx'
 // B.5.4C.6.1 — Invoice & Billing Workspace
 import InvoiceWorkspace from './InvoiceWorkspace.jsx'
+// B.5.4C.7.1 — Physical Load Packet Workspace
+import LoadPacketWorkspace from './LoadPacketWorkspace.jsx'
+// B.5.4C.7.2 — Documents Filing Cabinet
+import DocumentFilingCabinetScreen from './DocumentFilingCabinetScreen.jsx'
+// B.5.4C.7.3.0 — Filing Desk Foundation
+import DocumentsFilingDeskScreen from './DocumentsFilingDeskScreen.jsx'
+// B.5.4C.7.3.1 — Physical Manila Folder Workspace
+import ManilaLoadFolderWorkspace from './ManilaLoadFolderWorkspace.jsx'
 import mapLocations from '../data/mapLocations.js'
 import { getReceivables } from '../utils/ledger.js'
 import { formatTime } from '../utils/gameTime.js'
 import { getFreightRouteName } from '../utils/freightIdentity.js'
+import { getLoadFolderLifecycle } from '../utils/documentFolderLifecycle.js'
 import { isLunchDecisionReady } from '../utils/lunchDecisionEvents.js'
 import SettingsScreen from './SettingsScreen.jsx'
 
@@ -111,6 +120,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
   // END B.5.4C.2
   const [documentsTab, setDocumentsTab] = useState('pending')
   const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
+  const [selectedFolderLoadId, setSelectedFolderLoadId] = useState(null)
   // B.5.4C.5.2 — Context-Aware Load Return
   const [loadReturnScreen, setLoadReturnScreen] = useState(null)
   const [selectedEmailId, setSelectedEmailId] = useState(null)
@@ -161,6 +171,17 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
     ...loads.filter((load) => load.status === 'available' || load.carrierApprovalStatus).map((load) => ({ id: `load-offer:${load.id}`, type: 'load-offer', title: `Load Offer · ${getFreightRouteName(load)}`, meta: `$${load.rate} · FreightLink`, loadId: load.id })),
     ...loads.filter((load) => Number(load.pod?.freightCondition?.damagedAtPickup || load.shipment?.damagedPallets || 0) > 0 || Number(load.pod?.freightCondition?.missingAtPickup || load.shipment?.missingPallets || 0) > 0).map((load) => ({ id: `exception:${load.id}`, type: 'exception-report', title: `Exception Report · ${getFreightRouteName(load)}`, meta: 'Freight condition record', loadId: load.id })),
     ...Object.entries(ledgerWorkflowByLoadId).filter(([, workflow]) => workflow.invoiceNumber).map(([loadId, workflow]) => { const load = loads.find((item) => item.id === loadId); return { id: `invoice:${loadId}`, type: 'invoice', title: `${workflow.invoiceNumber} · ${load ? getFreightRouteName(load) : 'Route'}`, meta: 'Dispatch invoice', loadId } }),
+
+    ...loads
+      .filter((load) => load.documentFiling?.packetAssembled)
+      .map((load) => ({
+        id: `settlement-packet:${load.id}`,
+        type: 'settlement-packet',
+        title: `Closeout Packet · ${load.loadNumber || load.id}`,
+        meta: 'Assembled load closeout packet',
+        loadId: load.id,
+      })),
+
   ]
 
   const openComposer = (context = {}) => { setEmailComposeContext(context); setScreen('emailCompose') }
@@ -215,6 +236,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
     if (workflowType === 'ratecon-correction') workflowValid = recipient.role === 'documents' && hasAttachment('rate-confirmation') && hasAttachment('load-offer')
     if (workflowType === 'invoice-submission') workflowValid = recipient.role === 'accounting' && hasAttachment('invoice') && hasAttachment('pod')
     if (workflowType === 'pickup-correction') workflowValid = recipient.role === 'documents' && hasAttachment('exception-report')
+    if (workflowType === 'load-closeout') workflowValid = recipient.role === 'operations' && hasAttachment('settlement-packet')
 
     if (workflowType === 'pickup-correction' && workflowValid) {
       const released = onPickupCorrectionSent?.(loadId)
@@ -247,6 +269,23 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
       const current = ledgerWorkflowByLoadId[loadId] || {}
       setLedgerWorkflowByLoadId({ ...ledgerWorkflowByLoadId, [loadId]: { ...current, financialStatus: workflowValid ? 'AWAITING_PAYMENT' : 'DRAFT', invoiceSentGameMinute: workflowValid ? nowGameMinute : null, paymentAvailableGameMinute: workflowValid ? nowGameMinute + 1440 : null, submissionStatus: workflowValid ? 'SUBMITTED' : 'DOCUMENTATION_REQUIRED' } })
     }
+    if (workflowType === 'load-closeout' && loadId && workflowValid) {
+      setLoads((current) =>
+        current.map((load) =>
+          load.id === loadId
+            ? {
+                ...load,
+                documentFiling: {
+                  ...(load.documentFiling || {}),
+                  closeoutStatus: 'CLOSED',
+                  closeoutSentGameMinute: nowGameMinute,
+                },
+              }
+            : load
+        )
+      )
+    }
+
     setScreen(context?.returnScreen || 'email')
     return true
   }
@@ -590,12 +629,270 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           }}
         />
       ) : screen === 'documents' ? (
-        <DocumentsScreen loads={loads} businessDocuments={businessDocuments} ledgerWorkflowByLoadId={ledgerWorkflowByLoadId} activeTab={documentsTab} onChangeTab={setDocumentsTab} onBack={() => setScreen('home')} onOpenLoad={(id) => openLoadDetails(id, 'documents')} onOpenInvoice={(id) => { setSelectedLoadId(id); setScreen('ledgerReceivable') }} onOpenRateConfirmation={(id) => { const load = loads.find((item) => item.id === id); if (!load?.rateConfirmation) return; setPreviewAttachment({ id: load.rateConfirmation.id, type: 'rate-confirmation', title: `Rate Confirmation · ${getFreightRouteName(load)}`, meta: load.rateConfirmation.reference, loadId: id }); }} onOpenSettlementPacket={(id) => { const load = loads.find((item) => item.id === id); if (!load) return; setPreviewAttachment({ id: `packet:${id}`, type: 'settlement-packet', title: `Load Packet · ${getFreightRouteName(load)}`, meta: 'Permanent load record', loadId: id }); }} onOpenBusinessDocument={(id) => {
-      setDocumentReturnScreen('documents')
-      setSelectedBusinessDocumentId(id)
-      const document = businessDocuments.find((item) => item.id === id)
-      setScreen(document?.type === 'dispatch-agreement' ? 'signedAgreement' : 'businessDocumentDetail')
-    }} onOpenPod={(id) => { const load = loads.find((item) => item.id === id); if (load?.pod && !load.pod.approved && !Number.isFinite(load.pod.viewedGameMinute)) { const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay; setLoads((current) => current.map((item) => item.id === id ? { ...item, pod: { ...item.pod, viewedGameMinute: now } } : item)) } setDocumentReturnScreen('documents'); setSelectedLoadId(id); setScreen('podDetail') }} />
+                <DocumentFilingCabinetScreen
+          loads={loads}
+          businessDocuments={businessDocuments}
+          ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}
+          onBack={() => setScreen('home')}
+          onStartFiling={() => setScreen('documentsFilingDesk')}
+          onOpenFolder={(id) => {
+            setSelectedFolderLoadId(id)
+            setScreen('documentsFolder')
+          }}
+          onOpenLoad={(id) => openLoadDetails(id, 'documents')}
+          onOpenInvoice={(id) => {
+            setSelectedLoadId(id)
+            setScreen('ledgerReceivable')
+          }}
+          onOpenRateConfirmation={(id) => {
+            const load = loads.find((item) => item.id === id)
+            if (!load?.rateConfirmation) return
+            setPreviewAttachment({
+              id: load.rateConfirmation.id,
+              type: 'rate-confirmation',
+              title: `Rate Confirmation · ${getFreightRouteName(load)}`,
+              meta: load.rateConfirmation.reference,
+              loadId: id,
+            })
+          }}
+          onOpenException={(id) => {
+            const load = loads.find((item) => item.id === id)
+            if (!load) return
+            setPreviewAttachment({
+              id: `exception:${id}`,
+              type: 'exception-report',
+              title: `Freight Exception · ${getFreightRouteName(load)}`,
+              meta: 'Shipment condition record',
+              loadId: id,
+            })
+          }}
+          onOpenBusinessDocument={(id) => {
+            setDocumentReturnScreen('documents')
+            setSelectedBusinessDocumentId(id)
+            const document = businessDocuments.find((item) => item.id === id)
+            setScreen(document?.type === 'dispatch-agreement' ? 'signedAgreement' : 'businessDocumentDetail')
+          }}
+          onOpenPod={(id) => {
+            const load = loads.find((item) => item.id === id)
+            if (
+              load?.pod &&
+              !load.pod.approved &&
+              !Number.isFinite(load.pod.viewedGameMinute)
+            ) {
+              const now =
+                gameTime.gameDayIndex * 1440 +
+                gameTime.totalMinutesOfDay
+        
+              setLoads((current) =>
+                current.map((item) =>
+                  item.id === id
+                    ? {
+                        ...item,
+                        pod: {
+                          ...item.pod,
+                          viewedGameMinute: now,
+                        },
+                      }
+                    : item
+                )
+              )
+            }
+        
+            setDocumentReturnScreen('documents')
+            setSelectedLoadId(id)
+            setScreen('podDetail')
+          }}
+          onFileDocument={(targetLoadId, documentId) => {
+            setLoads((current) =>
+              current.map((load) => {
+                const currentIds =
+                  load.documentFiling?.filedDocumentIds || []
+        
+                const withoutDocument =
+                  currentIds.filter((id) => id !== documentId)
+        
+                const nextIds =
+                  load.id === targetLoadId
+                    ? [...withoutDocument, documentId]
+                    : withoutDocument
+        
+                const unchanged =
+                  nextIds.length === currentIds.length &&
+                  nextIds.every((id, index) => id === currentIds[index])
+        
+                if (unchanged) return load
+        
+                return {
+                  ...load,
+                  documentFiling: {
+                    ...(load.documentFiling || {}),
+                    filedDocumentIds: nextIds,
+                  },
+                }
+              })
+            )
+          }}
+          onUnfileDocument={(documentId) => {
+            setLoads((current) =>
+              current.map((load) => {
+                const currentIds =
+                  load.documentFiling?.filedDocumentIds || []
+        
+                if (!currentIds.includes(documentId)) return load
+        
+                return {
+                  ...load,
+                  documentFiling: {
+                    ...(load.documentFiling || {}),
+                    filedDocumentIds:
+                      currentIds.filter((id) => id !== documentId),
+                  },
+                }
+              })
+            )
+          }}
+/>
+      ) : screen === 'documentsFolder' ? (
+        <ManilaLoadFolderWorkspace
+          folderLoadId={selectedFolderLoadId}
+          loads={loads}
+          carriers={carriers}
+          workflows={ledgerWorkflowByLoadId}
+          dispatcherProfile={dispatcherProfile}
+          onBack={() => setScreen('documents')}
+          onAssemblePacket={(loadId) => {
+            const load = loads.find((item) => item.id === loadId)
+            if (!load) return { ok: false, message: 'Load file not found.' }
+
+            const lifecycle = getLoadFolderLifecycle(
+              load,
+              ledgerWorkflowByLoadId,
+              loads
+            )
+
+            if (!lifecycle.readyToAssemble) {
+              if (lifecycle.wrongFiledCount > 0) {
+                return {
+                  ok: false,
+                  message: `REFERENCE MISMATCH · ${lifecycle.wrongFiledCount} filed paper${lifecycle.wrongFiledCount === 1 ? '' : 's'} belong to another load.`,
+                }
+              }
+
+              return {
+                ok: false,
+                message: lifecycle.missing.length
+                  ? `PACKET INCOMPLETE · Missing ${lifecycle.missing.join(' · ')}.`
+                  : 'PACKET NOT READY · Review the load file before assembly.',
+              }
+            }
+
+            const assembledIds = [
+              `offer:${loadId}`,
+              ...(load.documentFiling?.filedDocumentIds || []),
+            ]
+
+            setLoads((current) =>
+              current.map((item) =>
+                item.id === loadId
+                  ? {
+                      ...item,
+                      documentFiling: {
+                        ...(item.documentFiling || {}),
+                        packetAssembled: true,
+                        packetAssembledGameMinute: nowGameMinute,
+                        assembledDocumentIds: assembledIds,
+                      },
+                    }
+                  : item
+              )
+            )
+
+            return { ok: true }
+          }}
+          onSendCloseout={(loadId) => {
+            const load = loads.find((item) => item.id === loadId)
+            if (!load?.documentFiling?.packetAssembled) return
+
+            const carrier =
+              carriers.find((item) => item.id === load.carrierId) ||
+              carriers[0]
+
+            openComposer({
+              workflowType: 'load-closeout',
+              label: 'LOAD CLOSEOUT',
+              loadId,
+              loadNumber: load.loadNumber || load.id,
+              suggestedRecipientId: `${carrier?.id || 'metroline'}-operations`,
+              subject: `Load closeout · ${getFreightRouteName(load)}`,
+              body: `Hello,
+
+Attached is the completed closeout packet for ${getFreightRouteName(load)}. Thank you for your business.
+
+Best,
+${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS Dispatch'}`,
+              attachmentIds: [`settlement-packet:${loadId}`],
+              returnScreen: 'documentsFolder',
+            })
+          }}
+          onUnfileDocument={(documentId) => {
+            setLoads((current) =>
+              current.map((load) => {
+                const currentIds =
+                  load.documentFiling?.filedDocumentIds || []
+
+                if (!currentIds.includes(documentId)) return load
+
+                return {
+                  ...load,
+                  documentFiling: {
+                    ...(load.documentFiling || {}),
+                    filedDocumentIds:
+                      currentIds.filter((id) => id !== documentId),
+                  },
+                }
+              })
+            )
+          }}
+        />
+      ) : screen === 'documentsFilingDesk' ? (
+        <DocumentsFilingDeskScreen
+          loads={loads}
+          carriers={carriers}
+          ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}
+          onBack={() => setScreen('documents')}
+          onFileDocument={(targetLoadId, documentId) => {
+            setLoads((current) =>
+              current.map((load) => {
+                const currentIds =
+                  load.documentFiling?.filedDocumentIds || []
+
+                const withoutDocument =
+                  currentIds.filter((id) => id !== documentId)
+
+                const nextIds =
+                  load.id === targetLoadId
+                    ? [...withoutDocument, documentId]
+                    : withoutDocument
+
+                const unchanged =
+                  nextIds.length === currentIds.length &&
+                  nextIds.every(
+                    (id, index) => id === currentIds[index]
+                  )
+
+                if (unchanged) return load
+
+                return {
+                  ...load,
+                  documentFiling: {
+                    ...(load.documentFiling || {}),
+                    filedDocumentIds: nextIds,
+                  },
+                }
+              })
+            )
+          }}
+        />
       ) : screen === 'businessDocumentDetail' ? (
         <BusinessDocumentDetailScreen document={businessDocuments.find((document) => document.id === selectedBusinessDocumentId)} onBack={() => { if (documentReturnScreen === 'documents') setDocumentsTab('archive'); setScreen(documentReturnScreen || 'documents') }} />
       ) : screen === 'podDetail' ? (
@@ -734,7 +1031,18 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           />
         )}
 
-        {previewAttachment && previewAttachment.type !== 'rate-confirmation' && (
+        {previewAttachment?.type === 'settlement-packet' && (
+          <LoadPacketWorkspace
+            attachment={previewAttachment}
+            loads={loads}
+            carriers={carriers}
+            workflows={ledgerWorkflowByLoadId}
+            dispatcherProfile={dispatcherProfile}
+            onClose={() => setPreviewAttachment(null)}
+          />
+        )}
+
+        {previewAttachment && previewAttachment.type !== 'rate-confirmation' && previewAttachment.type !== 'settlement-packet' && (
           <OperationalDocumentViewer
             attachment={previewAttachment}
             loads={loads}

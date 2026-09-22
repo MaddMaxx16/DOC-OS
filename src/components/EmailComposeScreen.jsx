@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 
 const CATEGORY_ORDER = [
   ['load-offer', 'FreightLink Loads'],
+  ['settlement-packet', 'Load Packets'],
   ['pod', 'PODs'],
   ['invoice', 'Invoices'],
   ['agreement', 'Agreements'],
@@ -11,6 +12,7 @@ const CATEGORY_ORDER = [
 
 function attachmentCategory(item) {
   if (item.type === 'load-offer') return 'load-offer'
+  if (item.type === 'settlement-packet') return 'settlement-packet'
   if (item.type === 'pod') return 'pod'
   if (item.type === 'invoice') return 'invoice'
   if (item.type === 'exception-report') return 'exception-report'
@@ -31,7 +33,7 @@ function EmailComposeScreen({ contacts = [], attachments = [], context = {}, onB
     const required = context.workflowType === 'carrier-approval' ? ['load-offer'] : context.workflowType === 'pod-correction' ? ['pod', 'exception-report'] : context.workflowType === 'pickup-correction' ? ['exception-report'] : context.workflowType === 'ratecon-correction' ? ['rate-confirmation', 'load-offer'] : context.workflowType === 'invoice-submission' ? ['invoice', 'pod'] : []
     return scopedAttachments.filter((item) => required.includes(attachmentCategory(item))).map((item) => item.id)
   }, [scopedAttachments, context.attachmentIds, context.loadId, context.workflowType])
-  const [selectedAttachments, setSelectedAttachments] = useState(() => defaultAttachmentIds)
+  const [selectedAttachments, setSelectedAttachments] = useState(() => context.attachmentIds || [])
   const [category, setCategory] = useState(context.workflowType === 'carrier-approval' ? 'load-offer' : context.workflowType === 'pod-correction' ? 'pod' : context.workflowType === 'pickup-correction' ? 'exception-report' : context.workflowType === 'ratecon-correction' ? 'rate-confirmation' : context.workflowType === 'invoice-submission' ? 'invoice' : '')
   const [candidateId, setCandidateId] = useState('')
   const [error, setError] = useState('')
