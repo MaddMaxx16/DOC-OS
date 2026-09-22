@@ -22724,3 +22724,191 @@ button.ledger-transaction.linked .ledger-transaction-amount.credit {
 .day-one-entry-footer>button span { font-size:17px; line-height:1; }
 
 /* END B.5.4D.1 */
+
+
+/* =========================================================
+   B.5.4D.2 — CarrierSource Player Experience
+   ========================================================= */
+
+.carrier-source-d2-stack {
+  display:flex;
+  flex-direction:column;
+  min-height:100%;
+}
+
+.cs-first-visit-guide {
+  flex:0 0 auto;
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) auto;
+  gap:10px;
+  align-items:start;
+  margin:10px 11px 2px;
+  padding:11px 12px;
+  border:1px solid rgba(141,156,168,.22);
+  border-radius:8px;
+  background:
+    linear-gradient(135deg,rgba(84,102,116,.10),transparent 55%),
+    rgba(15,20,24,.90);
+  color:#dce4e9;
+}
+
+.cs-first-visit-guide.state-new {
+  border-color:rgba(177,147,98,.32);
+  box-shadow:inset 3px 0 0 rgba(177,147,98,.58);
+}
+
+.cs-first-visit-guide.state-pending {
+  border-color:rgba(120,146,163,.34);
+  box-shadow:inset 3px 0 0 rgba(98,128,149,.62);
+}
+
+.cs-first-visit-guide.state-approved {
+  border-color:rgba(111,151,125,.36);
+  box-shadow:inset 3px 0 0 rgba(101,146,118,.68);
+}
+
+.cs-first-visit-guide-index,
+.cs-first-visit-guide-icon {
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(177,147,98,.38);
+  border-radius:50%;
+  color:#c5aa79;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:14px;
+  line-height:1;
+}
+
+.state-pending .cs-first-visit-guide-icon {
+  border-color:rgba(106,139,162,.45);
+  color:#8eafc4;
+  font-family:inherit;
+  font-weight:900;
+}
+
+.state-approved .cs-first-visit-guide-icon {
+  border-color:rgba(100,148,118,.50);
+  color:#8eb39b;
+  font-family:inherit;
+  font-weight:900;
+}
+
+.cs-first-visit-guide-copy {
+  min-width:0;
+  display:grid;
+  gap:4px;
+}
+
+.cs-first-visit-guide-copy>span {
+  color:#8798a5;
+  font-size:6.5px;
+  font-weight:950;
+  letter-spacing:.12em;
+}
+
+.state-new .cs-first-visit-guide-copy>span { color:#aa9167; }
+.state-pending .cs-first-visit-guide-copy>span { color:#88a7bb; }
+.state-approved .cs-first-visit-guide-copy>span { color:#86aa92; }
+
+.cs-first-visit-guide-copy>strong {
+  color:#edf1f3;
+  font-size:10px;
+  line-height:1.25;
+}
+
+.cs-first-visit-guide-copy>p {
+  margin:0;
+  color:#9daab3;
+  font-size:8px;
+  line-height:1.42;
+}
+
+.cs-first-visit-guide>button {
+  align-self:center;
+  min-height:30px;
+  padding:0 9px;
+  border:1px solid rgba(100,148,118,.58);
+  border-radius:5px;
+  background:rgba(58,87,68,.58);
+  color:#dceae1;
+  font:inherit;
+  font-size:6px;
+  font-weight:950;
+  letter-spacing:.08em;
+  white-space:nowrap;
+}
+
+.cs-first-visit-steps {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:5px;
+  margin-top:4px;
+}
+
+.cs-first-visit-steps>div {
+  display:grid;
+  grid-template-columns:16px minmax(0,1fr);
+  align-items:center;
+  gap:4px;
+  padding:5px 6px;
+  border:1px solid rgba(129,145,157,.16);
+  border-radius:5px;
+  background:rgba(8,12,15,.40);
+}
+
+.cs-first-visit-steps b {
+  width:16px;
+  height:16px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:rgba(177,147,98,.15);
+  color:#bca373;
+  font-size:6px;
+}
+
+.cs-first-visit-steps span {
+  color:#9ba8b0;
+  font-size:6px;
+  line-height:1.2;
+}
+
+.cs-first-visit-mini-flow {
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:4px;
+  margin-top:5px;
+  color:#81919c;
+}
+
+.cs-first-visit-mini-flow b {
+  color:#aeb9c0;
+  font-size:6px;
+  letter-spacing:.06em;
+}
+
+.cs-first-visit-mini-flow i {
+  color:#667681;
+  font-size:7px;
+  font-style:normal;
+}
+
+@media (max-width:420px) {
+  .cs-first-visit-guide {
+    grid-template-columns:30px minmax(0,1fr);
+  }
+
+  .cs-first-visit-guide>button {
+    grid-column:2;
+    justify-self:start;
+  }
+
+  .cs-first-visit-steps {
+    grid-template-columns:1fr;
+  }
+}
+
+/* END B.5.4D.2 */

@@ -762,15 +762,93 @@ function App() {
     })
   }
 
+  // B.5.4D.2.1 — Metroline Tutorial Fast-Track
   const applyCarrier = (carrierId = 'metroline') => {
     const carrier = carriers.find((item) => item.id === carrierId)
     if (!carrier) return false
+
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    setCarrierApplicationsById((current) => current[carrierId] ? current : { ...current, [carrierId]: { status: 'PENDING', submittedGameMinute: now, responseGameMinute: now + 10 } })
+    const isFirstDayMetrolineFastTrack =
+      carrierId === 'metroline' &&
+      Number(dayLoop?.operationDay || 1) === 1 &&
+      !carrierApplicationsById?.[carrierId]
+
+    if (isFirstDayMetrolineFastTrack) {
+      setCarrierApplicationsById((current) =>
+        current[carrierId]
+          ? current
+          : {
+              ...current,
+              [carrierId]: {
+                status: 'OFFER_RECEIVED',
+                submittedGameMinute: now,
+                responseGameMinute: now,
+                fastTrackedByMentor: true,
+              },
+            }
+      )
+
+      setCarrierCareerById((current) => ({
+        ...current,
+        [carrierId]: mergeCarrierCareerEntry(current[carrierId], carrier, {
+          applicationState: CARRIER_APPLICATION_STATES.APPROVED,
+        }),
+      }))
+
+      setEmailMessages((current) =>
+        current.some((message) => message.id === `${carrierId}-application-approved`)
+          ? current
+          : [
+              ...current,
+              {
+                id: `${carrierId}-application-approved`,
+                type: 'carrier-application-offer',
+                carrierId,
+                senderOverride: 'Jordan Blake · Dispatch Mentor',
+                subject: 'Metroline got back to me',
+                bodyOverride:
+                  `Hey,
+
+I know waiting to hear back on a carrier application can take a while, especially when you are just getting started. I know a few people over at Metroline, so I was able to get your application in front of the right person.
+
+They accepted it.
+
+I attached a copy of Metroline's operating agreement. Take your time with it — this is where you will see what they expect from you as their dispatcher. Review the agreement and sign it when you are comfortable with the relationship.
+
+Future carrier applications will not always move this quickly, so do not get too used to me pulling strings.
+
+Thanks,
+Jordan Blake
+Dispatch Mentor`,
+                receivedGameMinute: now + 0.01,
+                read: false,
+              },
+            ]
+      )
+
+      return true
+    }
+
+    setCarrierApplicationsById((current) =>
+      current[carrierId]
+        ? current
+        : {
+            ...current,
+            [carrierId]: {
+              status: 'PENDING',
+              submittedGameMinute: now,
+              responseGameMinute: now + 10,
+            },
+          }
+    )
+
     setCarrierCareerById((current) => ({
       ...current,
-      [carrierId]: mergeCarrierCareerEntry(current[carrierId], carrier, { applicationState: CARRIER_APPLICATION_STATES.PENDING }),
+      [carrierId]: mergeCarrierCareerEntry(current[carrierId], carrier, {
+        applicationState: CARRIER_APPLICATION_STATES.PENDING,
+      }),
     }))
+
     return true
   }
 
