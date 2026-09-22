@@ -288,10 +288,27 @@ function getAppointmentAlerts(loads, now) {
   return alerts
 }
 
-function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario }) {
+function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario, initialPhoneOpen = false, initialPhoneScreen = 'home', onInitialPhoneEntryConsumed }) {
   const [devOpen, setDevOpen] = useState(false)
-  const [isPhoneOpen, setIsPhoneOpen] = useState(false)
-  const [phoneInitialScreen, setPhoneInitialScreen] = useState('home')
+  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen))
+  const [phoneInitialScreen, setPhoneInitialScreen] = useState(initialPhoneScreen || 'home')
+  // B.5.4D.1.1 — Opening Guidance + CarrierSource Clock Gate
+  const [dayOneCarrierSourceGateActive, setDayOneCarrierSourceGateActive] = useState(
+    Boolean(initialPhoneOpen && initialPhoneScreen === 'email')
+  )
+
+  // B.5.4D.1 — consume the one-shot Day 1 launch into Email.
+  useEffect(() => {
+    if (!initialPhoneOpen) return
+    onInitialPhoneEntryConsumed?.()
+  }, [initialPhoneOpen, onInitialPhoneEntryConsumed])
+
+  const completeDayOneCarrierSourceHandoff = () => {
+    if (!dayOneCarrierSourceGateActive) return
+    setDayOneCarrierSourceGateActive(false)
+    setGameClockPaused?.(false)
+  }
+
   const [driverFitEvaluation, setDriverFitEvaluation] = useState(null)
   const [phoneLoadId, setPhoneLoadId] = useState(null)
   const [phoneInitialDriverId, setPhoneInitialDriverId] = useState(null)
@@ -2996,6 +3013,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         )}
         {isPhoneOpen && (
           <PhoneOverlay
+            onCarrierSourceOpened={completeDayOneCarrierSourceHandoff}
             loads={loads}
             setLoads={setLoads}
             operationDay={operationDay}

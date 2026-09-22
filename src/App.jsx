@@ -10,6 +10,8 @@ import { DELIVERY_CHECKIN_MINUTES, PICKUP_CHECKIN_MINUTES, getDeliveryDockWaitMi
 import { logDocOsState } from './utils/debugLogger.js'
 import { getDriverPanelModel } from './utils/driverOperationalState.js'
 import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
+// B.5.4D.1 — Day 1 Entry / Post-Market Handoff
+import DayOneEntryScreen from './components/DayOneEntryScreen.jsx'
 import CareerSetupScreen from './components/CareerSetupScreen.jsx'
 import MainGameScreen from './components/MainGameScreen.jsx'
 import StartScreen from './components/StartScreen.jsx'
@@ -79,6 +81,7 @@ function reconcileDriverRuntimeState(driver, activeLoad, savedPosition, now) {
 
 function App() {
   const [stage, setStage] = useState('start')
+  const [gameEntryScreen, setGameEntryScreen] = useState(null)
   const [selectedMarket, setSelectedMarket] = useState(null)
   const [gameTime, setGameTime] = useState({ gameDayIndex: 0, totalMinutesOfDay: 360 })
   const [loads, setLoads] = useState(() => seedLoads)
@@ -1499,7 +1502,8 @@ Open CarrierSource to review your full account history.`
         )}
 
         {(stage === 'start' || stage === 'careerSetup') && <StartOfficeBackdrop />}
-        {stage === 'market' && <EntryLiveMap stage={stage} selectedMarket={selectedMarket} />}
+        {(stage === 'market' || /* B.5.4D.1.1 — Opening Guidance + CarrierSource Clock Gate */
+        stage === 'dayOneIntro') && <EntryLiveMap stage={stage} selectedMarket={selectedMarket} />}
         {stage === 'start' && (
           <StartScreen
             saveSlots={saveSlots}
@@ -1532,14 +1536,58 @@ Open CarrierSource to review your full account history.`
               setResumeStage('careerSetup')
               setStage('careerSetup')
             })}
-            onConfirm={() => runMajorTransition('operations', () => {
+            onConfirm={() => runMajorTransition('forward', () => {
               setDispatcherProfile((current) => current ? {
                 ...current,
                 homeMarket: 'New York Metro',
               } : current)
               setHasExistingOperation(true)
+              setResumeStage('dayOneIntro')
+              setIsGameClockPaused(true)
+              setStage('dayOneIntro')
+            })}
+          />
+        )}
+        {stage === 'dayOneIntro' && (
+          <DayOneEntryScreen
+            dispatcherProfile={dispatcherProfile}
+            marketName="New York Metro"
+            onBack={() => runMajorTransition('back', () => {
+              setResumeStage('market')
+              setStage('market')
+            })}
+            onBegin={() => runMajorTransition('operations', () => {
+              const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+
+              setEmailMessages((current) =>
+                current.some((message) => message.id === 'mentor-day-one-start')
+                  ? current
+                  : [
+                      ...current,
+                      {
+                        id: 'mentor-day-one-start',
+                        type: 'mentor',
+                        direction: 'inbound',
+                        senderOverride: 'Jordan Blake · Dispatch Mentor',
+                        subject: 'A good place to start',
+                        bodyOverride:
+                          `Congratulations on giving your own dispatch operation a real shot. You do not need to know every part of the job on day one. Start by building one solid carrier relationship and learn the operation from there.
+
+To find CarrierSource: return to your Dispatch Console, open Browser, then choose CarrierSource from the Workspace page. Take a look at the carriers available in your market and pay attention to what they expect from a dispatcher before you apply.
+
+Once you have a carrier relationship in place, the rest of DOC OS will start to make a lot more sense.
+
+Thanks,
+Jordan Blake
+Dispatch Mentor`,receivedGameMinute: now,
+                        read: false,
+                      },
+                    ]
+              )
+
+              setGameEntryScreen('email')
               setResumeStage('game')
-              setIsGameClockPaused(false)
+              setIsGameClockPaused(true)
               setStage('game')
             })}
           />
@@ -1547,6 +1595,9 @@ Open CarrierSource to review your full account history.`
         {stage === 'game' && (
           <MainGameScreen
             selectedMarket={selectedMarket}
+            initialPhoneOpen={Boolean(gameEntryScreen)}
+            initialPhoneScreen={gameEntryScreen || 'home'}
+            onInitialPhoneEntryConsumed={() => setGameEntryScreen(null)}
             gameTime={gameTime}
             setGameTime={setGameTime}
             loads={loads}
