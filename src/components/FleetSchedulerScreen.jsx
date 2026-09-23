@@ -379,7 +379,26 @@ function FleetSchedulerScreen({
     ? (selectedLoad.carrierApprovalStatus === 'PENDING' ? 'WITHDRAW FROM APPROVAL' : 'REMOVE FROM PLAN')
     : (Number.isFinite(selectedLoad?.scheduleCommunicatedGameMinute) ? 'REMOVE ROUTE' : 'CANCEL BOOKING')
 
-  // B.5.4D.4.2.4 — Today's Plan Separation
+    // B.5.4D.4.2.13A — schedule status comes from actual load acknowledgements.
+  const bookedDriverLoads = currentDayLoads.filter((load) =>
+    load.assignedDriverId === driver?.id &&
+    !['completed', 'paid', 'cancelled', 'expired'].includes(String(load.status || '').toLowerCase())
+  )
+
+  const driverScheduleReady = bookedDriverLoads.length > 0
+  const driverScheduleSent =
+    driverScheduleReady &&
+    bookedDriverLoads.every((load) => Number.isFinite(Number(load.driverAcknowledgedGameMinute)))
+
+  const driverScheduleNeedsUpdate =
+    driverScheduleReady &&
+    !driverScheduleSent &&
+    (
+      bookedDriverLoads.some((load) => Number.isFinite(Number(load.driverAcknowledgedGameMinute))) ||
+      Number.isFinite(Number(driver?.scheduleCommunicatedGameMinute))
+    )
+
+// B.5.4D.4.2.4 — Today's Plan Separation
   return (
     <div className="today-plan-screen">
       <header className="today-plan-header">
@@ -393,7 +412,25 @@ function FleetSchedulerScreen({
       <section className="today-plan-driver-strip">
         <div className="today-plan-driver-main">
           <span>PLANNING FOR</span>
-          <strong>{driver?.fullName || driver?.name || 'Select driver'}</strong>
+          {/* B.5.4D.4.2.11 — Driver-Scoped Today's Plan */}
+          {drivers.length > 1 ? (
+            <label className="today-plan-driver-select">
+              <select
+                value={driverId || ''}
+                onChange={(event) => setDriverId(event.target.value || null)}
+                aria-label="Select driver for Today's Plan"
+              >
+                {drivers.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.fullName || item.name || item.id}
+                  </option>
+                ))}
+              </select>
+              <span aria-hidden="true">▾</span>
+            </label>
+          ) : (
+            <strong>{driver?.fullName || driver?.name || 'Select driver'}</strong>
+          )}
           <small>
             {workday
               ? `${formatTime(workday.startMinutes)}–${formatTime(workday.endMinutes)}`
@@ -418,6 +455,18 @@ function FleetSchedulerScreen({
           }}
         >
           OPEN DRIVER
+        </button>
+        <button
+          type="button"
+          className={`today-plan-send-schedule ${driverScheduleSent ? 'sent' : driverScheduleNeedsUpdate ? 'update' : ''}`}
+          disabled={!driverScheduleReady || driverScheduleSent}
+          onClick={() => onSendDriverSchedule?.(driver?.id)}
+        >
+          {driverScheduleSent
+            ? 'SCHEDULE SENT'
+            : driverScheduleNeedsUpdate
+              ? 'SEND UPDATED SCHEDULE'
+              : 'SEND SCHEDULE'}
         </button>
       </section>
 
@@ -444,14 +493,21 @@ function FleetSchedulerScreen({
               const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
               const booked = load.assignedDriverId === driver?.id
               const approval = String(load.carrierApprovalStatus || '').toUpperCase()
-              const approvalPending = approval === 'PENDING' || Boolean(load.scheduleApprovalQueued)
+              // B.5.4D.4.2.10F — Planned vs Pending Approval State
+              // scheduleApprovalQueued means "this load is in Today's Plan".
+              // Only carrierApprovalStatus === PENDING means an approval request
+              // was actually sent to the carrier.
+              const approvalQueued = Boolean(load.scheduleApprovalQueued)
+              const approvalPending = approval === 'PENDING'
               const statusLabel = booked
                 ? 'BOOKED'
                 : approval === 'APPROVED'
                   ? 'CARRIER APPROVED'
                   : approvalPending
                     ? 'AWAITING APPROVAL'
-                    : 'PLANNED'
+                    : approvalQueued
+                      ? 'READY FOR APPROVAL'
+                      : 'PLANNED'
 
               return (
                 <article className={`today-plan-load-card ${booked ? 'booked' : approval === 'APPROVED' ? 'approved' : ''}`} key={load.id}>

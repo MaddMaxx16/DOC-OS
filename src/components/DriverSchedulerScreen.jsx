@@ -482,6 +482,9 @@ function ShiftEndPlannerSheet({ driver, carrier, loads, currentDay, committedLoa
 // B.5.4D.4.2.4 — Candidate freight is planned, not current
 // B.5.4D.4.2.6 — First-Class Planning Access
 // B.5.4D.4.2.7A — Standard Phone + Visible Plan Entry
+// B.5.4D.4.2.11 — Driver-Scoped Today's Plan
+// B.5.4D.4.2.12 — Per-Driver Plan Access Cleanup
+// B.5.4D.4.2.13A — Schedule-Owned Driver Movement Repair
 function DriverSchedulerScreen({
   drivers = [],
   carriers = [],
@@ -495,6 +498,7 @@ function DriverSchedulerScreen({
   onSetShiftEndPlan,
   onFindFreight,
   onOpenTodayPlan,
+  onSendDriverSchedule,
   onDriverContextChange,
 }) {
   const currentDay = Number(gameTime?.gameDayIndex || 0)
@@ -524,15 +528,6 @@ function DriverSchedulerScreen({
     null
 
   // D.4.2.7A — count planned/assigned freight for today.
-  const todayPlanDriverIds = new Set(roster.map((driver) => driver.id))
-  const todayPlanCount = loads.filter((load) => {
-    if (Number(load.pickupDayIndex) !== currentDay) return false
-    if (['completed', 'paid', 'cancelled', 'expired'].includes(String(load.status || '').toLowerCase())) return false
-    return (
-      todayPlanDriverIds.has(load.assignedDriverId) ||
-      todayPlanDriverIds.has(load.candidateDriverId)
-    )
-  }).length
 
   const days = Array.from({ length: 7 }, (_, index) => weekStart + index)
 
@@ -559,20 +554,7 @@ function DriverSchedulerScreen({
         <button type="button" className={view === 'driver' ? 'active' : ''} onClick={() => setView('driver')}>DRIVER</button>
       </nav>
 
-      <button
-        type="button"
-        className="driver-scheduler-plan-banner"
-        onClick={() => onOpenTodayPlan?.(selectedDriverId || roster[0]?.id || null)}
-      >
-        <span>
-          <small>FREIGHT PLANNING</small>
-          <strong>TODAY'S PLAN</strong>
-        </span>
-        <span className="driver-scheduler-plan-banner-meta">
-          <b>{todayPlanCount} LOAD{todayPlanCount === 1 ? '' : 'S'}</b>
-          <em>OPEN ›</em>
-        </span>
-      </button>
+            
 
       {view === 'today' && (
         <div className="driver-scheduler-today-view">
@@ -587,6 +569,21 @@ function DriverSchedulerScreen({
               const carrier = carriers.find((item) => item.id === driver.carrierId)
               const workday = getCarrierVisibleWorkday(driver, currentDay, currentDay)
               const dayLoads = loadsForDay(loads, driver.id, currentDay)
+              const bookedDayLoads = dayLoads.filter((load) =>
+                load.assignedDriverId === driver.id &&
+                !['completed', 'paid', 'cancelled', 'expired'].includes(String(load.status || '').toLowerCase())
+              )
+              const scheduleReady = bookedDayLoads.length > 0
+              const scheduleSent =
+                scheduleReady &&
+                bookedDayLoads.every((load) => Number.isFinite(Number(load.driverAcknowledgedGameMinute)))
+              const scheduleNeedsUpdate =
+                scheduleReady &&
+                !scheduleSent &&
+                (
+                  bookedDayLoads.some((load) => Number.isFinite(Number(load.driverAcknowledgedGameMinute))) ||
+                  Number.isFinite(Number(driver.scheduleCommunicatedGameMinute))
+                )
               const valid =
                 workday &&
                 !workday.isDayOff &&
@@ -632,7 +629,29 @@ function DriverSchedulerScreen({
                   </button>
 
                   <div className="driver-scheduler-today-meta carrier-owned-actions">
-                    <span><b>{dayLoads.length}</b> LOAD{dayLoads.length === 1 ? '' : 'S'}</span>
+                    <button
+                      type="button"
+                      className="driver-today-plan-button"
+                      onClick={() => {
+                        onDriverContextChange?.(driver.id)
+                        onOpenTodayPlan?.(driver.id)
+                      }}
+                    >
+                      <span><b>{dayLoads.length}</b> LOAD{dayLoads.length === 1 ? '' : 'S'}</span>
+                      <small>VIEW PLAN ›</small>
+                    </button>
+                    <button
+                      type="button"
+                      className={`driver-send-schedule-button ${scheduleSent ? 'sent' : scheduleNeedsUpdate ? 'update' : ''}`}
+                      disabled={!scheduleReady || scheduleSent}
+                      onClick={() => onSendDriverSchedule?.(driver.id)}
+                    >
+                      {scheduleSent
+                        ? 'SCHEDULE SENT'
+                        : scheduleNeedsUpdate
+                          ? 'SEND UPDATED SCHEDULE'
+                          : 'SEND SCHEDULE'}
+                    </button>
                     <span><b>{lunchWindowLabel(workday) || (workday?.lunchEvent ? 'ACTIVE' : 'NOT SET')}</b> LUNCH</span>
 
                     <button

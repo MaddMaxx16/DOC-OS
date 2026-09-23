@@ -2241,8 +2241,130 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
   // AV2.17 — one carrier approval request per planned schedule batch.
   // FreightLink only adds fitted freight to the proposed plan; the Schedule is the
   // single place that actually contacts the carrier. One email can cover many loads.
+  // B.5.4D.4.2.13A — Schedule-Owned Driver Movement Repair
+  // The dispatcher communicates WORK, not turn-by-turn routing.
+  // A load can move only after that load was included in a driver schedule handoff.
+  // Route geometry remains internal GPS/map/ETA data.
+  useEffect(() => {
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const departures = []
+
+    loads.forEach((load) => {
+      const driverId = load.assignedDriverId
+      if (!driverId) return
+
+      // This is the actual load-level state written by sendDriverSchedule().
+      if (!Number.isFinite(Number(load.driverAcknowledgedGameMinute))) return
+
+      if (load.tripStatus === 'assigned') {
+        const route =
+          load.plannedDeadheadRouteGeometry ||
+          load.tripPlan?.legs?.deadhead?.routeGeometry ||
+          null
+
+        const driveMinutes = Number(
+          load.plannedDeadheadDriveTimeMinutes ??
+          load.tripPlan?.legs?.deadhead?.minutes
+        )
+
+        const pickupAbsolute =
+          Number(load.pickupDayIndex || 0) * 1440 +
+          Number(load.pickupWindowStartMinutes || 0)
+
+        const departAt =
+          pickupAbsolute -
+          (Number.isFinite(driveMinutes) ? Math.max(1, driveMinutes) : 0)
+
+        if (
+          Array.isArray(route) &&
+          route.length >= 2 &&
+          Number.isFinite(driveMinutes) &&
+          driveMinutes > 0 &&
+          now >= departAt
+        ) {
+          departures.push({ loadId: load.id, driverId, phase: 'pickup' })
+        }
+      }
+
+      if (load.tripStatus === 'loaded') {
+        const route =
+          load.plannedLoadedRouteGeometry ||
+          load.tripPlan?.legs?.loaded?.routeGeometry ||
+          null
+
+        const driveMinutes = Number(
+          load.plannedLoadedDriveTimeMinutes ??
+          load.tripPlan?.legs?.loaded?.minutes
+        )
+
+        if (
+          Array.isArray(route) &&
+          route.length >= 2 &&
+          Number.isFinite(driveMinutes) &&
+          driveMinutes > 0
+        ) {
+          departures.push({ loadId: load.id, driverId, phase: 'delivery' })
+        }
+      }
+    })
+
+    if (!departures.length) return
+
+    const departureByLoad = new Map(departures.map((item) => [item.loadId, item]))
+
+    setLoads((current) =>
+      current.map((load) => {
+        const departure = departureByLoad.get(load.id)
+        if (!departure) return load
+
+        if (departure.phase === 'pickup' && load.tripStatus === 'assigned') {
+          return {
+            ...load,
+            tripStatus: 'en-route-pickup',
+            departureGameMinute: now,
+            gpsDepartureGameMinute: now,
+            gpsTravelPhase: 'pickup',
+          }
+        }
+
+        if (departure.phase === 'delivery' && load.tripStatus === 'loaded') {
+          return {
+            ...load,
+            tripStatus: 'en-route-delivery',
+            deliveryDepartureGameMinute: now,
+            gpsDepartureGameMinute: now,
+            gpsTravelPhase: 'delivery',
+          }
+        }
+
+        return load
+      })
+    )
+
+    if (typeof setRuntimeProgressByDriver === 'function') {
+      setRuntimeProgressByDriver((current) => {
+        const next = { ...current }
+        departures.forEach(({ driverId }) => { next[driverId] = 0 })
+        return next
+      })
+    }
+  }, [
+    gameTime.gameDayIndex,
+    gameTime.totalMinutesOfDay,
+    loads,
+    setLoads,
+    setRuntimeProgressByDriver,
+  ])
+
+
   const requestScheduleApproval = (driverId, reviewedEmail = {}) => {
     if (!driverId) return false
+
+    // B.5.4D.4.2.10D — never create an orphaned PENDING approval.
+    if (typeof setEmailMessages !== 'function') {
+      console.error('[DOC OS] Carrier approval blocked: setEmailMessages is not connected.')
+      return false
+    }
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     const driver = drivers.find((item) => item.id === driverId)
     const carrier = carriers.find((item) => item.id === driver?.carrierId)
@@ -2272,9 +2394,13 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       driverId,
       receivedGameMinute: now,
       responseGameMinute: now + 5,
+      // B.5.4D.4.2.10C — Batch Approval Business-Time Authority
+      // Schedule-level carrier approval bypasses PhoneOverlay's normal email
+      // append path, so it must carry its own business-time response deadline.
+      responseBusinessAtMs: Date.now() + 6000,
       read: true,
     }
-    setEmailMessages?.((current) => [...current, email])
+    setEmailMessages((current) => [...current, email])
     const ids = new Set(candidates.map((load) => load.id))
     setLoads((current) => current.map((load) => ids.has(load.id) ? { ...load, carrierApprovalStatus: 'PENDING', carrierApprovalRequestedGameMinute: now, carrierApprovalEmailId: messageId } : load))
     return true

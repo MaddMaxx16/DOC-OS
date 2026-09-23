@@ -114,7 +114,102 @@ function App() {
   const majorTransitionLockRef = useRef(false)
   const majorTransitionTimersRef = useRef([])
 
+    // B.5.4D.4.2.10A — Business Response Bridge
+  // Trucks/simulation may remain paused while the Operations Device is open.
+  // Office responses still mature in real time. When a business response is due,
+  // we release the EXISTING game-time response processor by moving only that
+  // email's responseGameMinute to the current frozen game minute.
   useEffect(() => {
+    if (!hydrated || stage !== 'game') return undefined
+
+    const hasUnresolvedBusinessReply = emailMessages.some((message) =>
+      message.direction === 'outbound' &&
+      message.workflowType &&
+      message.workflowType !== 'general' &&
+      !emailMessages.some((entry) => entry.replyToEmailId === message.id)
+    )
+
+    if (!hasUnresolvedBusinessReply) return undefined
+
+    // Old saves / already-pending requests do not have responseBusinessAtMs.
+    // Stamp them once so the current save recovers without resending approval.
+    setEmailMessages((current) => {
+      const repliedIds = new Set(
+        current
+          .filter((entry) => entry.replyToEmailId)
+          .map((entry) => entry.replyToEmailId)
+      )
+
+      let changed = false
+      const stamped = current.map((message) => {
+        const needsStamp =
+          message.direction === 'outbound' &&
+          message.workflowType &&
+          message.workflowType !== 'general' &&
+          !repliedIds.has(message.id) &&
+          !Number.isFinite(Number(message.responseBusinessAtMs))
+
+        if (!needsStamp) return message
+
+        changed = true
+        return {
+          ...message,
+          responseBusinessAtMs: Date.now() + 3000,
+        }
+      })
+
+      return changed ? stamped : current
+    })
+
+    const timer = window.setInterval(() => {
+      const nowGameMinute =
+        Number(gameTime.gameDayIndex || 0) * 1440 +
+        Number(gameTime.totalMinutesOfDay || 0)
+      const nowReal = Date.now()
+
+      setEmailMessages((current) => {
+        const repliedIds = new Set(
+          current
+            .filter((entry) => entry.replyToEmailId)
+            .map((entry) => entry.replyToEmailId)
+        )
+
+        let changed = false
+
+        const released = current.map((message) => {
+          const businessDue =
+            message.direction === 'outbound' &&
+            message.workflowType &&
+            message.workflowType !== 'general' &&
+            !repliedIds.has(message.id) &&
+            Number.isFinite(Number(message.responseBusinessAtMs)) &&
+            nowReal >= Number(message.responseBusinessAtMs)
+
+          if (!businessDue) return message
+
+          if (
+            Number.isFinite(Number(message.responseGameMinute)) &&
+            Number(message.responseGameMinute) <= nowGameMinute
+          ) {
+            return message
+          }
+
+          changed = true
+          return {
+            ...message,
+            responseGameMinute: nowGameMinute,
+            businessResponseReleasedAtMs: nowReal,
+          }
+        })
+
+        return changed ? released : current
+      })
+    }, 500)
+
+    return () => window.clearInterval(timer)
+  }, [hydrated, stage, emailMessages, gameTime.gameDayIndex, gameTime.totalMinutesOfDay])
+
+useEffect(() => {
     if (Capacitor.getPlatform() !== 'ios') return
 
     Promise.allSettled([
@@ -399,14 +494,49 @@ function App() {
   }, [hydrated, stage, dayLoop.phase, gameTime.gameDayIndex, freightMarketHourBucket])
 
 
+    // B.5.4D.4.2.10D — Direct Business Response Processor
+  // Business/office replies are independent from truck simulation time.
+  // This tick only wakes the existing response processor; that processor
+  // remains the single authority that writes APPROVED / NEEDS_INFO and
+  // generates Rate Confirmations.
+  const [businessResponseTick, setBusinessResponseTick] = useState(0)
+
   useEffect(() => {
+    if (!hydrated || stage !== 'game') return undefined
+
+    const hasUnresolvedBusinessReply = emailMessages.some((message) =>
+      message.direction === 'outbound' &&
+      message.workflowType &&
+      message.workflowType !== 'general' &&
+      !emailMessages.some((entry) => entry.replyToEmailId === message.id)
+    )
+
+    if (!hasUnresolvedBusinessReply) return undefined
+
+    const timer = window.setInterval(() => {
+      setBusinessResponseTick((current) => current + 1)
+    }, 500)
+
+    return () => window.clearInterval(timer)
+  }, [hydrated, stage, emailMessages])
+
+useEffect(() => {
     if (!hydrated || stage !== 'game') return
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    const pending = emailMessages.find((message) => message.direction === 'outbound'
-      && message.workflowType && message.workflowType !== 'general'
-      && Number.isFinite(message.responseGameMinute)
-      && now >= message.responseGameMinute
-      && !emailMessages.some((entry) => entry.replyToEmailId === message.id))
+    const pending = emailMessages.find((message) => {
+      const businessDue =
+        Number.isFinite(Number(message.responseBusinessAtMs)) &&
+        Date.now() >= Number(message.responseBusinessAtMs)
+      const gameDue =
+        Number.isFinite(Number(message.responseGameMinute)) &&
+        now >= Number(message.responseGameMinute)
+
+      return message.direction === 'outbound'
+        && message.workflowType
+        && message.workflowType !== 'general'
+        && (businessDue || gameDue)
+        && !emailMessages.some((entry) => entry.replyToEmailId === message.id)
+    })
     if (!pending) return
 
     const load = loads.find((item) => item.id === pending.loadId)
@@ -518,7 +648,7 @@ function App() {
       receivedGameMinute: now,
       read: false,
     }])
-  }, [hydrated, stage, gameTime, emailMessages, loads, carriers])
+  }, [hydrated, stage, gameTime, emailMessages, loads, carriers, businessResponseTick])
 
 
   useEffect(() => {

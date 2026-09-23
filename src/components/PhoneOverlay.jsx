@@ -57,6 +57,8 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
   const [driverOpsReturnScreen, setDriverOpsReturnScreen] = useState('home')
 
   const [screen, setScreenState] = useState(initialScreen)
+  // B.5.4D.4.2.10E — Carrier Approval Runtime Diagnostic
+  const [devApprovalDiagNow, setDevApprovalDiagNow] = useState(Date.now())
 
   // =========================================================
   // B.5.4C.2 — Directional Phone Navigation
@@ -269,6 +271,8 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
       loadId,
       receivedGameMinute: nowGameMinute,
       responseGameMinute: nowGameMinute + (workflowType === 'general' ? 0 : 5),
+      // B.5.4D.4.2.10A — Business Response Bridge
+      responseBusinessAtMs: workflowType === 'general' ? null : Date.now() + 6000,
       read: true,
     }])
 
@@ -329,9 +333,47 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
   }
 
   const selectedLoad = loads.find((load) => load.id === selectedLoadId)
-  const devApprovalLoad = selectedLoad || loads.find((load) => load.carrierApprovalStatus === 'PENDING') || loads.find((load) => load.status === 'available' || load.status === 'accepted') || null
+  const devApprovalLoad = loads.find((load) => load.carrierApprovalStatus === 'PENDING') || selectedLoad || loads.find((load) => load.status === 'available' || load.status === 'accepted') || null
   const devApprovalPickup = devApprovalLoad ? mapLocations.find((location) => location.id === devApprovalLoad.pickupLocationId) : null
   const devApprovalDelivery = devApprovalLoad ? mapLocations.find((location) => location.id === devApprovalLoad.deliveryLocationId) : null
+
+  // B.5.4D.4.2.10E — Carrier Approval Runtime Diagnostic
+  // READ ONLY: expose the exact live state behind a stuck approval.
+  const devApprovalEmail = devApprovalLoad
+    ? (
+        (devApprovalLoad.carrierApprovalEmailId
+          ? emailMessages.find((message) => message.id === devApprovalLoad.carrierApprovalEmailId)
+          : null)
+        || emailMessages.find((message) =>
+          message.direction === 'outbound'
+          && message.workflowType === 'carrier-approval'
+          && (
+            message.loadId === devApprovalLoad.id
+            || (Array.isArray(message.loadIds) && message.loadIds.includes(devApprovalLoad.id))
+          )
+        )
+      )
+    : null
+  const devApprovalReply = devApprovalEmail
+    ? emailMessages.find((message) => message.replyToEmailId === devApprovalEmail.id)
+    : null
+  const devApprovalEmailIds = devApprovalEmail
+    ? (Array.isArray(devApprovalEmail.loadIds) && devApprovalEmail.loadIds.length
+        ? devApprovalEmail.loadIds
+        : [devApprovalEmail.loadId].filter(Boolean))
+    : []
+  const devApprovalGameNow = Number(gameTime.gameDayIndex || 0) * 1440 + Number(gameTime.totalMinutesOfDay || 0)
+  const devApprovalBusinessAt = Number(devApprovalEmail?.responseBusinessAtMs)
+  const devApprovalGameAt = Number(devApprovalEmail?.responseGameMinute)
+  const devApprovalBusinessDue = Number.isFinite(devApprovalBusinessAt) && devApprovalDiagNow >= devApprovalBusinessAt
+  const devApprovalGameDue = Number.isFinite(devApprovalGameAt) && devApprovalGameNow >= devApprovalGameAt
+  const devApprovalBatchContainsLoad = Boolean(devApprovalLoad && devApprovalEmailIds.includes(devApprovalLoad.id))
+  const devApprovalActiveMatch = Boolean(
+    devApprovalLoad
+    && devApprovalLoad.carrierApprovalStatus === 'PENDING'
+    && devApprovalLoad.scheduleApprovalQueued
+    && devApprovalBatchContainsLoad
+  )
   const openLoadDetails = (loadId, returnScreen = null) => {
     setSelectedLoadId(loadId)
     setLoadReturnScreen(returnScreen)
@@ -458,12 +500,60 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
                     <span>CARRIER APPROVAL</span>
                     <b>{devApprovalLoad ? (devApprovalLoad.carrierApprovalStatus || 'NO APPROVAL STATE') : 'NO TEST LOAD'}</b>
                     <small>{devApprovalLoad ? `${devApprovalPickup?.name || 'Pickup'} → ${devApprovalDelivery?.name || 'Delivery'}` : 'Open a FreightLink load or create freight first.'}</small>
+                    {devApprovalLoad && (
+                      <>
+                        <small>LOAD: {devApprovalLoad.id} · QUEUED: {devApprovalLoad.scheduleApprovalQueued ? 'YES' : 'NO'}</small>
+                        <small>EMAIL ID ON LOAD: {devApprovalLoad.carrierApprovalEmailId || 'NONE'}</small>
+                        <small>EMAIL FOUND: {devApprovalEmail ? 'YES' : 'NO'}</small>
+                        <small>EMAIL DIR / TYPE / VALID: {devApprovalEmail ? `${devApprovalEmail.direction || '-'} / ${devApprovalEmail.workflowType || '-'} / ${String(devApprovalEmail.workflowValid)}` : '-'}</small>
+                        <small>EMAIL LOAD ID: {devApprovalEmail?.loadId || 'NONE'}</small>
+                        <small>EMAIL LOAD IDS: {devApprovalEmailIds.length ? devApprovalEmailIds.join(', ') : 'NONE'}</small>
+                        <small>BATCH CONTAINS LOAD: {devApprovalBatchContainsLoad ? 'YES' : 'NO'}</small>
+                        <small>ACTIVE MATCH: {devApprovalActiveMatch ? 'YES' : 'NO'}</small>
+                        <small>BUSINESS AT: {Number.isFinite(devApprovalBusinessAt) ? devApprovalBusinessAt : 'NONE'}</small>
+                        <small>REAL NOW: {devApprovalDiagNow}</small>
+                        <small>BUSINESS DUE: {devApprovalBusinessDue ? 'YES' : 'NO'}{Number.isFinite(devApprovalBusinessAt) ? ` · ${Math.round((devApprovalDiagNow - devApprovalBusinessAt) / 1000)}s` : ''}</small>
+                        <small>GAME NOW / DUE: {devApprovalGameNow} / {Number.isFinite(devApprovalGameAt) ? devApprovalGameAt : 'NONE'} · {devApprovalGameDue ? 'DUE' : 'NOT DUE'}</small>
+                        <small>REPLY FOUND: {devApprovalReply ? `YES · ${devApprovalReply.id}` : 'NO'}</small>
+                      </>
+                    )}
                   </div>
                   <div className="phone-dev-inline-actions">
+                    <button type="button" onClick={() => setDevApprovalDiagNow(Date.now())}>REFRESH DIAG</button>
                     <button type="button" disabled={!devApprovalLoad} onClick={() => setLoads((current) => current.map((load) => load.id === devApprovalLoad?.id ? { ...load, carrierApprovalStatus: 'PENDING', carrierApprovalRequestedGameMinute: nowGameMinute, carrierApprovedGameMinute: null } : load))}>PENDING</button>
                     <button type="button" disabled={!devApprovalLoad} onClick={() => setLoads((current) => current.map((load) => load.id === devApprovalLoad?.id ? { ...load, carrierApprovalStatus: 'APPROVED', carrierApprovedGameMinute: nowGameMinute } : load))}>APPROVE</button>
                     <button type="button" disabled={!devApprovalLoad} onClick={() => setLoads((current) => current.map((load) => load.id === devApprovalLoad?.id ? { ...load, carrierApprovalStatus: 'NEEDS_INFO', carrierApprovedGameMinute: null } : load))}>NEEDS INFO</button>
-                    <button type="button" disabled={!devApprovalLoad} onClick={() => setLoads((current) => current.map((load) => load.id === devApprovalLoad?.id ? { ...load, carrierApprovalStatus: null, carrierApprovalRequestedGameMinute: null, carrierApprovedGameMinute: null } : load))}>CLEAR</button>
+                    <button
+                      type="button"
+                      disabled={!devApprovalLoad}
+                      onClick={() => {
+                        const targetLoadId = devApprovalLoad?.id
+                        if (!targetLoadId) return
+
+                        // B.5.4D.4.2.12 — clean test reset.
+                        setLoads((current) => current.map((load) =>
+                          load.id === targetLoadId
+                            ? {
+                                ...load,
+                                carrierApprovalStatus: null,
+                                carrierApprovalRequestedGameMinute: null,
+                                carrierApprovedGameMinute: null,
+                                carrierApprovalEmailId: null,
+                                rateConfirmation: null,
+                              }
+                            : load
+                        ))
+
+                        setEmailMessages?.((current) => current.filter((message) =>
+                          !(
+                            message.type === 'rate-confirmation-delivery'
+                            && message.loadId === targetLoadId
+                          )
+                        ))
+                      }}
+                    >
+                      CLEAR
+                    </button>
                   </div>
                 </div>
               </div>
@@ -568,6 +658,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
             setSelectedLoadId(null)
             setScreen('scheduler')
           }}
+          onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)}
           onDriverContextChange={setSelectedDriverId}
           onFindFreight={(driverId) => {
             setSelectedLoadId(null)

@@ -23387,3 +23387,56 @@ button.ledger-transaction.linked .ledger-transaction-amount.credit {
 }
 
 /* END B.5.4D.4.2.9A */
+
+
+/* =========================================================
+   B.5.4D.4.2.11 — Driver-Scoped Today's Plan
+   ========================================================= */
+.today-plan-driver-select{position:relative;display:flex;align-items:center;width:min(100%,240px)}
+.today-plan-driver-select select{width:100%;min-width:0;height:28px;padding:0 28px 0 8px;appearance:none;-webkit-appearance:none;border:1px solid rgba(91,128,149,.34);border-radius:5px;background:#0c1419;color:#d8e1e5;font:inherit;font-size:9px;font-weight:900;outline:none}
+.today-plan-driver-select>span{position:absolute;right:9px;pointer-events:none;color:#8aa7b7;font-size:8px}
+.driver-today-plan-button{display:flex;align-items:center;justify-content:space-between;gap:7px;min-width:92px;min-height:27px;padding:4px 7px;border:1px solid rgba(84,129,154,.30);border-radius:5px;background:rgba(48,79,98,.13);color:#b6c8d2;font:inherit;text-align:left}
+.driver-today-plan-button>span{display:flex;align-items:baseline;gap:3px;font-size:6px;font-weight:900}
+.driver-today-plan-button b{color:#e0e8eb;font-size:7px}
+.driver-today-plan-button small{color:#9db9c8;font-size:5.5px;font-weight:950;letter-spacing:.045em;white-space:nowrap}
+.driver-scheduler-plan-driver{margin-top:1px;color:#b5a88f!important;font-size:5.5px!important;letter-spacing:.055em!important}
+.driver-scheduler-plan-banner:disabled{opacity:.48}
+@media (max-width:520px){.today-plan-driver-strip{grid-template-columns:minmax(0,1fr) auto}.today-plan-driver-select{width:100%}.driver-today-plan-button{min-width:86px}}
+/* END B.5.4D.4.2.11 */
+
+
+/* =========================================================
+   B.5.4D.4.2.13A — Schedule-Owned Driver Movement Repair
+   ========================================================= */
+.today-plan-send-schedule,
+.driver-send-schedule-button{
+  min-height:30px;
+  padding:6px 10px;
+  border:1px solid rgba(159,126,181,.52);
+  border-radius:7px;
+  background:rgba(74,48,84,.38);
+  color:#e6d9ec;
+  font:inherit;
+  font-size:6.5px;
+  font-weight:950;
+  letter-spacing:.08em;
+}
+.today-plan-send-schedule.update,
+.driver-send-schedule-button.update{
+  border-color:rgba(197,156,102,.55);
+  background:rgba(88,61,34,.38);
+  color:#f0d5b1;
+}
+.today-plan-send-schedule.sent,
+.driver-send-schedule-button.sent{
+  border-color:rgba(80,132,111,.42);
+  background:rgba(37,73,61,.26);
+  color:#9fc6b4;
+}
+.today-plan-send-schedule:disabled,
+.driver-send-schedule-button:disabled{opacity:.64}
+@media (max-width:520px){
+  .today-plan-send-schedule{width:100%;grid-column:1/-1}
+  .driver-send-schedule-button{min-width:108px}
+}
+/* END B.5.4D.4.2.13A */

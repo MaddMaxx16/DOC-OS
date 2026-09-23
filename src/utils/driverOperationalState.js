@@ -1,3 +1,4 @@
+// B.5.4D.4.2.13A — Schedule-Owned Driver Movement Repair
 import { formatAppointment, formatCompactDate, formatTime } from './gameTime.js'
 
 export function getDriverPanelModel({ driver, assignedLoad, gameTime, runtimeProgress = 0, pickup, delivery }) {
@@ -44,7 +45,7 @@ export function getDriverPanelModel({ driver, assignedLoad, gameTime, runtimePro
   const actions = {
     ASSIGNED: ['MESSAGE_DRIVER', 'SEND LOAD'],
     STAGED_PICKUP: ['MESSAGE_DRIVER', 'MESSAGE DRIVER'],
-    BRIEFING_REQUIRED: ['MESSAGE_DRIVER', `MESSAGE ${String(driver.name || 'DRIVER').toUpperCase()}`],
+    BRIEFING_REQUIRED: [null, null],
     PICKUP_ROUTE_SEND_REQUIRED: ['MESSAGE_DRIVER'],
     TRIP_PLANNED: ['MESSAGE_DRIVER'],
     EN_ROUTE_PICKUP: [null, null], CHECKING_IN_PICKUP: [null, null], WAITING_PICKUP: [null, null], DOCK_READY_PICKUP: ['OPEN_PICKUP', 'OPEN PICKUP'], LOADING: [null, null],
