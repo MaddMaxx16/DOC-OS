@@ -1,3 +1,4 @@
+// B.5.4D.4.3.2 — Status + UI Consistency
 // B.5.4D.4.2.13A — Schedule-Owned Driver Movement Repair
 import { formatAppointment, formatCompactDate, formatTime } from './gameTime.js'
 
@@ -34,16 +35,16 @@ export function getDriverPanelModel({ driver, assignedLoad, gameTime, runtimePro
       : null
 
   const labels = {
-    ASSIGNED: 'Booked', STAGED_PICKUP: 'Staged for Pickup', BRIEFING_REQUIRED: 'Send Load to Driver', PICKUP_ROUTE_SEND_REQUIRED: 'Ready to Move', TRIP_PLANNED: 'Ready to Move',
+    ASSIGNED: 'Booked', STAGED_PICKUP: 'Scheduled · Waiting', BRIEFING_REQUIRED: 'Send Schedule', PICKUP_ROUTE_SEND_REQUIRED: 'Schedule Received', TRIP_PLANNED: 'Schedule Received',
     EN_ROUTE_PICKUP: 'En Route to Pickup', CHECKING_IN_PICKUP: 'Checking In', WAITING_PICKUP: 'Waiting for Dock',
-    DOCK_READY_PICKUP: 'Dock Ready', LOADING: 'Loading', LOADED: 'Loaded', STAGED_LOADED: 'Loaded · Holding for Appointment', DELIVERY_ROUTE_SEND_REQUIRED: 'En Route Ready', READY_FOR_DISPATCH: 'En Route Ready',
+    DOCK_READY_PICKUP: 'Dock Ready', LOADING: 'Loading', LOADED: 'Loaded', STAGED_LOADED: 'Loaded · Holding for Appointment', DELIVERY_ROUTE_SEND_REQUIRED: 'Using Driver GPS', READY_FOR_DISPATCH: 'Using Driver GPS',
     EN_ROUTE_DELIVERY: 'En Route to Delivery', CHECKING_IN_DELIVERY: 'Checking In', WAITING_DELIVERY: 'Waiting for Dock',
     DOCK_READY_DELIVERY: 'Dock Ready', UNLOADING: 'Unloading', AWAITING_POD: 'Awaiting POD', COMPLETED: 'Completed',
   }
 
   const driverName = driver.fullName || driver.name || 'Driver'
   const actions = {
-    ASSIGNED: ['MESSAGE_DRIVER', 'SEND LOAD'],
+    ASSIGNED: [null, null],
     STAGED_PICKUP: ['MESSAGE_DRIVER', 'MESSAGE DRIVER'],
     BRIEFING_REQUIRED: [null, null],
     PICKUP_ROUTE_SEND_REQUIRED: ['MESSAGE_DRIVER'],
@@ -86,7 +87,7 @@ export function getDriverPanelModel({ driver, assignedLoad, gameTime, runtimePro
     actionType,
     actionLabel,
     actionDisabled: disabled,
-    attentionRequired: ['BRIEFING_REQUIRED', 'PICKUP_ROUTE_SEND_REQUIRED', 'DOCK_READY_PICKUP', 'DELIVERY_ROUTE_SEND_REQUIRED', 'READY_FOR_DISPATCH', 'DOCK_READY_DELIVERY', 'AWAITING_POD'].includes(operationalState),
+    attentionRequired: ['BRIEFING_REQUIRED', 'DOCK_READY_PICKUP', 'DOCK_READY_DELIVERY', 'AWAITING_POD'].includes(operationalState),
     remainingMinutes,
     plannedDeadheadMiles: assignedLoad.plannedDeadheadMiles,
     plannedDeadheadDriveTimeMinutes: assignedLoad.plannedDeadheadDriveTimeMinutes,

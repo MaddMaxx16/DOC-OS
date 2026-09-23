@@ -23440,3 +23440,128 @@ button.ledger-transaction.linked .ledger-transaction-amount.credit {
   .driver-send-schedule-button{min-width:108px}
 }
 /* END B.5.4D.4.2.13A */
+
+
+/* =========================================================
+   B.5.4D.4.3.2 — Status + UI Consistency
+   Presentation only. Gameplay authority remains 13A.
+   ========================================================= */
+
+/* Today's Plan: identity first, then two equal driver-level actions. */
+.today-plan-driver-strip{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  align-items:stretch;
+}
+.today-plan-driver-main{
+  grid-column:1 / -1;
+}
+.today-plan-open-driver,
+.today-plan-send-schedule{
+  width:100%;
+  min-width:0;
+  min-height:34px;
+}
+.today-plan-send-schedule{
+  border-color:rgba(176,143,87,.46);
+  background:rgba(112,82,43,.20);
+  color:#d8bc8d;
+}
+.today-plan-send-schedule.update{
+  border-color:rgba(197,156,102,.55);
+  background:rgba(88,61,34,.38);
+  color:#f0d5b1;
+}
+.today-plan-send-schedule.sent{
+  border-color:rgba(80,132,111,.42);
+  background:rgba(37,73,61,.26);
+  color:#9fc6b4;
+}
+
+/* Load lifecycle is visible at a glance without changing workflow logic. */
+.today-plan-load-card.ready{
+  border-color:rgba(177,148,98,.34);
+}
+.today-plan-load-card.pending{
+  border-color:rgba(177,126,78,.38);
+}
+.today-plan-load-card.ready>header em{
+  border-color:rgba(177,148,98,.32);
+  background:rgba(117,88,48,.16);
+  color:#c8ac79;
+}
+.today-plan-load-card.pending>header em{
+  border-color:rgba(177,126,78,.32);
+  background:rgba(117,76,45,.16);
+  color:#d0a176;
+}
+.today-plan-load-card.approved>header em{
+  border-color:rgba(88,132,103,.34);
+  background:rgba(52,89,65,.18);
+  color:#9fc0a8;
+}
+.today-plan-load-card.booked>header em{
+  border-color:rgba(79,118,143,.34);
+  background:rgba(45,75,94,.18);
+  color:#a5c1d2;
+}
+
+/* Driver Operations: primary work-plan actions first, support controls second. */
+.driver-scheduler-today-meta{
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:6px;
+}
+.driver-scheduler-today-meta .driver-today-plan-button{
+  grid-column:span 3;
+  width:100%;
+  min-width:0;
+  min-height:30px;
+}
+.driver-scheduler-today-meta .driver-send-schedule-button{
+  grid-column:span 3;
+  width:100%;
+  min-width:0;
+  min-height:30px;
+}
+.driver-scheduler-today-meta>span{
+  grid-column:span 2;
+  min-width:0;
+}
+.driver-scheduler-today-meta>button:not(.driver-today-plan-button):not(.driver-send-schedule-button){
+  grid-column:span 2;
+  min-width:0;
+}
+.driver-send-schedule-button{
+  border-color:rgba(176,143,87,.46);
+  background:rgba(112,82,43,.20);
+  color:#d8bc8d;
+}
+.driver-send-schedule-button.sent{
+  border-color:rgba(80,132,111,.42);
+  background:rgba(37,73,61,.26);
+  color:#9fc6b4;
+}
+
+/* Trip Plan status now matches Today's Plan language. */
+.trip-plan-state.approved{
+  border-color:rgba(88,132,103,.38);
+  background:rgba(52,89,65,.18);
+  color:#a5c6ae;
+}
+.trip-plan-state.planned{
+  border-color:rgba(177,148,98,.34);
+  background:rgba(117,88,48,.15);
+  color:#c5a975;
+}
+
+@media (max-width:520px){
+  .today-plan-driver-strip{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  }
+  .today-plan-driver-main{
+    grid-column:1 / -1;
+  }
+  .today-plan-send-schedule{
+    grid-column:auto;
+  }
+}
+/* END B.5.4D.4.3.2 */

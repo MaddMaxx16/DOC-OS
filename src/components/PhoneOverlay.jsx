@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 import HomeScreen from './HomeScreen.jsx'
 import LoadDetailsScreen from './LoadDetailsScreen.jsx'
 import LoadBoardScreen from './LoadBoardScreen.jsx'
-import RoutePlanningScreen from './RoutePlanningScreen.jsx'
 import BrowserScreen from './BrowserScreen.jsx'
 import DriverFitScreen from './DriverFitScreen.jsx'
 import TripPlanScreen from './TripPlanScreen.jsx'
@@ -52,15 +51,13 @@ import SettingsScreen from './SettingsScreen.jsx'
 
 function getReceivable(loads, carriers, workflows, id) { return getReceivables(loads, carriers, workflows).find((item) => item.loadId === id) }
 
+// B.5.4D.4.3.1B — Legacy Route + Diagnostic Cleanup Final
 function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, setGameTime, onEvaluateFit, onAddToSchedule, onAcceptCandidateAssignment, onPlanTrip, initialScreen = 'home', initialLoadId = null, initialDriverId = null, initialEmailComposeContext = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, ledgerBanking, setLedgerWorkflowByLoadId, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, onOpenDriverSchedule, onRequestScheduleApproval, onBookApprovedSchedule, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onPickupCorrectionSent, onSetupOvernightDevScenario, onClose, onCarrierSourceOpened }) {
   // B.5.4D.4.2.5A — Flexible Plan Return Navigation
   const [driverOpsReturnScreen, setDriverOpsReturnScreen] = useState('home')
 
   const [screen, setScreenState] = useState(initialScreen)
-  // B.5.4D.4.2.10E — Carrier Approval Runtime Diagnostic
-  const [devApprovalDiagNow, setDevApprovalDiagNow] = useState(Date.now())
-
-  // =========================================================
+// =========================================================
   // B.5.4C.2 — Directional Phone Navigation
   // =========================================================
   const setScreen = (nextScreen) => {
@@ -81,7 +78,6 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
       scheduler: 'loadBoard',
       driverFit: 'loadDetails',
       tripPlan: 'loadDetails',
-      routePlanning: 'loadDetails',
     }
 
     const depth = {
@@ -112,7 +108,6 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
 
       driverFit: 4,
       tripPlan: 4,
-      routePlanning: 4,
     }
 
     let direction = 'forward'
@@ -337,43 +332,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
   const devApprovalPickup = devApprovalLoad ? mapLocations.find((location) => location.id === devApprovalLoad.pickupLocationId) : null
   const devApprovalDelivery = devApprovalLoad ? mapLocations.find((location) => location.id === devApprovalLoad.deliveryLocationId) : null
 
-  // B.5.4D.4.2.10E — Carrier Approval Runtime Diagnostic
-  // READ ONLY: expose the exact live state behind a stuck approval.
-  const devApprovalEmail = devApprovalLoad
-    ? (
-        (devApprovalLoad.carrierApprovalEmailId
-          ? emailMessages.find((message) => message.id === devApprovalLoad.carrierApprovalEmailId)
-          : null)
-        || emailMessages.find((message) =>
-          message.direction === 'outbound'
-          && message.workflowType === 'carrier-approval'
-          && (
-            message.loadId === devApprovalLoad.id
-            || (Array.isArray(message.loadIds) && message.loadIds.includes(devApprovalLoad.id))
-          )
-        )
-      )
-    : null
-  const devApprovalReply = devApprovalEmail
-    ? emailMessages.find((message) => message.replyToEmailId === devApprovalEmail.id)
-    : null
-  const devApprovalEmailIds = devApprovalEmail
-    ? (Array.isArray(devApprovalEmail.loadIds) && devApprovalEmail.loadIds.length
-        ? devApprovalEmail.loadIds
-        : [devApprovalEmail.loadId].filter(Boolean))
-    : []
-  const devApprovalGameNow = Number(gameTime.gameDayIndex || 0) * 1440 + Number(gameTime.totalMinutesOfDay || 0)
-  const devApprovalBusinessAt = Number(devApprovalEmail?.responseBusinessAtMs)
-  const devApprovalGameAt = Number(devApprovalEmail?.responseGameMinute)
-  const devApprovalBusinessDue = Number.isFinite(devApprovalBusinessAt) && devApprovalDiagNow >= devApprovalBusinessAt
-  const devApprovalGameDue = Number.isFinite(devApprovalGameAt) && devApprovalGameNow >= devApprovalGameAt
-  const devApprovalBatchContainsLoad = Boolean(devApprovalLoad && devApprovalEmailIds.includes(devApprovalLoad.id))
-  const devApprovalActiveMatch = Boolean(
-    devApprovalLoad
-    && devApprovalLoad.carrierApprovalStatus === 'PENDING'
-    && devApprovalLoad.scheduleApprovalQueued
-    && devApprovalBatchContainsLoad
-  )
+
   const openLoadDetails = (loadId, returnScreen = null) => {
     setSelectedLoadId(loadId)
     setLoadReturnScreen(returnScreen)
@@ -388,7 +347,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
   }
 
   // B.5.4C.5.2S — System Nav Context Return
-  const browserContextScreens = ['browser', 'loadBoard', 'loadDetails', 'scheduler', 'driverFit', 'tripPlan', 'routePlanning']
+  const browserContextScreens = ['browser', 'loadBoard', 'loadDetails', 'scheduler', 'driverFit', 'tripPlan']
   const showSystemContextReturn = Boolean(loadReturnScreen) && browserContextScreens.includes(screen)
   const systemContextReturnLabel =
     loadReturnScreen === 'emailDetail'
@@ -500,27 +459,9 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
                     <span>CARRIER APPROVAL</span>
                     <b>{devApprovalLoad ? (devApprovalLoad.carrierApprovalStatus || 'NO APPROVAL STATE') : 'NO TEST LOAD'}</b>
                     <small>{devApprovalLoad ? `${devApprovalPickup?.name || 'Pickup'} → ${devApprovalDelivery?.name || 'Delivery'}` : 'Open a FreightLink load or create freight first.'}</small>
-                    {devApprovalLoad && (
-                      <>
-                        <small>LOAD: {devApprovalLoad.id} · QUEUED: {devApprovalLoad.scheduleApprovalQueued ? 'YES' : 'NO'}</small>
-                        <small>EMAIL ID ON LOAD: {devApprovalLoad.carrierApprovalEmailId || 'NONE'}</small>
-                        <small>EMAIL FOUND: {devApprovalEmail ? 'YES' : 'NO'}</small>
-                        <small>EMAIL DIR / TYPE / VALID: {devApprovalEmail ? `${devApprovalEmail.direction || '-'} / ${devApprovalEmail.workflowType || '-'} / ${String(devApprovalEmail.workflowValid)}` : '-'}</small>
-                        <small>EMAIL LOAD ID: {devApprovalEmail?.loadId || 'NONE'}</small>
-                        <small>EMAIL LOAD IDS: {devApprovalEmailIds.length ? devApprovalEmailIds.join(', ') : 'NONE'}</small>
-                        <small>BATCH CONTAINS LOAD: {devApprovalBatchContainsLoad ? 'YES' : 'NO'}</small>
-                        <small>ACTIVE MATCH: {devApprovalActiveMatch ? 'YES' : 'NO'}</small>
-                        <small>BUSINESS AT: {Number.isFinite(devApprovalBusinessAt) ? devApprovalBusinessAt : 'NONE'}</small>
-                        <small>REAL NOW: {devApprovalDiagNow}</small>
-                        <small>BUSINESS DUE: {devApprovalBusinessDue ? 'YES' : 'NO'}{Number.isFinite(devApprovalBusinessAt) ? ` · ${Math.round((devApprovalDiagNow - devApprovalBusinessAt) / 1000)}s` : ''}</small>
-                        <small>GAME NOW / DUE: {devApprovalGameNow} / {Number.isFinite(devApprovalGameAt) ? devApprovalGameAt : 'NONE'} · {devApprovalGameDue ? 'DUE' : 'NOT DUE'}</small>
-                        <small>REPLY FOUND: {devApprovalReply ? `YES · ${devApprovalReply.id}` : 'NO'}</small>
-                      </>
-                    )}
                   </div>
                   <div className="phone-dev-inline-actions">
-                    <button type="button" onClick={() => setDevApprovalDiagNow(Date.now())}>REFRESH DIAG</button>
-                    <button type="button" disabled={!devApprovalLoad} onClick={() => setLoads((current) => current.map((load) => load.id === devApprovalLoad?.id ? { ...load, carrierApprovalStatus: 'PENDING', carrierApprovalRequestedGameMinute: nowGameMinute, carrierApprovedGameMinute: null } : load))}>PENDING</button>
+<button type="button" disabled={!devApprovalLoad} onClick={() => setLoads((current) => current.map((load) => load.id === devApprovalLoad?.id ? { ...load, carrierApprovalStatus: 'PENDING', carrierApprovalRequestedGameMinute: nowGameMinute, carrierApprovedGameMinute: null } : load))}>PENDING</button>
                     <button type="button" disabled={!devApprovalLoad} onClick={() => setLoads((current) => current.map((load) => load.id === devApprovalLoad?.id ? { ...load, carrierApprovalStatus: 'APPROVED', carrierApprovedGameMinute: nowGameMinute } : load))}>APPROVE</button>
                     <button type="button" disabled={!devApprovalLoad} onClick={() => setLoads((current) => current.map((load) => load.id === devApprovalLoad?.id ? { ...load, carrierApprovalStatus: 'NEEDS_INFO', carrierApprovedGameMinute: null } : load))}>NEEDS INFO</button>
                     <button
@@ -1118,10 +1059,10 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
         <BrowserScreen key={screen} page="carriersource.local/signup" onBack={() => setScreen('carrierSource')} onHome={() => setScreen('browser')} showSiteBranding={false}><DispatcherProfileScreen profile={dispatcherProfile} onBack={() => setScreen('carrierSource')} onSave={(profile) => { onSaveDispatcherProfile?.(profile); setScreen('carrierSource') }} /></BrowserScreen>
       ) : screen === 'carrierSource' || screen === 'carrierOpportunity' ? (
         <BrowserScreen key={screen} page={screen === 'carrierOpportunity' && selectedCarrier ? `carriersource.local/carriers/${selectedCarrier.id}` : 'carriersource.local'} onBack={() => setScreen(screen === 'carrierSource' ? 'browser' : 'carrierSource')} onHome={() => setScreen('browser')} siteTitle="CARRIERSOURCE" siteSubtitle="Carrier Network" showSiteBranding={false}><>{screen === 'carrierSource' && <div className="carrier-source-d2-stack"><CarrierSourceFirstVisitGuide mode="network" carriers={carriers} applicationsById={carrierApplicationsById} careerById={carrierCareerById} onOpenEmail={() => setScreen('email')} /><CarrierSourceScreen carriers={carriers} applicationsById={carrierApplicationsById} careerById={carrierCareerById} dispatcherProfile={dispatcherProfile} onSignUp={() => setScreen('dispatcherProfile')} onOpenCarrier={(carrierId) => { setSelectedCarrierId(carrierId); setScreen('carrierOpportunity') }} /></div>}{screen === 'carrierOpportunity' && <div className="carrier-source-d2-stack"><CarrierSourceFirstVisitGuide mode="opportunity" carrier={selectedCarrier} application={selectedCarrier ? carrierApplicationsById[selectedCarrier.id] : null} career={selectedCarrier ? carrierCareerById[selectedCarrier.id] : null} onOpenEmail={() => setScreen('email')} /><CarrierOpportunityScreen carrier={selectedCarrier} drivers={drivers} application={selectedCarrier ? carrierApplicationsById[selectedCarrier.id] : null} career={selectedCarrier ? carrierCareerById[selectedCarrier.id] : null} dispatcherProfile={dispatcherProfile} onApply={() => selectedCarrier && (dispatcherProfile?.created ? onApplyCarrier?.(selectedCarrier.id) : setScreen('dispatcherProfile'))} onOpenOffer={() => setScreen('email')} /></div>}</></BrowserScreen>
-      ) : screen === 'browser' || screen === 'loadBoard' || screen === 'loadDetails' || screen === 'scheduler' || screen === 'driverFit' || screen === 'tripPlan' || screen === 'routePlanning' ? (
+      ) : screen === 'browser' || screen === 'loadBoard' || screen === 'loadDetails' || screen === 'scheduler' || screen === 'driverFit' || screen === 'tripPlan' ? (
         <BrowserScreen
           key={screen}
-          page={screen === 'browser' ? 'home' : screen === 'loadBoard' ? 'freightlink.local' : screen === 'loadDetails' ? `freightlink.local/load/${selectedLoadId}` : screen === 'scheduler' ? 'freightlink.local/plan' : screen === 'driverFit' ? `freightlink.local/load/${selectedLoadId}/driver-select` : screen === 'tripPlan' ? `freightlink.local/load/${selectedLoadId}/trip-plan` : `freightlink.local/load/${selectedLoadId}/route`}
+          page={screen === 'browser' ? 'home' : screen === 'loadBoard' ? 'freightlink.local' : screen === 'loadDetails' ? `freightlink.local/load/${selectedLoadId}` : screen === 'scheduler' ? 'freightlink.local/plan' : screen === 'driverFit' ? `freightlink.local/load/${selectedLoadId}/driver-select` : `freightlink.local/load/${selectedLoadId}/trip-plan`}
           freightLinkLocked={!hasActiveCarrier}
           onOpenFreightLink={() => { if (hasActiveCarrier) { setSelectedDriverId(null); setScreen('loadBoard') } }}
           onOpenCarrierSource={() => { onCarrierSourceOpened?.(); setScreen('carrierSource') }}
@@ -1132,7 +1073,6 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
             else if (screen === 'scheduler') setScreen('loadBoard')
             else if (screen === 'driverFit') setScreen('loadDetails')
             else if (screen === 'tripPlan') setScreen('loadDetails')
-            else if (screen === 'routePlanning') setScreen('loadDetails')
           }}
           onHome={() => setScreen('browser')}
           showSiteBranding={false}
@@ -1150,7 +1090,6 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
             setScreen('tripPlan')
           }} />}
           {screen === 'tripPlan' && <TripPlanScreen loads={loads} drivers={drivers} carriers={carriers} loadId={selectedLoadId} onChangeDriver={() => setScreen('driverFit')} onRequestCarrierApproval={(loadId, sendApproval = false) => { setLoads((current) => current.map((load) => load.id === loadId ? { ...load, scheduleApprovalQueued: true, carrierApprovalStatus: sendApproval ? (load.carrierApprovalStatus || null) : load.carrierApprovalStatus } : load)); if (sendApproval) setScreen('loadBoard') }} onViewCarrierApproval={(loadId) => { const load = loads.find((item) => item.id === loadId); const emailId = load?.carrierApprovalEmailId; if (emailId && emailMessages.some((message) => message.id === emailId)) { setSelectedEmailId(emailId); setEmailReturnScreen('tripPlan'); setScreen('emailDetail') } else { const fallback = [...emailMessages].reverse().find((message) => message.loadId === loadId && message.workflowType === 'carrier-approval'); if (fallback) { setSelectedEmailId(fallback.id); setEmailReturnScreen('tripPlan'); setScreen('emailDetail') } else setScreen('email') } }} onBook={(loadId) => { const accepted = onAcceptCandidateAssignment?.(loadId); if (accepted !== false) setScreen('tripPlan') }} onOpenDriverThread={(loadId, driverId) => { setSelectedLoadId(loadId); setSelectedDriverId(driverId); setMessageLoadContextId(loadId); setScreen('messageThread') }} onBack={() => setScreen('loadDetails')} />}
-          {screen === 'routePlanning' && <RoutePlanningScreen loads={loads} plannedRoute={plannedRoute} setPlannedRoute={setPlannedRoute} loadId={selectedLoadId} drivers={drivers} onSelectRoute={() => setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? { ...load, selectedRouteId: 'recommended', plannedMiles: plannedRoute.distanceMiles, plannedDriveTimeMinutes: plannedRoute.durationMinutes } : load))} onBack={() => setScreen('loadDetails')} onContinue={() => { setLoads((currentLoads) => currentLoads.map((load) => load.id === selectedLoadId ? { ...load, status: 'route-ready' } : load)); setScreen('loadDetails') }} />}
         </BrowserScreen>
       ) : null}
         </div>

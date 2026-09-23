@@ -93,6 +93,7 @@ function toneFor(load) { return getRouteLifecycleTone(load) }
 
 // B.5.4D.4.2.3 — One Scheduler Authority
 // B.5.4D.4.2.8 — Navigation Standardization
+// B.5.4D.4.3.2 — Status + UI Consistency
 function FleetSchedulerScreen({
   loads = [], drivers = [], carriers = [], gameTime, focusLoadId = null, initialDriverId = null,
   onBackToFreightLink, onRequestScheduleApproval, onBookRoute, onBookApprovedSchedule, onRemoveFromPlan, onSendDriverSchedule, onUpdateDriverWorkday, onOpenLunchDecision, onDriverContextChange,
@@ -502,7 +503,7 @@ function FleetSchedulerScreen({
               const statusLabel = booked
                 ? 'BOOKED'
                 : approval === 'APPROVED'
-                  ? 'CARRIER APPROVED'
+                  ? 'APPROVED TO BOOK'
                   : approvalPending
                     ? 'AWAITING APPROVAL'
                     : approvalQueued
@@ -510,7 +511,7 @@ function FleetSchedulerScreen({
                       : 'PLANNED'
 
               return (
-                <article className={`today-plan-load-card ${booked ? 'booked' : approval === 'APPROVED' ? 'approved' : ''}`} key={load.id}>
+                <article className={`today-plan-load-card ${booked ? 'booked' : approval === 'APPROVED' ? 'approved' : approvalPending ? 'pending' : approvalQueued ? 'ready' : ''}`} key={load.id}>
                   <header>
                     <div>
                       <span>{load.loadNumber || load.id}</span>
@@ -545,7 +546,7 @@ function FleetSchedulerScreen({
 
                       {approval === 'APPROVED' ? (
                         <button type="button" className="primary" onClick={() => onBookRoute?.(load.id)}>
-                          BOOK APPROVED LOAD
+                          BOOK LOAD
                         </button>
                       ) : (
                         <button
@@ -554,7 +555,7 @@ function FleetSchedulerScreen({
                           disabled={approvalPending}
                           onClick={() => onRequestScheduleApproval?.(driver?.id)}
                         >
-                          {approvalPending ? 'APPROVAL PENDING' : 'REQUEST APPROVAL'}
+                          {approvalPending ? 'AWAITING APPROVAL' : 'REQUEST APPROVAL'}
                         </button>
                       )}
                     </footer>

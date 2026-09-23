@@ -10,6 +10,7 @@ function fmtMinutes(value) {
   return Number.isFinite(value) ? `${Math.round(value)} min` : 'Calculating'
 }
 
+// B.5.4D.4.3.2 — Status + UI Consistency
 function TripPlanScreen({
   loads,
   drivers,
@@ -48,8 +49,16 @@ function TripPlanScreen({
             <h2>{pickup?.name || 'Pickup'} → {delivery?.name || 'Delivery'}</h2>
             <p>{getFreightRouteName(load)} · {driver?.fullName || driver?.name || 'Driver not selected'}</p>
           </div>
-          <span className={`trip-plan-state ${booked ? 'booked' : approvalStatus === 'PENDING' ? 'pending' : 'draft'}`}>
-            {booked ? 'BOOKED' : approvalStatus === 'PENDING' ? 'PENDING' : 'DRAFT'}
+          <span className={`trip-plan-state ${booked ? 'booked' : approvalStatus === 'APPROVED' ? 'approved' : approvalStatus === 'PENDING' ? 'pending' : load.scheduleApprovalQueued ? 'planned' : 'draft'}`}>
+            {booked
+              ? 'BOOKED'
+              : approvalStatus === 'APPROVED'
+                ? 'APPROVED TO BOOK'
+                : approvalStatus === 'PENDING'
+                  ? 'AWAITING APPROVAL'
+                  : load.scheduleApprovalQueued
+                    ? 'READY FOR APPROVAL'
+                    : 'DRAFT'}
           </span>
         </div>
       </header>
@@ -68,7 +77,7 @@ function TripPlanScreen({
         </section>
 
         <section className="docos-section">
-          <div className="docos-section-heading"><span>ITINERARY</span><small>ROUTES PREPARED</small></div>
+          <div className="docos-section-heading"><span>ITINERARY</span><small>TRAVEL ESTIMATES</small></div>
           <div className="trip-leg-stack">
             <article className="trip-leg-card">
               <div className="trip-leg-index">1</div>
@@ -97,7 +106,13 @@ function TripPlanScreen({
           <div className={`trip-plan-approval-row ${approvalReady ? 'approved' : approvalStatus === 'PENDING' ? 'pending' : 'required'}`}>
             <div>
               <strong>{approvalReady ? (approvalRequired ? 'APPROVED TO BOOK' : 'BOOKING AUTHORIZED') : approvalStatus === 'PENDING' ? 'AWAITING CARRIER APPROVAL' : 'APPROVAL REQUIRED'}</strong>
-              <small>{approvalReady ? 'The trip can move forward without repeating driver or route review.' : 'This trip stays saved while approval is pending.'}</small>
+              <small>{approvalReady
+                ? 'The load is cleared to book for this driver.'
+                : approvalStatus === 'PENDING'
+                  ? 'The plan stays saved while carrier approval is pending.'
+                  : load.scheduleApprovalQueued
+                    ? 'Return to Today’s Plan to request carrier approval.'
+                    : 'Add this load to Today’s Plan before requesting approval.'}</small>
             </div>
             <span>{approvalReady ? '✓' : approvalStatus === 'PENDING' ? '···' : '!'}</span>
           </div>
@@ -117,18 +132,18 @@ function TripPlanScreen({
           {!booked ? (
             <>
               {approvalReady ? (
-                <button type="button" className="docos-primary-action" onClick={() => onBook?.(load.id)}>BOOK ROUTE</button>
+                <button type="button" className="docos-primary-action" onClick={() => onBook?.(load.id)}>BOOK LOAD</button>
               ) : approvalStatus === 'PENDING' ? (
                 <button type="button" className="docos-primary-action" disabled>AWAITING APPROVAL</button>
               ) : (
-                <button type="button" className="docos-primary-action" onClick={() => onRequestCarrierApproval?.(load.id)}>{load.scheduleApprovalQueued ? 'ADDED TO PLAN ✓' : 'ADD TO PLAN'}</button>
+                <button type="button" className="docos-primary-action" disabled={Boolean(load.scheduleApprovalQueued)} onClick={() => onRequestCarrierApproval?.(load.id)}>{load.scheduleApprovalQueued ? 'IN TODAY’S PLAN ✓' : 'ADD TO PLAN'}</button>
               )}
               {approvalStatus === 'PENDING' && <button type="button" className="docos-secondary-action" onClick={() => onViewCarrierApproval?.(load.id)}>VIEW REQUEST</button>}
               <button type="button" className="docos-secondary-action" onClick={onChangeDriver}>CHANGE DRIVER</button>
             </>
           ) : (
             <>
-              <button type="button" className="docos-primary-action" onClick={() => onOpenDriverThread?.(load.id, driverId)}>{Number.isFinite(load.pickupDriverBriefedGameMinute) ? 'OPEN DRIVER THREAD' : 'SEND TRIP TO DRIVER'}</button>
+              <button type="button" className="docos-primary-action" onClick={() => onOpenDriverThread?.(load.id, driverId)}>OPEN DRIVER THREAD</button>
               <button type="button" className="docos-secondary-action" onClick={onBack}>BACK TO LOAD</button>
             </>
           )}
