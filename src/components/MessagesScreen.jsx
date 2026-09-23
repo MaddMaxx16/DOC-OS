@@ -35,7 +35,7 @@ function MessagesScreen({ messages = [], drivers = [], loads = [], carriers = []
   return (
     <div className="phone-page driver-messages-screen driver-messages-v4">
       <header className="driver-messages-header driver-messages-header-v4">
-        <button type="button" onClick={onBack} aria-label="Back to phone home">‹</button>
+        
         <div>
           <span>DRIVER COMMUNICATIONS</span>
           <div className="driver-messages-titleline"><h2>Messages</h2>{totalUnread > 0 && <b>{totalUnread} unread</b>}</div>

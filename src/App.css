@@ -23231,3 +23231,159 @@ button.ledger-transaction.linked .ledger-transaction-amount.credit {
 .shift-end-planner-sheet>footer .primary{border:1px solid #92784f;background:linear-gradient(180deg,#b49764,#98794b);color:#211b12}
 .shift-end-planner-sheet>footer .primary:disabled{opacity:.35}
 /* END B.5.4D.4.1.6 */
+
+
+/* B.5.4D.4.2.3 — One Scheduler Authority */
+.scheduler-authority-readonly{display:grid;grid-template-columns:1fr;gap:8px}
+.scheduler-authority-shift{display:grid;gap:2px}
+.scheduler-authority-shift>span,.scheduler-authority-facts span{font-size:6px;font-weight:950;letter-spacing:.08em;color:#788b96}
+.scheduler-authority-shift>strong{font-size:9px;color:#d5dde1}
+.scheduler-authority-shift>small{font-size:5.5px;color:#71838d}
+.scheduler-authority-facts{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid rgba(121,138,149,.12);border-bottom:1px solid rgba(121,138,149,.12)}
+.scheduler-authority-facts>div{display:grid;gap:2px;padding:7px 0}
+.scheduler-authority-facts>div+div{padding-left:9px;border-left:1px solid rgba(121,138,149,.12)}
+.scheduler-authority-facts strong{font-size:7px;color:#bdc9cf}
+.scheduler-open-driver-operations{min-height:34px;border:1px solid rgba(92,137,165,.4);border-radius:6px;background:rgba(48,77,95,.18);color:#a8c5d6;font:inherit;font-size:7px;font-weight:950;letter-spacing:.05em}
+/* END B.5.4D.4.2.3 */
+
+
+/* =========================================================
+   B.5.4D.4.2.4 — Today's Plan Separation
+   ========================================================= */
+.today-plan-screen{height:100%;min-height:0;display:flex;flex-direction:column;background:linear-gradient(180deg,#0f151a,#0a0f13 62%,#090d10);color:#e7ecef;overflow:hidden}
+.today-plan-header{flex:0 0 auto;display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:8px;padding:10px;border-bottom:1px solid rgba(124,140,151,.16);background:#0c1216}
+.today-plan-header>button{width:30px;height:30px;border:1px solid rgba(122,139,150,.22);border-radius:6px;background:#151d23;color:#aab7be;font-size:18px}
+.today-plan-header>div{display:grid;gap:1px}.today-plan-header span{font-size:6px;font-weight:950;letter-spacing:.11em;color:#6f838f}.today-plan-header strong{font-size:12px;letter-spacing:.045em}.today-plan-header em{font-size:6px;font-style:normal;font-weight:950;color:#8b9ca5}
+.today-plan-driver-strip{flex:0 0 auto;display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;margin:9px 10px 0;padding:10px;border:1px solid rgba(99,124,140,.18);border-radius:8px;background:#11181d}
+.today-plan-driver-main{display:grid;gap:2px;min-width:0}.today-plan-driver-main>span{font-size:5.5px;font-weight:950;letter-spacing:.1em;color:#748792}.today-plan-driver-main>strong{font-size:10px}.today-plan-driver-main>small{font-size:6.5px;line-height:1.35;color:#82939c}
+.today-plan-open-driver{height:34px;padding:0 9px;border:1px solid rgba(82,131,160,.42);border-radius:6px;background:rgba(48,79,98,.18);color:#a7c6d8;font:inherit;font-size:6.5px;font-weight:950}
+.today-plan-summary{flex:0 0 auto;display:grid;grid-template-columns:repeat(3,1fr);margin:7px 10px 0;border:1px solid rgba(121,138,149,.15);border-radius:7px;background:#0e1418;overflow:hidden}
+.today-plan-summary>div{display:grid;gap:2px;padding:8px;border-right:1px solid rgba(121,138,149,.1)}.today-plan-summary>div:last-child{border-right:0}.today-plan-summary span{font-size:5px;font-weight:950;letter-spacing:.08em;color:#70838d}.today-plan-summary strong{font-size:7px;color:#c9d3d8}
+.today-plan-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding:8px 10px 12px;-webkit-overflow-scrolling:touch}
+.today-plan-load-list{display:grid;gap:8px}
+.today-plan-load-card{border:1px solid rgba(121,138,149,.16);border-radius:8px;background:#10171c;overflow:hidden}.today-plan-load-card.approved{border-color:rgba(88,132,103,.34)}.today-plan-load-card.booked{border-color:rgba(79,118,143,.34)}
+.today-plan-load-card>header{display:flex;justify-content:space-between;align-items:start;gap:8px;padding:9px;border-bottom:1px solid rgba(121,138,149,.1)}.today-plan-load-card>header>div{display:grid;gap:2px}.today-plan-load-card>header span{font-size:5.5px;font-weight:950;color:#738690}.today-plan-load-card>header strong{font-size:8.5px}.today-plan-load-card>header em{padding:3px 5px;border:1px solid rgba(121,138,149,.2);border-radius:999px;font-size:5px;font-style:normal;font-weight:950;color:#91a1aa;white-space:nowrap}
+.today-plan-load-times{display:grid;grid-template-columns:1fr 20px 1fr;align-items:center;padding:10px}.today-plan-load-times>div{display:grid;gap:2px}.today-plan-load-times>div:last-child{text-align:right}.today-plan-load-times span{font-size:5px;font-weight:950;letter-spacing:.09em;color:#6f828d}.today-plan-load-times strong{font-size:12px}.today-plan-load-times i{text-align:center;color:#53656f;font-style:normal}
+.today-plan-load-meta{display:flex;flex-wrap:wrap;gap:5px;padding:0 9px 9px}.today-plan-load-meta span{padding:3px 5px;border-radius:4px;background:#172027;color:#84959e;font-size:5.5px;font-weight:900}
+.today-plan-load-card>footer{display:grid;grid-template-columns:.7fr 1.3fr;gap:6px;padding:8px;border-top:1px solid rgba(121,138,149,.1)}.today-plan-load-card>footer button{height:34px;border-radius:5px;font:inherit;font-size:6.5px;font-weight:950}.today-plan-load-card>footer .secondary{border:1px solid rgba(121,138,149,.18);background:#172026;color:#84959d}.today-plan-load-card>footer .primary{border:1px solid rgba(88,132,103,.44);background:rgba(58,94,70,.2);color:#9dc0a6}.today-plan-load-card>footer .primary:disabled{opacity:.45}
+.today-plan-empty{display:grid;justify-items:center;gap:5px;padding:26px 16px;border:1px dashed rgba(121,138,149,.18);border-radius:8px;text-align:center}.today-plan-empty span{font-size:5.5px;font-weight:950;letter-spacing:.1em;color:#70828c}.today-plan-empty strong{font-size:9px}.today-plan-empty p{margin:0;max-width:260px;color:#798b94;font-size:6.5px;line-height:1.45}
+.today-plan-footer{flex:0 0 auto;padding:8px 10px calc(9px + env(safe-area-inset-bottom));border-top:1px solid rgba(121,138,149,.12);background:#0b1014}.today-plan-footer button{width:100%;height:36px;border:1px solid rgba(121,138,149,.18);border-radius:6px;background:#151d23;color:#8fa0a9;font:inherit;font-size:6.5px;font-weight:950;letter-spacing:.06em}
+.driver-ops-load.planned{border-color:rgba(177,148,98,.28)}
+/* END B.5.4D.4.2.4 */
+
+/* D.4.2.4 — normal gameplay debug cleanup */
+.lunch-diag-heading,.lunch-diag-toggle{display:none!important}
+
+
+/* B.5.4D.4.2.6 — First-Class Planning Access */
+.driver-today-plan-link{display:grid;gap:1px;align-content:center;justify-items:start;min-width:0;padding:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left}
+.driver-today-plan-link b{font-size:inherit}
+.driver-today-plan-link small{font-size:5px;font-weight:950;letter-spacing:.06em;color:#9db7c8}
+.driver-today-plan-link:disabled{opacity:.45}
+/* END B.5.4D.4.2.6 */
+
+
+/* =========================================================
+   B.5.4D.4.2.7A — Standard Phone + Visible Plan Entry
+   ========================================================= */
+.driver-scheduler-plan-banner{
+  flex:0 0 auto;
+  width:calc(100% - 20px);
+  min-height:50px;
+  margin:8px 10px 0;
+  padding:9px 11px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border:1px solid rgba(160,125,77,.46);
+  border-radius:8px;
+  background:linear-gradient(180deg,rgba(130,95,52,.20),rgba(75,55,34,.12));
+  color:#dbc69f;
+  font:inherit;
+  text-align:left;
+}
+.driver-scheduler-plan-banner>span:first-child{display:grid;gap:2px}
+.driver-scheduler-plan-banner small{color:#907c5f;font-size:5.8px;font-weight:950;letter-spacing:.11em}
+.driver-scheduler-plan-banner strong{color:#ead8b7;font-size:9.5px;letter-spacing:.035em}
+.driver-scheduler-plan-banner-meta{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.driver-scheduler-plan-banner-meta b{color:#baa98c;font-size:6.8px}
+.driver-scheduler-plan-banner-meta em{color:#e0c99c;font-size:6.8px;font-style:normal;font-weight:950;letter-spacing:.05em}
+.driver-today-plan-link{display:none!important}
+/* END B.5.4D.4.2.7A */
+
+
+/* =========================================================
+   B.5.4D.4.2.8 — Navigation Standardization
+
+   X = close Operations Device
+   Home = Dispatch Console
+   Browser back = Browser history
+   In-app back = deep/detail screens only
+   ========================================================= */
+
+.today-plan-header{
+  grid-template-columns:1fr auto !important;
+}
+
+.today-plan-footer{
+  display:none !important;
+}
+
+.driver-scheduler-back,
+.email-inbox-back,
+.documents-back,
+.ledger-back,
+.ledgerdesk-back,
+.ledger-desk-back,
+.settings-back,
+.messages-back{
+  display:none !important;
+}
+
+.email-inbox-header{
+  grid-template-columns:1fr auto !important;
+}
+
+.documents-toolbar{
+  grid-template-columns:1fr auto !important;
+}
+
+.driver-scheduler-header{
+  grid-template-columns:1fr auto !important;
+}
+
+/* END B.5.4D.4.2.8 */
+
+
+/* =========================================================
+   B.5.4D.4.2.9A — Navigation Finalization Repair
+   ========================================================= */
+
+.browser-bar.browser-root{
+  grid-template-columns:1fr !important;
+}
+
+.browser-bar.browser-root .browser-address{
+  grid-column:1 !important;
+}
+
+.browser-workspace-control svg{
+  width:16px;
+  height:16px;
+}
+
+.browser-workspace-control svg path{
+  fill:currentColor;
+}
+
+.messages-back,
+.settings-back{
+  display:none !important;
+}
+
+.cs-signup-header{
+  grid-template-columns:1fr !important;
+}
+
+/* END B.5.4D.4.2.9A */

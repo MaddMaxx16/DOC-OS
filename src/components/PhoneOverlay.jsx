@@ -53,6 +53,9 @@ import SettingsScreen from './SettingsScreen.jsx'
 function getReceivable(loads, carriers, workflows, id) { return getReceivables(loads, carriers, workflows).find((item) => item.loadId === id) }
 
 function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, setGameTime, onEvaluateFit, onAddToSchedule, onAcceptCandidateAssignment, onPlanTrip, initialScreen = 'home', initialLoadId = null, initialDriverId = null, initialEmailComposeContext = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, ledgerBanking, setLedgerWorkflowByLoadId, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, onOpenDriverSchedule, onRequestScheduleApproval, onBookApprovedSchedule, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onPickupCorrectionSent, onSetupOvernightDevScenario, onClose, onCarrierSourceOpened }) {
+  // B.5.4D.4.2.5A — Flexible Plan Return Navigation
+  const [driverOpsReturnScreen, setDriverOpsReturnScreen] = useState('home')
+
   const [screen, setScreenState] = useState(initialScreen)
 
   // =========================================================
@@ -354,8 +357,9 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
 
   const updatePodVerification = (field, checked) => setLoads((current) => current.map((load) => { if (load.id !== selectedLoadId || !load.pod) return load; const verification = { signature: false, pieceCount: false, damage: false, deliveryInfo: false, ...(load.pod.verification || {}), [field]: checked }; const verified = Object.values(verification).every(Boolean); return { ...load, pod: { ...load.pod, verification, verified, verifiedGameMinute: verified ? gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay : null } } }))
 
+// B.5.4D.4.2.7A — Standard Phone + Visible Plan Entry
   return (
-    <aside className={`phone-overlay ${screen === 'scheduler' || screen === 'agenda' ? 'scheduler-expanded' : ''}`} aria-label="DOC OS operations device">
+    <aside className="phone-overlay scheduler-expanded" aria-label="DOC OS operations device">
       <div className="device-sheet-handle" aria-hidden="true" />
       <div className="phone-device-screen">
         <div className="phone-status-bar">
@@ -490,7 +494,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           onOpenAgenda={() => {
             setSelectedLoadId(null)
             setSelectedDriverId(drivers.find((driver) => driver.carrierId)?.id || null)
-            setScreen('agenda')
+            setDriverOpsReturnScreen('home'); setScreen('agenda')
           }}
           agendaLocked={!hasActiveCarrier}
           agendaBadgeCount={lunchReadyCount}
@@ -517,7 +521,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           runtimePositions={runtimePositions}
           gameTime={gameTime}
           initialDriverId={selectedDriverId}
-          onBack={() => setScreen('home')}
+          onBack={() => setScreen(driverOpsReturnScreen || 'home')}
           onUpdateWorkday={updateDriverWorkday}
           // B.5.4D.4.1.3 — Scheduler Functional Linkage
           onOpenLunchDecision={(driverId) => {
@@ -558,6 +562,11 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
                   }
                 : driver
             )))
+          }}
+          onOpenTodayPlan={(driverId) => {
+            if (driverId) setSelectedDriverId(driverId)
+            setSelectedLoadId(null)
+            setScreen('scheduler')
           }}
           onDriverContextChange={setSelectedDriverId}
           onFindFreight={(driverId) => {
@@ -1021,7 +1030,7 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
       ) : screen === 'browser' || screen === 'loadBoard' || screen === 'loadDetails' || screen === 'scheduler' || screen === 'driverFit' || screen === 'tripPlan' || screen === 'routePlanning' ? (
         <BrowserScreen
           key={screen}
-          page={screen === 'browser' ? 'home' : screen === 'loadBoard' ? 'freightlink.local' : screen === 'loadDetails' ? `freightlink.local/load/${selectedLoadId}` : screen === 'scheduler' ? 'freightlink.local/scheduler' : screen === 'driverFit' ? `freightlink.local/load/${selectedLoadId}/driver-select` : screen === 'tripPlan' ? `freightlink.local/load/${selectedLoadId}/trip-plan` : `freightlink.local/load/${selectedLoadId}/route`}
+          page={screen === 'browser' ? 'home' : screen === 'loadBoard' ? 'freightlink.local' : screen === 'loadDetails' ? `freightlink.local/load/${selectedLoadId}` : screen === 'scheduler' ? 'freightlink.local/plan' : screen === 'driverFit' ? `freightlink.local/load/${selectedLoadId}/driver-select` : screen === 'tripPlan' ? `freightlink.local/load/${selectedLoadId}/trip-plan` : `freightlink.local/load/${selectedLoadId}/route`}
           freightLinkLocked={!hasActiveCarrier}
           onOpenFreightLink={() => { if (hasActiveCarrier) { setSelectedDriverId(null); setScreen('loadBoard') } }}
           onOpenCarrierSource={() => { onCarrierSourceOpened?.(); setScreen('carrierSource') }}
@@ -1040,10 +1049,11 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
           {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => openLoadDetails(loadId, null)} onOpenScheduler={() => {
             setSelectedLoadId(null)
             setSelectedDriverId((current) => current || drivers.find((driver) => driver.carrierId)?.id || null)
-            setScreen('agenda')
+            setScreen('scheduler')
           }} />}
           {screen === 'loadDetails' && <LoadDetailsScreen loads={loads} drivers={drivers} carriers={carriers} loadId={selectedLoadId} planningDriverId={selectedDriverId} runtimePositions={runtimePositions} gameTime={gameTime} onAddToSchedule={(loadId, driverId) => onAddToSchedule?.(loadId, driverId)} onOpenScheduler={async (loadId) => { const target = loads.find((item) => item.id === loadId); if (target?.status === 'available' && !target.scheduleApprovalQueued) { const ok = target.candidateDriverId ? true : await onAddToSchedule?.(loadId); if (ok === false) return; setLoads((current) => current.map((item) => item.id === loadId ? { ...item, scheduleApprovalQueued: true } : item)); } setSelectedLoadId(loadId); setSelectedDriverId(target?.candidateDriverId || target?.assignedDriverId || selectedDriverId || drivers.find((driver) => driver.carrierId)?.id || null); setScreen('scheduler') }} onSendLoadDetails={(loadId, driverId) => { const targetLoad = loads.find((item) => item.id === loadId); if (!Number.isFinite(targetLoad?.pickupDriverBriefedGameMinute)) onSendDriverLoadUpdate?.(loadId, driverId); setSelectedLoadId(loadId); setSelectedDriverId(driverId); setMessageLoadContextId(loadId); setScreen('messageThread') }} onBack={() => setScreen('loadBoard')} />}
-          {screen === 'scheduler' && <FleetSchedulerScreen loads={loads} drivers={drivers} carriers={carriers} gameTime={gameTime} focusLoadId={selectedLoadId} initialDriverId={selectedDriverId} onBackToFreightLink={() => setScreen('loadBoard')} onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)} onBookRoute={(loadId) => onAcceptCandidateAssignment?.(loadId)} onBookApprovedSchedule={(driverId) => onBookApprovedSchedule?.(driverId)} onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)} onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)} onUpdateDriverWorkday={updateDriverWorkday} onOpenLunchDecision={onOpenLunchDecision} onDriverContextChange={setSelectedDriverId} />}
+          {/* B.5.4D.4.2.3 — One Scheduler Authority: freight-plan only */}
+          {screen === 'scheduler' && <FleetSchedulerScreen loads={loads} drivers={drivers} carriers={carriers} gameTime={gameTime} focusLoadId={selectedLoadId} initialDriverId={selectedDriverId} onBackToFreightLink={() => setScreen('loadBoard')} onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)} onBookRoute={(loadId) => onAcceptCandidateAssignment?.(loadId)} onBookApprovedSchedule={(driverId) => onBookApprovedSchedule?.(driverId)} onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)} onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)} onOpenDriverOperations={(driverId) => { if (driverId) setSelectedDriverId(driverId); setDriverOpsReturnScreen('scheduler'); setScreen('agenda') }} onDriverContextChange={setSelectedDriverId} />}
           {screen === 'driverFit' && <DriverFitScreen load={loads.find((load) => load.id === selectedLoadId)} loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} candidateDriverId={loads.find((load) => load.id === selectedLoadId)?.candidateDriverId} onEvaluate={(driverId, fit) => {
             onEvaluateFit(selectedLoadId, driverId, fit)
             setScreen('tripPlan')

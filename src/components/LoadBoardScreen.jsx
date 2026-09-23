@@ -210,8 +210,8 @@ const planningHos = planningDriver ? getDriverHosSummary(planningDriver) : null
             {recentNewCount > 0 && <span className="freightlink-new-loads">{recentNewCount} NEW</span>}
           </div>
           <button type="button" className="freightlink-scheduler-shortcut aw13" onClick={onOpenScheduler}>
-            <span>SCHEDULE</span>
-            <strong>TODAY’S PLAN</strong>
+            <span>PLAN</span>
+            <strong>TODAY'S PLAN</strong>
           </button>
         </div>
       </header>

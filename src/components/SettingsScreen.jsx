@@ -2,14 +2,7 @@ function SettingsScreen({ onBack, onReturnToTitle }) {
   return (
     <section className="phone-settings-screen">
       <header className="phone-settings-header">
-        <button
-          type="button"
-          className="phone-settings-back"
-          onClick={onBack}
-          aria-label="Back to phone home"
-        >
-          ‹
-        </button>
+        
 
         <div>
           <span>DOC OS</span>

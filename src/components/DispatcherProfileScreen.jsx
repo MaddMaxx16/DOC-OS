@@ -11,7 +11,7 @@ function DispatcherProfileScreen({ profile, onSave, onBack }) {
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
   const ready = form.displayName.trim().length >= 2
   return <div className="phone-page dispatcher-profile-screen">
-    <header className="cs-signup-header"><button type="button" onClick={onBack}>‹</button><div><span>CARRIERSOURCE</span><h2>Create dispatcher profile</h2><p>This is the business identity carriers will see.</p></div></header>
+    <header className="cs-signup-header"><div><span>CARRIERSOURCE</span><h2>Create dispatcher profile</h2><p>This is the business identity carriers will see.</p></div></header>
     <div className="cs-profile-form">
       <label><span>BUSINESS NAME</span><input value={form.displayName} onChange={(e)=>update('displayName', e.target.value)} placeholder="e.g. Northstar Dispatch" /></label>
       <label><span>HOME MARKET</span><input value={form.homeMarket} onChange={(e)=>update('homeMarket', e.target.value)} /></label>

@@ -2653,24 +2653,9 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         onEndDay={() => { pauseClockForModal(); setEndDayOpen(true) }}
       />
       <div className={`map-area ${operationsOpen ? 'operations-open' : ''}`}>
-        <button type="button" className="lunch-diag-toggle" onClick={() => setLunchDiagOpen((open) => !open)}>DIAG</button>
+        <></>
         {lunchDiagOpen && (
-          <div className="lunch-diag-panel" aria-live="polite">
-            <div className="lunch-diag-heading"><strong>LUNCH STATE TRACE</strong><span>{formatTime(gameTime.totalMinutesOfDay)} · {isGameClockPaused ? 'PAUSED' : `${simulationSpeed}×`}</span></div>
-            <div className="lunch-diag-grid">
-              <span>DRIVER</span><b>{lunchDiagDriver?.fullName || lunchDiagDriver?.name || '—'}</b>
-              <span>LUNCH ROUTE</span><b>{lunchDiagDriver?.lunchRouteStatus || '—'} · GEO {lunchDiagGeometryCount}</b>
-              <span>LUNCH EVENT</span><b>{lunchDiagEvent?.status || '—'}</b>
-              <span>TARGET</span><b>{lunchDiagTarget?.name || lunchDiagDriver?.lunchTargetLocationId || '—'}</b>
-              <span>PARK / RELEASE</span><b>{Number.isFinite(lunchDiagDriver?.lunchParkedAtGameMinute) ? `${lunchDiagDriver.lunchParkedAtGameMinute} / ${lunchDiagDriver.lunchReleaseGameMinute ?? '—'}` : '—'}</b>
-              <span>LOAD</span><b>{lunchDiagLoad ? `${lunchDiagLoad.id} · ${lunchDiagLoad.tripStatus}` : '—'}</b>
-              <span>DEL DEP / ARR</span><b>{Number.isFinite(lunchDiagLoad?.deliveryDepartureGameMinute) ? lunchDiagLoad.deliveryDepartureGameMinute : '—'} / {Number.isFinite(lunchDiagLoad?.deliveryArrivalGameMinute) ? lunchDiagLoad.deliveryArrivalGameMinute : '—'}</b>
-              <span>RUNTIME POS</span><b>{lunchDiagPosition ? `${Number(lunchDiagPosition.longitude).toFixed(4)}, ${Number(lunchDiagPosition.latitude).toFixed(4)}` : '—'}</b>
-            </div>
-            <div className="lunch-diag-events">
-              {lunchDiagEvents.map((entry) => <div key={entry.id}><b>{entry.time}</b><span>{entry.clock}</span><span>L:{entry.lunch}/{entry.event}</span><span>G:{entry.geometry}</span><span>LOAD:{entry.load}</span><span>D:{entry.deliveryDepart ?? '—'}→{entry.deliveryArrival ?? '—'}</span></div>)}
-            </div>
-          </div>
+          <></>
         )}
         {import.meta.env.DEV && <><button type="button" className="dev-button" onClick={() => setDevOpen((open) => !open)}>DEV</button>{devOpen && <div className="dev-menu"><div className="dev-menu-header"><strong>DEV TOOLS</strong><button type="button" onClick={() => setDevOpen(false)} aria-label="Close developer tools">×</button></div><div className="dev-presets"><strong>TIME</strong><span>DAY {gameTime.gameDayIndex + 1}<br />{formatCompactDate(gameTime.gameDayIndex)} • {formatTime(gameTime.totalMinutesOfDay)}</span>{[60, 360].map((minutes) => <button type="button" key={minutes} onClick={() => setGameTime((time) => { const total = time.gameDayIndex * 1440 + time.totalMinutesOfDay + minutes; return { gameDayIndex: Math.floor(total / 1440), totalMinutesOfDay: total % 1440 } })}>+{minutes === 60 ? '1 HR' : '6 HR'}</button>)}{[1, 3, 7].map((days) => <button type="button" key={days} onClick={() => setGameTime((time) => ({ ...time, gameDayIndex: time.gameDayIndex + days }))}>+{days} DAY{days > 1 ? 'S' : ''}</button>)}</div><button type="button" className="dev-reset" onClick={() => { onResetGame(); setDevOpen(false) }}>RESET GAME</button></div>}</>}
         {!freightBrowseMode && !planningMode && !deliveryPlanning && (

@@ -205,10 +205,18 @@ function hosLabel(minutes) {
 
 function getDriverCommittedLoads(loads, driverId) {
   return loads
-    .filter((load) =>
-      load.assignedDriverId === driverId ||
-      load.candidateDriverId === driverId
-    )
+    .filter((load) => load.assignedDriverId === driverId)
+    .filter((load) => !['completed', 'paid', 'cancelled', 'expired'].includes(String(load.status || '').toLowerCase()))
+    .sort((a, b) => {
+      const aTime = Number(a.pickupDayIndex || 0) * 1440 + Number(a.pickupWindowStartMinutes || 0)
+      const bTime = Number(b.pickupDayIndex || 0) * 1440 + Number(b.pickupWindowStartMinutes || 0)
+      return aTime - bTime
+    })
+}
+
+function getDriverPlannedLoads(loads, driverId) {
+  return loads
+    .filter((load) => load.candidateDriverId === driverId && load.assignedDriverId !== driverId)
     .filter((load) => !['completed', 'paid', 'cancelled', 'expired'].includes(String(load.status || '').toLowerCase()))
     .sort((a, b) => {
       const aTime = Number(a.pickupDayIndex || 0) * 1440 + Number(a.pickupWindowStartMinutes || 0)
@@ -471,6 +479,9 @@ function ShiftEndPlannerSheet({ driver, carrier, loads, currentDay, committedLoa
   )
 }
 
+// B.5.4D.4.2.4 — Candidate freight is planned, not current
+// B.5.4D.4.2.6 — First-Class Planning Access
+// B.5.4D.4.2.7A — Standard Phone + Visible Plan Entry
 function DriverSchedulerScreen({
   drivers = [],
   carriers = [],
@@ -483,6 +494,7 @@ function DriverSchedulerScreen({
   onSetLunchWindow,
   onSetShiftEndPlan,
   onFindFreight,
+  onOpenTodayPlan,
   onDriverContextChange,
 }) {
   const currentDay = Number(gameTime?.gameDayIndex || 0)
@@ -511,6 +523,17 @@ function DriverSchedulerScreen({
     carriers.find((carrier) => carrier.id === selectedDriver?.carrierId) ||
     null
 
+  // D.4.2.7A — count planned/assigned freight for today.
+  const todayPlanDriverIds = new Set(roster.map((driver) => driver.id))
+  const todayPlanCount = loads.filter((load) => {
+    if (Number(load.pickupDayIndex) !== currentDay) return false
+    if (['completed', 'paid', 'cancelled', 'expired'].includes(String(load.status || '').toLowerCase())) return false
+    return (
+      todayPlanDriverIds.has(load.assignedDriverId) ||
+      todayPlanDriverIds.has(load.candidateDriverId)
+    )
+  }).length
+
   const days = Array.from({ length: 7 }, (_, index) => weekStart + index)
 
   const chooseDriver = (driverId) => {
@@ -535,6 +558,21 @@ function DriverSchedulerScreen({
         <button type="button" className={view === 'schedule' ? 'active' : ''} onClick={() => setView('schedule')}>SCHEDULE</button>
         <button type="button" className={view === 'driver' ? 'active' : ''} onClick={() => setView('driver')}>DRIVER</button>
       </nav>
+
+      <button
+        type="button"
+        className="driver-scheduler-plan-banner"
+        onClick={() => onOpenTodayPlan?.(selectedDriverId || roster[0]?.id || null)}
+      >
+        <span>
+          <small>FREIGHT PLANNING</small>
+          <strong>TODAY'S PLAN</strong>
+        </span>
+        <span className="driver-scheduler-plan-banner-meta">
+          <b>{todayPlanCount} LOAD{todayPlanCount === 1 ? '' : 'S'}</b>
+          <em>OPEN ›</em>
+        </span>
+      </button>
 
       {view === 'today' && (
         <div className="driver-scheduler-today-view">
@@ -709,10 +747,20 @@ function DriverSchedulerScreen({
           ) : (() => {
             const todayWorkday = getCarrierVisibleWorkday(selectedDriver, currentDay, currentDay)
             const committedLoads = getDriverCommittedLoads(loads, selectedDriver.id)
-            const activeLoad =
-              committedLoads.find((load) => load.assignedDriverId === selectedDriver.id) ||
-              committedLoads[0] ||
-              null
+            const plannedLoads = getDriverPlannedLoads(loads, selectedDriver.id)
+            const activeLoad = committedLoads[0] || null
+            const plannedLoad = plannedLoads[0] || null
+            const displayedLoad = activeLoad || plannedLoad
+            const displayedLoadMode = activeLoad ? 'CURRENT FREIGHT' : plannedLoad ? 'NEXT PLANNED FREIGHT' : 'CURRENT FREIGHT'
+            const displayedLoadStatus = activeLoad
+              ? prettyLocation(activeLoad.tripStatus || activeLoad.status || 'Assigned')
+              : plannedLoad
+                ? (String(plannedLoad.carrierApprovalStatus || '').toUpperCase() === 'APPROVED'
+                    ? 'Carrier Approved · Awaiting Booking'
+                    : plannedLoad.scheduleApprovalQueued
+                      ? 'Awaiting Carrier Approval'
+                      : 'Planned · Not Booked')
+                : null
             const driverStatus = getDriverOperationalStatus(selectedDriver, todayWorkday, activeLoad, gameTime)
             const nextWorkday = nextConfirmedWorkday(selectedDriver, currentDay)
             const runtime = runtimePositions?.[selectedDriver.id]
@@ -791,33 +839,33 @@ function DriverSchedulerScreen({
                   </div>
                 </section>
 
-                <section className="driver-ops-load">
+                <section className={`driver-ops-load ${plannedLoad && !activeLoad ? 'planned' : ''}`}>
                   <header>
-                    <span>CURRENT FREIGHT</span>
-                    <strong>{activeLoad ? (activeLoad.loadNumber || activeLoad.id) : 'No committed load'}</strong>
+                    <span>{displayedLoadMode}</span>
+                    <strong>{displayedLoad ? (displayedLoad.loadNumber || displayedLoad.id) : 'No assigned freight'}</strong>
                   </header>
 
-                  {activeLoad ? (
+                  {displayedLoad ? (
                     <div className="driver-ops-load-detail">
                       <span>
                         <small>PICKUP</small>
-                        <strong>{prettyLocation(activeLoad.pickupLocationId)}</strong>
+                        <strong>{prettyLocation(displayedLoad.pickupLocationId)}</strong>
                       </span>
                       <span>
                         <small>DELIVERY</small>
-                        <strong>{prettyLocation(activeLoad.deliveryLocationId)}</strong>
+                        <strong>{prettyLocation(displayedLoad.deliveryLocationId)}</strong>
                       </span>
                       <span>
                         <small>APPOINTMENT</small>
-                        <strong>{formatTime(activeLoad.pickupWindowStartMinutes || 0)}</strong>
+                        <strong>{formatTime(displayedLoad.pickupWindowStartMinutes || 0)}</strong>
                       </span>
                       <span>
                         <small>STATUS</small>
-                        <strong>{prettyLocation(activeLoad.tripStatus || activeLoad.status || 'Planned')}</strong>
+                        <strong>{displayedLoadStatus}</strong>
                       </span>
                     </div>
                   ) : (
-                    <p>No freight is committed to this driver right now.</p>
+                    <p>No freight is assigned to this driver right now.</p>
                   )}
                 </section>
 

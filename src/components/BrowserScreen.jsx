@@ -1,14 +1,25 @@
 // B.5.4C.5.2R — Browser History + Context Return
+// B.5.4D.4.2.9A — Navigation Finalization Repair
 function BrowserScreen({ page, children, onOpenFreightLink, onOpenCarrierSource, onBack, onHome, siteTitle = 'FREIGHTLINK', siteSubtitle = 'Load Board', showSiteBranding = true, freightLinkLocked = false }) {
   return (
     <div className="phone-page browser-screen">
       <div className="browser-header"><span>Browser</span></div>
-      <div className="browser-bar">
-        <button type="button" className="browser-back" onClick={onBack} aria-label="Back">‹</button>
+      <div className={`browser-bar ${page === 'home' ? 'browser-root' : ''}`}>
+        {page !== 'home' && <button type="button" className="browser-back" onClick={onBack} aria-label="Browser back">‹</button>}
         <span className="browser-address">{page === 'home' ? 'doc://home' : page}</span>
-        <button type="button" className="browser-home-control" onClick={onHome} aria-label="Browser home">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 10.5 12 4l7.5 6.5v8.75H14v-5.5h-4v5.5H4.5V10.5Z"/></svg>
-        </button>
+        {page !== 'home' && (
+          <button
+            type="button"
+            className="browser-home-control browser-workspace-control"
+            onClick={onHome}
+            aria-label="Browser workspace"
+            title="Workspace"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5h5v5H5V5Zm9 0h5v5h-5V5ZM5 14h5v5H5v-5Zm9 0h5v5h-5Z"/>
+            </svg>
+          </button>
+        )}
 
       </div>
       {page === 'home' ? (
