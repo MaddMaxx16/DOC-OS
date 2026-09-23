@@ -22912,3 +22912,322 @@ button.ledger-transaction.linked .ledger-transaction-amount.credit {
 }
 
 /* END B.5.4D.2 */
+
+
+/* =========================================================
+   B.5.4D.3 — First Carrier Activated / Marcus Introduction
+   ========================================================= */
+.carrier-activation-screen{min-height:100%;background:radial-gradient(circle at 74% 4%,rgba(70,103,118,.16),transparent 31%),linear-gradient(180deg,#10161b,#0b1014 58%,#090d10);color:#e9eef1}
+.carrier-activation-scroll{height:100%;overflow-y:auto;padding:22px 14px 88px}
+.carrier-activation-hero{display:grid;justify-items:center;text-align:center;padding:6px 8px 18px}
+.carrier-activation-check{width:52px;height:52px;display:grid;place-items:center;margin-bottom:11px;border:1px solid rgba(106,155,124,.52);border-radius:50%;background:rgba(73,111,87,.15);color:#9fc3aa;font-size:24px}
+.carrier-activation-hero>span{color:#8eb29a;font-size:7px;font-weight:950;letter-spacing:.16em}
+.carrier-activation-hero h2{margin:7px 0 8px;font-family:Georgia,"Times New Roman",serif;font-size:27px;font-weight:600}
+.carrier-activation-hero p{max-width:330px;margin:0;color:#9eabb3;font-size:9px;line-height:1.5}
+.carrier-activation-progress{display:grid;grid-template-columns:1fr 10px 1fr 10px 1fr;align-items:center;gap:3px;padding:10px 8px;border:1px solid rgba(125,141,153,.18);border-radius:8px;background:rgba(12,17,21,.72)}
+.carrier-activation-progress>div{display:grid;justify-items:center;gap:4px;text-align:center;min-width:0}
+.carrier-activation-progress b{width:23px;height:23px;display:grid;place-items:center;border:1px solid rgba(113,129,140,.3);border-radius:50%;color:#85949e;font-size:7px}
+.carrier-activation-progress .done b{border-color:rgba(106,155,124,.46);color:#95baa1}
+.carrier-activation-progress .current b{border-color:rgba(181,150,99,.54);color:#c7aa78}
+.carrier-activation-progress strong{font-size:6.3px;color:#b9c3c9}.carrier-activation-progress small{font-size:5.4px;color:#677781}.carrier-activation-progress>i{height:1px;background:rgba(116,132,143,.23)}
+.carrier-activation-driver,.carrier-activation-objective{margin-top:10px;border:1px solid rgba(132,147,159,.19);border-radius:8px;background:rgba(16,22,27,.78)}
+.carrier-activation-driver{overflow:hidden}.carrier-activation-driver header{display:flex;justify-content:space-between;align-items:center;padding:10px 11px;border-bottom:1px solid rgba(130,145,156,.14)}
+.carrier-activation-driver header>div{display:grid;gap:2px}.carrier-activation-driver header span,.carrier-activation-objective>span{color:#7f909b;font-size:6px;font-weight:950;letter-spacing:.12em}
+.carrier-activation-driver header strong{font-size:11px}.carrier-activation-driver header small{padding:4px 6px;border:1px solid rgba(105,153,122,.36);border-radius:3px;color:#8faf99;font-size:5.5px;font-weight:900}
+.carrier-activation-driver-body{display:grid;grid-template-columns:47px minmax(0,1fr);gap:11px;align-items:center;padding:13px 12px}.carrier-activation-avatar{width:47px;height:47px;display:grid;place-items:center;border:1px solid rgba(112,131,143,.28);border-radius:50%;background:#151d23;color:#c4ced4;font-family:Georgia,"Times New Roman",serif;font-size:21px}
+.carrier-activation-driver-body>div:last-child{display:grid;gap:3px}.carrier-activation-driver-body span{color:#798a95;font-size:6.5px}.carrier-activation-driver-body strong{font-size:10px}.carrier-activation-driver-body p{margin:3px 0 0;color:#97a5ae;font-size:7.5px;line-height:1.42}
+.carrier-activation-objective{padding:12px;box-shadow:inset 3px 0 0 rgba(181,150,99,.54)}.carrier-activation-objective>span{color:#ad946a}.carrier-activation-objective>strong{display:block;margin:5px 0;font-size:12px}.carrier-activation-objective>p{margin:0;color:#99a7af;font-size:7.5px;line-height:1.42}.carrier-activation-objective>div{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}.carrier-activation-objective b{font-size:6px;color:#b8c1c7}.carrier-activation-objective i{font-style:normal;font-size:7px;color:#667680}
+.carrier-activation-actions{position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:.8fr 1.2fr;gap:8px;padding:9px 11px calc(10px + env(safe-area-inset-bottom));border-top:1px solid rgba(138,151,161,.15);background:rgba(8,12,15,.95)}
+.carrier-activation-actions button{min-height:38px;border-radius:5px;font:inherit;font-size:6.5px;font-weight:950;letter-spacing:.07em}.carrier-activation-actions .secondary{border:1px solid rgba(121,137,148,.27);background:rgba(20,27,32,.86);color:#8fa0aa}.carrier-activation-actions .primary{border:1px solid #957a4f;background:linear-gradient(180deg,#b89b68,#9d7f50);color:#211b12}.carrier-activation-actions .primary span{font-size:15px}
+/* END B.5.4D.3 */
+
+/* B.5.4D.3 revised: activation now hands off to Agenda workday setup. */
+
+
+/* B.5.4D.3.1 — First Workday Agenda Polish */
+.agenda-first-workday-shell{height:100%;min-height:0;display:flex;flex-direction:column;background:#0c1115}
+.agenda-first-guide{flex:0 0 auto;margin:8px 10px 6px;padding:10px 11px;border:1px solid rgba(130,145,156,.2);border-radius:8px;background:rgba(15,21,26,.94);box-shadow:inset 3px 0 0 rgba(181,150,99,.52);display:grid;gap:4px}
+.agenda-first-guide.ready{box-shadow:inset 3px 0 0 rgba(103,148,119,.58)}
+.agenda-first-guide>span{color:#ad946a;font-size:6px;font-weight:950;letter-spacing:.13em}.agenda-first-guide.ready>span{color:#88ab94}
+.agenda-first-guide>strong{color:#edf1f3;font-size:10px;line-height:1.24}.agenda-first-guide>p{margin:0;color:#94a3ac;font-size:7px;line-height:1.42}
+.agenda-first-steps{display:grid;grid-template-columns:1fr 8px 1fr 8px 1fr;align-items:center;gap:3px;margin-top:5px}.agenda-first-steps>div{display:grid;grid-template-columns:18px 1fr;grid-template-areas:"b l" "b v";gap:1px 5px;align-items:center;padding:5px;border:1px solid rgba(124,139,150,.15);border-radius:5px;background:rgba(8,12,15,.43)}
+.agenda-first-steps b{grid-area:b;width:18px;height:18px;display:grid;place-items:center;border:1px solid rgba(122,138,149,.3);border-radius:50%;color:#7f909a;font-size:6px}.agenda-first-steps .done b{border-color:rgba(103,151,120,.42);color:#8fb29a}.agenda-first-steps .current b{border-color:rgba(181,150,99,.48);color:#c1a472}
+.agenda-first-steps span{grid-area:l;color:#697a85;font-size:5px;font-weight:900}.agenda-first-steps strong{grid-area:v;color:#b8c2c8;font-size:5.5px;white-space:nowrap}.agenda-first-steps>i{height:1px;background:rgba(114,131,142,.21)}
+.agenda-first-guide>button{min-height:34px;margin-top:5px;border:1px solid #92784f;border-radius:5px;background:linear-gradient(180deg,#b49764,#9a7c4d);color:#211b12;font:inherit;font-size:6.5px;font-weight:950;letter-spacing:.07em}
+.agenda-first-workday-scheduler{flex:1 1 auto;min-height:0;overflow:hidden}.agenda-first-workday-scheduler>*{height:100%}
+/* END B.5.4D.3.1 */
+
+
+/* =========================================================
+   B.5.4D.4.1 — Driver Scheduler Foundation
+   ========================================================= */
+.driver-scheduler-screen{height:100%;min-height:0;display:flex;flex-direction:column;background:linear-gradient(180deg,#10161b,#0b1014 58%,#090d10);color:#e8edf0;overflow:hidden}
+.driver-scheduler-header{flex:0 0 auto;display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:8px;padding:9px 10px 8px;border-bottom:1px solid rgba(124,140,151,.16);background:rgba(12,17,21,.96)}
+.driver-scheduler-back{width:28px;height:28px;border:1px solid rgba(123,139,150,.22);border-radius:6px;background:#151d23;color:#a8b5bd;font-size:17px}
+.driver-scheduler-header>div{display:grid;gap:1px}.driver-scheduler-header>div span{color:#72838e;font-size:5.5px;font-weight:900;letter-spacing:.12em}.driver-scheduler-header>div strong{font-size:11px;color:#edf1f3}
+.driver-scheduler-count{padding:4px 6px;border:1px solid rgba(115,137,149,.21);border-radius:4px;color:#899aa4;font-size:5.5px;font-weight:900;letter-spacing:.08em}
+.driver-scheduler-tabs{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr;padding:6px 10px;gap:5px;background:#0d1317}.driver-scheduler-tabs button{height:28px;border:1px solid rgba(120,136,147,.17);border-radius:5px;background:#141b20;color:#778994;font:inherit;font-size:6px;font-weight:950;letter-spacing:.1em}.driver-scheduler-tabs button.active{border-color:rgba(177,148,98,.48);background:rgba(123,92,49,.17);color:#c0a473}
+.driver-scheduler-schedule-view,.driver-scheduler-today-view{flex:1 1 auto;min-height:0;overflow:auto}
+.driver-scheduler-week-nav{display:grid;grid-template-columns:30px 1fr 30px;align-items:center;gap:7px;padding:8px 10px}.driver-scheduler-week-nav>button{height:28px;border:1px solid rgba(122,139,150,.18);border-radius:5px;background:#141b20;color:#91a1aa;font-size:16px}.driver-scheduler-week-nav>div{display:grid;justify-items:center;gap:2px}.driver-scheduler-week-nav span{color:#6f818c;font-size:5px;font-weight:950;letter-spacing:.1em}.driver-scheduler-week-nav strong{font-size:8px;color:#bdc7cc}
+.driver-scheduler-grid-scroll{overflow:auto;padding:0 9px 12px;-webkit-overflow-scrolling:touch}.driver-scheduler-grid{min-width:760px;display:grid;grid-template-columns:132px repeat(7,86px);border:1px solid rgba(118,135,146,.15);border-radius:7px;overflow:hidden;background:#0d1317}
+.driver-scheduler-grid-corner,.driver-scheduler-day-head{min-height:43px;border:0;border-right:1px solid rgba(118,135,146,.12);border-bottom:1px solid rgba(118,135,146,.14);background:#12191e;color:#768893;font:inherit}.driver-scheduler-grid-corner{display:grid;place-items:center;font-size:5.5px;font-weight:950;letter-spacing:.1em}.driver-scheduler-day-head{display:grid;place-items:center;gap:2px;padding:5px}.driver-scheduler-day-head span{font-size:5px;font-weight:900;letter-spacing:.08em}.driver-scheduler-day-head strong{font-size:7px;color:#aeb9c0}.driver-scheduler-day-head.today{background:rgba(111,83,47,.17);box-shadow:inset 0 2px 0 rgba(181,150,99,.58)}
+.driver-scheduler-driver-cell{min-height:64px;display:grid;grid-template-columns:30px 1fr;align-items:center;gap:7px;padding:8px;border:0;border-right:1px solid rgba(118,135,146,.12);border-bottom:1px solid rgba(118,135,146,.12);background:#11181d;color:#dfe5e8;text-align:left}.driver-scheduler-avatar{width:29px;height:29px;display:grid;place-items:center;border:1px solid rgba(118,138,150,.25);border-radius:50%;background:#192229;color:#bfc9cf;font-family:Georgia,serif;font-size:12px}.driver-scheduler-driver-cell>span:last-child{display:grid;gap:2px}.driver-scheduler-driver-cell strong{font-size:7px}.driver-scheduler-driver-cell small{font-size:5.2px;color:#70828d}
+.driver-scheduler-shift-cell{min-height:64px;display:grid;place-items:center;align-content:center;gap:3px;padding:5px;border:0;border-right:1px solid rgba(118,135,146,.10);border-bottom:1px solid rgba(118,135,146,.12);background:#0d1317;color:#7d8d96;font:inherit}.driver-scheduler-shift-cell strong{font-size:7px}.driver-scheduler-shift-cell span{font-size:5.5px}.driver-scheduler-shift-cell small{padding:2px 4px;border-radius:3px;background:rgba(87,116,98,.14);color:#82a28d;font-size:4.8px}.driver-scheduler-shift-cell.scheduled{background:rgba(65,86,76,.10);color:#b8c8bd}.driver-scheduler-shift-cell.off{background:rgba(50,57,62,.26);color:#596872}.driver-scheduler-shift-cell.empty strong{font-size:13px;font-weight:400;color:#596a75}.driver-scheduler-shift-cell.today{box-shadow:inset 0 0 0 1px rgba(181,150,99,.18)}
+.driver-scheduler-today-heading{padding:10px 11px 7px;display:grid;gap:2px}.driver-scheduler-today-heading span{color:#ad946a;font-size:5.5px;font-weight:950;letter-spacing:.1em}.driver-scheduler-today-heading strong{font-size:12px}.driver-scheduler-today-heading p{margin:0;color:#7f909a;font-size:6.5px}
+.driver-scheduler-today-list{display:grid;gap:8px;padding:4px 10px 16px}.driver-scheduler-today-card{border:1px solid rgba(124,140,151,.17);border-radius:8px;background:#11181d;overflow:hidden}.driver-scheduler-today-card.active{box-shadow:inset 3px 0 0 rgba(91,145,110,.55)}.driver-scheduler-today-card.scheduled{box-shadow:inset 3px 0 0 rgba(181,150,99,.48)}.driver-scheduler-today-card.needs{box-shadow:inset 3px 0 0 rgba(152,98,79,.5)}
+.driver-scheduler-today-main{width:100%;display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:10px;border:0;background:transparent;color:#dfe5e8;text-align:left}.driver-scheduler-today-main .copy{display:grid;gap:2px}.driver-scheduler-today-main .copy>small{color:#6f818b;font-size:5px}.driver-scheduler-today-main .copy>strong{font-size:9px}.driver-scheduler-today-main .status{width:max-content;padding:2px 4px;border-radius:3px;background:rgba(111,91,56,.18);color:#b99d6c;font-size:5px;font-weight:900}.driver-scheduler-today-main .status.active{background:rgba(66,107,80,.2);color:#8faf99}.driver-scheduler-today-main .status.needs{background:rgba(114,73,61,.2);color:#b98c7f}.driver-scheduler-today-main p{margin:0;color:#80919b;font-size:5.5px}.driver-scheduler-today-main .shift{display:grid;justify-items:end;gap:1px}.driver-scheduler-today-main .shift strong{font-size:8px}.driver-scheduler-today-main .shift small{color:#71828c;font-size:5px}
+.driver-scheduler-today-meta{display:grid;grid-template-columns:auto auto 1fr 1.35fr;gap:5px;align-items:center;padding:7px 9px;border-top:1px solid rgba(121,138,149,.12);background:rgba(8,12,15,.28)}.driver-scheduler-today-meta>span{display:grid;gap:1px;color:#687985;font-size:4.8px}.driver-scheduler-today-meta>span b{color:#b2bdc3;font-size:6px}.driver-scheduler-today-meta button{height:27px;border:1px solid rgba(121,138,149,.2);border-radius:4px;background:#182127;color:#8798a2;font:inherit;font-size:5.3px;font-weight:900}.driver-scheduler-today-meta button:last-child{border-color:#90764d;background:#a98b5b;color:#201a12}.driver-scheduler-today-meta button:disabled{opacity:.35}
+.driver-scheduler-load-strip{display:flex;gap:5px;overflow:auto;padding:6px 9px 8px}.driver-scheduler-load-strip>span{min-width:94px;display:flex;justify-content:space-between;gap:5px;padding:5px 6px;border:1px solid rgba(110,129,141,.15);border-radius:4px;background:#0d1317}.driver-scheduler-load-strip strong{font-size:5.5px}.driver-scheduler-load-strip small{color:#788a94;font-size:5px}
+.driver-scheduler-editor-backdrop{position:absolute;inset:0;z-index:40;display:flex;align-items:flex-end;background:rgba(2,5,7,.72);backdrop-filter:blur(3px)}.driver-scheduler-editor{width:100%;max-height:88%;display:flex;flex-direction:column;border:1px solid rgba(135,149,159,.2);border-radius:12px 12px 0 0;background:#11181d;box-shadow:0 -14px 38px rgba(0,0,0,.38)}.driver-scheduler-editor>header{display:flex;justify-content:space-between;align-items:center;padding:11px 12px;border-bottom:1px solid rgba(125,141,151,.14)}.driver-scheduler-editor>header>div{display:grid;gap:2px}.driver-scheduler-editor>header span{color:#ad946a;font-size:5.5px;font-weight:900}.driver-scheduler-editor>header strong{font-size:10px}.driver-scheduler-editor>header button{width:28px;height:28px;border:1px solid rgba(122,139,150,.2);border-radius:50%;background:#182127;color:#91a1aa;font-size:15px}.driver-scheduler-editor-scroll{overflow:auto;padding:10px 12px;display:grid;gap:10px}
+.driver-scheduler-off-toggle,.driver-scheduler-copy-toggle{display:grid;grid-template-columns:18px 1fr;gap:8px;align-items:center;padding:8px;border:1px solid rgba(120,137,148,.16);border-radius:6px;background:#0d1317;color:#aeb9bf}.driver-scheduler-off-toggle input,.driver-scheduler-copy-toggle input{width:16px;height:16px}.driver-scheduler-off-toggle span{font-size:7px;font-weight:900}.driver-scheduler-off-toggle small{grid-column:2;color:#72838e;font-size:5.5px}.driver-scheduler-off-toggle.active{border-color:rgba(139,104,82,.34)}
+.driver-scheduler-time-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.driver-scheduler-time-grid label{display:grid;gap:5px;padding:8px;border:1px solid rgba(121,138,149,.16);border-radius:6px;background:#0d1317}.driver-scheduler-time-grid label>span,.driver-scheduler-duration-row>span{color:#73858f;font-size:5px;font-weight:950;letter-spacing:.08em}.driver-scheduler-time-grid input{width:100%;min-height:38px;border:1px solid rgba(127,143,154,.22);border-radius:5px;background:#172027;color:#edf1f3;padding:6px;font:inherit;font-size:9px}.driver-scheduler-time-grid small{color:#70818b;font-size:5px}
+.driver-scheduler-duration-row{display:grid;gap:5px}.driver-scheduler-duration-row>div{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.driver-scheduler-duration-row button{height:29px;border:1px solid rgba(124,141,151,.18);border-radius:4px;background:#182127;color:#94a4ad;font:inherit;font-size:5.5px;font-weight:900}
+.driver-scheduler-copy-toggle>span{display:grid;gap:2px}.driver-scheduler-copy-toggle strong{font-size:6px}.driver-scheduler-copy-toggle small{color:#70818b;font-size:5px}.driver-scheduler-lunch-button{height:36px;display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(124,141,151,.18);border-radius:5px;background:#172027;color:#a8b5bc;padding:0 9px;font:inherit;font-size:5.8px;font-weight:900}.driver-scheduler-lunch-button span{color:#7f9184;font-size:5px}
+.driver-scheduler-editor>footer{display:grid;grid-template-columns:.8fr 1.2fr;gap:7px;padding:9px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid rgba(124,140,151,.14)}.driver-scheduler-editor>footer button{height:36px;border-radius:5px;font:inherit;font-size:6px;font-weight:950}.driver-scheduler-editor>footer .secondary{border:1px solid rgba(121,138,149,.2);background:#182127;color:#899aa4}.driver-scheduler-editor>footer .primary{border:1px solid #92784f;background:linear-gradient(180deg,#b49764,#98794b);color:#211b12}
+.driver-scheduler-empty{margin:22px 12px;padding:18px;border:1px dashed rgba(124,141,151,.22);border-radius:8px;text-align:center}.driver-scheduler-empty strong{font-size:9px}.driver-scheduler-empty p{margin:5px 0 0;color:#73858f;font-size:6px}
+/* END B.5.4D.4.1 */
+
+
+/* =========================================================
+   B.5.4D.4.1.1 — Scheduler Layout + Handoff Schedules
+   ========================================================= */
+.scheduler-v2-grid-scroll{overflow-x:auto;overflow-y:visible;padding:0 8px 8px;scrollbar-width:none}
+.scheduler-v2-grid-scroll::-webkit-scrollbar{display:none}
+.scheduler-v2-grid{min-width:720px;grid-template-columns:118px repeat(7,86px);overflow:visible}
+.scheduler-sticky-driver{position:sticky!important;left:0;z-index:4;box-shadow:4px 0 8px rgba(0,0,0,.16)}
+.driver-scheduler-grid-corner.scheduler-sticky-driver{z-index:6;background:#131a1f}
+.driver-scheduler-driver-cell.scheduler-sticky-driver{background:#11181d}
+.driver-scheduler-driver-cell em{color:#6d7e88;font-size:4.8px;font-style:normal;font-weight:900;letter-spacing:.05em}
+.driver-scheduler-shift-cell.handoff{background:rgba(68,86,104,.16);box-shadow:inset 0 2px 0 rgba(100,137,164,.42)}
+.driver-scheduler-shift-cell em{padding:2px 4px;border-radius:3px;background:rgba(72,106,132,.2);color:#8eb1c8;font-size:4.4px;font-style:normal;font-weight:950;letter-spacing:.05em}
+.scheduler-handoff-banner{margin:8px 9px 7px;padding:9px 10px;border:1px solid rgba(99,130,153,.25);border-radius:7px;background:linear-gradient(135deg,rgba(57,79,96,.2),rgba(15,21,26,.95));box-shadow:inset 3px 0 0 rgba(101,139,166,.5);display:grid;gap:3px}
+.scheduler-handoff-banner>span{color:#84a9c1;font-size:5.5px;font-weight:950;letter-spacing:.12em}.scheduler-handoff-banner>strong{font-size:8px;color:#dce5ea}.scheduler-handoff-banner>p{margin:0;color:#7e909b;font-size:6px;line-height:1.35}
+.scheduler-v2-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:0 9px 10px}.scheduler-v2-summary span{display:grid;justify-items:center;gap:1px;padding:7px 4px;border:1px solid rgba(119,136,147,.14);border-radius:5px;background:#10171c;color:#697b86;font-size:4.7px;font-weight:900}.scheduler-v2-summary b{color:#b8c3c9;font-size:7px}
+.scheduler-handoff-editor-note{margin:8px 12px 0;padding:7px 8px;border:1px solid rgba(95,130,155,.23);border-radius:5px;background:rgba(54,79,97,.13)}.scheduler-handoff-editor-note span{color:#83a9c2;font-size:5px;font-weight:950}.scheduler-handoff-editor-note p{margin:2px 0 0;color:#7f919c;font-size:5.5px;line-height:1.3}
+.scheduler-repeat-block{display:grid;gap:5px}.scheduler-repeat-block>span{color:#73858f;font-size:5px;font-weight:950;letter-spacing:.08em}.scheduler-repeat-block>div{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.scheduler-repeat-block button{height:29px;border:1px solid rgba(124,141,151,.18);border-radius:4px;background:#182127;color:#84959f;font:inherit;font-size:5px;font-weight:900}.scheduler-repeat-block button.active{border-color:rgba(181,150,99,.45);background:rgba(116,87,49,.18);color:#bea171}
+.today-handoff{width:max-content;color:#83a9c2;font-size:4.7px;font-style:normal;font-weight:950;letter-spacing:.05em}
+.scheduler-driver-detail-backdrop{position:absolute;inset:0;z-index:38;display:flex;align-items:flex-end;background:rgba(2,5,7,.7);backdrop-filter:blur(3px)}
+.scheduler-driver-detail{width:100%;max-height:88%;display:flex;flex-direction:column;border:1px solid rgba(129,145,155,.2);border-radius:12px 12px 0 0;background:#11181d;box-shadow:0 -15px 40px rgba(0,0,0,.4)}
+.scheduler-driver-detail>header{display:grid;grid-template-columns:36px 1fr 28px;gap:8px;align-items:center;padding:11px 12px;border-bottom:1px solid rgba(124,140,151,.14)}.scheduler-driver-detail>header>div:nth-child(2){display:grid;gap:2px}.scheduler-driver-detail>header span{color:#748691;font-size:5px}.scheduler-driver-detail>header strong{font-size:10px}.scheduler-driver-detail>header small{color:#7d8e98;font-size:5.3px}.scheduler-driver-detail>header button{width:28px;height:28px;border:1px solid rgba(122,139,150,.2);border-radius:50%;background:#182127;color:#91a1aa;font-size:14px}
+.scheduler-driver-detail-scroll{overflow:auto;padding:10px 12px}.scheduler-driver-week-list{display:grid;gap:5px}.scheduler-driver-week-list>button{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:7px;padding:7px 8px;border:1px solid rgba(121,138,149,.14);border-radius:5px;background:#0d1317;color:#dfe5e8;text-align:left}.scheduler-driver-week-list>button>span:first-child{display:grid;gap:1px}.scheduler-driver-week-list b{font-size:6px;color:#8fa1ab}.scheduler-driver-week-list small{font-size:4.8px;color:#687a85}.scheduler-driver-week-list>button>strong{font-size:7px}.scheduler-driver-week-list .detail-meta{display:grid;justify-items:end;gap:2px}.scheduler-driver-week-list em{font-size:4.4px;color:#83a9c2;font-style:normal;font-weight:950}
+.scheduler-driver-today-summary{margin-top:9px;padding:9px;border:1px solid rgba(122,139,150,.16);border-radius:6px;background:#0d1317}.scheduler-driver-today-summary span{color:#ad946a;font-size:5px;font-weight:950}.scheduler-driver-today-summary strong{display:block;margin-top:3px;font-size:9px}.scheduler-driver-today-summary p{margin:3px 0 0;color:#748690;font-size:5.5px;line-height:1.35}
+.scheduler-driver-detail>footer{display:grid;grid-template-columns:.85fr 1.15fr;gap:7px;padding:9px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid rgba(124,140,151,.14)}.scheduler-driver-detail>footer button{height:36px;border-radius:5px;font:inherit;font-size:5.8px;font-weight:950}.scheduler-driver-detail>footer .secondary{border:1px solid rgba(121,138,149,.2);background:#182127;color:#899aa4}.scheduler-driver-detail>footer .primary{border:1px solid #92784f;background:linear-gradient(180deg,#b49764,#98794b);color:#211b12}.scheduler-driver-detail>footer .primary:disabled{opacity:.35}
+/* END B.5.4D.4.1.1 */
+
+
+/* =========================================================
+   B.5.4D.4.1.2 — Carrier-Controlled Driver Scheduler
+   ========================================================= */
+.scheduler-three-tabs{grid-template-columns:repeat(3,1fr)}
+.carrier-schedule-note{margin:8px 9px 7px;padding:9px 10px;border:1px solid rgba(98,129,151,.24);border-radius:7px;background:linear-gradient(135deg,rgba(55,77,94,.18),rgba(15,21,26,.95));box-shadow:inset 3px 0 0 rgba(96,135,162,.48);display:grid;gap:3px}
+.carrier-schedule-note>span{color:#83a8c0;font-size:5.5px;font-weight:950;letter-spacing:.11em}
+.carrier-schedule-note>strong{font-size:8px;color:#dce4e9}
+.carrier-schedule-note>p{margin:0;color:#7c8e99;font-size:5.8px;line-height:1.35}
+.carrier-schedule-grid-scroll{overflow-x:auto;overflow-y:visible;padding:0 8px 11px;scrollbar-width:none}
+.carrier-schedule-grid-scroll::-webkit-scrollbar{display:none}
+.carrier-schedule-grid{min-width:720px;grid-template-columns:118px repeat(7,86px);overflow:visible}
+.driver-scheduler-shift-cell.read-only{cursor:default}
+.driver-scheduler-shift-cell.read-only.empty{background:rgba(15,20,24,.64)}
+.driver-scheduler-shift-cell.read-only.empty strong{font-size:5.2px;max-width:70px;line-height:1.2;color:#63747e}
+.driver-scheduler-shift-cell.read-only em{padding:2px 4px;border-radius:3px;background:rgba(70,106,132,.18);color:#88aec7;font-size:4.4px;font-style:normal;font-weight:950;letter-spacing:.05em}
+.carrier-confirmed-chip{width:max-content;color:#84a9c2;font-size:4.5px;font-style:normal;font-weight:950;letter-spacing:.05em}
+.carrier-owned-actions{grid-template-columns:auto auto 1fr 1.2fr}
+.carrier-owned-actions button{height:28px}
+.carrier-driver-view{flex:1 1 auto;min-height:0;overflow:auto;padding:9px 10px 16px}
+.carrier-driver-profile{display:grid;grid-template-columns:40px 1fr;gap:9px;align-items:center;padding:10px;border:1px solid rgba(121,138,149,.16);border-radius:7px;background:#11181d}
+.carrier-driver-profile>div:last-child{display:grid;gap:2px}
+.carrier-driver-profile>div:last-child>span{color:#748690;font-size:5px}
+.carrier-driver-profile>div:last-child>strong{font-size:10px}
+.carrier-driver-profile>div:last-child>small{color:#778994;font-size:5.3px}
+.carrier-driver-week{margin-top:8px;border:1px solid rgba(121,138,149,.16);border-radius:7px;background:#0e1418;overflow:hidden}
+.carrier-driver-week>header{padding:9px 10px;border-bottom:1px solid rgba(121,138,149,.12);display:grid;gap:2px}
+.carrier-driver-week>header span{color:#72838e;font-size:5px;font-weight:950;letter-spacing:.1em}
+.carrier-driver-week>header strong{font-size:8px}
+.carrier-driver-day{display:grid;grid-template-columns:58px 1fr auto;align-items:center;gap:7px;padding:8px 10px;border-bottom:1px solid rgba(121,138,149,.10)}
+.carrier-driver-day:last-child{border-bottom:0}
+.carrier-driver-day>span:first-child{display:grid;gap:1px}
+.carrier-driver-day b{font-size:6px;color:#8ea0aa}
+.carrier-driver-day small{font-size:4.8px;color:#677984}
+.carrier-driver-day>strong{font-size:7px}
+.carrier-driver-day-meta{display:grid;justify-items:end;gap:2px}
+.carrier-driver-day-meta em{font-size:4.4px;color:#84a9c2;font-style:normal;font-weight:950}
+.carrier-driver-operating-card{margin-top:8px;padding:10px;border:1px solid rgba(181,150,99,.21);border-radius:7px;background:rgba(107,80,45,.10);box-shadow:inset 3px 0 0 rgba(181,150,99,.45)}
+.carrier-driver-operating-card span{color:#ad946a;font-size:5px;font-weight:950;letter-spacing:.1em}
+.carrier-driver-operating-card strong{display:block;margin-top:3px;font-size:8px}
+.carrier-driver-operating-card p{margin:4px 0 0;color:#7e909a;font-size:5.8px;line-height:1.38}
+.carrier-driver-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+.carrier-driver-actions button{height:35px;border:1px solid rgba(121,138,149,.2);border-radius:5px;background:#182127;color:#8fa0a9;font:inherit;font-size:5.6px;font-weight:950}
+.carrier-driver-actions button.primary{border-color:#92784f;background:linear-gradient(180deg,#b49764,#98794b);color:#211b12}
+.carrier-driver-actions button:disabled{opacity:.35}
+/* END B.5.4D.4.1.2 */
+
+
+/* B.5.4D.4.1.4 — Dispatcher Lunch Window */
+.scheduler-lunch-backdrop{position:absolute;inset:0;z-index:46;display:flex;align-items:flex-end;background:rgba(2,5,7,.76);backdrop-filter:blur(4px)}
+.scheduler-lunch-sheet{width:100%;display:flex;flex-direction:column;border:1px solid rgba(128,145,155,.22);border-radius:14px 14px 0 0;background:#11181d;box-shadow:0 -18px 44px rgba(0,0,0,.42)}
+.scheduler-lunch-sheet>header{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid rgba(124,140,151,.15)}
+.scheduler-lunch-sheet>header>div{display:grid;gap:3px}
+.scheduler-lunch-sheet>header span{color:#ad946a;font-size:7px;font-weight:950;letter-spacing:.1em}
+.scheduler-lunch-sheet>header strong{font-size:12px;color:#edf1f3}
+.scheduler-lunch-sheet>header button{width:32px;height:32px;border:1px solid rgba(122,139,150,.22);border-radius:50%;background:#192229;color:#9aabb4;font-size:16px}
+.scheduler-lunch-body{display:grid;gap:11px;padding:12px}
+.scheduler-lunch-body>p{margin:0;color:#95a4ac;font-size:9px;line-height:1.45}
+.scheduler-lunch-shift{display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid rgba(120,137,148,.16);border-radius:6px;background:#0d1317}
+.scheduler-lunch-shift span,.scheduler-lunch-quick>span,.scheduler-lunch-time-grid label>span{color:#748691;font-size:7px;font-weight:950;letter-spacing:.08em}
+.scheduler-lunch-shift strong{font-size:11px}
+.scheduler-lunch-quick{display:grid;gap:6px}.scheduler-lunch-quick>div{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.scheduler-lunch-quick button{height:34px;border:1px solid rgba(121,138,149,.18);border-radius:5px;background:#182127;color:#a4b1b8;font:inherit;font-size:8px;font-weight:900}
+.scheduler-lunch-time-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.scheduler-lunch-time-grid label{display:grid;gap:6px;padding:9px;border:1px solid rgba(121,138,149,.16);border-radius:6px;background:#0d1317}
+.scheduler-lunch-time-grid input{width:100%;min-height:42px;border:1px solid rgba(127,143,154,.23);border-radius:5px;background:#172027;color:#edf1f3;padding:6px;font:inherit;font-size:12px}
+.scheduler-lunch-body>small{color:#6f818b;font-size:7px;line-height:1.4}
+.scheduler-lunch-sheet>footer{display:grid;grid-template-columns:.8fr 1.2fr;gap:7px;padding:10px 12px calc(11px + env(safe-area-inset-bottom));border-top:1px solid rgba(124,140,151,.14)}
+.scheduler-lunch-sheet>footer button{height:40px;border-radius:5px;font:inherit;font-size:8px;font-weight:950}
+.scheduler-lunch-sheet>footer .secondary{border:1px solid rgba(121,138,149,.2);background:#182127;color:#93a3ac}
+.scheduler-lunch-sheet>footer .primary{border:1px solid #92784f;background:linear-gradient(180deg,#b49764,#98794b);color:#211b12}
+/* END B.5.4D.4.1.4 */
+
+
+/* B.5.4D.4.2.1 — FreightLink Carrier Schedule Awareness */
+.freight-listing-row.schedule-conflict{
+  border-color:rgba(174,92,78,.58)!important;
+  box-shadow:inset 3px 0 0 rgba(184,91,76,.72)
+}
+.carrier-shift-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:20px;
+  padding:0 6px;
+  border:1px solid rgba(86,130,101,.42);
+  border-radius:999px;
+  background:rgba(54,92,69,.13);
+  color:#8fb89c;
+  font-size:6px;
+  font-weight:950;
+  letter-spacing:.055em;
+  white-space:nowrap
+}
+.carrier-shift-chip.conflict{
+  border-color:rgba(178,92,78,.56);
+  background:rgba(126,60,51,.16);
+  color:#d99a90
+}
+.carrier-shift-chip.ok{
+  border-color:rgba(83,128,99,.42);
+  background:rgba(54,92,69,.13);
+  color:#8fb89c
+}
+/* END B.5.4D.4.2.1 */
+
+
+/* B.5.4D.4.2.2A — Authoritative Schedule Conflict Repair */
+.freight-listing-row{position:relative}
+.freight-listing-row.schedule-conflict{
+  border-color:rgba(180,88,76,.70)!important;
+  box-shadow:inset 4px 0 0 rgba(190,91,77,.84)!important
+}
+.freight-authoritative-conflict{
+  position:absolute;
+  z-index:25;
+  right:8px;
+  bottom:8px;
+  max-width:58%;
+  display:grid;
+  gap:2px;
+  padding:6px 8px;
+  border:1px solid rgba(190,91,77,.82);
+  border-radius:7px;
+  background:rgba(43,18,18,.97);
+  box-shadow:0 5px 16px rgba(0,0,0,.38);
+  text-align:left;
+  pointer-events:none
+}
+.freight-authoritative-conflict strong{
+  color:#efaaa0;
+  font-size:8px;
+  font-weight:950;
+  letter-spacing:.06em
+}
+.freight-authoritative-conflict small{
+  color:#c9928c;
+  font-size:6px;
+  line-height:1.25
+}
+.freight-listing-row.schedule-conflict .freight-fit,
+.freight-listing-row.schedule-conflict .freight-fit-badge,
+.freight-listing-row.schedule-conflict .fit-badge,
+.freight-listing-row.schedule-conflict .fit-chip,
+.freight-listing-row.schedule-conflict [class*="driver-fit"],
+.freight-listing-row.schedule-conflict [data-fit-status]{
+  display:none!important
+}
+/* END B.5.4D.4.2.2A */
+
+
+/* B.5.4D.4.1.5 — Driver Operational View */
+.driver-ops-view{display:grid;align-content:start;gap:8px}
+.driver-ops-identity{display:grid;grid-template-columns:40px 1fr auto;gap:9px;align-items:center;padding:10px;border:1px solid rgba(121,138,149,.16);border-radius:7px;background:#11181d}
+.driver-ops-identity>div{display:grid;gap:2px}
+.driver-ops-identity>div span{color:#748690;font-size:6px}
+.driver-ops-identity>div strong{font-size:10px}
+.driver-ops-identity>div small{color:#778994;font-size:6px}
+.driver-ops-identity>em{padding:4px 6px;border:1px solid rgba(112,142,122,.24);border-radius:999px;background:rgba(64,96,74,.14);color:#95b39e;font-size:5.5px;font-style:normal;font-weight:950;letter-spacing:.06em}
+.driver-ops-now,.driver-ops-hos,.driver-ops-load,.driver-ops-next{border:1px solid rgba(121,138,149,.16);border-radius:7px;background:#0e1418;overflow:hidden}
+.driver-ops-now>header,.driver-ops-hos>header,.driver-ops-load>header{display:flex;justify-content:space-between;align-items:end;padding:8px 9px;border-bottom:1px solid rgba(121,138,149,.12)}
+.driver-ops-now header span,.driver-ops-hos header span,.driver-ops-load header span,.driver-ops-next>span{color:#758792;font-size:5.5px;font-weight:950;letter-spacing:.1em}
+.driver-ops-now header strong,.driver-ops-hos header strong,.driver-ops-load header strong{font-size:8px}
+.driver-ops-facts{display:grid;grid-template-columns:1fr 1fr}
+.driver-ops-facts>div{display:grid;gap:3px;padding:9px;border-right:1px solid rgba(121,138,149,.09);border-bottom:1px solid rgba(121,138,149,.09)}
+.driver-ops-facts>div:nth-child(2n){border-right:0}
+.driver-ops-facts span,.driver-ops-load-detail small,.driver-ops-hos small{color:#6f818c;font-size:5px;font-weight:900}
+.driver-ops-facts strong{font-size:7px;color:#cbd4d9}
+.driver-ops-hos>div{display:grid;grid-template-columns:1fr 1fr}
+.driver-ops-hos>div>span{display:grid;gap:2px;justify-items:center;padding:10px;border-right:1px solid rgba(121,138,149,.1)}
+.driver-ops-hos>div>span:last-child{border-right:0}
+.driver-ops-hos>div strong{font-size:13px}
+.driver-ops-load-detail{display:grid;grid-template-columns:1fr 1fr}
+.driver-ops-load-detail>span{display:grid;gap:2px;padding:9px;border-right:1px solid rgba(121,138,149,.09);border-bottom:1px solid rgba(121,138,149,.09)}
+.driver-ops-load-detail>span:nth-child(2n){border-right:0}
+.driver-ops-load-detail strong{font-size:6.5px;color:#c6d0d5}
+.driver-ops-load>p{margin:0;padding:11px;color:#748690;font-size:6px}
+.driver-ops-next{display:grid;gap:3px;padding:10px}
+.driver-ops-next>strong{font-size:8px}
+.driver-ops-next>small{color:#748690;font-size:5.5px}
+.driver-ops-actions{margin-top:0}
+/* END B.5.4D.4.1.5 */
+
+
+/* B.5.4D.4.1.6 — End-of-Day Positioning */
+.driver-ops-actions-three{grid-template-columns:.85fr 1fr 1fr}
+.shift-end-planner-backdrop{position:absolute;inset:0;z-index:48;display:flex;align-items:flex-end;background:rgba(2,5,7,.78);backdrop-filter:blur(4px)}
+.shift-end-planner-sheet{width:100%;max-height:88%;display:flex;flex-direction:column;border:1px solid rgba(128,145,155,.22);border-radius:14px 14px 0 0;background:#11181d;box-shadow:0 -18px 44px rgba(0,0,0,.45)}
+.shift-end-planner-sheet>header{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid rgba(124,140,151,.15)}
+.shift-end-planner-sheet>header>div{display:grid;gap:2px}
+.shift-end-planner-sheet>header span{color:#ad946a;font-size:7px;font-weight:950;letter-spacing:.1em}
+.shift-end-planner-sheet>header strong{font-size:11px;color:#edf1f3}
+.shift-end-planner-sheet>header small{color:#758792;font-size:6px}
+.shift-end-planner-sheet>header button{width:32px;height:32px;border:1px solid rgba(122,139,150,.22);border-radius:50%;background:#192229;color:#9aabb4;font-size:16px}
+.shift-end-planner-body{min-height:0;overflow:auto;display:grid;gap:10px;padding:12px}
+.shift-end-planner-body>p{margin:0;color:#95a4ac;font-size:8px;line-height:1.45}
+.shift-end-option-list{display:grid;gap:7px}
+.shift-end-option-list>button{display:grid;grid-template-columns:1fr auto;align-items:center;gap:9px;padding:10px;border:1px solid rgba(121,138,149,.16);border-radius:7px;background:#0d1317;color:#c9d3d8;text-align:left;font:inherit}
+.shift-end-option-list>button.selected{border-color:rgba(177,148,98,.56);background:rgba(123,92,49,.13);box-shadow:inset 3px 0 0 rgba(181,150,99,.58)}
+.shift-end-option-list>button>span{display:grid;gap:2px}
+.shift-end-option-list small{color:#758792;font-size:5.5px;font-weight:950;letter-spacing:.08em}
+.shift-end-option-list strong{font-size:8px}
+.shift-end-option-list em{color:#778a94;font-size:6px;font-style:normal;line-height:1.35}
+.shift-end-option-list b{color:#c0a473;font-size:12px}
+.shift-end-rule{padding:9px;border:1px solid rgba(88,119,141,.2);border-radius:7px;background:rgba(52,77,95,.12)}
+.shift-end-rule span{color:#81a5bb;font-size:5.5px;font-weight:950;letter-spacing:.09em}
+.shift-end-rule strong{display:block;margin-top:3px;font-size:8px}
+.shift-end-rule p{margin:4px 0 0;color:#758892;font-size:6px;line-height:1.4}
+.shift-end-empty{display:grid;gap:4px;padding:12px;border:1px dashed rgba(121,138,149,.2);border-radius:7px;text-align:center}
+.shift-end-empty strong{font-size:8px}
+.shift-end-empty span{color:#758792;font-size:6px;line-height:1.4}
+.shift-end-planner-sheet>footer{display:grid;grid-template-columns:.8fr 1.2fr;gap:7px;padding:10px 12px calc(11px + env(safe-area-inset-bottom));border-top:1px solid rgba(124,140,151,.14)}
+.shift-end-planner-sheet>footer button{height:40px;border-radius:5px;font:inherit;font-size:8px;font-weight:950}
+.shift-end-planner-sheet>footer .secondary{border:1px solid rgba(121,138,149,.2);background:#182127;color:#93a3ac}
+.shift-end-planner-sheet>footer .primary{border:1px solid #92784f;background:linear-gradient(180deg,#b49764,#98794b);color:#211b12}
+.shift-end-planner-sheet>footer .primary:disabled{opacity:.35}
+/* END B.5.4D.4.1.6 */

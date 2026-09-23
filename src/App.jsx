@@ -742,7 +742,63 @@ function App() {
       // stale workdays/HOS from another operation can never clock the driver in.
       const carrierDriverIds = new Set(activatedCarrier?.driverIds || [])
       const base = wasActive ? current : current.filter((driver) => !carrierDriverIds.has(driver.id))
-      const nextDrivers = reconcileActiveCarrierDrivers(base, nextCarriers)
+      let nextDrivers = reconcileActiveCarrierDrivers(base, nextCarriers)
+
+      // B.5.4D.4.1.2 — carrier-controlled schedule handoff.
+      // The carrier provides the next three confirmed driver workdays.
+      // The dispatcher may plan freight/lunch/positioning around these shifts,
+      // but does not directly change the carrier's shift times.
+      if (!wasActive && carrierDriverIds.size) {
+        const confirmedStartDay = Number(gameTime.gameDayIndex || 0)
+        const confirmedAtGameMinute =
+          confirmedStartDay * 1440 + Number(gameTime.totalMinutesOfDay || 0)
+
+        nextDrivers = nextDrivers.map((driver) => {
+          if (!carrierDriverIds.has(driver.id)) return driver
+
+          const workdayByDay = { ...(driver.workdayByDay || {}) }
+
+          const templateStart =
+            Number(driver.carrierScheduleTemplate?.startMinutes) ||
+            Number(driver.handoffScheduleTemplate?.startMinutes) ||
+            Number(driver.preferredStartMinutes) ||
+            Number(driver.defaultStartMinutes) ||
+            420
+
+          const templateEnd =
+            Number(driver.carrierScheduleTemplate?.endMinutes) ||
+            Number(driver.handoffScheduleTemplate?.endMinutes) ||
+            Number(driver.preferredEndMinutes) ||
+            Number(driver.defaultEndMinutes) ||
+            ((templateStart + 600) % 1440)
+
+          for (let offset = 0; offset < 3; offset += 1) {
+            const dayIndex = confirmedStartDay + offset
+            const key = String(dayIndex)
+
+            workdayByDay[key] = {
+              ...(workdayByDay[key] || {}),
+              startMinutes: templateStart,
+              endMinutes: templateEnd,
+              crossesMidnight: templateEnd <= templateStart,
+              isDayOff: false,
+              carrierConfirmed: true,
+              scheduleSource: 'carrier',
+              inheritedFromPreviousDispatcher: true,
+              confirmedCarrierId: carrierId,
+              confirmedAtGameMinute,
+            }
+          }
+
+          // Day 4+ is not player-editable. Availability will arrive from carrier updates.
+          return {
+            ...driver,
+            workdayByDay,
+            carrierScheduleControl: true,
+          }
+        })
+      }
+
       setRuntimePositions((positions) => {
         const next = { ...positions }
         nextDrivers.forEach((driver) => {

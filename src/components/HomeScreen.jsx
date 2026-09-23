@@ -93,7 +93,7 @@ function HomeScreen({ onOpenBrowser, onOpenAgenda, agendaLocked = false, agendaB
         </div>
         <div className="phone-app-grid" aria-label="DOC OS apps">
           <AppTile label="Browser" description="FreightLink and Carrier Source" icon={<BrowserIcon />} onClick={onOpenBrowser} />
-          <AppTile label="Agenda" description="Driver schedules and appointments" icon={<AgendaIcon />} onClick={onOpenAgenda} disabled={agendaLocked} badgeCount={agendaBadgeCount} />
+          <AppTile label="Scheduler" description="Driver schedules and appointments" icon={<AgendaIcon />} onClick={onOpenAgenda} disabled={agendaLocked} badgeCount={agendaBadgeCount} />
           <AppTile label="Documents" description="PODs and operation records" icon={<DocumentsIcon />} onClick={onOpenDocuments} badgeCount={documentsBadgeCount} />
           <AppTile label="LedgerDesk" description="Invoices and receivables" icon={<LedgerIcon />} onClick={onOpenLedger} badgeCount={ledgerUnreadCount} badgeClassName="ledger-badge" />
           <AppTile label="Messages" description="Driver communication" icon={<MessagesIcon />} onClick={onOpenMessages} badgeCount={messagesBadgeCount} />

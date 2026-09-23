@@ -7,11 +7,16 @@ import BrowserScreen from './BrowserScreen.jsx'
 import DriverFitScreen from './DriverFitScreen.jsx'
 import TripPlanScreen from './TripPlanScreen.jsx'
 import FleetSchedulerScreen from './FleetSchedulerScreen.jsx'
+// B.5.4D.3.1 — First Workday Agenda Polish
+// B.5.4D.4.1 — Driver Scheduler Foundation
+import DriverSchedulerScreen from './DriverSchedulerScreen.jsx'
 import DocumentsScreen from './DocumentsScreen.jsx'
 import PodDetailScreen from './PodDetailScreen.jsx'
 import CarrierSourceScreen from './CarrierSourceScreen.jsx'
 // B.5.4D.2 — CarrierSource Player Experience
 import CarrierSourceFirstVisitGuide from './CarrierSourceFirstVisitGuide.jsx'
+// B.5.4D.3 — First Driver Onboarding & Workday Setup
+import CarrierActivationScreen from './CarrierActivationScreen.jsx'
 import CarrierOpportunityScreen from './CarrierOpportunityScreen.jsx'
 import DispatcherProfileScreen from './DispatcherProfileScreen.jsx'
 import LedgerDeskScreen from './LedgerDeskScreen.jsx'
@@ -296,10 +301,26 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
     if (!driverId || !Number.isFinite(Number(dayIndex))) return
     setDrivers?.((current) => current.map((driver) => {
       if (driver.id !== driverId) return driver
+
       const existing = { ...(driver.workdayByDay || {}) }
       const key = String(dayIndex)
-      if (workday) existing[key] = { ...workday, updatedGameMinute: nowGameMinute }
-      else delete existing[key]
+      const currentWorkday = existing[key] || null
+      const lockedStart = Number(currentWorkday?.startMinutes)
+      const startedToday =
+        Number(dayIndex) === Number(gameTime.gameDayIndex || 0) &&
+        Number.isFinite(lockedStart) &&
+        Number(gameTime.totalMinutesOfDay || 0) >= lockedStart
+
+      // B.5.4D.3.1 — today's scheduled start becomes historical once reached.
+      if (startedToday) {
+        if (!workday) return driver
+        existing[key] = { ...workday, startMinutes: lockedStart, updatedGameMinute: nowGameMinute }
+      } else if (workday) {
+        existing[key] = { ...workday, updatedGameMinute: nowGameMinute }
+      } else {
+        delete existing[key]
+      }
+
       return { ...driver, workdayByDay: existing }
     }))
   }
@@ -489,22 +510,61 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           onReturnToTitle={() => onReturnToTitle?.()}
         />
       ) : screen === 'agenda' ? (
-        <FleetSchedulerScreen
-          loads={loads}
+        <DriverSchedulerScreen
           drivers={drivers}
           carriers={carriers}
+          loads={loads}
+          runtimePositions={runtimePositions}
           gameTime={gameTime}
-          focusLoadId={null}
           initialDriverId={selectedDriverId}
-          onBackToFreightLink={() => setScreen('loadBoard')}
-          onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)}
-          onBookRoute={(loadId) => onAcceptCandidateAssignment?.(loadId)}
-          onBookApprovedSchedule={(driverId) => onBookApprovedSchedule?.(driverId)}
-          onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)}
-          onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)}
-          onUpdateDriverWorkday={updateDriverWorkday}
-          onOpenLunchDecision={onOpenLunchDecision}
+          onBack={() => setScreen('home')}
+          onUpdateWorkday={updateDriverWorkday}
+          // B.5.4D.4.1.3 — Scheduler Functional Linkage
+          onOpenLunchDecision={(driverId) => {
+            if (driverId) setSelectedDriverId(driverId)
+            onOpenLunchDecision?.(driverId)
+            onClose?.()
+          }}
+          onSetLunchWindow={(driverId, dayIndex, lunchWindow) => {
+            setDrivers?.((current) => current.map((driver) => {
+              if (driver.id !== driverId) return driver
+              const workdayByDay = { ...(driver.workdayByDay || {}) }
+              const key = String(dayIndex)
+              const existing = workdayByDay[key]
+              if (!existing) return driver
+              workdayByDay[key] = {
+                ...existing,
+                ...lunchWindow,
+                lunchWindowUpdatedGameMinute: nowGameMinute,
+              }
+              return { ...driver, workdayByDay }
+            }))
+          }}
+          onSetShiftEndPlan={(driverId, dayIndex, plan) => {
+            const plannedGameMinute =
+              Number(gameTime?.gameDayIndex || 0) * 1440 +
+              Number(gameTime?.totalMinutesOfDay || 0)
+
+            setDrivers?.((current) => current.map((driver) => (
+              driver.id === driverId
+                ? {
+                    ...driver,
+                    shiftEndPlanDayIndex: dayIndex,
+                    shiftEndPlanType: plan.type,
+                    shiftEndLocationId: plan.locationId,
+                    shiftEndLocationName: plan.label,
+                    shiftEndPlannedGameMinute: plannedGameMinute,
+                    idleTargetLocationId: plan.locationId,
+                  }
+                : driver
+            )))
+          }}
           onDriverContextChange={setSelectedDriverId}
+          onFindFreight={(driverId) => {
+            setSelectedLoadId(null)
+            if (driverId) setSelectedDriverId(driverId)
+            setScreen('loadBoard')
+          }}
         />
       ) : screen === 'messages' ? (
         <MessagesScreen
@@ -565,6 +625,23 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
       const document = businessDocuments.find((item) => item.id === id)
       setScreen(document?.type === 'dispatch-agreement' ? 'signedAgreement' : 'businessDocumentDetail')
     } }} />
+      ) : screen === 'carrierActivated' ? (
+        <CarrierActivationScreen
+          carrier={carriers.find((item) => item.id === selectedCarrierId) || carriers.find((item) => item.id === emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId) || carriers[0] || null}
+          driver={(() => {
+            const activationCarrier = carriers.find((item) => item.id === selectedCarrierId) || carriers.find((item) => item.id === emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId) || carriers[0] || null
+            return drivers.find((driver) => driver.carrierId === activationCarrier?.id) || drivers.find((driver) => activationCarrier?.driverIds?.includes(driver.id)) || null
+          })()}
+          operationDay={operationDay}
+          onReturnToEmail={() => setScreen('email')}
+          onOpenAgenda={() => {
+            const activationCarrier = carriers.find((item) => item.id === selectedCarrierId) || carriers.find((item) => item.id === emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId) || carriers[0] || null
+            const activationDriver = drivers.find((driver) => driver.carrierId === activationCarrier?.id) || drivers.find((driver) => activationCarrier?.driverIds?.includes(driver.id)) || null
+            setSelectedLoadId(null)
+            if (activationDriver?.id) setSelectedDriverId(activationDriver.id)
+            setScreen('agenda')
+          }}
+        />
       ) : screen === 'signedAgreement' ? (
         <PaperworkWorkspace
           carrier={carriers.find((item) => item.id === businessDocuments.find((document) => document.id === selectedBusinessDocumentId)?.carrierId) || carriers.find((item) => item.id === emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId) || carriers[0]}
@@ -580,7 +657,13 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           dispatcherProfile={dispatcherProfile}
           gameTime={gameTime}
           onBack={() => setScreen('emailDetail')}
-          onAccept={() => { const carrierId = carriers.find((item) => item.id === emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId)?.id || carriers[0]?.id; if (carrierId) onAcceptAgreement?.(carrierId); setScreen('email') }}
+          onAccept={() => {
+            const carrierId = carriers.find((item) => item.id === emailMessages.find((entry) => entry.id === selectedEmailId)?.carrierId)?.id || carriers[0]?.id
+            if (!carrierId) return
+            setSelectedCarrierId(carrierId)
+            onAcceptAgreement?.(carrierId)
+            setScreen('carrierActivated')
+          }}
         />
       ) : screen === 'ledger' ? (
         <LedgerDeskScreen loads={loads} carriers={carriers} ledgerWorkflowByLoadId={ledgerWorkflowByLoadId} ledgerBanking={ledgerBanking} onBack={() => setScreen('home')} onOpenReceivable={(item) => { setSelectedLoadId(item.loadId); setScreen('ledgerReceivable') }} />
@@ -954,7 +1037,11 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
           onHome={() => setScreen('browser')}
           showSiteBranding={false}
         >
-          {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => openLoadDetails(loadId, null)} onOpenScheduler={() => { setSelectedLoadId(null); setSelectedDriverId((current) => current || drivers.find((driver) => driver.carrierId)?.id || null); setScreen('scheduler') }} />}
+          {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => openLoadDetails(loadId, null)} onOpenScheduler={() => {
+            setSelectedLoadId(null)
+            setSelectedDriverId((current) => current || drivers.find((driver) => driver.carrierId)?.id || null)
+            setScreen('agenda')
+          }} />}
           {screen === 'loadDetails' && <LoadDetailsScreen loads={loads} drivers={drivers} carriers={carriers} loadId={selectedLoadId} planningDriverId={selectedDriverId} runtimePositions={runtimePositions} gameTime={gameTime} onAddToSchedule={(loadId, driverId) => onAddToSchedule?.(loadId, driverId)} onOpenScheduler={async (loadId) => { const target = loads.find((item) => item.id === loadId); if (target?.status === 'available' && !target.scheduleApprovalQueued) { const ok = target.candidateDriverId ? true : await onAddToSchedule?.(loadId); if (ok === false) return; setLoads((current) => current.map((item) => item.id === loadId ? { ...item, scheduleApprovalQueued: true } : item)); } setSelectedLoadId(loadId); setSelectedDriverId(target?.candidateDriverId || target?.assignedDriverId || selectedDriverId || drivers.find((driver) => driver.carrierId)?.id || null); setScreen('scheduler') }} onSendLoadDetails={(loadId, driverId) => { const targetLoad = loads.find((item) => item.id === loadId); if (!Number.isFinite(targetLoad?.pickupDriverBriefedGameMinute)) onSendDriverLoadUpdate?.(loadId, driverId); setSelectedLoadId(loadId); setSelectedDriverId(driverId); setMessageLoadContextId(loadId); setScreen('messageThread') }} onBack={() => setScreen('loadBoard')} />}
           {screen === 'scheduler' && <FleetSchedulerScreen loads={loads} drivers={drivers} carriers={carriers} gameTime={gameTime} focusLoadId={selectedLoadId} initialDriverId={selectedDriverId} onBackToFreightLink={() => setScreen('loadBoard')} onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)} onBookRoute={(loadId) => onAcceptCandidateAssignment?.(loadId)} onBookApprovedSchedule={(driverId) => onBookApprovedSchedule?.(driverId)} onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)} onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)} onUpdateDriverWorkday={updateDriverWorkday} onOpenLunchDecision={onOpenLunchDecision} onDriverContextChange={setSelectedDriverId} />}
           {screen === 'driverFit' && <DriverFitScreen load={loads.find((load) => load.id === selectedLoadId)} loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} candidateDriverId={loads.find((load) => load.id === selectedLoadId)?.candidateDriverId} onEvaluate={(driverId, fit) => {

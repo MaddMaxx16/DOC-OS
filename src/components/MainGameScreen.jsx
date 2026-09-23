@@ -288,6 +288,104 @@ function getAppointmentAlerts(loads, now) {
   return alerts
 }
 
+
+// B.5.4D.4.2.2A — Authoritative Schedule Conflict Repair
+function getAuthoritativeScheduleConstraint(load, driver) {
+  if (!load || !driver) {
+    return {
+      ok: false,
+      label: 'SELECT DRIVER',
+      reason: 'missing-driver',
+      detail: 'Choose a driver before evaluating carrier schedule fit.',
+    }
+  }
+
+  const pickupDay = Number(load.pickupDayIndex)
+  const deliveryDay = Number(load.deliveryDayIndex)
+
+  const workday =
+    driver?.workdayByDay?.[String(pickupDay)] ||
+    driver?.workdayByDay?.[pickupDay] ||
+    null
+
+  if (!workday) {
+    return {
+      ok: false,
+      label: 'NO CARRIER SCHEDULE',
+      reason: 'no-carrier-schedule',
+      detail: 'The carrier has not confirmed this driver for the pickup day.',
+    }
+  }
+
+  if (workday.isDayOff) {
+    return {
+      ok: false,
+      label: 'DRIVER OFF',
+      reason: 'driver-off',
+      detail: 'The carrier has this driver off on the pickup day.',
+    }
+  }
+
+  const shiftStart = Number(workday.startMinutes)
+  const shiftEndClock = Number(workday.endMinutes)
+
+  const pickupStartClock = Number(load.pickupWindowStartMinutes)
+  const deliveryEndClock = Number.isFinite(Number(load.deliveryWindowEndMinutes))
+    ? Number(load.deliveryWindowEndMinutes)
+    : Number(load.deliveryWindowStartMinutes)
+
+  if (
+    !Number.isFinite(shiftStart) ||
+    !Number.isFinite(shiftEndClock) ||
+    !Number.isFinite(pickupDay) ||
+    !Number.isFinite(deliveryDay) ||
+    !Number.isFinite(pickupStartClock) ||
+    !Number.isFinite(deliveryEndClock)
+  ) {
+    return {
+      ok: false,
+      label: 'SCHEDULE UNKNOWN',
+      reason: 'incomplete-timing',
+      detail: 'Schedule fit cannot be confirmed because timing data is incomplete.',
+    }
+  }
+
+  const shiftStartAbs = pickupDay * 1440 + shiftStart
+
+  let shiftEndAbs = pickupDay * 1440 + shiftEndClock
+  if (shiftEndClock <= shiftStart) shiftEndAbs += 1440
+
+  const pickupStartAbs = pickupDay * 1440 + pickupStartClock
+  const deliveryEndAbs = deliveryDay * 1440 + deliveryEndClock
+
+  if (pickupStartAbs < shiftStartAbs) {
+    const minutes = Math.max(0, shiftStartAbs - pickupStartAbs)
+    return {
+      ok: false,
+      label: 'SHIFT CONFLICT',
+      reason: 'pickup-before-shift',
+      detail: `Pickup begins ${minutes} min before ${driver.fullName || driver.name || 'the driver'} is available.`,
+    }
+  }
+
+  if (deliveryEndAbs > shiftEndAbs) {
+    const minutes = Math.max(0, deliveryEndAbs - shiftEndAbs)
+    return {
+      ok: false,
+      label: 'SHIFT CONFLICT',
+      reason: 'delivery-after-shift',
+      detail: `Delivery extends ${minutes} min beyond the carrier-confirmed shift.`,
+    }
+  }
+
+  return {
+    ok: true,
+    label: 'SCHEDULE FIT',
+    reason: 'inside-carrier-shift',
+    detail: 'Freight stays inside the carrier-confirmed shift.',
+  }
+}
+
 function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario, initialPhoneOpen = false, initialPhoneScreen = 'home', onInitialPhoneEntryConsumed }) {
   const [devOpen, setDevOpen] = useState(false)
   const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen))
@@ -1538,7 +1636,28 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const acceptCandidateAssignment = (loadId) => {
     const currentLoad = loads.find((item) => item.id === loadId)
     const driverId = currentLoad?.candidateDriverId
-    if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFitVerified || !driverId) return false
+    
+
+    // Carrier schedule is authoritative at commit time.
+    const scheduleDriver = drivers.find((driver) => driver.id === driverId) || null
+    const scheduleConstraint = getAuthoritativeScheduleConstraint(currentLoad, scheduleDriver)
+
+    if (!scheduleConstraint.ok) {
+      setLoads((current) => current.map((load) => (
+        load.id === loadId
+          ? {
+              ...load,
+              scheduleConflict: {
+                label: scheduleConstraint.label,
+                reason: scheduleConstraint.reason,
+                detail: scheduleConstraint.detail,
+              },
+            }
+          : load
+      )))
+      return false
+    }
+if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFitVerified || !driverId) return false
     const selectedDriver = drivers.find((driver) => driver.id === driverId)
     if (!selectedDriver || isDriverOnLunch(selectedDriver, gameTime)) return false
     const carrier = carriers.find((item) => item.id === selectedDriver.carrierId)
