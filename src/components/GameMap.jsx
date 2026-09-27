@@ -9,6 +9,8 @@ import { formatAppointment } from '../utils/gameTime.js'
 import { getDriverPanelModel } from '../utils/driverOperationalState.js'
 import { getAuthoritativeDriverTravelLoad, getDriverItineraryState } from '../utils/driverItinerary.js'
 import { resolveDriverMovementOwner } from '../utils/driverMovementOwner.js'
+import { getActiveRouteLineStyle, isActiveShiftEndStagingRoute } from '../utils/mapRouteVisual.js'
+import { startActiveRouteVisualSync } from '../utils/mapRouteSynchronizer.js'
 import { hasLunchMovementAuthority, isDriverOnLunch } from '../utils/lunchDecisionEvents.js'
 import { sampleRoutePosition } from '../utils/routeSampler.js'
 
@@ -197,11 +199,19 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
   const runtimeRoute = mapOperationalLoad?.tripStatus === 'en-route-delivery' ? mapOperationalLoad.plannedLoadedRouteGeometry : mapOperationalLoad?.tripStatus === 'en-route-pickup' ? mapOperationalLoad.plannedDeadheadRouteGeometry : null
   // B.4.2.4 closure polish: overnight repositioning remains visible as a quiet
   // operational route. Freight travel still owns the strong active-route layer.
-  const stagingRouteDriver = !travelingLoad
+  const idleRouteDriver = !travelingLoad
     ? drivers.find((driver) => driver.idleRouteStatus === 'traveling' && Array.isArray(driver.idleRouteGeometry) && driver.idleRouteGeometry.length >= 2)
     : null
-  const stagingRouteGeometry = stagingRouteDriver?.idleRouteGeometry || null
-  const isStagingRoute = Boolean(stagingRouteGeometry)
+  const idleRouteGeometry = idleRouteDriver?.idleRouteGeometry || null
+  const isStagingRoute = isActiveShiftEndStagingRoute(idleRouteDriver)
+  const activeRouteLineStyle = getActiveRouteLineStyle({
+    activeRouteColor,
+    hasLunchRoute: Boolean(lunchRouteGeometry?.length),
+    isLunchAccessRoute,
+    isStagingRoute,
+    isDriverFitEvaluation,
+    tripStatus: mapOperationalLoad?.tripStatus,
+  })
   // CS2.0A.3 — Single Route Authority.
   // During live travel, the route that physically moves the driver is also the
   // only geometry allowed to render as the strong active route. Previously the
@@ -224,7 +234,12 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       ? runtimeRoute
       : (isExplicitRoutePreview && activeRouteGeometry?.length
         ? activeRouteGeometry
-        : (isStagingRoute ? stagingRouteGeometry : null)))
+        : (idleRouteGeometry || null)))
+  const activeRouteVisualSnapshotRef = useRef(null)
+  activeRouteVisualSnapshotRef.current = {
+    coordinates: Array.isArray(resolvedActiveRouteGeometry) ? resolvedActiveRouteGeometry : [],
+    style: activeRouteLineStyle,
+  }
 
   const getDriver = (driverId) => drivers.find((driver) => driver.id === driverId)
   const removeLocationMarker = (ref) => {
@@ -292,10 +307,10 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
             type: 'line',
             source: 'active-route',
             paint: {
-              'line-color': lunchRouteGeometry?.length ? (isLunchAccessRoute ? activeRouteColor : '#C39E5A') : activeRouteColor,
-              'line-width': 5.2,
-              'line-opacity': 0.96,
-              'line-dasharray': mapOperationalLoad?.tripStatus === 'en-route-pickup' ? [2.2, 1.6] : [1, 0.001],
+              'line-color': activeRouteLineStyle.color,
+              'line-width': activeRouteLineStyle.width,
+              'line-opacity': activeRouteLineStyle.opacity,
+              'line-dasharray': activeRouteLineStyle.dasharray,
             },
             layout: { 'line-join': 'round', 'line-cap': 'round' },
           })
@@ -1501,32 +1516,16 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !map.isStyleLoaded()) return
-    const route = resolvedActiveRouteGeometry?.length ? { routeShape: resolvedActiveRouteGeometry } : null
-    let source = map.getSource('active-route')
-    if (!source) {
-      if (!route) return
-      map.addSource('active-route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route.routeShape } } })
-      source = map.getSource('active-route')
-    } else if (route) source.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route.routeShape } })
-    else source.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } })
-
-    // CS2.0A.12.4 — custom MapLibre layers can disappear independently of their
-    // source during a WKWebView/style refresh. Recreate the live route layer when
-    // needed instead of leaving Marcus moving with an invisible route.
-    if (route && !map.getLayer('active-route-line')) {
-      map.addLayer({ id: 'active-route-line', type: 'line', source: 'active-route', paint: { 'line-color': lunchRouteGeometry?.length ? (isLunchAccessRoute ? activeRouteColor : '#C39E5A') : activeRouteColor, 'line-width': 5.2, 'line-opacity': 0.96, 'line-dasharray': mapOperationalLoad?.tripStatus === 'en-route-pickup' ? [2.2, 1.6] : [1, 0.001] }, layout: { 'line-join': 'round', 'line-cap': 'round' } })
-    }
-
-    if (map.getLayer('active-route-line')) {
-      map.setPaintProperty('active-route-line', 'line-color', lunchRouteGeometry?.length ? (isLunchAccessRoute ? activeRouteColor : '#C39E5A') : (isStagingRoute ? '#9B8BA6' : (isDriverFitEvaluation ? '#D0B8DF' : activeRouteColor)))
-      map.setPaintProperty('active-route-line', 'line-width', isStagingRoute ? 3.2 : (isDriverFitEvaluation ? 5.5 : 5.2))
-      map.setPaintProperty('active-route-line', 'line-opacity', isStagingRoute ? 0.58 : 0.96)
-      map.setPaintProperty('active-route-line', 'line-dasharray', isStagingRoute ? [1.4, 1.1] : (mapOperationalLoad?.tripStatus === 'en-route-pickup' ? [2.2, 1.6] : [1, 0.001]))
-    }
-
-    console.debug('ROUTE SOURCE UPDATE', { tripStatus: mapOperationalLoad?.tripStatus, geometryType: route ? 'active' : 'null', coordinateCount: route?.routeShape?.length || 0 })
-  }, [mapReady, resolvedActiveRouteGeometry, mapOperationalLoad?.tripStatus, activeRouteDriverId, activeRouteColor, isDriverFitEvaluation, isStagingRoute, routeFocusMode, routeReviewLoad, lunchRouteGeometry])
+    if (!map) return undefined
+    return startActiveRouteVisualSync({
+      map,
+      getSnapshot: () => activeRouteVisualSnapshotRef.current,
+      requestFrame: (callback) => window.requestAnimationFrame(callback),
+      cancelFrame: (id) => window.cancelAnimationFrame(id),
+      setTimer: (callback, delay) => window.setTimeout(callback, delay),
+      clearTimer: (id) => window.clearTimeout(id),
+    })
+  }, [mapReady, resolvedActiveRouteGeometry, mapOperationalLoad?.tripStatus, activeRouteDriverId, activeRouteColor, isDriverFitEvaluation, isStagingRoute, routeFocusMode, routeReviewLoad, lunchRouteGeometry, activeRouteLineStyle.color, activeRouteLineStyle.width, activeRouteLineStyle.opacity, activeRouteLineStyle.dasharray])
 
   useEffect(() => {
     const map = mapRef.current
