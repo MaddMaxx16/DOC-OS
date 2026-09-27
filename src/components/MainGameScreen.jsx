@@ -36,6 +36,7 @@ import { createPodDocument } from '../utils/documentLifecycle.js'
 import { getDriverScheduleConstraint } from '../utils/driverScheduleConstraint.js'
 import { getDriverScheduleAuthority } from '../utils/driverScheduleAuthority.js'
 import { resolveDriverWorkdayOwnership } from '../utils/driverWorkdayOwnership.js'
+import { getLunchRouteRecoveryIntent, installRecoveredOutboundRoute, installRecoveredResumeAccess, lunchRecoveryIntentStillMatches, rollbackInvalidLunchRecovery } from '../utils/lunchRouteRecovery.js'
 
 
 
@@ -322,6 +323,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const freightBrowseRouteRequestRef = useRef(0)
   const itineraryMovementSyncRef = useRef(new Map())
   const itineraryMovementTokenRef = useRef(0)
+  const lunchRecoveryRequestsRef = useRef(new Map())
 
   const receivables = getReceivables(loads, carriers, ledgerWorkflowByLoadId)
   const ledgerSummary = getLedgerSummary(receivables)
@@ -535,6 +537,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       return
     }
 
+    const liveRequest = { type: 'outbound-live' }
+    lunchRecoveryRequestsRef.current.set(driverId, liveRequest)
     try {
       const route = await calculateRoute(origin, choice.lunchStop)
       if (!Array.isArray(route?.routeShape) || route.routeShape.length < 2) throw new Error('Lunch route returned no usable geometry')
@@ -569,8 +573,87 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       }))
       lunchHardGateActiveRef.current = true
       setGameClockPaused(true)
+    } finally {
+      if (lunchRecoveryRequestsRef.current.get(driverId) === liveRequest) lunchRecoveryRequestsRef.current.delete(driverId)
     }
   }
+
+  // P2.3.6 — persisted Lunch intent survives process death; router promises do not.
+  // Rebuild either pending route from authoritative owner/target/position facts.
+  useEffect(() => {
+    const now = currentAbsoluteGameMinute
+    drivers.forEach((driver) => {
+      if (!['calculating', 'resume-calculating'].includes(driver.lunchRouteStatus)) return
+      if (lunchRecoveryRequestsRef.current.has(driver.id)) return
+      const intent = getLunchRouteRecoveryIntent({ driver, loads, gameTime, runtimePosition: runtimePositions?.[driver.id], locations: mapLocations })
+      if (!intent) {
+        const ownership = workdayOwnership(driver)
+        const event = ownership.workday?.lunchEvent
+        const fallbackIntent = {
+          type: driver.lunchRouteStatus === 'resume-calculating' ? 'resume' : 'outbound',
+          driverId: driver.id, ownerDayIndex: ownership.ownerDayIndex, dayKey: String(ownership.ownerDayIndex),
+          interruptedLoadId: event?.interruptedLoadId || driver.lunchInterruptedLoadId || null,
+          interruptedPhase: event?.interruptedPhase || driver.lunchInterruptedPhase || null,
+        }
+        const rollback = rollbackInvalidLunchRecovery(driver, fallbackIntent, now)
+        setDrivers((current) => current.map((item) => item.id === driver.id ? rollback.driver : item))
+        if (rollback.loadPatch) setLoads((current) => current.map((item) => item.id === rollback.loadPatch.id ? { ...item, ...rollback.loadPatch } : item))
+        return
+      }
+
+      const request = { intent }
+      lunchRecoveryRequestsRef.current.set(driver.id, request)
+      calculateRoute(intent.origin, intent.destination).then((route) => {
+        const live = movementStateRef.current
+        const currentDriver = live.drivers.find((item) => item.id === driver.id)
+        const context = { driver: currentDriver, loads: live.loads, gameTime: live.gameTime, runtimePosition: live.runtimePositions[driver.id], locations: mapLocations }
+        if (!currentDriver || !lunchRecoveryIntentStillMatches(intent, context)) return
+        const geometry = Array.isArray(route?.routeShape) ? route.routeShape : []
+        if (geometry.length < 2) throw new Error('Recovered Lunch route returned no usable geometry')
+        const anchored = anchorMovementRoute(geometry, intent.origin)
+        const start = live.gameTime.gameDayIndex * 1440 + live.gameTime.totalMinutesOfDay
+
+        if (intent.type === 'outbound') {
+          setDrivers((current) => current.map((item) => item.id === driver.id && lunchRecoveryIntentStillMatches(intent, { driver: item, loads: movementStateRef.current.loads, gameTime: movementStateRef.current.gameTime, runtimePosition: movementStateRef.current.runtimePositions[driver.id], locations: mapLocations })
+            ? installRecoveredOutboundRoute(item, intent, anchored, start, route.durationMinutes)
+            : item))
+          return
+        }
+
+        const first = geometry[0]
+        const roadStart = { longitude: Number(first[0]), latitude: Number(first[1]) }
+        const accessMiles = getLocationDistanceMiles(intent.origin, roadStart)
+        const accessMinutes = accessMiles > 0.001 ? Math.max(2, Math.min(5, Math.ceil((accessMiles / 5) * 60))) : 0
+        if (accessMinutes > 0) {
+          setDrivers((current) => current.map((item) => item.id === driver.id && lunchRecoveryIntentStillMatches(intent, { driver: item, loads: movementStateRef.current.loads, gameTime: movementStateRef.current.gameTime, runtimePosition: movementStateRef.current.runtimePositions[driver.id], locations: mapLocations })
+            ? installRecoveredResumeAccess(item, intent, [[intent.origin.longitude, intent.origin.latitude], [roadStart.longitude, roadStart.latitude]], start, accessMinutes, geometry, route.durationMinutes)
+            : item))
+          return
+        }
+        const resumeAt = start + 1
+        setLoads((current) => current.map((item) => item.id !== intent.interruptedLoadId ? item : intent.interruptedPhase === 'delivery'
+          ? { ...item, tripStatus: 'en-route-delivery', plannedLoadedRouteGeometry: anchored, plannedLoadedDriveTimeMinutes: Math.max(1, Number(route.durationMinutes || 1)), deliveryDepartureGameMinute: resumeAt }
+          : { ...item, tripStatus: 'en-route-pickup', plannedDeadheadRouteGeometry: anchored, plannedDeadheadDriveTimeMinutes: Math.max(1, Number(route.durationMinutes || 1)), departureGameMinute: resumeAt }))
+        setDrivers((current) => current.map((item) => {
+          if (item.id !== driver.id || !lunchRecoveryIntentStillMatches(intent, { driver: item, loads: movementStateRef.current.loads, gameTime: movementStateRef.current.gameTime, runtimePosition: movementStateRef.current.runtimePositions[driver.id], locations: mapLocations })) return item
+          const workdayByDay = { ...(item.workdayByDay || {}) }
+          const workday = workdayByDay[intent.dayKey]
+          workdayByDay[intent.dayKey] = { ...workday, lunchEvent: { ...workday?.lunchEvent, status: 'completed', completedGameMinute: now } }
+          return { ...item, workdayByDay, lunchRouteStatus: null, lunchRouteGeometry: null, lunchRouteStartGameMinute: null, lunchRouteDurationMinutes: null, lunchTargetLocationId: null }
+        }))
+      }).catch((error) => {
+        console.warn('DOC OS LUNCH ROUTE RECOVERY FAILED', error)
+        const live = movementStateRef.current
+        const currentDriver = live.drivers.find((item) => item.id === driver.id)
+        if (!currentDriver || !lunchRecoveryIntentStillMatches(intent, { driver: currentDriver, loads: live.loads, gameTime: live.gameTime, runtimePosition: live.runtimePositions[driver.id], locations: mapLocations })) return
+        const rollback = rollbackInvalidLunchRecovery(currentDriver, intent, live.gameTime.gameDayIndex * 1440 + live.gameTime.totalMinutesOfDay)
+        setDrivers((current) => current.map((item) => item.id === driver.id ? rollback.driver : item))
+        if (rollback.loadPatch) setLoads((current) => current.map((item) => item.id === rollback.loadPatch.id ? { ...item, ...rollback.loadPatch } : item))
+      }).finally(() => {
+        if (lunchRecoveryRequestsRef.current.get(driver.id) === request) lunchRecoveryRequestsRef.current.delete(driver.id)
+      })
+    })
+  }, [drivers, loads, gameTime, runtimePositions, currentAbsoluteGameMinute])
 
   // B.5.3.2.3 — lunch is a physical world event. The truck diverts to the
   // selected route-corridor POI, parks, takes the break, then resumes the
@@ -645,66 +728,6 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       const origin = runtimePositions?.[driver.id] || mapLocations.find((location) => location.id === driver.lunchTargetLocationId)
       if (!origin || !destination) return
       setDrivers((current) => current.map((item) => item.id === driver.id ? { ...item, lunchRouteStatus: 'resume-calculating' } : item))
-      calculateRoute(origin, destination).then((route) => {
-        const live = movementStateRef.current
-        if (!ownsLunch(driver.id)) return
-        // B.5.3.3.10.6 — facility egress is its own physical movement segment.
-        // The road router is allowed to snap its origin to the nearest routable
-        // roadway; DOC OS owns the short parking-position -> road-entry movement.
-        // Only after that egress completes does normal freight travel take over.
-        const parkedOrigin = live.runtimePositions[driver.id] || { longitude: Number(origin.longitude), latitude: Number(origin.latitude) }
-        const routedShape = Array.isArray(route.routeShape) ? route.routeShape : []
-        if (routedShape.length < 2) throw new Error('Lunch resume route returned no usable geometry')
-        const first = routedShape[0]
-        const roadStart = Array.isArray(first) ? { longitude: Number(first[0]), latitude: Number(first[1]) } : parkedOrigin
-        const accessMiles = getLocationDistanceMiles(parkedOrigin, roadStart)
-        const routedDriveMinutes = Math.max(1, Number(route.durationMinutes || 1))
-        const accessMinutes = accessMiles > 0.001 ? Math.max(2, Math.min(5, Math.ceil((accessMiles / 5) * 60))) : 0
-
-        if (accessMinutes > 0) {
-          const accessStart = currentAbsoluteGameMinuteRef.current
-          setRuntimePositions?.((current) => ({
-            ...(current || {}),
-            [driver.id]: { ...(current?.[driver.id] || {}), ...parkedOrigin },
-          }))
-          setDriverRuntimeProgress(driver.id, 0, 'lunch')
-          setDrivers((current) => current.map((item) => item.id === driver.id ? {
-            ...item,
-            lunchRouteStatus: 'resume-access',
-            lunchRouteGeometry: [[parkedOrigin.longitude, parkedOrigin.latitude], [roadStart.longitude, roadStart.latitude]],
-            lunchRouteStartGameMinute: accessStart,
-            lunchRouteDurationMinutes: accessMinutes,
-            lunchResumeRouteGeometry: routedShape,
-            lunchResumeRouteDurationMinutes: routedDriveMinutes,
-            lunchResumeLoadId: interruptedLoad.id,
-            lunchResumePhase: event.interruptedPhase,
-          } : item))
-          return
-        }
-
-        const resumeAt = currentAbsoluteGameMinuteRef.current + 1
-        setRuntimePositions?.((current) => ({
-          ...(current || {}),
-          [driver.id]: { ...(current?.[driver.id] || {}), ...parkedOrigin },
-        }))
-        setDriverRuntimeProgress(driver.id, 0, 'lunch')
-        setLoads((current) => current.map((load) => {
-          if (load.id !== interruptedLoad.id) return load
-          if (event.interruptedPhase === 'delivery') return { ...load, tripStatus: 'en-route-delivery', plannedLoadedRouteGeometry: anchorMovementRoute(routedShape, parkedOrigin), plannedLoadedDriveTimeMinutes: routedDriveMinutes, deliveryDepartureGameMinute: resumeAt }
-          return { ...load, tripStatus: 'en-route-pickup', plannedDeadheadRouteGeometry: anchorMovementRoute(routedShape, parkedOrigin), plannedDeadheadDriveTimeMinutes: routedDriveMinutes, departureGameMinute: resumeAt }
-        }))
-        setDrivers((current) => current.map((item) => {
-          if (item.id !== driver.id) return item
-          const nextWorkdayByDay = { ...(item.workdayByDay || {}) }
-          const nextWorkday = nextWorkdayByDay[dayKey] || workday
-          nextWorkdayByDay[dayKey] = { ...nextWorkday, lunchEvent: { ...(nextWorkday.lunchEvent || event), status: 'completed', completedGameMinute: now } }
-          return { ...item, workdayByDay: nextWorkdayByDay, lunchRouteStatus: null, lunchRouteGeometry: null, lunchRouteStartGameMinute: null, lunchRouteDurationMinutes: null, lunchParkedAtGameMinute: null, lunchReleaseGameMinute: null, lunchTargetLocationId: null, lunchResumeRouteGeometry: null, lunchResumeRouteDurationMinutes: null, lunchResumeLoadId: null, lunchResumePhase: null }
-        }))
-      }).catch((error) => {
-        console.warn('DOC OS LUNCH RESUME ROUTE UNAVAILABLE', error)
-        if (!ownsLunch(driver.id)) return
-        setDrivers((current) => current.map((item) => item.id === driver.id ? { ...item, lunchRouteStatus: 'arrived' } : item))
-      })
     })
   }, [gameTime, drivers, loads, runtimePositions, currentAbsoluteGameMinute])
 
@@ -1691,6 +1714,13 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
     const sourceLoad = loads.find((item) => item.id === loadId)
     if (!sourceLoad) return
 
+    // P2.3.6 — the player's confirmed puzzle result becomes authoritative at
+    // the confirmation boundary. UI teardown and messages may follow, but a
+    // terminated process can no longer lose completed shipment truth.
+    setLoads((current) => current.map((item) => item.id === loadId
+      ? completePickupLoading({ load: item, result, completeMinute: now })
+      : item))
+
     setPendingLoadingHandoff({
       loadId,
       result,
@@ -1716,16 +1746,6 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
 
     const driverName = drivers.find((driver) => driver.id === driverId)?.fullName || 'Driver'
     const hasIssue = Number(result.missingPallets || 0) > 0 || Number(result.damagedPallets || 0) > 0
-    // 3C.4 — pickup shipment truth now lives beside the pickup lifecycle.
-    // MainGameScreen coordinates UI/messages; lifecycle owns the state transition.
-    const projectedLoads = loads.map((item) => item.id === loadId
-      ? completePickupLoading({ load: item, result, completeMinute: now })
-      : item)
-
-    // Commit one coherent shipment snapshot. Reconciliation is guarded while
-    // pendingLoadingHandoff is non-null, so no route can be reassigned mid-commit.
-    setLoads(projectedLoads)
-
     if (hasIssue && driverId && setDriverMessages) {
       const damagedPallets = Number(result.damagedPallets || 0)
       const missingPallets = Number(result.missingPallets || 0)

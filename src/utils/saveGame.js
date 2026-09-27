@@ -116,6 +116,10 @@ export function setActiveSaveSlot(slotId) {
   if (SAVE_SLOT_IDS.includes(slotId)) localStorage.setItem(ACTIVE_SLOT_KEY, slotId)
 }
 
+export function clearActiveSaveSlot() {
+  localStorage.removeItem(ACTIVE_SLOT_KEY)
+}
+
 export function saveGame(state, slotId = getActiveSaveSlot() || SAVE_SLOT_IDS[0]) {
   const validation = validateSaveState(state)
   if (!validation.ok || !SAVE_SLOT_IDS.includes(slotId)) {

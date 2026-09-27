@@ -18,7 +18,8 @@ import MainGameScreen from './components/MainGameScreen.jsx'
 import StartScreen from './components/StartScreen.jsx'
 import EntryLiveMap from './components/EntryLiveMap.jsx'
 import StartOfficeBackdrop from './components/StartOfficeBackdrop.jsx'
-import { SAVE_SLOT_IDS, clearSave, getActiveSaveSlot, getSaveSlots, loadGame, saveGame, setActiveSaveSlot } from './utils/saveGame.js'
+import { SAVE_SLOT_IDS, clearActiveSaveSlot, clearSave, getActiveSaveSlot, getSaveSlots, loadGame, saveGame, setActiveSaveSlot } from './utils/saveGame.js'
+import { createSavePersistenceAuthority, invalidatePendingAutosaveForSlot, persistIfAuthorized } from './utils/savePersistenceAuthority.js'
 import { createDevPreset } from './dev/devPresets.js'
 import { getReceivables } from './utils/ledger.js'
 import { createInitialLedgerBanking, getLedgerAccountSummary, reconcileLedgerBanking } from './utils/ledgerBanking.js'
@@ -38,7 +39,7 @@ import { advanceDriverHours, normalizeDriverHours } from './utils/driverHOS.js'
 import { canAcquireDriverMovement } from './utils/driverMovementOwner.js'
 import { resolveDriverWorkdayOwnership } from './utils/driverWorkdayOwnership.js'
 import { sampleRoutePoint } from './utils/routeSampler.js'
-import { anchorMovementRoute, reconcileIdleMovement, reconcileFreightMovement, restoreSavedRouteContinuity } from './utils/runtimeMovement.js'
+import { anchorMovementRoute, reconcileIdleMovement, reconcileFreightMovement, restoreMovementOwnerContinuity } from './utils/runtimeMovement.js'
 
 
 const IDLE_DWELL_MINUTES = 20
@@ -153,7 +154,10 @@ function App() {
   const [saveFailureMessage, setSaveFailureMessage] = useState('')
   const lifecycleSaveSignatureRef = useRef('')
   const autosaveTimerRef = useRef(null)
+  const autosaveTimerSlotRef = useRef(null)
   const latestAutosaveRef = useRef(null)
+  const savePersistenceAuthorityRef = useRef(null)
+  if (savePersistenceAuthorityRef.current === null) savePersistenceAuthorityRef.current = createSavePersistenceAuthority()
   const majorTransitionLockRef = useRef(false)
   const majorTransitionTimersRef = useRef([])
 
@@ -367,12 +371,13 @@ useEffect(() => {
     hydratedDrivers.forEach((driver) => {
       const activeLoad = getDriverActiveLoad(hydratedLoads, driver.id)
       const savedProgress = saved.runtimeProgressByDriver?.[driver.id]
-      const continuity = restoreSavedRouteContinuity({
-        load: activeLoad,
-        savedPosition: nextPositions[driver.id],
-        savedProgress,
-        currentGameMinute: savedNow,
-      })
+      const restoredMovement = restoreMovementOwnerContinuity({ driver, loads: hydratedLoads, gameTime: saved.gameTime, savedPosition: nextPositions[driver.id], savedProgress })
+      if (['lunch-route', 'lunch-hold', 'idle-route', 'idle-hold'].includes(restoredMovement.ownerType)) {
+        if (restoredMovement.position) nextPositions[driver.id] = restoredMovement.position
+        if (Number.isFinite(restoredMovement.progress)) nextRuntimeProgress[driver.id] = restoredMovement.progress
+        return
+      }
+      const continuity = restoredMovement.ownerType === 'freight' ? restoredMovement.freightContinuity : null
 
       if (continuity) {
         nextPositions[driver.id] = continuity.position
@@ -457,7 +462,7 @@ useEffect(() => {
 
   useEffect(() => {
     const slots = getSaveSlots()
-    const activeSlot = getActiveSaveSlot() || slots[0]?.id || SAVE_SLOT_IDS[0]
+    const activeSlot = getActiveSaveSlot() || slots[0]?.id || null
     setSaveSlots(slots)
     setActiveSaveSlotId(activeSlot)
     const saved = loadGame(activeSlot)
@@ -480,30 +485,34 @@ useEffect(() => {
   // Keep the newest snapshot in a ref and allow one trailing save every 700ms instead.
   useEffect(() => {
     if (!hydrated || !activeSaveSlotId) return
+    if (!savePersistenceAuthorityRef.current.canPersistToSlot(activeSaveSlotId)) return
     if (stage === 'start' && !hasExistingOperation) return
     const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
     latestAutosaveRef.current = {
       slotId: activeSaveSlotId,
       state: { stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression },
     }
+    autosaveTimerSlotRef.current = activeSaveSlotId
     if (autosaveTimerRef.current !== null) return
     autosaveTimerRef.current = setTimeout(() => {
       autosaveTimerRef.current = null
+      autosaveTimerSlotRef.current = null
       const snapshot = latestAutosaveRef.current
       if (!snapshot) return
-      saveGame(snapshot.state, snapshot.slotId)
+      persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, snapshot.state, snapshot.slotId)
       setSaveSlots(getSaveSlots())
     }, 700)
   }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
 
   useEffect(() => () => {
     if (autosaveTimerRef.current !== null) clearTimeout(autosaveTimerRef.current)
+    autosaveTimerSlotRef.current = null
   }, [])
 
   // AV lifecycle persistence: critical operational boundaries flush immediately.
   // Routine animation/clock changes still use the normal debounce above.
   useEffect(() => {
-    if (!hydrated || !activeSaveSlotId || (stage === 'start' && !hasExistingOperation)) return
+    if (!hydrated || !activeSaveSlotId || !savePersistenceAuthorityRef.current.canPersistToSlot(activeSaveSlotId) || (stage === 'start' && !hasExistingOperation)) return
     const signature = loads
       .filter((load) => load.assignedDriverId || ['accepted', 'assigned', 'queued', 'completed'].includes(load.status))
       .map((load) => `${load.id}:${load.assignedDriverId || load.completedDriverId || '-'}:${load.status}:${load.tripStatus}:${load.planningStatus || '-'}:${load.deliveryPlanningStatus || '-'}:${load.pod?.approved ? 'pod-approved' : '-'}`)
@@ -512,7 +521,7 @@ useEffect(() => {
     if (!signature || signature === lifecycleSaveSignatureRef.current) return
     lifecycleSaveSignatureRef.current = signature
     const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
-    saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
+    persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, { stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
   }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
 
   // AU3 mobile persistence hardening: keep the normal debounce for routine
@@ -522,7 +531,7 @@ useEffect(() => {
     if (!hydrated || !activeSaveSlotId) return undefined
     const flushSave = () => {
       const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
-      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
+      persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, { stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
     }
     const onVisibility = () => { if (document.visibilityState === 'hidden') flushSave() }
     window.addEventListener('pagehide', flushSave)
@@ -859,6 +868,7 @@ useEffect(() => {
       // Clear the destination slot first so no prior/partial snapshot can leak
       // driver roster, workday/HOS, runtime position, messages, or banking into
       // the new career before CarrierSource activation.
+      savePersistenceAuthorityRef.current.allowSlot(slotId)
       clearSave(slotId)
       lifecycleSaveSignatureRef.current = ''
       resetOperationState()
@@ -870,14 +880,29 @@ useEffect(() => {
     })
   }
   const deleteSaveSlot = (slotId) => {
+    savePersistenceAuthorityRef.current.revokeSlot(slotId)
+    invalidatePendingAutosaveForSlot({
+      slotId,
+      latestSnapshotRef: latestAutosaveRef,
+      timerRef: autosaveTimerRef,
+      timerSlotRef: autosaveTimerSlotRef,
+      cancelTimer: clearTimeout,
+    })
+
+    const remainingSlots = getSaveSlots().filter((slot) => slot.id !== slotId)
+    const deletingActiveSlot = activeSaveSlotId === slotId
+    const nextSlotId = deletingActiveSlot ? (remainingSlots[0]?.id || null) : activeSaveSlotId
+    if (deletingActiveSlot) {
+      if (nextSlotId) setActiveSaveSlot(nextSlotId)
+      else clearActiveSaveSlot()
+    }
+
     clearSave(slotId)
     const nextSlots = getSaveSlots()
     setSaveSlots(nextSlots)
     setHasExistingOperation(nextSlots.length > 0)
 
-    if (activeSaveSlotId === slotId) {
-      const nextSlotId = nextSlots[0]?.id || SAVE_SLOT_IDS[0]
-      setActiveSaveSlot(nextSlotId)
+    if (deletingActiveSlot) {
       setActiveSaveSlotId(nextSlotId)
       const nextSaved = loadGame(nextSlotId)
       if (nextSaved) hydrateSavedOperation(nextSaved)
@@ -887,7 +912,10 @@ useEffect(() => {
       }
     }
   }
-  const resetGame = () => { clearSave(activeSaveSlotId); window.location.reload() }
+  const resetGame = () => {
+    if (activeSaveSlotId) deleteSaveSlot(activeSaveSlotId)
+    window.location.reload()
+  }
 
   const returnToTitle = () => {
     runMajorTransition('back', () => {

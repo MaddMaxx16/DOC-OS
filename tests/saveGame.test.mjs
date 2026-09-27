@@ -57,6 +57,17 @@ test('clearing one slot leaves other saves intact', () => {
   assert.equal(saves.getActiveSaveSlot(), 'save-01')
 })
 
+test('active save ownership can be explicitly cleared when no saves remain', () => {
+  saves.saveGame({ marker: 1 }, 'save-01')
+  saves.clearActiveSaveSlot()
+  assert.equal(localStorage.getItem('doc-os-active-save-v2'), null)
+  assert.equal(saves.getActiveSaveSlot(), 'save-01')
+
+  saves.clearSave('save-01')
+  assert.equal(saves.getActiveSaveSlot(), null)
+  assert.equal(localStorage.getItem('doc-os-active-save-v2'), null)
+})
+
 test('legacy single-slot saves migrate into save-01 with current state version', () => {
   localStorage.setItem('doc-os-save-v1', JSON.stringify({ savedAt: '2026-09-01T00:00:00.000Z', state: { legacy: true } }))
   assert.deepEqual(saves.loadGame('save-01'), { legacy: true })

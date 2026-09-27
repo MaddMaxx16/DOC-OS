@@ -96,6 +96,19 @@ export function getDriverRouteMovement({ geometry, currentGameMinute, startGameM
   return { progress, position, complete: progress >= 1 }
 }
 
+export function restoreMovementOwnerContinuity({ driver, loads = [], gameTime, savedPosition, savedProgress }) {
+  const owner = resolveDriverMovementOwner({ driver, loads, gameTime })
+  const now = Number(gameTime?.gameDayIndex || 0) * 1440 + Number(gameTime?.totalMinutesOfDay || 0)
+  if (owner.type === 'lunch-route' || owner.type === 'idle-route') {
+    const movement = getDriverRouteMovement({ geometry: owner.route, currentGameMinute: now, startGameMinute: owner.start, durationMinutes: owner.duration })
+    return { ownerType: owner.type, position: savedPosition || movement?.position || null, progress: Number.isFinite(savedProgress) ? savedProgress : movement?.progress ?? null, freightContinuity: null }
+  }
+  if (owner.type === 'freight') {
+    return { ownerType: owner.type, position: null, progress: null, freightContinuity: restoreSavedRouteContinuity({ load: owner.load, savedPosition, savedProgress, currentGameMinute: now }) }
+  }
+  return { ownerType: owner.type, position: savedPosition || null, progress: Number.isFinite(savedProgress) ? savedProgress : null, freightContinuity: null }
+}
+
 export function getLunchMovementFrame(drivers = [], currentGameMinute, loads = []) {
   const positionUpdates = {}
   const arrivals = []
