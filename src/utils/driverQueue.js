@@ -60,41 +60,6 @@ function deliveryServiceMinutes(load) {
   return DELIVERY_SERVICE_MINUTES + Math.max(0, Number(load?.facilityOps?.delivery?.unloadingDelayMinutes || 0))
 }
 
-function projectCommitment(cursor, load, isFirst) {
-  const pickupStart = (load.pickupDayIndex || 0) * 1440 + (load.pickupWindowStartMinutes || 0)
-  const deliveryStart = (load.deliveryDayIndex || 0) * 1440 + (load.deliveryWindowStartMinutes || 0)
-  const deadhead = duration(load, 'plannedDeadheadDriveTimeMinutes', Number(load.assignmentProjection?.deadheadMinutes || 0))
-  const loaded = duration(load, 'plannedLoadedDriveTimeMinutes', Number(load.assignmentProjection?.loadedMinutes || 0))
-  const pickupService = pickupServiceMinutes(load)
-  const deliveryService = deliveryServiceMinutes(load)
-  const status = load.tripStatus
-
-  if (isFirst && status === 'en-route-pickup' && Number.isFinite(load.departureGameMinute)) {
-    const pickupArrival = Math.max(load.departureGameMinute + deadhead, pickupStart)
-    return Math.max(pickupArrival + pickupService + loaded, deliveryStart) + deliveryService
-  }
-
-  if (isFirst && ['at-pickup', 'checking-in-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup'].includes(status)) {
-    return Math.max(cursor + pickupService + loaded, deliveryStart) + deliveryService
-  }
-
-  if (isFirst && status === 'loaded') {
-    const departure = Number.isFinite(load.plannedDeliveryDepartureGameMinute) ? Math.max(cursor, load.plannedDeliveryDepartureGameMinute) : cursor
-    return Math.max(departure + loaded, deliveryStart) + deliveryService
-  }
-
-  if (isFirst && status === 'en-route-delivery' && Number.isFinite(load.deliveryDepartureGameMinute)) {
-    return Math.max(load.deliveryDepartureGameMinute + loaded, deliveryStart) + deliveryService
-  }
-
-  if (isFirst && ['at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod'].includes(status)) {
-    return Math.max(cursor, deliveryStart) + deliveryService
-  }
-
-  const pickupArrival = Math.max(cursor + deadhead, pickupStart)
-  return Math.max(pickupArrival + pickupService + loaded, deliveryStart) + deliveryService
-}
-
 export function getProjectedDriverOrigin({ driver, loads = [], runtimePositions = {}, gameTime }) {
   if (!driver?.id) return { location: null, availableAbsoluteMinute: 0, queueLength: 0, afterLoadId: null }
   const assigned = getDriverAssignedLoads(loads, driver.id)

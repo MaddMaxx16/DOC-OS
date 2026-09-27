@@ -20,7 +20,7 @@ function driverStateLabel(driver, load, gameTime) {
   return 'AVAILABLE'
 }
 
-function MessagesScreen({ messages = [], drivers = [], loads = [], carriers = [], gameTime, onBack, onOpenThread }) {
+function MessagesScreen({ messages = [], drivers = [], loads = [], carriers = [], gameTime, onOpenThread }) {
   const threadData = Array.from(new Set(messages.map((message) => message.driverId).filter(Boolean))).map((driverId) => {
     const driver = drivers.find((item) => item.id === driverId)
     const thread = messages.filter((message) => message.driverId === driverId).sort((a, b) => (a.receivedGameMinute || 0) - (b.receivedGameMinute || 0))

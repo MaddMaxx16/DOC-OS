@@ -1,4 +1,4 @@
-function SettingsScreen({ onBack, onReturnToTitle }) {
+function SettingsScreen({ onReturnToTitle }) {
   return (
     <section className="phone-settings-screen">
       <header className="phone-settings-header">

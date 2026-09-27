@@ -4,7 +4,6 @@ import { getFreightBusinessName, getFreightRouteName } from '../utils/freightIde
 
 const CHALLENGE_SECONDS = 28
 const PALLET_COUNT = 8
-const TYPE_COUNTS = { heavy: 2, standard: 4, fragile: 2 }
 
 const zoneForSlot = (index) => {
   if (index <= 1) return 'heavy'
@@ -56,7 +55,6 @@ export default function LoadingChallenge({ load, onComplete, onCancel, onProgres
     if (!palletId) return count
     return count + (palletById[palletId]?.type === zoneForSlot(index) ? 0 : 1)
   }, 0), [slotAssignments, palletById])
-  const allCorrect = loadedIds.length === PALLET_COUNT && placementErrors === 0
 
   useEffect(() => { onProgressRef.current = onProgress }, [onProgress])
   useEffect(() => {

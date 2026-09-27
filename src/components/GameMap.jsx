@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Map as MapLibreMap, Marker, Popup, setWorkerUrl } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
@@ -6,7 +6,6 @@ import mapLocations from '../data/mapLocations.js'
 import { getFreightRouteName } from '../utils/freightIdentity.js'
 import { DELIVERY_UNLOAD_DURATION_MINUTES } from '../data/pickupConfig.js'
 import { formatAppointment } from '../utils/gameTime.js'
-import { logDocOsState } from '../utils/debugLogger.js'
 import { getDriverPanelModel } from '../utils/driverOperationalState.js'
 import { getAuthoritativeDriverTravelLoad, getDriverItineraryState } from '../utils/driverItinerary.js'
 import { resolveDriverMovementOwner } from '../utils/driverMovementOwner.js'
@@ -84,34 +83,57 @@ function routeMatchesEndpoints(route, origin, destination, toleranceMiles = 1.5)
     && coordinateDistanceMiles(route[route.length - 1], destination) <= toleranceMiles
 }
 
-function routeLabelBearing(route, progress = 0.5) {
-  const before = sampleRoutePosition(route, Math.max(0, progress - 0.025))
-  const after = sampleRoutePosition(route, Math.min(1, progress + 0.025))
-  if (!before || !after) return 0
-  const avgLat = ((before[1] + after[1]) / 2) * Math.PI / 180
-  const dx = (after[0] - before[0]) * Math.cos(avgLat)
-  const dy = after[1] - before[1]
-  let angle = Math.atan2(dy, dx) * 180 / Math.PI
-  // Screen y runs downward, so invert geographic bearing for CSS rotation.
-  angle = -angle
-  while (angle > 180) angle -= 360
-  while (angle < -180) angle += 360
-  if (angle > 90) angle -= 180
-  if (angle < -90) angle += 180
-  return angle
-}
 
 function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId = null, facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgressByDriver = {}, simulationSpeed = 1, isGameClockPaused = false, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, freightBrowseMode = false, freightBrowseLoads = [], freightBrowseSelectedLoadId = null, onFreightBrowseSelect, lunchCandidateLocations = [] }) {
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
+  const planningPopupRef = useRef(null)
+  const planningLocationIdRef = useRef(null)
+  const [planningCandidateIds, setPlanningCandidateIds] = useState([])
+
+  useEffect(() => {
+    const onPlanningCandidates = (event) => {
+      const ids = Array.isArray(event?.detail?.locationIds) ? event.detail.locationIds : []
+      setPlanningCandidateIds(ids)
+    }
+    window.addEventListener('docos:planning-candidates', onPlanningCandidates)
+    return () => window.removeEventListener('docos:planning-candidates', onPlanningCandidates)
+  }, [])
+
+  useEffect(() => {
+    const clearPlanningLocation = () => {
+      planningPopupRef.current?.remove?.()
+      planningPopupRef.current = null
+      planningLocationIdRef.current = null
+    }
+    const onPlanningLocationTap = (event) => {
+      const locationId = event?.detail?.locationId
+      const active = event?.detail?.active !== false
+      if (!locationId || !active) { clearPlanningLocation(); return }
+      const location = mapLocations.find((item) => item.id === locationId)
+      const map = mapRef.current
+      if (!location || !map) return
+      clearPlanningLocation()
+      planningLocationIdRef.current = locationId
+      planningPopupRef.current = new Popup({ closeButton: false, closeOnClick: false, offset: 18, className: 'planning-location-popup' })
+        .setLngLat([location.longitude, location.latitude])
+        .setHTML(`<strong>${String(event?.detail?.label || location.name || 'Planned stop')}</strong>`)
+        .addTo(map)
+      map.easeTo({ center: [location.longitude, location.latitude], duration: 350 })
+    }
+    window.addEventListener('docos:planning-location-tap', onPlanningLocationTap)
+    window.addEventListener('docos:planning-location-clear', clearPlanningLocation)
+    return () => {
+      window.removeEventListener('docos:planning-location-tap', onPlanningLocationTap)
+      window.removeEventListener('docos:planning-location-clear', clearPlanningLocation)
+      clearPlanningLocation()
+    }
+  }, [])
   const markerRecords = useRef([])
-  const animationFrame = useRef(null)
-  const idleAnimationFrame = useRef(null)
   const motionStateRef = useRef(null)
   const cameraInitialized = useRef(false)
   const activeTravelKey = useRef(new Map())
   const travelCameraKey = useRef(null)
-  const boardCameraKey = useRef(null)
   const handledBoardViewRequest = useRef(0)
   const handledDriverFocusRequest = useRef(0)
   const handledFacilityFocusRequest = useRef(0)
@@ -125,6 +147,27 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
   const yardMarkerRefs = useRef(new Map())
   const truckStopMarkerRefs = useRef(new Map())
   const lunchStopMarkerRefs = useRef(new Map())
+
+  useEffect(() => {
+    const onLunchCardTap = (event) => {
+      const locationId = event?.detail?.locationId
+      if (!locationId) return
+      const marker = lunchStopMarkerRefs.current.get(locationId) || truckStopMarkerRefs.current.get(locationId)
+      const element = marker?.getElement?.()
+      if (!element) return
+      document.querySelectorAll('.game-marker.lunch-selected').forEach((node) => node.classList.remove('lunch-selected'))
+      element.classList.add('lunch-selected')
+    }
+    const clearLunchSelection = () => {
+      document.querySelectorAll('.game-marker.lunch-selected').forEach((node) => node.classList.remove('lunch-selected'))
+    }
+    window.addEventListener('docos:lunch-card-tap', onLunchCardTap)
+    window.addEventListener('docos:lunch-selection-clear', clearLunchSelection)
+    return () => {
+      window.removeEventListener('docos:lunch-card-tap', onLunchCardTap)
+      window.removeEventListener('docos:lunch-selection-clear', clearLunchSelection)
+    }
+  }, [])
   const freightBrowseMarkerRefs = useRef(new Map())
   const freightBrowseDeliveryMarkerRef = useRef(null)
   const itineraryStopMarkerRefs = useRef(new Map())
@@ -192,9 +235,22 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     ref.current = null
   }
 
-  // AV2.5.6: keep the latest simulation inputs in a ref so the animation loop
-  // does not restart on game-clock ticks, speed changes, or route progress updates.
-  motionStateRef.current = {
+  // AV2.5.6 / Checkpoint 3A: keep the latest simulation inputs in a ref so
+  // the animation loop does not restart on game-clock ticks, speed changes, or
+  // route progress updates. Synchronize after React commits instead of mutating
+  // the ref during render. Layout timing keeps the next animation frame aligned
+  // with the just-committed simulation state.
+  useLayoutEffect(() => {
+    motionStateRef.current = {
+      drivers,
+      loads,
+      runtimePositions,
+      runtimeProgressByDriver,
+      simulationSpeed,
+      isGameClockPaused,
+      gameTime,
+    }
+  }, [
     drivers,
     loads,
     runtimePositions,
@@ -202,7 +258,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     simulationSpeed,
     isGameClockPaused,
     gameTime,
-  }
+  ])
 
   // AW1.7.1 — restore the MapLibre mount lifecycle accidentally removed in AW1.7.
   useEffect(() => {
@@ -293,7 +349,6 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       const currentDrivers = state.drivers || []
       const currentLoads = state.loads || []
       const currentRuntimePositions = state.runtimePositions || {}
-      const currentRuntimeProgress = state.runtimeProgressByDriver || {}
       const speed = Math.max(0, Number(state.simulationSpeed) || 0)
       const paused = Boolean(state.isGameClockPaused)
       const authoritativeMinute = absoluteMinuteFrom(state.gameTime)
@@ -342,7 +397,24 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
 
       // AW1.6.4 — a paused operations map is visually frozen. Facility authority
       // above may reconcile a completed arrival, but active travel never advances.
+      //
+      // Checkpoint 3B.6 — restored active freight legs are already represented by
+      // runtimePositions when the save opens. Remember that live leg while paused
+      // so pressing Play does not misclassify the restored leg as a brand-new leg
+      // and deliberately pin the marker back to route point 0 for one frame.
+      // New legs created during live play still use the route-origin pin below.
       if (paused) {
+        currentDrivers.forEach((driver) => {
+          if (facilityLockedDriverIds.has(driver.id)) return
+          const movementOwner = resolveDriverMovementOwner({ driver, gameTime: state.gameTime, loads: currentLoads })
+          if (movementOwner.type !== 'freight' || !movementOwner.load) return
+          const travelingLoad = movementOwner.load
+          const delivery = travelingLoad.tripStatus === 'en-route-delivery'
+          const departure = delivery ? travelingLoad.deliveryDepartureGameMinute : travelingLoad.departureGameMinute
+          if (!Number.isFinite(departure)) return
+          const travelKey = `${travelingLoad.id}:${travelingLoad.tripStatus}:${departure}`
+          activeTravelKey.current.set(driver.id, travelKey)
+        })
         frameId = requestAnimationFrame(render)
         return
       }
@@ -491,9 +563,20 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       if (!activeYardIds.has(id)) { marker.remove(); yardMarkerRefs.current.delete(id) }
     })
 
-    // B.4.2.3.12: strategic truck stops are persistent world locations. Keep the
-    // marker compact so it helps staging decisions without competing with drivers.
-    const stagingLocations = mapLocations.filter((location) => location.type === 'staging')
+    // P2.3.2 — Contextual POIs. The normal operations map stays clean.
+    // Truck/rest stops appear only while a planning flow needs them or while a
+    // driver is actively routing/staged there.
+    const contextualStagingIds = new Set([
+      ...planningCandidateIds,
+      ...(lunchCandidateLocations || []).map((location) => location.id),
+      ...drivers
+        .filter((driver) => ['calculating', 'traveling', 'arrived'].includes(driver.idleRouteStatus))
+        .map((driver) => driver.idleTargetLocationId)
+        .filter(Boolean),
+    ])
+    const stagingLocations = mapLocations.filter(
+      (location) => location.type === 'staging' && contextualStagingIds.has(location.id)
+    )
     const activeTruckStopIds = new Set(stagingLocations.map((location) => location.id))
     stagingLocations.forEach((location) => {
       if (truckStopMarkerRefs.current.has(location.id)) return
@@ -513,17 +596,60 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     // candidates directly on the operations map. Existing truck-stop markers are
     // highlighted; food stops get the same compact 30px footprint.
     const lunchCandidateIds = new Set((lunchCandidateLocations || []).map((location) => location.id))
+    const activateLunchMarker = (location, element) => {
+      if (!element || !location) return
+      element.classList.add('lunch-candidate')
+      element.setAttribute('role', 'button')
+      element.setAttribute('tabindex', '0')
+      element.setAttribute('aria-label', `View ${location.name}`)
+      if (!element.querySelector('.lunch-marker-label')) {
+        const label = document.createElement('span')
+        label.className = 'lunch-marker-label'
+        label.textContent = location.name
+        element.appendChild(label)
+      }
+      const select = (event) => {
+        event?.stopPropagation?.()
+        const alreadySelected = element.classList.contains('lunch-selected')
+        document.querySelectorAll('.game-marker.lunch-selected').forEach((node) => node.classList.remove('lunch-selected'))
+        if (alreadySelected) return
+        element.classList.add('lunch-selected')
+        window.dispatchEvent(new CustomEvent('docos:lunch-location-tap', { detail: { locationId: location.id } }))
+      }
+      element.onclick = select
+      element.onkeydown = (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(event) } }
+    }
     truckStopMarkerRefs.current.forEach((marker, id) => {
       const element = marker.getElement?.()
-      if (element) element.classList.toggle('lunch-candidate', lunchCandidateIds.has(id))
+      const location = (lunchCandidateLocations || []).find((candidate) => candidate.id === id)
+      if (element) {
+        element.classList.toggle('lunch-candidate', Boolean(location))
+        if (location) activateLunchMarker(location, element)
+        else { element.onclick = null; element.onkeydown = null; element.classList.remove('lunch-selected'); element.querySelector('.lunch-marker-label')?.remove() }
+      }
     })
     ;(lunchCandidateLocations || []).filter((location) => location.type === 'lunch-food').forEach((location) => {
       if (lunchStopMarkerRefs.current.has(location.id)) return
       const element = document.createElement('div')
       element.className = 'game-marker lunch-stop lunch-candidate'
       element.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h2v7h1V3h2v7c0 2-1.2 3.4-3 3.8V21H7v-7.2C5.2 13.4 4 12 4 10V3h2v6h1V3zm9 0h2v18h-2v-7h-2V8c0-2.8.7-5 2-5z"/></svg>'
-      element.setAttribute('aria-label', location.name)
-      element.title = location.name
+      element.setAttribute('aria-label', `View ${location.name}`)
+      const label = document.createElement('span')
+      label.className = 'lunch-marker-label'
+      label.textContent = location.name
+      element.appendChild(label)
+      const select = (event) => {
+        event?.stopPropagation?.()
+        const alreadySelected = element.classList.contains('lunch-selected')
+        document.querySelectorAll('.game-marker.lunch-selected').forEach((node) => node.classList.remove('lunch-selected'))
+        if (alreadySelected) return
+        element.classList.add('lunch-selected')
+        window.dispatchEvent(new CustomEvent('docos:lunch-location-tap', { detail: { locationId: location.id } }))
+      }
+      element.onclick = select
+      element.onkeydown = (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(event) } }
+      element.setAttribute('role', 'button')
+      element.setAttribute('tabindex', '0')
       const marker = new Marker({ element }).setLngLat([location.longitude, location.latitude]).addTo(map)
       lunchStopMarkerRefs.current.set(location.id, marker)
     })
@@ -699,7 +825,6 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
 
     const deliveryRecord = markerRecords.current.find(({ marker }) => marker === deliveryMarkerRef.current)
     if (deliveryRecord) deliveryRecord.markerElement.style.pointerEvents = ''
-    logDocOsState({ isDriverFitEvaluation, hasActiveAcceptedLoad: active, showPickupMarker: showPickup, showDeliveryMarker: showDelivery, pickupMarkerExists: Boolean(pickupMarkerRef.current), deliveryMarkerExists: Boolean(deliveryMarkerRef.current) })
 
     // AW1.7.2 — one stable freight route per load. The authoritative itinerary
     // controls priority/order, while each load's pickup→delivery geometry controls

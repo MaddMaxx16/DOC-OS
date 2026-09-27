@@ -2,13 +2,6 @@ import { buildDriverItinerary } from './driverItinerary.js'
 import mapLocations from '../data/mapLocations.js'
 import { getLocationDistanceMiles } from '../services/routingService.js'
 
-function hashText(value = '') {
-  let hash = 0
-  const text = String(value)
-  for (let index = 0; index < text.length; index += 1) hash = ((hash << 5) - hash + text.charCodeAt(index)) | 0
-  return Math.abs(hash)
-}
-
 export const LUNCH_DECISION_OPTIONS = [
   {
     id: 'proper-break', category: 'recovery', title: 'Proper Break', eyebrow: 'RESET',
@@ -220,51 +213,7 @@ export function getLunchOptionById(id) {
   return LUNCH_DECISION_OPTIONS.find((option) => option.id === id) || null
 }
 
-function nextStopsForDriver(loads = [], driverId) {
-  try {
-    return buildDriverItinerary(loads, driverId).filter((stop) => stop.state !== 'completed')
-  } catch {
-    return []
-  }
-}
-
-function getContext({ driver, loads = [], gameTime }) {
-  const now = Number(gameTime?.gameDayIndex || 0) * 1440 + Number(gameTime?.totalMinutesOfDay || 0)
-  const stops = nextStopsForDriver(loads, driver?.id)
-  const nextStop = stops[0] || null
-  const nextPickup = stops.find((stop) => stop.type === 'pickup') || null
-  const activeLoad = loads.find((load) => load.assignedDriverId === driver?.id && !['completed', 'delivered', 'expired'].includes(load.tripStatus)) || null
-  const facilityContext = Boolean(activeLoad && ['at-pickup', 'checking-in-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery'].includes(activeLoad.tripStatus))
-  const nextWindowAbsolute = nextStop && Number.isFinite(nextStop.dayIndex) && Number.isFinite(nextStop.windowStartMinutes)
-    ? nextStop.dayIndex * 1440 + nextStop.windowStartMinutes
-    : null
-  const minutesToNextWindow = Number.isFinite(nextWindowAbsolute) ? nextWindowAbsolute - now : null
-  return {
-    hasNextStop: Boolean(nextStop),
-    hasNextPickup: Boolean(nextPickup),
-    facilityContext,
-    tightSchedule: Number.isFinite(minutesToNextWindow) && minutesToNextWindow <= 75,
-    slackSchedule: !Number.isFinite(minutesToNextWindow) || minutesToNextWindow >= 120,
-  }
-}
-
-function optionAllowed(option, context) {
-  if (option.requiresNextStop && !context.hasNextStop) return false
-  if (option.requiresNextPickup && !context.hasNextPickup) return false
-  if (option.requiresFacilityContext && !context.facilityContext) return false
-  if (option.requiresTightSchedule && !context.tightSchedule) return false
-  if (option.requiresSlackSchedule && !context.slackSchedule) return false
-  return true
-}
-
-function pickOne(list, seed, usedIds = new Set()) {
-  const available = list.filter((item) => !usedIds.has(item.id))
-  const source = available.length ? available : list
-  if (!source.length) return null
-  return source[hashText(seed) % source.length]
-}
-
-export function getLunchDecisionChoices({ driver, loads = [], gameTime, operationDay = 1, runtimePosition = null }) {
+export function getLunchDecisionChoices({ driver, loads = [], runtimePosition = null }) {
   // B.5.3.2.5 — physical locations are now the lunch decision itself. The old
   // recovery/efficiency/opportunity cards were a separate gameplay system and
   // caused two competing lunch concepts to appear at once.
@@ -291,17 +240,69 @@ const LUNCH_DECISION_UNSAFE_STATUSES = new Set([
   'loading-at-pickup', 'unloading-delivery', 'pickup-issue',
 ])
 
-export function isLunchDecisionReady({ driver, loads = [], gameTime }) {
-  if (!driver || !gameTime) return false
-  const dayIndex = Number(gameTime.gameDayIndex || 0)
-  const workday = driver.workdayByDay?.[String(dayIndex)] || driver.workdayByDay?.[dayIndex]
-  if (!workday || workday.lunchEvent?.selectedChoiceId) return false
+export function getLunchPlanningContext({ driver, gameTime }) {
+  if (!driver || !gameTime) return null
+  const currentDay = Number(gameTime.gameDayIndex || 0)
+  const nowMinute = Number(gameTime.totalMinutesOfDay || 0)
+  const nowAbsolute = currentDay * 1440 + nowMinute
 
-  const nowAbsolute = dayIndex * 1440 + Number(gameTime.totalMinutesOfDay || 0)
-  const lunchStartAbsolute = dayIndex * 1440 + Number(workday.lunchStartMinutes)
-  const endAbsolute = dayIndex * 1440 + Number(workday.endMinutes)
-  if (![lunchStartAbsolute, endAbsolute].every(Number.isFinite)) return false
-  if (nowAbsolute < lunchStartAbsolute || nowAbsolute > endAbsolute - 20) return false
+  // A cross-midnight carrier shift remains owned by the day it started. Look at
+  // today first, then yesterday so lunch/break state does not disappear at 12 AM.
+  const candidateDays = [currentDay, currentDay - 1]
+  for (const ownerDay of candidateDays) {
+    const workday = driver.workdayByDay?.[String(ownerDay)] || driver.workdayByDay?.[ownerDay]
+    if (!workday || workday.isDayOff) continue
+
+    const shiftStart = Number(workday.startMinutes)
+    const shiftEnd = Number(workday.endMinutes)
+    if (!Number.isFinite(shiftStart) || !Number.isFinite(shiftEnd)) continue
+    const shiftStartAbsolute = ownerDay * 1440 + shiftStart
+    const shiftEndAbsolute = ownerDay * 1440 + shiftEnd + (shiftEnd <= shiftStart ? 1440 : 0)
+    if (nowAbsolute < shiftStartAbsolute || nowAbsolute > shiftEndAbsolute) continue
+
+    const plannedStart = Number(workday.lunchWindowStartMinutes)
+    const plannedEnd = Number(workday.lunchWindowEndMinutes)
+    const legacyStart = Number(workday.lunchStartMinutes)
+    const duration = Math.max(20, Number(workday.lunchDurationMinutes || 30))
+
+    let windowStartMinute = Number.isFinite(plannedStart) ? plannedStart : legacyStart
+    if (!Number.isFinite(windowStartMinute)) return { ownerDay, workday, nowAbsolute, shiftStartAbsolute, shiftEndAbsolute, hasPlan: false }
+
+    let windowEndMinute
+    if (Number.isFinite(plannedStart) && Number.isFinite(plannedEnd)) {
+      windowEndMinute = plannedEnd
+    } else {
+      // Legacy saves had one lunch start time rather than a planning window.
+      // Preserve their behavior with a usable planning period through late shift.
+      windowEndMinute = shiftEnd - 20
+    }
+
+    let windowStartAbsolute = ownerDay * 1440 + windowStartMinute
+    let windowEndAbsolute = ownerDay * 1440 + windowEndMinute
+    if (windowStartAbsolute < shiftStartAbsolute) windowStartAbsolute += 1440
+    if (windowEndAbsolute <= windowStartAbsolute) windowEndAbsolute += 1440
+    windowEndAbsolute = Math.min(windowEndAbsolute, shiftEndAbsolute - 20)
+
+    return {
+      ownerDay,
+      workday,
+      nowAbsolute,
+      shiftStartAbsolute,
+      shiftEndAbsolute,
+      windowStartAbsolute,
+      windowEndAbsolute,
+      durationMinutes: duration,
+      hasPlan: true,
+      source: Number.isFinite(plannedStart) && Number.isFinite(plannedEnd) ? 'dispatcher-window' : 'legacy-start',
+    }
+  }
+  return null
+}
+
+export function isLunchDecisionReady({ driver, loads = [], gameTime }) {
+  const context = getLunchPlanningContext({ driver, gameTime })
+  if (!context?.hasPlan || context.workday?.lunchEvent?.selectedChoiceId) return false
+  if (context.nowAbsolute < context.windowStartAbsolute || context.nowAbsolute > context.windowEndAbsolute) return false
 
   const activeLoad = loads.find((load) => load.assignedDriverId === driver.id && !['completed', 'delivered', 'expired'].includes(load.tripStatus)) || null
   if (activeLoad && LUNCH_DECISION_UNSAFE_STATUSES.has(activeLoad.tripStatus)) return false
@@ -309,10 +310,8 @@ export function isLunchDecisionReady({ driver, loads = [], gameTime }) {
 }
 
 export function getDriverLunchEvent(driver, gameTime) {
-  if (!driver || !gameTime) return null
-  const dayIndex = Number(gameTime.gameDayIndex || 0)
-  const workday = driver.workdayByDay?.[String(dayIndex)] || driver.workdayByDay?.[dayIndex]
-  return workday?.lunchEvent || null
+  const context = getLunchPlanningContext({ driver, gameTime })
+  return context?.workday?.lunchEvent || null
 }
 
 export function hasLunchMovementAuthority(driver, gameTime) {

@@ -1,131 +1,227 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-function CareerSetupScreen({ profile, onContinue, onBack }) {
-  const [dispatcherName, setDispatcherName] = useState(
-    profile?.dispatcherName || ''
-  )
+// B.5.4D.4.3.4A — Create Your Dispatch Mobile Rebuild
+// B.5.4D.4.3.4B — Startup Layout Refinement
+function CareerSetupScreen({ profile = null, onBack, onContinue }) {
+  const [form, setForm] = useState({
+    displayName: profile?.displayName || '',
+    businessName: profile?.businessName || '',
+  })
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
 
-  const [businessName, setBusinessName] = useState(
-    profile?.businessName || profile?.displayName || ''
-  )
+  const screenRef = useRef(null)
+  const nameRef = useRef(null)
+  const businessRef = useRef(null)
+  const submitLockRef = useRef(false)
 
-  const [inputActive, setInputActive] = useState(false)
+  const dispatcherName = form.displayName.trim()
+  const businessName = form.businessName.trim()
+  const ready = dispatcherName.length >= 2 && businessName.length >= 2
 
-  const cleanDispatcher = dispatcherName.trim()
-  const cleanBusiness = businessName.trim()
+  const update = (key, value) => {
+    submitLockRef.current = false
+    setForm((current) => ({ ...current, [key]: value }))
+  }
 
-  const ready =
-    cleanDispatcher.length >= 2 &&
-    cleanBusiness.length >= 2
+  useEffect(() => {
+    const viewport = window.visualViewport
+    const target = screenRef.current
 
-  const continueSetup = () => {
-    if (!ready) return
+    const syncViewport = () => {
+      if (!target) return
 
-    onContinue?.({
+      const visualHeight = viewport?.height || window.innerHeight
+      const visualTop = viewport?.offsetTop || 0
+      const layoutHeight = window.innerHeight || visualHeight
+      const keyboardHeight = Math.max(0, layoutHeight - visualHeight - visualTop)
+
+      target.style.setProperty('--career-vv-height', `${visualHeight}px`)
+      target.style.setProperty('--career-vv-top', `${visualTop}px`)
+      target.style.setProperty('--career-keyboard-height', `${keyboardHeight}px`)
+
+      setKeyboardOpen(keyboardHeight > 100 || visualHeight < layoutHeight * 0.82)
+    }
+
+    syncViewport()
+    viewport?.addEventListener('resize', syncViewport)
+    viewport?.addEventListener('scroll', syncViewport)
+    window.addEventListener('resize', syncViewport)
+
+    return () => {
+      viewport?.removeEventListener('resize', syncViewport)
+      viewport?.removeEventListener('scroll', syncViewport)
+      window.removeEventListener('resize', syncViewport)
+    }
+  }, [])
+
+  const revealField = (field) => {
+    window.setTimeout(() => {
+      field?.scrollIntoView?.({
+        block: 'center',
+        inline: 'nearest',
+        behavior: 'smooth',
+      })
+    }, 140)
+  }
+
+  const continueToMarket = () => {
+    if (!ready || submitLockRef.current) return
+    submitLockRef.current = true
+
+    const active = document.activeElement
+    if (active && typeof active.blur === 'function') active.blur()
+
+    const nextProfile = {
       ...(profile || {}),
-      dispatcherName: cleanDispatcher,
-      businessName: cleanBusiness,
-
-      // Compatibility with the existing CarrierSource profile system.
-      displayName: cleanBusiness,
-
-      businessType: 'Independent Dispatch',
-      homeMarket: profile?.homeMarket || '',
-      targetFeePercent: profile?.targetFeePercent ?? 8,
-      preferredEquipment: profile?.preferredEquipment || "53' Dry Van",
-      preferredRegion: profile?.preferredRegion || 'Northeast',
-
+      displayName: dispatcherName,
+      businessName,
+      businessType: profile?.businessType || 'Independent Dispatch',
       created: true,
-      setupComplete: true,
-    })
+    }
+
+    window.requestAnimationFrame(() => onContinue?.(nextProfile))
+  }
+
+  const submit = (event) => {
+    event?.preventDefault?.()
+    continueToMarket()
+  }
+
+  const handleNameKeyDown = (event) => {
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    businessRef.current?.focus()
+    revealField(businessRef.current)
+  }
+
+  const handleBusinessKeyDown = (event) => {
+    if (event.key !== 'Enter' || !ready) return
+    event.preventDefault()
+    continueToMarket()
   }
 
   return (
-    <div className={`entry-screen career-setup-screen ${inputActive ? 'input-active' : ''}`}>
-      <div className="career-setup-topbar">
-        <button
-          type="button"
-          className="career-setup-back"
-          onClick={onBack}
-        >
-          ‹ BACK
+    <div
+      ref={screenRef}
+      className={`career-setup-screen career-setup-d434a ${keyboardOpen ? 'keyboard-open' : ''}`}
+    >
+      <header className="career-setup-nav-d434a">
+        <button type="button" onClick={onBack} aria-label="Back to title">
+          ‹ <span>BACK</span>
         </button>
 
-        <span>NEW OPERATION · 01 / 02</span>
-      </div>
-
-      <section className="career-setup-panel">
-        <header className="career-setup-header">
-          <span className="career-setup-kicker">
-            DISPATCH BUSINESS
-          </span>
-
-          <h1>Create Your Dispatch</h1>
-
-          <p>
-            Build the identity that will represent your operation
-            to carriers and throughout DOC OS.
-          </p>
-        </header>
-
-        <div
-          className="career-setup-form"
-          onFocusCapture={() => setInputActive(true)}
-          onBlurCapture={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget)) {
-              setInputActive(false)
-            }
-          }}
-        >
-          <label>
-            <span>YOUR NAME</span>
-            <input
-              value={dispatcherName}
-              onChange={(event) => setDispatcherName(event.target.value)}
-              placeholder="Dispatcher name"
-              autoComplete="name"
-            />
-          </label>
-
-          <label>
-            <span>BUSINESS NAME</span>
-            <input
-              value={businessName}
-              onChange={(event) => setBusinessName(event.target.value)}
-              placeholder="e.g. Pinnacle Dispatch Solutions"
-              autoComplete="organization"
-            />
-          </label>
-
-          <div className="career-business-type">
-            <span>BUSINESS TYPE</span>
-            <strong>Independent Dispatch</strong>
-          </div>
+        <div>
+          <span>NEW OPERATION</span>
+          <strong>IDENTITY</strong>
         </div>
 
-        <div className="career-identity-preview">
-          <span>OPERATION IDENTITY</span>
+        <small>STEP 1 OF 2</small>
+      </header>
 
+      <main className="career-setup-scroll-d434a">
+        <section className="career-setup-intro-d434a">
+          <span>OPERATION SETUP</span>
+          <h1>Create Your Dispatch</h1>
+          <p>
+            Set the identity that carriers, drivers, agreements and billing will use
+            throughout this operation.
+          </p>
+        </section>
+
+        <form
+          id="career-operation-form-d434a"
+          className="career-setup-form-d434a"
+          onSubmit={submit}
+        >
+          <label className={`career-input-card-d434a ${dispatcherName ? 'complete' : ''}`}>
+            <div className="career-input-label-d434a">
+              <span><b>01</b> YOUR NAME</span>
+              <small>{dispatcherName ? 'READY' : 'REQUIRED'}</small>
+            </div>
+
+            <input
+              ref={nameRef}
+              value={form.displayName}
+              onChange={(event) => update('displayName', event.target.value)}
+              onFocus={(event) => revealField(event.currentTarget)}
+              onKeyDown={handleNameKeyDown}
+              placeholder="Maxx"
+              autoComplete="name"
+              autoCapitalize="words"
+              enterKeyHint="next"
+            />
+
+            <p>The name carriers and drivers will see.</p>
+          </label>
+
+          <label className={`career-input-card-d434a ${businessName ? 'complete' : ''}`}>
+            <div className="career-input-label-d434a">
+              <span><b>02</b> BUSINESS NAME</span>
+              <small>{businessName ? 'READY' : 'REQUIRED'}</small>
+            </div>
+
+            <input
+              ref={businessRef}
+              value={form.businessName}
+              onChange={(event) => update('businessName', event.target.value)}
+              onFocus={(event) => revealField(event.currentTarget)}
+              onKeyDown={handleBusinessKeyDown}
+              placeholder="Northstar Dispatch"
+              autoComplete="organization"
+              autoCapitalize="words"
+              enterKeyHint={ready ? 'go' : 'done'}
+            />
+
+            <p>Your dispatch business across DOC OS.</p>
+          </label>
+
+          <section className="career-business-type-d434a" aria-label="Business type">
+            <div>
+              <span>BUSINESS TYPE</span>
+              <strong>Independent Dispatch</strong>
+            </div>
+            <small>Carrier coordination · freight planning · driver support</small>
+          </section>
+
+        </form>
+      </main>
+
+      <footer className="career-setup-footer-d434a">
+        <div className="career-footer-identity-d434b">
+          <span>{ready ? 'READY TO CONTINUE' : 'SETUP PROGRESS'}</span>
           <strong>
-            {cleanBusiness || 'Your Dispatch Company'}
+            {ready
+              ? businessName
+              : `${[dispatcherName, businessName].filter(Boolean).length} OF 2 COMPLETE`}
           </strong>
-
           <small>
-            {cleanDispatcher
-              ? `Operated by ${cleanDispatcher}`
-              : 'Your name will appear here'}
+            {ready
+              ? `Operated by ${dispatcherName}`
+              : 'Complete your operation identity'}
           </small>
         </div>
 
         <button
           type="button"
-          className="career-continue-button"
+          className="career-continue-d434a"
           disabled={!ready}
-          onClick={continueSetup}
+          onPointerDown={(event) => {
+            if (!ready) return
+            event.preventDefault()
+            continueToMarket()
+          }}
+          onClick={(event) => {
+            if (!ready || submitLockRef.current) {
+              event.preventDefault()
+              return
+            }
+            continueToMarket()
+          }}
         >
-          CONTINUE TO MARKET
+          <span>CONTINUE TO MARKET</span>
+          <b aria-hidden="true">→</b>
         </button>
-      </section>
+      </footer>
     </div>
   )
 }

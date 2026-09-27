@@ -1,3 +1,4 @@
+// B.5.4D.4.3.4 — Startup Experience Polish
 function DayOneEntryScreen({
   dispatcherProfile = null,
   marketName = 'New York Metro',
@@ -11,7 +12,7 @@ function DayOneEntryScreen({
     'Your Dispatch Operation'
 
   return (
-    <section className="day-one-entry-screen" aria-label="Day 1 operation start">
+    <section className="day-one-entry-screen day-one-entry-d434" aria-label="Day 1 operation start">
       <div className="day-one-entry-shade" />
 
       <header className="day-one-entry-topbar">
@@ -23,46 +24,63 @@ function DayOneEntryScreen({
         <small>DAY 1</small>
       </header>
 
-      <main className="day-one-entry-content">
-        <section className="day-one-entry-hero">
-          <span className="day-one-entry-kicker">YOUR OPERATION BEGINS HERE</span>
+      <main className="day-one-entry-content day-one-entry-content-d434">
+        <section className="day-one-entry-hero day-one-entry-hero-d434">
+          <span className="day-one-entry-kicker">YOUR OPERATION STARTS HERE</span>
           <h1>{operationName}</h1>
           <p>
-            You have a market and a business identity. Now you need the first
-            relationship that gives the operation something to manage.
+            The desk is open. Your first job is not moving freight yet — it is building the
+            carrier relationship that gives you freight to manage.
           </p>
         </section>
 
-        <section className="day-one-entry-status" aria-label="Starting operation status">
-          <div><span>ACTIVE CARRIERS</span><strong>0</strong></div>
-          <div><span>ACTIVE DRIVERS</span><strong>0</strong></div>
-          <div><span>ACTIVE LOADS</span><strong>0</strong></div>
+        <section className="day-one-entry-status day-one-entry-status-compact-d434" aria-label="Starting operation status">
+          <div><span>CARRIERS</span><strong>0</strong></div>
+          <div><span>DRIVERS</span><strong>0</strong></div>
+          <div><span>LOADS</span><strong>0</strong></div>
         </section>
 
-        <section className="day-one-entry-objective">
+        <section className="day-one-entry-objective day-one-entry-objective-d434">
           <div className="day-one-entry-objective-index">01</div>
           <div className="day-one-entry-objective-copy">
             <span>FIRST OBJECTIVE</span>
             <h2>Establish your first carrier relationship.</h2>
             <p>
-              Jordan Blake sent you a note about getting started. Read it first,
-              then use CarrierSource to find a carrier that fits your operation.
+              Jordan Blake sent you a note about getting started. Read it first, then use
+              CarrierSource to review the carrier opportunity waiting in your market.
             </p>
           </div>
         </section>
 
-        <section className="day-one-entry-sequence" aria-label="Day 1 starting sequence">
-          <div className="active"><span>1</span><strong>EMAIL</strong><small>Hear from Jordan</small></div>
+        <section className="day-one-entry-sequence day-one-entry-sequence-d434" aria-label="Day 1 starting sequence">
+          <div className="active">
+            <span>1</span>
+            <strong>READ EMAIL</strong>
+            <small>Jordan’s note</small>
+          </div>
           <i />
-          <div><span>2</span><strong>CARRIERSOURCE</strong><small>Find a carrier</small></div>
+          <div>
+            <span>2</span>
+            <strong>FIND CARRIER</strong>
+            <small>CarrierSource</small>
+          </div>
           <i />
-          <div><span>3</span><strong>OPERATIONS</strong><small>Build from there</small></div>
+          <div>
+            <span>3</span>
+            <strong>BUILD DAY</strong>
+            <small>FreightLink</small>
+          </div>
         </section>
       </main>
 
-      <footer className="day-one-entry-footer">
-        <div><span>STARTING MARKET</span><strong>{marketName}</strong></div>
-        <button type="button" onClick={onBegin}>BEGIN DAY 1 <span>›</span></button>
+      <footer className="day-one-entry-footer day-one-entry-footer-d434">
+        <div>
+          <span>NEXT</span>
+          <strong>Open Jordan’s first message.</strong>
+        </div>
+        <button type="button" onClick={onBegin}>
+          BEGIN DAY 1 <span aria-hidden="true">→</span>
+        </button>
       </footer>
     </section>
   )

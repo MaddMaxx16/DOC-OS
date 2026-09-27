@@ -52,7 +52,7 @@ import SettingsScreen from './SettingsScreen.jsx'
 function getReceivable(loads, carriers, workflows, id) { return getReceivables(loads, carriers, workflows).find((item) => item.loadId === id) }
 
 // B.5.4D.4.3.1B — Legacy Route + Diagnostic Cleanup Final
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, plannedRoute, setPlannedRoute, gameTime, setGameTime, onEvaluateFit, onAddToSchedule, onAcceptCandidateAssignment, onPlanTrip, initialScreen = 'home', initialLoadId = null, initialDriverId = null, initialEmailComposeContext = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, ledgerBanking, setLedgerWorkflowByLoadId, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, onOpenDriverSchedule, onRequestScheduleApproval, onBookApprovedSchedule, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onPickupCorrectionSent, onSetupOvernightDevScenario, onClose, onCarrierSourceOpened }) {
+function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, gameTime, setGameTime, onEvaluateFit, onAddToSchedule, onAcceptCandidateAssignment, initialScreen = 'home', initialLoadId = null, initialDriverId = null, initialShiftEndPromptDriverId = null, onShiftEndPromptConsumed, onShiftEndAlertFlowExit, initialEmailComposeContext = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, ledgerBanking, setLedgerWorkflowByLoadId, onResetGame, onReturnToTitle, onRequestScheduleApproval, onBookApprovedSchedule, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onPickupCorrectionSent, onSetupOvernightDevScenario, onClose, onCarrierSourceOpened }) {
   // B.5.4D.4.2.5A — Flexible Plan Return Navigation
   const [driverOpsReturnScreen, setDriverOpsReturnScreen] = useState('home')
 
@@ -454,6 +454,36 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
                   </div>
                 </div>
 
+                {/* P2.1.2 — Hidden DEV 5PM Carryover Harness */}
+                <div className="phone-dev-tool-row phone-dev-tool-row-stack">
+                  <div>
+                    <span>SHIFT BOUNDARY TEST</span>
+                    <b>CONTROLLED 5:00 PM CARRYOVER</b>
+                    <small>Places Marcus already en route at 4:55 PM and pauses the clock. Press Play after closing DEV to verify active work survives his 5:00 PM shift boundary.</small>
+                  </div>
+                  <div className="phone-dev-inline-actions">
+                    <button
+                      type="button"
+                      disabled={!onSetupOvernightDevScenario || !setGameTime}
+                      onClick={async () => {
+                        if (!onSetupOvernightDevScenario || !setGameTime) return
+                        const testDay = gameTime.gameDayIndex
+                        const testMinute = 16 * 60 + 55
+                        await onSetupOvernightDevScenario()
+                        setLoads((current) => current.map((load) =>
+                          load.tripStatus === 'en-route-delivery' && load.assignedDriverId === 'marcus'
+                            ? { ...load, deliveryDepartureGameMinute: testDay * 1440 + testMinute }
+                            : load
+                        ))
+                        setGameTime({ gameDayIndex: testDay, totalMinutesOfDay: testMinute })
+                        setDevToolsOpen(false)
+                      }}
+                    >
+                      TEST 5PM CARRYOVER
+                    </button>
+                  </div>
+                </div>
+
                 <div className="phone-dev-tool-row phone-dev-tool-row-stack">
                   <div>
                     <span>CARRIER APPROVAL</span>
@@ -552,6 +582,9 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           runtimePositions={runtimePositions}
           gameTime={gameTime}
           initialDriverId={selectedDriverId}
+          initialShiftEndPromptDriverId={initialShiftEndPromptDriverId}
+          onShiftEndPromptConsumed={onShiftEndPromptConsumed}
+          onShiftEndAlertFlowExit={onShiftEndAlertFlowExit}
           onBack={() => setScreen(driverOpsReturnScreen || 'home')}
           onUpdateWorkday={updateDriverWorkday}
           // B.5.4D.4.1.3 — Scheduler Functional Linkage
@@ -589,7 +622,10 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
                     shiftEndLocationId: plan.locationId,
                     shiftEndLocationName: plan.label,
                     shiftEndPlannedGameMinute: plannedGameMinute,
-                    idleTargetLocationId: plan.locationId,
+                    // P2.3.1F — queued shift-end plans stay passive.
+                    // Do NOT write idleTargetLocationId while freight still owns
+                    // the driver. P2.3.2 will promote this saved plan into an
+                    // actual staging route only after active freight is complete.
                   }
                 : driver
             )))

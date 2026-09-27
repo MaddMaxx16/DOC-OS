@@ -1,7 +1,7 @@
 const ROUTE_URL = 'https://api.heigit.org/openrouteservice/v2/directions/driving-hgv/geojson'
 const SECONDARY_ROUTE_URL = 'https://router.project-osrm.org/route/v1/driving'
 const PERSISTED_ROUTE_CACHE_KEY = 'docos-road-route-cache-v1'
-const PERSISTED_ROUTE_LIMIT = 80
+const PERSISTED_ROUTE_LIMIT = 40
 const REQUEST_TIMEOUT_MS = 8000
 const HARD_ROUTE_TIMEOUT_MS = 10000
 const FALLBACK_SPEED_MPH = 45
@@ -39,7 +39,16 @@ function persistRoadRoute(key, route) {
       savedAt: Date.now(),
     }
     const entries = Object.entries(cache).sort((a, b) => (b[1]?.savedAt || 0) - (a[1]?.savedAt || 0)).slice(0, PERSISTED_ROUTE_LIMIT)
-    window.localStorage.setItem(PERSISTED_ROUTE_CACHE_KEY, JSON.stringify(Object.fromEntries(entries)))
+    try {
+      window.localStorage.setItem(PERSISTED_ROUTE_CACHE_KEY, JSON.stringify(Object.fromEntries(entries)))
+    } catch (error) {
+      // Route geometry is disposable. Shrink aggressively on quota pressure rather
+      // than allowing the cache to compete with player saves for localStorage.
+      const reduced = entries.slice(0, Math.max(8, Math.floor(PERSISTED_ROUTE_LIMIT / 4)))
+      try { window.localStorage.setItem(PERSISTED_ROUTE_CACHE_KEY, JSON.stringify(Object.fromEntries(reduced))) }
+      catch { window.localStorage.removeItem(PERSISTED_ROUTE_CACHE_KEY) }
+      console.warn('DOC OS ROUTE CACHE SHRUNK AFTER WRITE FAILURE', error)
+    }
   } catch (error) {
     console.warn('DOC OS ROUTE CACHE WRITE FAILED', error)
   }

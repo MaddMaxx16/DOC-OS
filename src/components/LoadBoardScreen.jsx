@@ -7,6 +7,9 @@ import { MARKET_HORIZON_DAYS } from '../utils/freightMarket.js'
 import FreightLinkMarketMap from './FreightLinkMarketMap.jsx'
 import { getDriverHosSummary } from '../utils/driverHOS.js'
 import { getLoadHosEvaluation } from '../utils/hosPlanning.js'
+import { getDriverTimeView } from '../utils/driverTimeInterpreter.js'
+import { getFreightLinkDriverFit } from '../utils/freightLinkDriverFit.js'
+import { getDriverScheduleConstraint } from '../utils/driverScheduleConstraint.js'
 
 function formatListedMiles(value) {
   if (value === null) return 'CALCULATING'
@@ -25,95 +28,6 @@ function bucketFor(load) {
   return 'active'
 }
 
-
-// B.5.4D.4.2.1 — FreightLink Carrier Schedule Awareness
-function getCarrierScheduleStatus(load, driver) {
-  if (!driver) {
-    return {
-      ok: false,
-      label: 'SELECT DRIVER',
-      detail: 'Choose a driver before evaluating schedule fit.',
-    }
-  }
-
-  const pickupDay = Number(load?.pickupDayIndex)
-  const deliveryDay = Number(load?.deliveryDayIndex)
-
-  const workday =
-    driver?.workdayByDay?.[String(pickupDay)] ||
-    driver?.workdayByDay?.[pickupDay] ||
-    null
-
-  if (!workday) {
-    return {
-      ok: false,
-      label: 'NO CARRIER SCHEDULE',
-      detail: 'Carrier has not confirmed this pickup day.',
-    }
-  }
-
-  if (workday.isDayOff) {
-    return {
-      ok: false,
-      label: 'DRIVER OFF',
-      detail: 'Carrier has the driver off on pickup day.',
-    }
-  }
-
-  const shiftStart = Number(workday.startMinutes)
-  const shiftEndRaw = Number(workday.endMinutes)
-
-  if (!Number.isFinite(shiftStart) || !Number.isFinite(shiftEndRaw)) {
-    return {
-      ok: false,
-      label: 'NO CARRIER SCHEDULE',
-      detail: 'Carrier shift is incomplete.',
-    }
-  }
-
-  const shiftStartAbs = pickupDay * 1440 + shiftStart
-
-  let shiftEndAbs = pickupDay * 1440 + shiftEndRaw
-  if (shiftEndRaw <= shiftStart) shiftEndAbs += 1440
-
-  const pickupStartAbs =
-    pickupDay * 1440 + Number(load?.pickupWindowStartMinutes || 0)
-
-  const deliveryEndMinutes = Number.isFinite(Number(load?.deliveryWindowEndMinutes))
-    ? Number(load.deliveryWindowEndMinutes)
-    : Number(load?.deliveryWindowStartMinutes || 0)
-
-  const deliveryEndAbs =
-    deliveryDay * 1440 + deliveryEndMinutes
-
-  if (pickupStartAbs < shiftStartAbs) {
-    const minutesEarly = Math.max(0, shiftStartAbs - pickupStartAbs)
-
-    return {
-      ok: false,
-      label: 'SHIFT CONFLICT',
-      detail: `Pickup starts ${minutesEarly} min before ${driver.fullName || driver.name || 'driver'} is available.`,
-      reason: 'pickup-before-shift',
-    }
-  }
-
-  if (deliveryEndAbs > shiftEndAbs) {
-    const minutesLate = Math.max(0, deliveryEndAbs - shiftEndAbs)
-
-    return {
-      ok: false,
-      label: 'SHIFT CONFLICT',
-      detail: `Delivery extends ${minutesLate} min beyond the carrier-confirmed shift.`,
-      reason: 'delivery-after-shift',
-    }
-  }
-
-  return {
-    ok: true,
-    label: 'SCHEDULE FIT',
-    detail: `Inside ${driver.fullName || driver.name || 'driver'}'s carrier-confirmed shift.`,
-  }
-}
 
 function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime, operationDay = 1, embedded = false, planningDriverId = null, onPlanningDriverChange, onBack, onSelectLoad, onOpenScheduler }) {
 const [sortMode, setSortMode] = useState('pickup')
@@ -138,14 +52,15 @@ const [sortMode, setSortMode] = useState('pickup')
   const planningDriver = activeDrivers.find((driver) => driver.id === planningDriverId) || null
   
 
-  // D.4.2.1 — evaluate FreightLink loads against the already-selected planning driver.
-  const carrierScheduleByLoadId = Object.fromEntries(
-    loads.map((load) => [
-      load.id,
-      getCarrierScheduleStatus(load, planningDriver),
-    ])
-  )
 const planningHos = planningDriver ? getDriverHosSummary(planningDriver) : null
+// P1.3 — FreightLink Driver Fit 2.0
+const planningDriverTime = planningDriver ? getDriverTimeView(planningDriver) : null
+const planningWorkday = planningDriver?.workdayByDay?.[String(gameTime?.gameDayIndex)] || planningDriver?.workdayByDay?.[gameTime?.gameDayIndex] || null
+const planningScheduleLabel = planningWorkday && !planningWorkday.isDayOff && Number.isFinite(Number(planningWorkday.endMinutes))
+  ? `UNTIL ${formatTime(Number(planningWorkday.endMinutes))}`
+  : planningWorkday?.isDayOff
+    ? 'DAY OFF'
+    : 'NOT SCHEDULED'
   const loadViews = useMemo(() => unlockedLoads.map((load) => {
     const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
     const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
@@ -153,6 +68,7 @@ const planningHos = planningDriver ? getDriverHosSummary(planningDriver) : null
     const rpm = Number.isFinite(load.listedMiles) && load.listedMiles > 0 ? load.rate / load.listedMiles : null
     let planningHint = null
     let hosHint = null
+    let scheduleStatus = null
     if (planningDriver && load.status === 'available') {
       const simulatedLoads = loads.map((item) => item.id === load.id ? {
         ...item,
@@ -162,7 +78,11 @@ const planningHos = planningDriver ? getDriverHosSummary(planningDriver) : null
       // B.5.4D.4.2.2D — Direct FIT Hierarchy Repair
       // Carrier schedule owns the top-level result. Generic plan quality
       // may only say FIT when the schedule itself passes.
-      const scheduleStatus = carrierScheduleByLoadId[load.id]
+      const hosEvaluation = getLoadHosEvaluation({ load, driver: planningDriver, loads, runtimePositions, gameTime })
+      scheduleStatus = getDriverScheduleConstraint(load, planningDriver, {
+        projectedPickupServiceStartMinute: hosEvaluation?.projectedPickupServiceStartMinute,
+        projectedDeliveryCompleteMinute: hosEvaluation?.projectedDeliveryCompleteMinute,
+      })
       const quality = getPlanQuality(simulatedLoads, planningDriver.id)
 
       planningHint = scheduleStatus?.ok === false
@@ -176,10 +96,9 @@ const planningHos = planningDriver ? getDriverHosSummary(planningDriver) : null
           : quality?.label === 'TIGHT'
             ? { label: 'TIGHT', tone: 'tight' }
             : { label: 'FIT', tone: 'fit' }
-      const hosEvaluation = getLoadHosEvaluation({ load, driver: planningDriver, loads, runtimePositions, gameTime })
-      if (hosEvaluation) hosHint = { label: hosEvaluation.label, tone: hosEvaluation.tone }
+      if (hosEvaluation) hosHint = getFreightLinkDriverFit(hosEvaluation)
     }
-    return { load, pickup, delivery, rpm, pickupAbsoluteMinute, haulClass: getFreightHaulClass(load), planningHint, hosHint }
+    return { load, pickup, delivery, rpm, pickupAbsoluteMinute, haulClass: getFreightHaulClass(load), planningHint, hosHint, scheduleStatus }
   }).filter((item) => item.pickup && item.delivery), [unlockedLoads, gameTime?.gameDayIndex, gameTime?.totalMinutesOfDay, planningDriver?.id, planningDriver?.hours, planningDriver?.workdayByDay, loads, runtimePositions])
 
   const marketDayIndex = gameTime?.gameDayIndex ?? 0
@@ -238,8 +157,7 @@ const planningHos = planningDriver ? getDriverHosSummary(planningDriver) : null
                         <small>{hos.statusLabel}</small>
                       </span>
                       <span className="freightlink-driver-menu-hos">
-                        <small>DRIVE <b>{hos.driving}</b></small>
-                        <small>DUTY <b>{hos.duty}</b></small>
+                        <small>DRIVING <b>{getDriverTimeView(driver).drivingAvailableLabel}</b></small>
                       </span>
                     </button>
                   )
@@ -251,8 +169,8 @@ const planningHos = planningDriver ? getDriverHosSummary(planningDriver) : null
         </div>
         {planningHos ? (
           <div className="freightlink-driver-context-hos">
-            <div><span>DRIVE</span><strong>{planningHos.driving}</strong></div>
-            <div><span>DUTY</span><strong>{planningHos.duty}</strong></div>
+            <div><span>SCHEDULE</span><strong>{planningScheduleLabel}</strong></div>
+            <div><span>DRIVING</span><strong>{planningDriverTime?.drivingAvailableLabel || '—'}</strong></div>
           </div>
         ) : (
           <div className="freightlink-driver-context-empty">SELECT A DRIVER TO EVALUATE THE BOARD</div>
@@ -297,7 +215,7 @@ const planningHos = planningDriver ? getDriverHosSummary(planningDriver) : null
         {filterMode !== 'available' && <div className="freightlink-loads-toolbar aw13"><div className="freightlink-section-label">{filterMode.toUpperCase()}</div></div>}
         {sortedLoadViews.length ? (
           <div className={`load-list ${decisionMode ? 'decision-load-list' : ''}`}>
-            {sortedLoadViews.map(({ load, pickup, delivery, rpm, haulClass, planningHint, hosHint }) => decisionMode && filterMode === 'available' ? (
+            {sortedLoadViews.map(({ load, pickup, delivery, rpm, haulClass, planningHint, hosHint, scheduleStatus }) => decisionMode && filterMode === 'available' ? (
               <button type="button" className="freight-decision-row phase2 av27" key={load.id} onClick={() => onSelectLoad(load.id)}>
                 <div className="freight-decision-time"><span>PICKUP · {formatCompactDate(load.pickupDayIndex)}</span><strong>{formatTime(load.pickupWindowStartMinutes)}</strong><em className={`freight-haul-tag ${haulClass.tone}`}>{haulClass.label}</em></div>
                 <div className="freight-decision-body">
@@ -306,26 +224,26 @@ const planningHos = planningDriver ? getDriverHosSummary(planningDriver) : null
                 </div>
               </button>
             ) : (
-              <button type="button" className={`freight-listing-row ${carrierScheduleByLoadId[load.id]?.ok === false ? 'schedule-conflict' : ''}`} key={load.id} onClick={() =>
+              <button type="button" className={`freight-listing-row ${scheduleStatus?.ok === false ? 'schedule-conflict' : ''}`} key={load.id} onClick={() =>
  onSelectLoad(load.id)}>
-                {carrierScheduleByLoadId[load.id]?.ok === false && (
+                {scheduleStatus?.ok === false && (
                   <span className="freight-authoritative-conflict">
-                    <strong>{carrierScheduleByLoadId[load.id].label}</strong>
-                    <small>{carrierScheduleByLoadId[load.id].detail}</small>
+                    <strong>{scheduleStatus.label}</strong>
+                    <small>{scheduleStatus.detail}</small>
                   </span>
                 )}
 
                 <div className="freight-listing-time"><span>PICKUP · {formatCompactDate(load.pickupDayIndex)}</span><strong>{formatTime(load.pickupWindowStartMinutes)}</strong><em className={`freight-haul-tag ${haulClass.tone}`}>{haulClass.label}</em></div>
                 <div className="freight-listing-main"><div className="freight-listing-top"><strong>{pickup.name} → {delivery.name}</strong><span className={`freight-load-status ${load.status === 'expired' ? 'expired' : ''}`}>{formatLoadStatus(load.status)}</span></div><div className="freight-listing-lane"><span>{getFreightCommodity(load)}</span></div><small>DELIVERY {formatCompactDate(load.deliveryDayIndex)} · {formatTime(load.deliveryWindowStartMinutes)} · LOAD {formatListedMiles(load.listedMiles)}</small></div>
                 <div className="freight-listing-rate">
-                  {planningDriver && carrierScheduleByLoadId[load.id] && (
+                  {planningDriver && scheduleStatus && (
                     <span
                       className={`carrier-shift-chip ${
-                        carrierScheduleByLoadId[load.id].ok ? 'ok' : 'conflict'
+                        scheduleStatus.ok ? 'ok' : 'conflict'
                       }`}
-                      title={carrierScheduleByLoadId[load.id].detail}
+                      title={scheduleStatus.detail}
                     >
-                      {carrierScheduleByLoadId[load.id].label}
+                      {scheduleStatus.label}
                     </span>
                   )}<strong>${load.rate}</strong><span>{rpm ? `$${rpm.toFixed(2)}/MI` : 'RATE'}</span></div>
               </button>

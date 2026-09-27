@@ -109,10 +109,6 @@ function getDriverDrivingMinutes(driver, loads = [], fromMinute, toMinute) {
   return merged.reduce((total, [start, end]) => total + overlapMinutes(fromMinute, toMinute, start, end), 0)
 }
 
-function driverIsDrivingNow(driver, loads = [], now) {
-  return getDriverDrivingMinutes(driver, loads, now - 0.001, now + 0.001) > 0
-}
-
 export function advanceDriverHours(driver, loads, gameTime) {
   if (!driver || !gameTime) return driver
   const now = Number(gameTime.gameDayIndex || 0) * 1440 + Number(gameTime.totalMinutesOfDay || 0)

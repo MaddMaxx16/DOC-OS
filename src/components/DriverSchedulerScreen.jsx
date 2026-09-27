@@ -1,6 +1,7 @@
 // B.5.4D.4.1.2 — Carrier-Controlled Driver Scheduler
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
+import { getDriverTimeView } from '../utils/driverTimeInterpreter.js'
 import mapLocations from '../data/mapLocations.js'
 
 const WEEKDAYS = ['TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN', 'MON']
@@ -133,7 +134,7 @@ function LunchWindowSheet({ driver, workday, onClose, onSave }) {
             <span>DISPATCHER PLAN · LUNCH WINDOW</span>
             <strong>{driver?.fullName || driver?.name || 'Driver'}</strong>
           </div>
-          <button type="button" onClick={onClose}>×</button>
+          <button type="button" onClick={() => { window.dispatchEvent(new CustomEvent('docos:planning-location-clear')); onClose?.() }}>×</button>
         </header>
 
         <div className="scheduler-lunch-body">
@@ -178,7 +179,7 @@ function LunchWindowSheet({ driver, workday, onClose, onSave }) {
         </div>
 
         <footer>
-          <button type="button" className="secondary" onClick={onClose}>CANCEL</button>
+          <button type="button" className="secondary" onClick={() => { window.dispatchEvent(new CustomEvent('docos:planning-location-clear')); onClose?.() }}>CANCEL</button>
           <button type="button" className="primary" onClick={save}>SAVE LUNCH WINDOW</button>
         </footer>
       </section>
@@ -392,6 +393,7 @@ function buildShiftEndOptions({ driver, carrier, loads, currentDay, committedLoa
   return options
 }
 
+// P2.3.1A — Unified Mobile Planning Sheet
 function ShiftEndPlannerSheet({ driver, carrier, loads, currentDay, committedLoads, runtimePositions, onClose, onSave }) {
   const options = buildShiftEndOptions({
     driver,
@@ -409,6 +411,15 @@ function ShiftEndPlannerSheet({ driver, carrier, loads, currentDay, committedLoa
 
   const [selectedId, setSelectedId] = useState(currentId || options[0]?.locationId || null)
   const selected = options.find((option) => option.locationId === selectedId) || null
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('docos:planning-candidates', {
+      detail: { locationIds: options.map((option) => option.locationId) },
+    }))
+    return () => window.dispatchEvent(new CustomEvent('docos:planning-candidates', {
+      detail: { locationIds: [] },
+    }))
+  }, [options.map((option) => option.locationId).join('|')])
 
   return (
     <div className="shift-end-planner-backdrop" role="dialog" aria-modal="true">
@@ -435,7 +446,13 @@ function ShiftEndPlannerSheet({ driver, carrier, loads, currentDay, committedLoa
                   type="button"
                   key={option.locationId}
                   className={selectedId === option.locationId ? 'selected' : ''}
-                  onClick={() => setSelectedId(option.locationId)}
+                  onClick={() => {
+                    const nextId = selectedId === option.locationId ? null : option.locationId
+                    setSelectedId(nextId)
+                    window.dispatchEvent(new CustomEvent('docos:planning-location-tap', {
+                      detail: { locationId: option.locationId, label: option.label, active: Boolean(nextId) },
+                    }))
+                  }}
                 >
                   <span>
                     <small>{option.eyebrow}</small>
@@ -469,7 +486,7 @@ function ShiftEndPlannerSheet({ driver, carrier, loads, currentDay, committedLoa
             type="button"
             className="primary"
             disabled={!selected}
-            onClick={() => selected && onSave?.(selected)}
+            onClick={() => { if (!selected) return; window.dispatchEvent(new CustomEvent('docos:planning-location-clear')); onSave?.(selected) }}
           >
             SAVE END-OF-DAY PLAN
           </button>
@@ -500,6 +517,9 @@ function DriverSchedulerScreen({
   onOpenTodayPlan,
   onSendDriverSchedule,
   onDriverContextChange,
+  initialShiftEndPromptDriverId = null,
+  onShiftEndPromptConsumed,
+  onShiftEndAlertFlowExit,
 }) {
   const currentDay = Number(gameTime?.gameDayIndex || 0)
   const [view, setView] = useState('today')
@@ -507,6 +527,17 @@ function DriverSchedulerScreen({
   const [selectedDriverId, setSelectedDriverId] = useState(initialDriverId)
   const [lunchDriverId, setLunchDriverId] = useState(null)
   const [shiftEndDriverId, setShiftEndDriverId] = useState(null)
+  const [shiftEndAlertFlowActive, setShiftEndAlertFlowActive] = useState(false)
+
+  useEffect(() => {
+    if (!initialShiftEndPromptDriverId) return
+    setSelectedDriverId(initialShiftEndPromptDriverId)
+    onDriverContextChange?.(initialShiftEndPromptDriverId)
+    setView('driver')
+    setShiftEndAlertFlowActive(true)
+    setShiftEndDriverId(initialShiftEndPromptDriverId)
+    onShiftEndPromptConsumed?.()
+  }, [initialShiftEndPromptDriverId])
 
   const activeCarrierIds = useMemo(
     () => new Set(carriers.filter((carrier) => carrier.status === 'active').map((carrier) => carrier.id)),
@@ -798,8 +829,13 @@ function DriverSchedulerScreen({
               (selectedDriver.shiftEndLocationId ? prettyLocation(selectedDriver.shiftEndLocationId) : null) ||
               (selectedDriver.idleTargetLocationId ? prettyLocation(selectedDriver.idleTargetLocationId) : null) ||
               'Not planned'
-            const driveRemaining = selectedDriver.hours?.drivingRemainingMinutes
-            const dutyRemaining = selectedDriver.hours?.dutyRemainingMinutes
+            // P1.2.1 — Driver Time Terminology Alignment
+            const driverTime = getDriverTimeView(selectedDriver)
+            const scheduleUntilLabel = todayWorkday && !todayWorkday.isDayOff && Number.isFinite(Number(todayWorkday.endMinutes))
+              ? `Until ${formatTime(Number(todayWorkday.endMinutes))}`
+              : todayWorkday?.isDayOff
+                ? 'Day off'
+                : 'Not scheduled'
 
             return (
               <>
@@ -843,17 +879,17 @@ function DriverSchedulerScreen({
 
                 <section className="driver-ops-hos">
                   <header>
-                    <span>HOURS OF SERVICE</span>
-                    <strong>Remaining</strong>
+                    <span>DRIVER TIME</span>
+                    <strong>Planning view</strong>
                   </header>
                   <div>
                     <span>
-                      <small>DRIVE</small>
-                      <strong>{hosLabel(driveRemaining)}</strong>
+                      <small>SCHEDULE</small>
+                      <strong>{scheduleUntilLabel}</strong>
                     </span>
                     <span>
-                      <small>DUTY</small>
-                      <strong>{hosLabel(dutyRemaining)}</strong>
+                      <small>DRIVING</small>
+                      <strong>{driverTime.drivingAvailableLabel} available</strong>
                     </span>
                   </div>
                 </section>
@@ -965,10 +1001,20 @@ function DriverSchedulerScreen({
             currentDay={currentDay}
             committedLoads={committedLoads}
             runtimePositions={runtimePositions}
-            onClose={() => setShiftEndDriverId(null)}
+            onClose={() => {
+              setShiftEndDriverId(null)
+              if (shiftEndAlertFlowActive) {
+                setShiftEndAlertFlowActive(false)
+                onShiftEndAlertFlowExit?.()
+              }
+            }}
             onSave={(plan) => {
               onSetShiftEndPlan?.(shiftDriver.id, currentDay, plan)
               setShiftEndDriverId(null)
+              if (shiftEndAlertFlowActive) {
+                setShiftEndAlertFlowActive(false)
+                onShiftEndAlertFlowExit?.()
+              }
             }}
           />
         )

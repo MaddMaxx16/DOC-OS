@@ -1,7 +1,8 @@
 import mapLocations from '../data/mapLocations.js'
 import { getLocationDistanceMiles } from '../services/routingService.js'
 import { getProjectedDriverOrigin } from './driverQueue.js'
-import { getDriverHosSummary } from './driverHOS.js'
+import { getDriverTimeView, interpretDriverTimeFit } from './driverTimeInterpreter.js'
+import { getDriverScheduleWindow } from './driverScheduleConstraint.js'
 
 function finite(value, fallback = 0) {
   const number = Number(value)
@@ -45,7 +46,11 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
   if (!Number.isFinite(deadheadMinutes) || !Number.isFinite(loadedMinutes)) return null
 
   const pickupStart = finite(load.pickupDayIndex) * 1440 + finite(load.pickupWindowStartMinutes)
-  const projectedStart = finite(projection.availableAbsoluteMinute)
+  const scheduleWindow = getDriverScheduleWindow(driver, finite(load.pickupDayIndex))
+  const projectedStart = Math.max(
+    finite(projection.availableAbsoluteMinute),
+    scheduleWindow?.startAbsoluteMinute ?? 0,
+  )
   const pickupArrival = projectedStart + deadheadMinutes
   const pickupService = 10 + Math.max(0, Number(load?.facilityOps?.pickup?.loadingDelayMinutes || 0))
   const deliveryService = 8 + Math.max(0, Number(load?.facilityOps?.delivery?.unloadingDelayMinutes || 0))
@@ -54,21 +59,39 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
 
   const driveRequiredMinutes = deadheadMinutes + loadedMinutes
   const dutyRequiredMinutes = Math.max(0, deliveryComplete - projectedStart)
-  const hos = getDriverHosSummary(driver)
-  const driveOk = driveRequiredMinutes <= hos.drivingRemainingMinutes
-  const dutyOk = dutyRequiredMinutes <= hos.dutyRemainingMinutes
-
-  return {
-    label: driveOk && dutyOk ? 'HOS OK' : 'HOS RISK',
-    tone: driveOk && dutyOk ? 'good' : 'risk',
-    driveOk,
-    dutyOk,
+  const driverTime = getDriverTimeView(driver)
+  const scheduledDutyAvailable = scheduleWindow
+    ? Math.max(0, scheduleWindow.endAbsoluteMinute - projectedStart)
+    : driverTime.workdayRemainingMinutes
+  const effectiveDutyAvailable = Math.min(driverTime.workdayRemainingMinutes, scheduledDutyAvailable)
+  const fit = interpretDriverTimeFit({
     driveRequiredMinutes,
     dutyRequiredMinutes,
-    driveAvailableMinutes: hos.drivingRemainingMinutes,
-    dutyAvailableMinutes: hos.dutyRemainingMinutes,
+    driveAvailableMinutes: driverTime.drivingAvailableMinutes,
+    dutyAvailableMinutes: effectiveDutyAvailable,
+  })
+
+  return {
+    // Legacy fields remain during P1.1 so existing FreightLink UI keeps working.
+    // New UI in P1.2/P1.3 can consume driverTimeFit/driverTimeLabel/summary.
+    label: fit.fit === 'poor' ? 'HOS RISK' : 'HOS OK',
+    tone: fit.fit === 'poor' ? 'risk' : 'good',
+    driveOk: fit.driveOk,
+    dutyOk: fit.dutyOk,
+    driverTimeFit: fit.fit,
+    driverTimeLabel: fit.label,
+    driverTimeTone: fit.tone,
+    driverTimeSummary: fit.summary,
+    driverTimeReasons: fit.reasons,
+    driveMarginMinutes: fit.driveMarginMinutes,
+    dutyMarginMinutes: fit.dutyMarginMinutes,
+    driveRequiredMinutes,
+    dutyRequiredMinutes,
+    driveAvailableMinutes: driverTime.drivingAvailableMinutes,
+    dutyAvailableMinutes: effectiveDutyAvailable,
     projectedStartMinute: projectedStart,
     projectedPickupArrivalMinute: pickupArrival,
+    projectedPickupServiceStartMinute: pickupServiceStart,
     projectedDeliveryCompleteMinute: deliveryComplete,
     deadheadMinutes,
     loadedMinutes,

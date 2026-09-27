@@ -4,7 +4,6 @@ import { getFreightBusinessName, getFreightRouteName } from '../utils/freightIde
 const CHALLENGE_SECONDS = 45
 const SLOT_COUNT = 8
 const STAGING_COUNT = 2
-const BASE_UNLOAD_MINUTES = 8
 
 const typeLabel = (type) => type === 'heavy' ? 'HEAVY' : type === 'fragile' ? 'FRAGILE' : 'STANDARD'
 const typeIcon = (type) => type === 'heavy' ? '■' : type === 'fragile' ? '◇' : '▦'

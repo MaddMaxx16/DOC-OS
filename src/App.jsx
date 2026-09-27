@@ -36,6 +36,7 @@ import { createRateConfirmation } from './utils/rateConfirmation.js'
 import { advanceDriverHours, normalizeDriverHours } from './utils/driverHOS.js'
 import { resolveDriverMovementOwner } from './utils/driverMovementOwner.js'
 import { sampleRoutePoint } from './utils/routeSampler.js'
+import { reconcileRestoredRouteProgress, restoreSavedRouteContinuity } from './utils/runtimeMovement.js'
 
 
 const IDLE_DWELL_MINUTES = 20
@@ -110,7 +111,10 @@ function App() {
   const [saveSlots, setSaveSlots] = useState([])
   const [activeSaveSlotId, setActiveSaveSlotId] = useState(null)
   const [majorTransition, setMajorTransition] = useState(null)
+  const [saveFailureMessage, setSaveFailureMessage] = useState('')
   const lifecycleSaveSignatureRef = useRef('')
+  const autosaveTimerRef = useRef(null)
+  const latestAutosaveRef = useRef(null)
   const majorTransitionLockRef = useRef(false)
   const majorTransitionTimersRef = useRef([])
 
@@ -323,6 +327,25 @@ useEffect(() => {
     const nextRuntimeProgress = {}
     hydratedDrivers.forEach((driver) => {
       const activeLoad = getDriverActiveLoad(hydratedLoads, driver.id)
+      const savedProgress = saved.runtimeProgressByDriver?.[driver.id]
+      const continuity = restoreSavedRouteContinuity({
+        load: activeLoad,
+        savedPosition: nextPositions[driver.id],
+        savedProgress,
+        currentGameMinute: savedNow,
+      })
+
+      if (continuity) {
+        nextPositions[driver.id] = continuity.position
+        nextRuntimeProgress[driver.id] = continuity.progress
+        if (continuity.rebased) {
+          hydratedLoads = hydratedLoads.map((load) => load.id !== activeLoad.id ? load : continuity.delivery
+            ? { ...load, deliveryDepartureGameMinute: continuity.startGameMinute }
+            : { ...load, departureGameMinute: continuity.startGameMinute })
+        }
+        return
+      }
+
       const reconciled = reconcileDriverRuntimeState(driver, activeLoad, nextPositions[driver.id], savedNow)
       if (reconciled.position) nextPositions[driver.id] = reconciled.position
       if (Number.isFinite(reconciled.progress)) nextRuntimeProgress[driver.id] = reconciled.progress
@@ -405,15 +428,38 @@ useEffect(() => {
   }, [])
 
   useEffect(() => {
+    const onSaveFailure = () => {
+      setSaveFailureMessage('Save failed. DOC OS could not protect your latest progress. Free device storage, then keep the game open and try again.')
+    }
+    window.addEventListener('doc-os-save-failed', onSaveFailure)
+    return () => window.removeEventListener('doc-os-save-failed', onSaveFailure)
+  }, [])
+
+  // 3B.1 persistence hardening: the old autosave was a true debounce. Because the
+  // simulation clock changes continuously while operations are running, every tick
+  // cancelled the pending save and a moving driver could go unsaved indefinitely.
+  // Keep the newest snapshot in a ref and allow one trailing save every 700ms instead.
+  useEffect(() => {
     if (!hydrated || !activeSaveSlotId) return
     if (stage === 'start' && !hasExistingOperation) return
     const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
-    const timer = setTimeout(() => {
-      saveGame({ stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression }, activeSaveSlotId)
+    latestAutosaveRef.current = {
+      slotId: activeSaveSlotId,
+      state: { stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression },
+    }
+    if (autosaveTimerRef.current !== null) return
+    autosaveTimerRef.current = setTimeout(() => {
+      autosaveTimerRef.current = null
+      const snapshot = latestAutosaveRef.current
+      if (!snapshot) return
+      saveGame(snapshot.state, snapshot.slotId)
       setSaveSlots(getSaveSlots())
     }, 700)
-    return () => clearTimeout(timer)
   }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression])
+
+  useEffect(() => () => {
+    if (autosaveTimerRef.current !== null) clearTimeout(autosaveTimerRef.current)
+  }, [])
 
   // AV lifecycle persistence: critical operational boundaries flush immediately.
   // Routine animation/clock changes still use the normal debounce above.
@@ -1208,8 +1254,24 @@ Dispatch Mentor`,
       const departure = delivery ? load.deliveryDepartureGameMinute : load.departureGameMinute
       const duration = delivery ? load.plannedLoadedDriveTimeMinutes : load.plannedDeadheadDriveTimeMinutes
       if (!Array.isArray(route) || route.length < 2 || !Number.isFinite(departure) || !Number.isFinite(duration) || duration <= 0) return
-      const progress = Math.max(0, Math.min(1, (now - departure) / duration))
+      const restoredProgress = runtimeProgressByDriver?.[load.assignedDriverId]
+      const movementClock = reconcileRestoredRouteProgress({
+        currentGameMinute: now,
+        startGameMinute: departure,
+        durationMinutes: duration,
+        restoredProgress,
+      })
+      if (!movementClock) return
+      const progress = movementClock.progress
       progressUpdates[load.assignedDriverId] = progress
+      if (movementClock.rebased) {
+        setLoads((current) => current.map((item) => {
+          if (item.id !== load.id) return item
+          return delivery
+            ? { ...item, deliveryDepartureGameMinute: movementClock.startGameMinute }
+            : { ...item, departureGameMinute: movementClock.startGameMinute }
+        }))
+      }
       const position = sampleRoutePoint(route, progress)
       const destination = mapLocations.find((location) => location.id === (delivery ? load.deliveryLocationId : load.pickupLocationId))
       if (progress >= 1 && destination) positionUpdates[load.assignedDriverId] = { longitude: destination.longitude, latitude: destination.latitude }
@@ -1230,7 +1292,7 @@ Dispatch Mentor`,
         }
       }))
     }
-  }, [gameTime, loads])
+  }, [gameTime, loads, drivers, runtimeProgressByDriver])
 
   useEffect(() => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
@@ -1375,16 +1437,47 @@ Dispatch Mentor`,
       const endDayOffset = Number.isFinite(Number(workday.endDayOffset)) ? Number(workday.endDayOffset) : (Number(workday.endMinutes) <= Number(workday.startMinutes) ? 1 : 0)
       const endAbsolute = workdayOwnerDay * 1440 + Number(workday.endMinutes) + endDayOffset * 1440
       if (now < endAbsolute) return
-      const mode = workday.overnightMode
+
+      // P2.3.2A — Shift-End Execution Truth Fix
+      // The mobile Shift End planner stores its answer on the DRIVER. The legacy
+      // scheduler stored overnight intent on the WORKDAY. Execution must honor
+      // the driver's queued plan first, while retaining legacy-save fallback.
+      const queuedPlanOwnsThisWorkday =
+        Number(driver.shiftEndPlanDayIndex) === Number(workdayOwnerDay) &&
+        Boolean(driver.shiftEndLocationId)
+
+      const mode = queuedPlanOwnsThisWorkday
+        ? (driver.shiftEndPlanType === 'yard' ? 'yard' : 'truck-stop')
+        : workday.overnightMode
+
       if (!mode) return
+
       const origin = runtimePositions[driver.id]
       if (!origin) return
-      const requestedTruckStopId = workday.overnightTargetLocationId
-      const validRequestedTruckStop = requestedTruckStopId && mapLocations.some((location) => location.id === requestedTruckStopId && location.type === 'staging')
-      const targetId = mode === 'yard' ? 'metroline-yard' : (validRequestedTruckStop ? requestedTruckStopId : getOvernightTruckStopId(origin))
+
+      const requestedTargetId = queuedPlanOwnsThisWorkday
+        ? driver.shiftEndLocationId
+        : workday.overnightTargetLocationId
+
+      const requestedTarget = requestedTargetId
+        ? mapLocations.find((location) => location.id === requestedTargetId)
+        : null
+
+      const targetId = requestedTarget
+        ? requestedTarget.id
+        : (mode === 'yard' ? 'metroline-yard' : getOvernightTruckStopId(origin))
+
       const target = mapLocations.find((location) => location.id === targetId)
       if (!target) return
-      setDrivers((current) => current.map((item) => item.id === driver.id ? { ...item, overnightAppliedDayIndex: workdayOwnerDay, overnightMode: mode, idleTargetLocationId: targetId, idleRouteStatus: 'calculating', idleSinceGameMinute: now } : item))
+
+      setDrivers((current) => current.map((item) => item.id === driver.id ? {
+        ...item,
+        overnightAppliedDayIndex: workdayOwnerDay,
+        overnightMode: mode,
+        idleTargetLocationId: targetId,
+        idleRouteStatus: 'calculating',
+        idleSinceGameMinute: now,
+      } : item))
       calculateRoute(origin, target).then((route) => {
         setDrivers((current) => current.map((item) => {
           const routeActiveLoad = getDriverActiveLoad(loads, driver.id)
@@ -1469,7 +1562,21 @@ Dispatch Mentor`,
     if (arrivedDriverIds.size) setDrivers((current) => current.map((driver) => {
       if (!arrivedDriverIds.has(driver.id)) return driver
       const target = mapLocations.find((location) => location.id === driver.idleTargetLocationId)
-      return { ...driver, idleRouteStatus: 'arrived', lastKnownLocationId: driver.idleTargetLocationId, longitude: target?.longitude ?? driver.longitude, latitude: target?.latitude ?? driver.latitude }
+      return {
+        ...driver,
+        idleRouteStatus: 'arrived',
+        idleRouteGeometry: null,
+        idleRouteStartGameMinute: null,
+        idleRouteDurationMinutes: null,
+        lastKnownLocationId: driver.idleTargetLocationId,
+        longitude: target?.longitude ?? driver.longitude,
+        latitude: target?.latitude ?? driver.latitude,
+        hours: {
+          ...(driver.hours || {}),
+          status: 'off-duty',
+          offDutySinceGameMinute: now,
+        },
+      }
     }))
   }, [gameTime, drivers, loads])
 
@@ -1758,6 +1865,12 @@ Open CarrierSource to review your full account history.`
   return (
     <main className="app">
       <section className="phone-shell">
+        {saveFailureMessage && (
+          <div className="save-failure-banner" role="alert">
+            <span>{saveFailureMessage}</span>
+            <button type="button" onClick={() => setSaveFailureMessage('')} aria-label="Dismiss save warning">×</button>
+          </div>
+        )}
         {majorTransition && (
           <div
             className={`app-stage-transition ${majorTransition.phase} ${majorTransition.kind}`}
