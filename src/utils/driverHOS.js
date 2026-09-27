@@ -1,4 +1,5 @@
 import { isDriverOnLunch } from './lunchDecisionEvents.js'
+import { resolveDriverWorkdayOwnership } from './driverWorkdayOwnership.js'
 
 export const HOS_DRIVING_LIMIT_MINUTES = 11 * 60
 export const HOS_DUTY_LIMIT_MINUTES = 14 * 60
@@ -32,32 +33,14 @@ export function normalizeDriverHours(hours = {}, nowAbsoluteMinute = null) {
 
 export function getDriverScheduledWindow(driver, gameTime) {
   if (!driver || !gameTime) return null
-  const dayIndex = Number(gameTime.gameDayIndex || 0)
-  const minuteOfDay = Number(gameTime.totalMinutesOfDay || 0)
-  const current = driver.workdayByDay?.[String(dayIndex)] || driver.workdayByDay?.[dayIndex]
-  const prior = dayIndex > 0 ? (driver.workdayByDay?.[String(dayIndex - 1)] || driver.workdayByDay?.[dayIndex - 1]) : null
-
-  const buildWindow = (workday, ownerDayIndex) => {
-    const start = finite(workday?.startMinutes)
-    const end = finite(workday?.endMinutes)
-    if (!Number.isFinite(start) || !Number.isFinite(end)) return null
-    const endDayOffset = Number.isFinite(Number(workday?.endDayOffset))
-      ? Number(workday.endDayOffset)
-      : (end <= start ? 1 : 0)
-    return {
-      ownerDayIndex,
-      startAbsolute: ownerDayIndex * 1440 + start,
-      endAbsolute: ownerDayIndex * 1440 + end + endDayOffset * 1440,
-      workday,
-    }
+  const ownership = resolveDriverWorkdayOwnership({ driver, loads: [], gameTime })
+  if (!ownership.workday || !Number.isFinite(ownership.scheduledStartAbsolute) || !Number.isFinite(ownership.scheduledEndAbsolute)) return null
+  return {
+    ownerDayIndex: ownership.ownerDayIndex,
+    startAbsolute: ownership.scheduledStartAbsolute,
+    endAbsolute: ownership.scheduledEndAbsolute,
+    workday: ownership.workday,
   }
-
-  const currentWindow = buildWindow(current, dayIndex)
-  const priorWindow = buildWindow(prior, dayIndex - 1)
-  const now = dayIndex * 1440 + minuteOfDay
-  if (priorWindow && now >= priorWindow.startAbsolute && now < priorWindow.endAbsolute) return priorWindow
-  if (currentWindow) return currentWindow
-  return null
 }
 
 function driverHasActiveWork(driver, loads = []) {

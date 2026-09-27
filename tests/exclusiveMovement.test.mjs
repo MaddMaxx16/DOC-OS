@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { canAcquireDriverMovement, resolveDriverMovementOwner } from '../src/utils/driverMovementOwner.js'
 import { anchorMovementRoute, getLunchMovementFrame, reconcileFreightMovement, reconcileIdleMovement } from '../src/utils/runtimeMovement.js'
+import { resolveDriverWorkdayOwnership } from '../src/utils/driverWorkdayOwnership.js'
 
 const app = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')
 const main = readFileSync(new URL('../src/components/MainGameScreen.jsx', import.meta.url), 'utf8')
@@ -65,6 +66,7 @@ function fixture({ freight = true, lunch = false, idle = false } = {}) {
     movementStateRef, suspendedIdleDriversRef, idleRouteRequestsRef,
     mapLocations: locations, canAcquireDriverMovement, reconcileIdleMovement,
     reconcileFreightMovement, anchorMovementRoute, getLunchMovementFrame,
+    resolveDriverWorkdayOwnership,
     currentAbsoluteGameMinute: state.gameTime.gameDayIndex * 1440 + state.gameTime.totalMinutesOfDay,
     ...extra,
   })
@@ -155,6 +157,34 @@ test('production freight release permits existing Shift End staging from current
   f.state.gameTime = { ...f.state.gameTime, totalMinutesOfDay: 111 }
   f.tickIdle()
   assert.deepEqual(f.writes, ['positions'])
+})
+
+test('prior-day overtime freight release starts prior Shift End staging after midnight without a jump', async () => {
+  const f = fixture()
+  f.state.gameTime = { gameDayIndex: 1, totalMinutesOfDay: 60 }
+  f.state.drivers[0] = {
+    ...f.state.drivers[0],
+    workdayByDay: { 0: { startMinutes: 420, endMinutes: 1020 }, 1: { startMinutes: 420, endMinutes: 1020 } },
+    hours: { dutySessionDayIndex: 0, dutySessionStartGameMinute: 420, status: 'on-duty' },
+  }
+  f.state.runtimePositions = { marcus: { longitude: 7, latitude: 8 } }
+  f.tickStaging()
+  assert.equal(f.state.drivers[0].idleRouteStatus, undefined)
+
+  f.state.loads = []
+  f.tickStaging()
+  assert.equal(f.state.drivers[0].idleRouteStatus, 'calculating')
+  assert.equal(f.state.drivers[0].overnightAppliedDayIndex, 0)
+  const origin = f.state.runtimePositions.marcus
+  const request = f.makeRouteRequest(async (from) => {
+    assert.equal(from, origin)
+    return { routeShape: [[9, 9], [20, 20]], durationMinutes: 30 }
+  })
+  f.tickStaging(request)
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(f.state.drivers[0].idleRouteStatus, 'traveling')
+  assert.deepEqual(f.state.drivers[0].idleRouteGeometry[0], [7, 8])
+  assert.equal(f.state.runtimePositions.marcus, origin)
 })
 
 test('idle reposition moves only with no higher owner and settles on a repeated tick', () => {

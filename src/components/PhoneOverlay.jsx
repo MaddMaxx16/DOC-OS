@@ -9,6 +9,7 @@ import FleetSchedulerScreen from './FleetSchedulerScreen.jsx'
 // B.5.4D.3.1 — First Workday Agenda Polish
 // B.5.4D.4.1 — Driver Scheduler Foundation
 import DriverSchedulerScreen from './DriverSchedulerScreen.jsx'
+import { applyLunchWindowToOwnedWorkday, resolveDriverWorkdayOwnership } from '../utils/driverWorkdayOwnership.js'
 import DocumentsScreen from './DocumentsScreen.jsx'
 import PodDetailScreen from './PodDetailScreen.jsx'
 import CarrierSourceScreen from './CarrierSourceScreen.jsx'
@@ -448,7 +449,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
                   <div>
                     <span>OVERNIGHT TEST</span>
                     <b>CONTROLLED MIDNIGHT SCENARIO</b>
-                    <small>Sets the clock to 11:45 PM, places Marcus en route to a delivery due after midnight, and pauses the clock so you can inspect state before testing rollover.</small>
+                    <small>Temporarily gives Marcus a 2:00 PM–3:00 AM cross-midnight shift, places him en route to a delivery due after midnight, and starts paused at 11:45 PM for inspection.</small>
                   </div>
                   <div className="phone-dev-inline-actions">
                     <button type="button" disabled={!onSetupOvernightDevScenario} onClick={() => { onSetupOvernightDevScenario?.(); setDevToolsOpen(false) }}>SETUP OVERNIGHT TEST</button>
@@ -598,16 +599,9 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           onSetLunchWindow={(driverId, dayIndex, lunchWindow) => {
             setDrivers?.((current) => current.map((driver) => {
               if (driver.id !== driverId) return driver
-              const workdayByDay = { ...(driver.workdayByDay || {}) }
-              const key = String(dayIndex)
-              const existing = workdayByDay[key]
-              if (!existing) return driver
-              workdayByDay[key] = {
-                ...existing,
-                ...lunchWindow,
-                lunchWindowUpdatedGameMinute: nowGameMinute,
-              }
-              return { ...driver, workdayByDay }
+              const ownership = resolveDriverWorkdayOwnership({ driver, loads, gameTime })
+              if (Number(ownership.ownerDayIndex) !== Number(dayIndex)) return driver
+              return applyLunchWindowToOwnedWorkday(driver, loads, gameTime, lunchWindow, nowGameMinute)
             }))
           }}
           onSetShiftEndPlan={(driverId, dayIndex, plan) => {

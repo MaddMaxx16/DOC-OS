@@ -4,6 +4,22 @@ import {
   getDeliveryDockWaitMinutes,
   getPickupDockWaitMinutes,
 } from '../data/pickupConfig.js'
+import { resolveDriverWorkdayOwnership } from './driverWorkdayOwnership.js'
+
+function lunchContext(load, drivers, loads, gameDayIndex, now) {
+  const driver = drivers.find((item) => item.id === load.assignedDriverId)
+  const ownership = resolveDriverWorkdayOwnership({
+    driver,
+    loads,
+    gameTime: { gameDayIndex, totalMinutesOfDay: ((now % 1440) + 1440) % 1440 },
+  })
+  const dayKey = String(ownership.ownerDayIndex)
+  return {
+    driver,
+    lunchEvent: driver?.workdayByDay?.[dayKey]?.lunchEvent,
+    lunchEffect: driver?.lunchEffectsByDay?.[dayKey],
+  }
+}
 
 export function advanceDockLifecycle(load, now, { drivers = [], loads = [], gameDayIndex = Math.floor(now / 1440) } = {}) {
   if (load.tripStatus === 'at-pickup') return {
@@ -13,10 +29,7 @@ export function advanceDockLifecycle(load, now, { drivers = [], loads = [], game
     pickupCheckInStartGameMinute: now,
   }
   if (load.tripStatus === 'checking-in-pickup' && Number.isFinite(load.pickupCheckInStartGameMinute) && now - load.pickupCheckInStartGameMinute >= PICKUP_CHECKIN_MINUTES) {
-    const driver = drivers.find((item) => item.id === load.assignedDriverId)
-    const dayKey = String(gameDayIndex)
-    const lunchEvent = driver?.workdayByDay?.[dayKey]?.lunchEvent
-    const lunchEffect = driver?.lunchEffectsByDay?.[dayKey]
+    const { lunchEvent, lunchEffect } = lunchContext(load, drivers, loads, gameDayIndex, now)
     const bonusAlreadyUsed = loads.some((item) => item.id !== load.id
       && (item.assignedDriverId === load.assignedDriverId || item.completedDriverId === load.assignedDriverId)
       && Number(item.lunchEarlyCheckInBonusAppliedMinutes || 0) > 0)
@@ -41,10 +54,7 @@ export function advanceDockLifecycle(load, now, { drivers = [], loads = [], game
     deliveryCheckInStartGameMinute: now,
   }
   if (load.tripStatus === 'checking-in-delivery' && Number.isFinite(load.deliveryCheckInStartGameMinute) && now - load.deliveryCheckInStartGameMinute >= DELIVERY_CHECKIN_MINUTES) {
-    const driver = drivers.find((item) => item.id === load.assignedDriverId)
-    const dayKey = String(gameDayIndex)
-    const lunchEvent = driver?.workdayByDay?.[dayKey]?.lunchEvent
-    const lunchEffect = driver?.lunchEffectsByDay?.[dayKey]
+    const { lunchEvent, lunchEffect } = lunchContext(load, drivers, loads, gameDayIndex, now)
     const bonusAlreadyUsed = loads.some((item) => item.id !== load.id
       && (item.assignedDriverId === load.assignedDriverId || item.completedDriverId === load.assignedDriverId)
       && Number(item.lunchEarlyCheckInBonusAppliedMinutes || 0) > 0)

@@ -1,5 +1,6 @@
 import { createPodDocument } from './documentLifecycle.js'
 import { getDriverOnboardLoads, getDriverQueue } from './driverQueue.js'
+import { resolveDriverWorkdayOwnership } from './driverWorkdayOwnership.js'
 const DELIVERY_UNLOADING_START_STATUSES = new Set([
   'waiting-at-delivery',
   'checked-in-delivery',
@@ -52,10 +53,10 @@ export function getDeliveryHandoffContext({ loads = [], drivers = [], loadId, ga
   const nextQueued = releasedDriverId && !onboardNext ? getDriverQueue(loads, releasedDriverId)[0] || null : null
   const releasedDriver = drivers.find((driver) => driver.id === releasedDriverId) || null
   const day = Number(gameTime?.gameDayIndex)
-  const currentWorkday = releasedDriver?.workdayByDay?.[String(day)] || releasedDriver?.workdayByDay?.[day] || null
-  const start = Number(currentWorkday?.startMinutes), end = Number(currentWorkday?.endMinutes)
-  const endOffset = Number.isFinite(Number(currentWorkday?.endDayOffset)) ? Number(currentWorkday.endDayOffset) : (Number.isFinite(start) && Number.isFinite(end) && end <= start ? 1 : 0)
-  const withinCurrentWorkday = Number.isFinite(start) && Number.isFinite(end) && Number.isFinite(day) && now >= day * 1440 + start && now < day * 1440 + end + endOffset * 1440
+  const ownership = resolveDriverWorkdayOwnership({ driver: releasedDriver, loads, gameTime })
+  const withinCurrentWorkday = Boolean(ownership.workday && (
+    ownership.scheduledTimeActive || ownership.carryoverRetainsOwnership || ownership.shiftEndRetainsOwnership
+  ))
   const nextWasBriefed = Number.isFinite(nextQueued?.pickupDriverBriefedGameMinute) && Number.isFinite(nextQueued?.driverAcknowledgedGameMinute)
   const nextPickupIsCurrentOrEarlierDay = !Number.isFinite(Number(nextQueued?.pickupDayIndex)) || Number(nextQueued.pickupDayIndex) <= day
   return { deliveredLoad, releasedDriverId, onboardNext, nextQueued, nextCanAutoHandoff: Boolean(nextQueued && nextWasBriefed && withinCurrentWorkday && nextPickupIsCurrentOrEarlierDay) }

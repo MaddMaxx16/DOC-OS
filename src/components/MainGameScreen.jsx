@@ -35,6 +35,7 @@ import { applyLunchDuration, getLunchDecisionChoices, hasLunchMovementAuthority,
 import { createPodDocument } from '../utils/documentLifecycle.js'
 import { getDriverScheduleConstraint } from '../utils/driverScheduleConstraint.js'
 import { getDriverScheduleAuthority } from '../utils/driverScheduleAuthority.js'
+import { resolveDriverWorkdayOwnership } from '../utils/driverWorkdayOwnership.js'
 
 
 
@@ -360,6 +361,11 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   })
   const canMoveFreight = (driverId, loadId, currentLoads) => canAcquireDriverMovement(movementContext(driverId, currentLoads), 'freight', loadId)
   const ownsLunch = (driverId) => canAcquireDriverMovement(movementContext(driverId), 'lunch')
+  const workdayOwnership = (driver, currentLoads = movementStateRef.current.loads) => resolveDriverWorkdayOwnership({
+    driver,
+    loads: currentLoads,
+    gameTime: movementStateRef.current.gameTime,
+  })
   const setDriverRuntimeProgress = (driverId, value, subsystem = 'freight') => {
     const context = movementContext(driverId)
     const owner = resolveDriverMovementOwner(context)
@@ -403,7 +409,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       lunchPriorSpeedRef.current = Number(simulationSpeed) || 1
     }
     setGameClockPaused(true)
-    const candidateWorkday = candidate?.workdayByDay?.[String(gameTime.gameDayIndex)] || candidate?.workdayByDay?.[gameTime.gameDayIndex] || null
+    const candidateWorkday = workdayOwnership(candidate).workday
     const choices = candidateWorkday
       ? getLunchDecisionChoices({ driver: candidate, loads, gameTime, operationDay, runtimePosition: runtimePositions?.[candidate.id] || null })
       : []
@@ -424,7 +430,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   }
 
   const lunchDecisionDriver = drivers.find((driver) => driver.id === lunchDecisionDriverId) || null
-  const lunchDecisionWorkday = lunchDecisionDriver?.workdayByDay?.[String(gameTime.gameDayIndex)] || lunchDecisionDriver?.workdayByDay?.[gameTime.gameDayIndex] || null
+  const lunchDecisionOwnership = lunchDecisionDriver ? workdayOwnership(lunchDecisionDriver) : null
+  const lunchDecisionWorkday = lunchDecisionOwnership?.workday || null
   const lunchDecisionChoices = lunchDecisionDriver && lunchDecisionWorkday
     ? lunchDecisionChoicesSnapshot
     : []
@@ -440,7 +447,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     const driverId = lunchDecisionDriver.id
     if (!isLunchDecisionReady({ driver: lunchDecisionDriver, loads, gameTime })) return
     const offeredChoiceIds = lunchDecisionChoices.map((item) => item.id)
-    const dayKey = String(gameTime.gameDayIndex)
+    const ownerDayIndex = lunchDecisionOwnership.ownerDayIndex
+    const dayKey = String(ownerDayIndex)
     const relationshipDelta = Number(choice.effects?.relationship || 0)
     const selectedAt = currentAbsoluteGameMinute
     const nextDuration = applyLunchDuration(lunchDecisionWorkday.lunchDurationMinutes, choice.effects?.durationOverrideMinutes)
@@ -481,8 +489,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         },
       }
       const lunchOfferHistory = [
-        ...(Array.isArray(driver.lunchOfferHistory) ? driver.lunchOfferHistory : []).filter((entry) => entry?.dayIndex !== gameTime.gameDayIndex),
-        { dayIndex: gameTime.gameDayIndex, optionIds: offeredChoiceIds, selectedChoiceId: choice.id, targetLocationId: choice.lunchStop.id },
+        ...(Array.isArray(driver.lunchOfferHistory) ? driver.lunchOfferHistory : []).filter((entry) => entry?.dayIndex !== ownerDayIndex),
+        { dayIndex: ownerDayIndex, optionIds: offeredChoiceIds, selectedChoiceId: choice.id, targetLocationId: choice.lunchStop.id },
       ].slice(-6)
       const lunchEffectsByDay = {
         ...(driver.lunchEffectsByDay || {}),
@@ -575,7 +583,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     const arrivedSet = new Set(arrivals)
     setDrivers((current) => current.map((driver) => {
       if (!arrivedSet.has(driver.id)) return driver
-      const dayKey = String(gameTime.gameDayIndex)
+      const dayKey = String(workdayOwnership(driver).ownerDayIndex)
       const workdayByDay = { ...(driver.workdayByDay || {}) }
       const workday = workdayByDay[dayKey]
       const event = workday?.lunchEvent
@@ -604,8 +612,9 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   useEffect(() => {
     const now = currentAbsoluteGameMinute
     drivers.forEach((driver) => {
-      const dayKey = String(gameTime.gameDayIndex)
-      const workday = driver.workdayByDay?.[dayKey] || driver.workdayByDay?.[gameTime.gameDayIndex]
+      const ownership = workdayOwnership(driver)
+      const dayKey = String(ownership.ownerDayIndex)
+      const workday = ownership.workday
       const event = workday?.lunchEvent
       // Completion is anchored to physical ARRIVAL, never the original Agenda
       // lunch window. This prevents a 12:00/30-minute lunch from expiring while
@@ -716,7 +725,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       const roadStart = roadRoute[0]
       const resumeAt = now + 1
       const driveMinutes = Math.max(1, Number(driver.lunchResumeRouteDurationMinutes || 1))
-      const dayKey = String(gameTime.gameDayIndex)
+      const dayKey = String(workdayOwnership(driver).ownerDayIndex)
 
       setRuntimePositions?.((current) => ({
         ...(current || {}),
@@ -731,7 +740,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       setDrivers((current) => current.map((item) => {
         if (item.id !== driver.id) return item
         const workdayByDay = { ...(item.workdayByDay || {}) }
-        const workday = workdayByDay[dayKey] || workdayByDay[gameTime.gameDayIndex]
+        const workday = workdayByDay[dayKey]
         if (workday?.lunchEvent) {
           workdayByDay[dayKey] = { ...workday, lunchEvent: { ...workday.lunchEvent, status: 'completed', completedGameMinute: now } }
         }
@@ -856,7 +865,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   // dispatcher saves an end-of-day plan. Active freight is intentionally allowed.
   // P2.3.1R — Shift-End Alert Workflow
   const driverShiftEndAlerts = drivers
-    .map((driver) => getShiftEndAlert({ driver, gameTime, warningMinutes: 15 }))
+    .map((driver) => getShiftEndAlert({ driver, loads, gameTime, warningMinutes: 15 }))
     .filter(Boolean)
 
   const driverOperationAlerts = activeDriverLoads.flatMap((load) => {
@@ -2929,7 +2938,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
                     const hos = getDriverHosSummary(driver)
                     const driverTime = getDriverTimeView(driver)
                     // P1.2.1 — Driver Time Terminology Alignment
-                    const currentWorkday = driver?.workdayByDay?.[String(gameTime.gameDayIndex)] || driver?.workdayByDay?.[gameTime.gameDayIndex] || null
+                    const currentWorkday = workdayOwnership(driver).workday
                     const scheduleUntilLabel = currentWorkday && !currentWorkday.isDayOff && Number.isFinite(Number(currentWorkday.endMinutes))
                       ? `Until ${formatTime(Number(currentWorkday.endMinutes))}`
                       : currentWorkday?.isDayOff

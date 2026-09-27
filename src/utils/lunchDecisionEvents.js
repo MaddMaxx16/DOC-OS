@@ -1,5 +1,6 @@
 import { buildDriverItinerary } from './driverItinerary.js'
 import mapLocations from '../data/mapLocations.js'
+import { resolveDriverWorkdayOwnership } from './driverWorkdayOwnership.js'
 import { getLocationDistanceMiles } from '../services/routingService.js'
 
 export const LUNCH_DECISION_OPTIONS = [
@@ -240,7 +241,7 @@ const LUNCH_DECISION_UNSAFE_STATUSES = new Set([
   'loading-at-pickup', 'unloading-delivery', 'pickup-issue',
 ])
 
-export function getLunchPlanningContext({ driver, gameTime }) {
+export function getLunchPlanningContext({ driver, loads = [], gameTime }) {
   if (!driver || !gameTime) return null
   const currentDay = Number(gameTime.gameDayIndex || 0)
   const nowMinute = Number(gameTime.totalMinutesOfDay || 0)
@@ -248,7 +249,8 @@ export function getLunchPlanningContext({ driver, gameTime }) {
 
   // A cross-midnight carrier shift remains owned by the day it started. Look at
   // today first, then yesterday so lunch/break state does not disappear at 12 AM.
-  const candidateDays = [currentDay, currentDay - 1]
+  const ownership = resolveDriverWorkdayOwnership({ driver, loads, gameTime })
+  const candidateDays = Array.from(new Set([ownership.ownerDayIndex, currentDay, currentDay - 1].filter(Number.isFinite)))
   for (const ownerDay of candidateDays) {
     const workday = driver.workdayByDay?.[String(ownerDay)] || driver.workdayByDay?.[ownerDay]
     if (!workday || workday.isDayOff) continue
@@ -300,7 +302,7 @@ export function getLunchPlanningContext({ driver, gameTime }) {
 }
 
 export function isLunchDecisionReady({ driver, loads = [], gameTime }) {
-  const context = getLunchPlanningContext({ driver, gameTime })
+  const context = getLunchPlanningContext({ driver, loads, gameTime })
   if (!context?.hasPlan || context.workday?.lunchEvent?.selectedChoiceId) return false
   if (context.nowAbsolute < context.windowStartAbsolute || context.nowAbsolute > context.windowEndAbsolute) return false
 

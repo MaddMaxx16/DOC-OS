@@ -1,30 +1,23 @@
-function workdayForOwnerDay(driver, ownerDay) {
-  return driver?.workdayByDay?.[String(ownerDay)] || driver?.workdayByDay?.[ownerDay] || null
-}
+import { resolveDriverWorkdayOwnership } from './driverWorkdayOwnership.js'
 
-export function getOwnedShiftWindow(driver, gameTime) {
+export function getOwnedShiftWindow(driver, gameTime, loads = []) {
   if (!driver || !gameTime) return null
   const currentDay = Number(gameTime.gameDayIndex || 0)
   const nowMinute = Number(gameTime.totalMinutesOfDay || 0)
   const nowAbsolute = currentDay * 1440 + nowMinute
-
-  for (const ownerDay of [currentDay, currentDay - 1]) {
-    const workday = workdayForOwnerDay(driver, ownerDay)
-    if (!workday || workday.isDayOff) continue
-    const start = Number(workday.startMinutes)
-    const end = Number(workday.endMinutes)
-    if (!Number.isFinite(start) || !Number.isFinite(end)) continue
-    const startAbsolute = ownerDay * 1440 + start
-    const endAbsolute = ownerDay * 1440 + end + (end <= start ? 1440 : 0)
-    if (nowAbsolute >= startAbsolute && nowAbsolute <= endAbsolute + 360) {
-      return { ownerDay, workday, startAbsolute, endAbsolute, nowAbsolute }
-    }
-  }
-  return null
+  const ownership = resolveDriverWorkdayOwnership({ driver, loads, gameTime })
+  const ownerDay = ownership.ownerDayIndex
+  const workday = ownership.workday
+  if (!Number.isFinite(ownerDay) || !workday || workday.isDayOff) return null
+  const startAbsolute = ownership.scheduledStartAbsolute
+  const endAbsolute = ownership.scheduledEndAbsolute
+  if (!Number.isFinite(startAbsolute) || !Number.isFinite(endAbsolute) || nowAbsolute < startAbsolute) return null
+  if (nowAbsolute > endAbsolute + 360 && !ownership.carryoverRetainsOwnership && !ownership.shiftEndRetainsOwnership) return null
+  return { ownerDay, workday, startAbsolute, endAbsolute, nowAbsolute, ownership }
 }
 
-export function getShiftEndAlert({ driver, gameTime, warningMinutes = 15 }) {
-  const shift = getOwnedShiftWindow(driver, gameTime)
+export function getShiftEndAlert({ driver, loads = [], gameTime, warningMinutes = 15 }) {
+  const shift = getOwnedShiftWindow(driver, gameTime, loads)
   if (!shift) return null
 
   // A saved end-of-day plan means the dispatcher has already answered this alert.

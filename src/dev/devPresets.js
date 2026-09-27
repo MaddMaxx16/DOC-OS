@@ -9,6 +9,86 @@ import { getOvernightDeliveryTiming } from './devScenarioTiming.js'
 const nowOf = (t) => (t?.gameDayIndex ?? 0) * 1440 + (t?.totalMinutesOfDay ?? 360)
 const pointAlong = (route, p) => { const i = Math.min(route.length - 2, Math.floor(p * (route.length - 1))); const t = p * (route.length - 1) - i; const a = route[i]; const b = route[i + 1]; return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t] }
 
+export function createOvernightDevDriver(driver, gameTime, loadId) {
+  const ownerDayIndex = Number(gameTime?.gameDayIndex || 0)
+  const now = nowOf(gameTime)
+  const dayKey = String(ownerDayIndex)
+  const existingWorkday = driver?.workdayByDay?.[dayKey] || {}
+  const {
+    lunchWindowStartMinutes: _lunchWindowStartMinutes,
+    lunchWindowEndMinutes: _lunchWindowEndMinutes,
+    lunchWindowSetBy: _lunchWindowSetBy,
+    lunchWindowUpdatedGameMinute: _lunchWindowUpdatedGameMinute,
+    lunchEvent: _lunchEvent,
+    ...workdayWithoutLunch
+  } = existingWorkday
+  void _lunchWindowStartMinutes
+  void _lunchWindowEndMinutes
+  void _lunchWindowSetBy
+  void _lunchWindowUpdatedGameMinute
+  void _lunchEvent
+
+  return {
+    ...driver,
+    status: 'unavailable',
+    assignedLoadId: loadId,
+    workdayByDay: {
+      ...(driver?.workdayByDay || {}),
+      [dayKey]: {
+        ...workdayWithoutLunch,
+        startMinutes: 14 * 60,
+        endMinutes: 3 * 60,
+        endDayOffset: 1,
+        crossesMidnight: true,
+        isDayOff: false,
+        carrierConfirmed: true,
+        scheduleSource: 'dev-overnight-test',
+      },
+    },
+    hours: {
+      ...(driver?.hours || {}),
+      drivingRemainingMinutes: 11 * 60,
+      dutyRemainingMinutes: 14 * 60 - (now - (ownerDayIndex * 1440 + 14 * 60)),
+      cycleRemainingMinutes: 70 * 60 - (now - (ownerDayIndex * 1440 + 14 * 60)),
+      status: 'driving',
+      dutySessionStartGameMinute: ownerDayIndex * 1440 + 14 * 60,
+      dutySessionDayIndex: ownerDayIndex,
+      lastProcessedGameMinute: now,
+      offDutySinceGameMinute: null,
+      restAccumulatedMinutes: 0,
+      nextResetGameMinute: null,
+    },
+    lunchEffectsByDay: {},
+    lunchOfferHistory: [],
+    lunchRouteStatus: null,
+    lunchRouteGeometry: null,
+    lunchRouteStartGameMinute: null,
+    lunchRouteDurationMinutes: null,
+    lunchParkedAtGameMinute: null,
+    lunchReleaseGameMinute: null,
+    lunchTargetLocationId: null,
+    lunchInterruptedLoadId: null,
+    lunchInterruptedPhase: null,
+    lunchResumeRouteGeometry: null,
+    lunchResumeRouteDurationMinutes: null,
+    lunchResumeLoadId: null,
+    lunchResumePhase: null,
+    shiftEndPlanDayIndex: null,
+    shiftEndPlanType: null,
+    shiftEndLocationId: null,
+    shiftEndLocationName: null,
+    overnightAppliedDayIndex: null,
+    overnightMode: null,
+    overnightTargetLocationId: null,
+    idleTargetLocationId: null,
+    idleRouteStatus: null,
+    idleRouteGeometry: null,
+    idleRouteStartGameMinute: null,
+    idleRouteDurationMinutes: null,
+    idleSinceGameMinute: null,
+  }
+}
+
 const DEFAULT_PALLET_TYPES = ['heavy', 'heavy', 'standard', 'standard', 'standard', 'standard', 'fragile', 'fragile']
 
 function normalizeDevShipment(load) {
@@ -98,7 +178,12 @@ export async function createDevPreset(name, { gameTime, currentLoads = seedLoads
     load.selectedLoadedRouteId = 'recommended'
     load.deliveryDepartureGameMinute = now
     const p = pointAlong(route.routeShape, 0.01)
-    return { ...withDriver({ longitude: p[0], latitude: p[1] }), runtimeProgress: 0.01 }
+    return {
+      ...base,
+      drivers: roster.map((item) => item.id === 'marcus' ? createOvernightDevDriver(item, gameTime, load.id) : item),
+      runtimePositions: { ...currentRuntimePositions, marcus: { longitude: p[0], latitude: p[1] } },
+      runtimeProgress: 0.01,
+    }
   }
   if (name === 'en-route-pickup' || name === 'en-route-delivery') { const origin = name === 'en-route-pickup' ? (currentRuntimePositions.marcus || driver) : pickup; const destination = name === 'en-route-pickup' ? pickup : delivery; const route = await calculateRoute(origin, destination); load.status = 'accepted'; load.assignedDriverId = 'marcus'; load.tripStatus = name; if (name === 'en-route-pickup') { load.planningStatus = 'route-ready'; load.plannedDeadheadRouteGeometry = route.routeShape; load.plannedDeadheadMiles = route.distanceMiles; load.plannedDeadheadDriveTimeMinutes = route.durationMinutes; load.selectedDeadheadRouteId = 'recommended'; load.departureGameMinute = now } else { load.deliveryPlanningStatus = 'route-ready'; load.plannedLoadedRouteGeometry = route.routeShape; load.plannedLoadedMiles = route.distanceMiles; load.plannedLoadedDriveTimeMinutes = route.durationMinutes; load.selectedLoadedRouteId = 'recommended'; load.deliveryDepartureGameMinute = now } const p = pointAlong(route.routeShape, 0.01); return { ...withDriver({ longitude: p[0], latitude: p[1] }), runtimeProgress: 0.01 } }
   throw new Error(`Unknown DEV load preset: ${name}`)

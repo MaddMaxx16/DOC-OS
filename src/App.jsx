@@ -36,6 +36,7 @@ import { createCorrectedPodVersion, normalizePodDocument } from './utils/documen
 import { createRateConfirmation } from './utils/rateConfirmation.js'
 import { advanceDriverHours, normalizeDriverHours } from './utils/driverHOS.js'
 import { canAcquireDriverMovement } from './utils/driverMovementOwner.js'
+import { resolveDriverWorkdayOwnership } from './utils/driverWorkdayOwnership.js'
 import { sampleRoutePoint } from './utils/routeSampler.js'
 import { anchorMovementRoute, reconcileIdleMovement, reconcileFreightMovement, restoreSavedRouteContinuity } from './utils/runtimeMovement.js'
 
@@ -1350,14 +1351,9 @@ Dispatch Mentor`,
         requestIdleRoute(driver, runtimePositions[driver.id])
         return
       }
-      const currentWorkday = driver.workdayByDay?.[String(dayIndex)] || driver.workdayByDay?.[dayIndex]
-      const priorDayIndex = dayIndex - 1
-      const priorWorkday = priorDayIndex >= 0 ? (driver.workdayByDay?.[String(priorDayIndex)] || driver.workdayByDay?.[priorDayIndex]) : null
-      const priorCrossesMidnight = priorWorkday && (Number(priorWorkday.endDayOffset) === 1 || (!Number.isFinite(Number(priorWorkday.endDayOffset)) && Number(priorWorkday.endMinutes) <= Number(priorWorkday.startMinutes)))
-      const currentStart = Number(currentWorkday?.startMinutes)
-      const priorCarryoverRelevant = priorCrossesMidnight && (!Number.isFinite(currentStart) || gameTime.totalMinutesOfDay < currentStart)
-      const workdayOwnerDay = priorCarryoverRelevant ? priorDayIndex : dayIndex
-      const workday = priorCarryoverRelevant ? priorWorkday : currentWorkday
+      const ownership = resolveDriverWorkdayOwnership({ driver, loads, gameTime })
+      const workdayOwnerDay = ownership.ownerDayIndex
+      const workday = ownership.workday
       if (driver.overnightAppliedDayIndex === workdayOwnerDay) return
       if (!workday || !Number.isFinite(Number(workday.endMinutes))) return
       const endDayOffset = Number.isFinite(Number(workday.endDayOffset)) ? Number(workday.endDayOffset) : (Number(workday.endMinutes) <= Number(workday.startMinutes) ? 1 : 0)

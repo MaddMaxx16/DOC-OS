@@ -19,6 +19,7 @@ class MemoryStorage {
 
 globalThis.localStorage = new MemoryStorage()
 const saves = await import('../src/utils/saveGame.js')
+const { resolveDriverWorkdayOwnership } = await import('../src/utils/driverWorkdayOwnership.js')
 
 test.beforeEach(() => localStorage.clear())
 
@@ -30,6 +31,21 @@ test('save/load round trip preserves game state and active slot', () => {
   assert.equal(saves.hasSave(), true)
   const raw = JSON.parse(localStorage.getItem('doc-os-saves-v2'))
   assert.equal(raw.slots['save-02'].stateVersion, saves.SAVE_STATE_VERSION)
+})
+
+test('save/load preserves the facts that derive prior operational workday ownership', () => {
+  const state = {
+    gameTime: { gameDayIndex: 1, totalMinutesOfDay: 15 },
+    drivers: [{ id: 'marcus', workdayByDay: { 0: { startMinutes: 420, endMinutes: 1020 }, 1: { startMinutes: 420, endMinutes: 1020 } },
+      hours: { dutySessionDayIndex: 0, dutySessionStartGameMinute: 420, status: 'driving' },
+      shiftEndPlanDayIndex: 0, shiftEndLocationId: 'metroline-yard' }],
+    loads: [{ id: 'carryover', assignedDriverId: 'marcus', tripStatus: 'en-route-delivery' }],
+  }
+  assert.equal(saves.saveGame(state, 'save-01'), true)
+  const restored = saves.loadGame('save-01')
+  assert.equal(resolveDriverWorkdayOwnership({ driver: restored.drivers[0], loads: restored.loads, gameTime: restored.gameTime }).ownerDayIndex, 0)
+  restored.loads = []
+  assert.equal(resolveDriverWorkdayOwnership({ driver: restored.drivers[0], loads: restored.loads, gameTime: restored.gameTime }).ownerDayIndex, 0)
 })
 
 test('clearing one slot leaves other saves intact', () => {

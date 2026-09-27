@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 import { getDriverTimeView } from '../utils/driverTimeInterpreter.js'
+import { hasValidLunchWindow, resolveDriverWorkdayOwnership } from '../utils/driverWorkdayOwnership.js'
 import mapLocations from '../data/mapLocations.js'
 
 const WEEKDAYS = ['TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN', 'MON']
@@ -73,9 +74,9 @@ function scheduleLabel(workday) {
 
 // B.5.4D.4.1.4 — Dispatcher Lunch Window
 function lunchWindowLabel(workday) {
+  if (!hasValidLunchWindow(workday)) return null
   const start = Number(workday?.lunchWindowStartMinutes)
   const end = Number(workday?.lunchWindowEndMinutes)
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return null
   return `${compactTime(start)}–${compactTime(end)}`
 }
 
@@ -522,6 +523,7 @@ function DriverSchedulerScreen({
   onShiftEndAlertFlowExit,
 }) {
   const currentDay = Number(gameTime?.gameDayIndex || 0)
+  const ownedWorkday = (driver) => resolveDriverWorkdayOwnership({ driver, loads, gameTime })
   const [view, setView] = useState('today')
   const [weekStart, setWeekStart] = useState(currentDay)
   const [selectedDriverId, setSelectedDriverId] = useState(initialDriverId)
@@ -598,7 +600,8 @@ function DriverSchedulerScreen({
           <div className="driver-scheduler-today-list">
             {roster.map((driver) => {
               const carrier = carriers.find((item) => item.id === driver.carrierId)
-              const workday = getCarrierVisibleWorkday(driver, currentDay, currentDay)
+              const ownership = ownedWorkday(driver)
+              const workday = ownership.workday || getCarrierVisibleWorkday(driver, currentDay, currentDay)
               const dayLoads = loadsForDay(loads, driver.id, currentDay)
               const bookedDayLoads = dayLoads.filter((load) =>
                 load.assignedDriverId === driver.id &&
@@ -795,7 +798,8 @@ function DriverSchedulerScreen({
               <p>Choose a driver from Today or Schedule.</p>
             </div>
           ) : (() => {
-            const todayWorkday = getCarrierVisibleWorkday(selectedDriver, currentDay, currentDay)
+            const selectedOwnership = ownedWorkday(selectedDriver)
+            const todayWorkday = selectedOwnership.workday || getCarrierVisibleWorkday(selectedDriver, currentDay, currentDay)
             const committedLoads = getDriverCommittedLoads(loads, selectedDriver.id)
             const plannedLoads = getDriverPlannedLoads(loads, selectedDriver.id)
             const activeLoad = committedLoads[0] || null
@@ -942,7 +946,7 @@ function DriverSchedulerScreen({
                     onClick={() => setLunchDriverId(selectedDriver.id)}
                     disabled={!todayWorkday || todayWorkday.isDayOff}
                   >
-                    {lunchWindowLabel(todayWorkday) ? 'EDIT LUNCH' : 'SET LUNCH'}
+                    {lunchWindowLabel(todayWorkday) ? 'EDIT LUNCH WINDOW' : 'SET LUNCH WINDOW'}
                   </button>
 
                   <button
@@ -972,7 +976,8 @@ function DriverSchedulerScreen({
       )}
       {lunchDriverId && (() => {
         const lunchDriver = drivers.find((driver) => driver.id === lunchDriverId)
-        const lunchWorkday = lunchDriver ? getWorkday(lunchDriver, currentDay) : null
+        const lunchOwnership = lunchDriver ? ownedWorkday(lunchDriver) : null
+        const lunchWorkday = lunchOwnership?.workday || null
         if (!lunchDriver || !lunchWorkday) return null
 
         return (
@@ -981,7 +986,7 @@ function DriverSchedulerScreen({
             workday={lunchWorkday}
             onClose={() => setLunchDriverId(null)}
             onSave={(window) => {
-              onSetLunchWindow?.(lunchDriver.id, currentDay, window)
+              onSetLunchWindow?.(lunchDriver.id, lunchOwnership.ownerDayIndex, window)
               setLunchDriverId(null)
             }}
           />

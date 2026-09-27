@@ -1,6 +1,7 @@
 // P2.1 — Preset Schedule Authority
 // One source of truth for whether a driver's preset carrier schedule permits
 // NEW work to begin right now. This does not destroy active/carryover work.
+import { resolveDriverWorkdayOwnership } from './driverWorkdayOwnership.js'
 
 function getWorkday(driver, dayIndex) {
   return driver?.workdayByDay?.[String(dayIndex)] || driver?.workdayByDay?.[dayIndex] || null
@@ -11,6 +12,13 @@ export function getDriverScheduleAuthority(driver, gameTime) {
   const minuteOfDay = Number(gameTime?.totalMinutesOfDay)
   if (!driver || !Number.isFinite(dayIndex) || !Number.isFinite(minuteOfDay)) {
     return { state: 'UNSCHEDULED', canStartNewWork: false, isScheduledNow: false, reason: 'invalid-context' }
+  }
+
+  const ownership = resolveDriverWorkdayOwnership({ driver, loads: [], gameTime })
+  if (ownership.ownerDayIndex !== dayIndex && !ownership.nextScheduleMayAcquire) {
+    return ownership.scheduledTimeActive
+      ? { state: 'ON_SHIFT', canStartNewWork: true, isScheduledNow: true, ownerDayIndex: ownership.ownerDayIndex, workday: ownership.workday, reason: 'retained-prior-schedule' }
+      : { state: 'CARRYOVER', canStartNewWork: false, isScheduledNow: false, ownerDayIndex: ownership.ownerDayIndex, workday: ownership.workday, reason: 'retained-prior-operational-workday' }
   }
 
   const today = getWorkday(driver, dayIndex)
