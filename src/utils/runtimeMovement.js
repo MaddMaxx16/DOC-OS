@@ -96,11 +96,13 @@ export function getDriverRouteMovement({ geometry, currentGameMinute, startGameM
   return { progress, position, complete: progress >= 1 }
 }
 
-export function getLunchMovementFrame(drivers = [], currentGameMinute) {
+export function getLunchMovementFrame(drivers = [], currentGameMinute, loads = []) {
   const positionUpdates = {}
   const arrivals = []
 
   drivers.forEach((driver) => {
+    const gameTime = { gameDayIndex: Math.floor(currentGameMinute / 1440), totalMinutesOfDay: currentGameMinute % 1440 }
+    if (resolveDriverMovementOwner({ driver, gameTime, loads }).type !== 'lunch-route') return
     if (!['traveling', 'resume-access'].includes(driver.lunchRouteStatus)) return
     const movement = getDriverRouteMovement({
       geometry: driver.lunchRouteGeometry,
@@ -114,6 +116,44 @@ export function getLunchMovementFrame(drivers = [], currentGameMinute) {
   })
 
   return { positionUpdates, arrivals }
+}
+
+// Router snapping must not reset the physical starting point on acquisition.
+export function anchorMovementRoute(route, position) {
+  if (!position || !Array.isArray(route) || route.length < 2) return route
+  if (route[0][0] === position.longitude && route[0][1] === position.latitude) return route
+  return [[position.longitude, position.latitude], ...route]
+}
+
+// Staging and idle repositioning share the existing idleRoute* representation.
+// Remember a suppressed route without letting the loser mutate player state.
+// On reacquisition, route afresh from the current truck instead of replaying an
+// elapsed clock/old geometry. The caller owns the existing routing lifecycle.
+export function reconcileIdleMovement({ drivers, loads, gameTime, runtimePositions, suspendedDriverIds }, { setRuntimePositions, onResume }) {
+  const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+  const updates = {}
+  const arrivals = new Set()
+  drivers.forEach((driver) => {
+    if (driver.idleRouteStatus !== 'traveling') return
+    const owner = resolveDriverMovementOwner({ driver, loads, gameTime })
+    if (owner.type !== 'idle-route') {
+      suspendedDriverIds.add(driver.id)
+      return
+    }
+    if (suspendedDriverIds.has(driver.id)) {
+      if (runtimePositions[driver.id]) {
+        suspendedDriverIds.delete(driver.id)
+        onResume(driver, runtimePositions[driver.id])
+      }
+      return
+    }
+    const movement = getDriverRouteMovement({ geometry: owner.route, currentGameMinute: now, startGameMinute: owner.start, durationMinutes: owner.duration })
+    if (!movement) return
+    if (!samePosition(runtimePositions[driver.id], movement.position)) updates[driver.id] = movement.position
+    if (movement.complete) arrivals.add(driver.id)
+  })
+  if (Object.keys(updates).length) setRuntimePositions((current) => mergeMovementUpdates(current, updates, samePosition))
+  return arrivals
 }
 
 

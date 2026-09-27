@@ -4,6 +4,7 @@ import mapLocations from '../data/mapLocations.js'
 import { calculateRoute } from '../services/routingService.js'
 import { reconcileActiveCarrierDrivers } from '../utils/driverRoster.js'
 import { createPodDocument } from '../utils/documentLifecycle.js'
+import { getOvernightDeliveryTiming } from './devScenarioTiming.js'
 
 const nowOf = (t) => (t?.gameDayIndex ?? 0) * 1440 + (t?.totalMinutesOfDay ?? 360)
 const pointAlong = (route, p) => { const i = Math.min(route.length - 2, Math.floor(p * (route.length - 1))); const t = p * (route.length - 1) - i; const a = route[i]; const b = route[i + 1]; return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t] }
@@ -89,9 +90,7 @@ export async function createDevPreset(name, { gameTime, currentLoads = seedLoads
     load.pickupDayIndex = gameTime.gameDayIndex
     load.pickupWindowStartMinutes = 22 * 60
     load.pickupWindowEndMinutes = 23 * 60
-    load.deliveryDayIndex = gameTime.gameDayIndex + 1
-    load.deliveryWindowStartMinutes = 45
-    load.deliveryWindowEndMinutes = 90
+    Object.assign(load, getOvernightDeliveryTiming(gameTime.gameDayIndex))
     load.deliveryPlanningStatus = 'route-ready'
     load.plannedLoadedRouteGeometry = route.routeShape
     load.plannedLoadedMiles = route.distanceMiles

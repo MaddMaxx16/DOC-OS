@@ -1,4 +1,5 @@
-import { getLunchMovementFrame } from '../utils/runtimeMovement.js'
+import { canAcquireDriverMovement, resolveDriverMovementOwner } from '../utils/driverMovementOwner.js'
+import { anchorMovementRoute, getLunchMovementFrame } from '../utils/runtimeMovement.js'
 import { beginPickupLoading, completePickupLoading, getPickupLoadingChallengeRequest } from '../utils/loadLifecycle.js'
 import { beginDeliveryUnloading, completeDeliveryUnload, getDeliveryHandoffContext, getDeliveryUnloadingChallengeRequest } from '../utils/deliveryLifecycle.js'
 import { useEffect, useRef, useState } from 'react'
@@ -350,7 +351,21 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const assignedDriverId = assignedLoad?.assignedDriverId || null
   const assignedDriverOnLunch = isDriverOnLunch(drivers.find((driver) => driver.id === assignedDriverId), gameTime)
   const runtimeProgress = assignedDriverId ? (runtimeProgressByDriver?.[assignedDriverId] ?? null) : null
-  const setDriverRuntimeProgress = (driverId, value) => setRuntimeProgressByDriver?.((current) => ({ ...(current || {}), [driverId]: value }))
+  const movementStateRef = useRef(null)
+  movementStateRef.current = { drivers, loads, gameTime, runtimePositions }
+  const movementContext = (driverId, currentLoads = movementStateRef.current.loads) => ({
+    driver: movementStateRef.current.drivers.find((driver) => driver.id === driverId),
+    loads: currentLoads,
+    gameTime: movementStateRef.current.gameTime,
+  })
+  const canMoveFreight = (driverId, loadId, currentLoads) => canAcquireDriverMovement(movementContext(driverId, currentLoads), 'freight', loadId)
+  const ownsLunch = (driverId) => canAcquireDriverMovement(movementContext(driverId), 'lunch')
+  const setDriverRuntimeProgress = (driverId, value, subsystem = 'freight') => {
+    const context = movementContext(driverId)
+    const owner = resolveDriverMovementOwner(context)
+    if (!canAcquireDriverMovement(context, subsystem, owner.load?.id)) return
+    setRuntimeProgressByDriver?.((current) => current?.[driverId] === value ? current : { ...(current || {}), [driverId]: value })
+  }
   const podNotificationCount = loads.filter((load) => load.tripStatus === 'awaiting-pod').length
   const emailUnreadCount = emailMessages?.filter((message) => !message.read).length || 0
   const currentAbsoluteGameMinute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
@@ -423,6 +438,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   const chooseLunchDecision = async (choice) => {
     if (!choice || !lunchDecisionDriver || !lunchDecisionWorkday || !choice.lunchStop) return
     const driverId = lunchDecisionDriver.id
+    if (!isLunchDecisionReady({ driver: lunchDecisionDriver, loads, gameTime })) return
     const offeredChoiceIds = lunchDecisionChoices.map((item) => item.id)
     const dayKey = String(gameTime.gameDayIndex)
     const relationshipDelta = Number(choice.effects?.relationship || 0)
@@ -519,10 +535,12 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       // first, then release the gate as one ordered handoff.
       const routeStartAt = currentAbsoluteGameMinuteRef.current
       setDrivers((current) => current.map((driver) => driver.id === driverId && driver.lunchRouteStatus === 'calculating'
+        && driver.lunchTargetLocationId === choice.lunchStop.id
+        && canAcquireDriverMovement({ ...movementContext(driverId), driver }, 'lunch')
         ? {
           ...driver,
           lunchRouteStatus: 'traveling',
-          lunchRouteGeometry: route.routeShape,
+          lunchRouteGeometry: anchorMovementRoute(route.routeShape, movementStateRef.current.runtimePositions[driverId] || origin),
           lunchRouteStartGameMinute: routeStartAt,
           lunchRouteDurationMinutes: Math.max(1, Number(route.durationMinutes || 1)),
         }
@@ -551,7 +569,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   // interrupted freight leg from that actual position.
   useEffect(() => {
     const now = currentAbsoluteGameMinute
-    const { positionUpdates, arrivals } = getLunchMovementFrame(drivers, now)
+    const { positionUpdates, arrivals } = getLunchMovementFrame(drivers, now, loads)
     if (Object.keys(positionUpdates).length) setRuntimePositions?.((current) => ({ ...(current || {}), ...positionUpdates }))
     if (!arrivals.length) return
     const arrivedSet = new Set(arrivals)
@@ -581,7 +599,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         lastKnownLocationId: driver.lunchTargetLocationId,
       }
     }))
-  }, [gameTime, drivers, currentAbsoluteGameMinute, setRuntimePositions])
+  }, [gameTime, drivers, loads, currentAbsoluteGameMinute, setRuntimePositions])
 
   useEffect(() => {
     const now = currentAbsoluteGameMinute
@@ -593,6 +611,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       // lunch window. This prevents a 12:00/30-minute lunch from expiring while
       // Marcus is still driving to the selected stop.
       const releaseAt = Number(driver.lunchReleaseGameMinute)
+      if (!ownsLunch(driver.id)) return
       if (!event || event.status !== 'on-lunch' || !Number.isFinite(releaseAt) || now < releaseAt) return
       if (['resume-calculating', 'resume-access'].includes(driver.lunchRouteStatus)) return
       const interruptedLoad = loads.find((load) => load.id === event.interruptedLoadId && load.assignedDriverId === driver.id)
@@ -618,11 +637,13 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       if (!origin || !destination) return
       setDrivers((current) => current.map((item) => item.id === driver.id ? { ...item, lunchRouteStatus: 'resume-calculating' } : item))
       calculateRoute(origin, destination).then((route) => {
+        const live = movementStateRef.current
+        if (!ownsLunch(driver.id)) return
         // B.5.3.3.10.6 — facility egress is its own physical movement segment.
         // The road router is allowed to snap its origin to the nearest routable
         // roadway; DOC OS owns the short parking-position -> road-entry movement.
         // Only after that egress completes does normal freight travel take over.
-        const parkedOrigin = { longitude: Number(origin.longitude), latitude: Number(origin.latitude) }
+        const parkedOrigin = live.runtimePositions[driver.id] || { longitude: Number(origin.longitude), latitude: Number(origin.latitude) }
         const routedShape = Array.isArray(route.routeShape) ? route.routeShape : []
         if (routedShape.length < 2) throw new Error('Lunch resume route returned no usable geometry')
         const first = routedShape[0]
@@ -637,7 +658,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             ...(current || {}),
             [driver.id]: { ...(current?.[driver.id] || {}), ...parkedOrigin },
           }))
-          setDriverRuntimeProgress(driver.id, 0)
+          setDriverRuntimeProgress(driver.id, 0, 'lunch')
           setDrivers((current) => current.map((item) => item.id === driver.id ? {
             ...item,
             lunchRouteStatus: 'resume-access',
@@ -657,11 +678,11 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
           ...(current || {}),
           [driver.id]: { ...(current?.[driver.id] || {}), ...parkedOrigin },
         }))
-        setDriverRuntimeProgress(driver.id, 0)
+        setDriverRuntimeProgress(driver.id, 0, 'lunch')
         setLoads((current) => current.map((load) => {
           if (load.id !== interruptedLoad.id) return load
-          if (event.interruptedPhase === 'delivery') return { ...load, tripStatus: 'en-route-delivery', plannedLoadedRouteGeometry: routedShape, plannedLoadedDriveTimeMinutes: routedDriveMinutes, deliveryDepartureGameMinute: resumeAt }
-          return { ...load, tripStatus: 'en-route-pickup', plannedDeadheadRouteGeometry: routedShape, plannedDeadheadDriveTimeMinutes: routedDriveMinutes, departureGameMinute: resumeAt }
+          if (event.interruptedPhase === 'delivery') return { ...load, tripStatus: 'en-route-delivery', plannedLoadedRouteGeometry: anchorMovementRoute(routedShape, parkedOrigin), plannedLoadedDriveTimeMinutes: routedDriveMinutes, deliveryDepartureGameMinute: resumeAt }
+          return { ...load, tripStatus: 'en-route-pickup', plannedDeadheadRouteGeometry: anchorMovementRoute(routedShape, parkedOrigin), plannedDeadheadDriveTimeMinutes: routedDriveMinutes, departureGameMinute: resumeAt }
         }))
         setDrivers((current) => current.map((item) => {
           if (item.id !== driver.id) return item
@@ -672,6 +693,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         }))
       }).catch((error) => {
         console.warn('DOC OS LUNCH RESUME ROUTE UNAVAILABLE', error)
+        if (!ownsLunch(driver.id)) return
         setDrivers((current) => current.map((item) => item.id === driver.id ? { ...item, lunchRouteStatus: 'arrived' } : item))
       })
     })
@@ -683,7 +705,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
   useEffect(() => {
     const now = currentAbsoluteGameMinute
     drivers.forEach((driver) => {
-      if (driver.lunchRouteStatus !== 'resume-access') return
+      if (driver.lunchRouteStatus !== 'resume-access' || !ownsLunch(driver.id)) return
       const start = Number(driver.lunchRouteStartGameMinute)
       const duration = Number(driver.lunchRouteDurationMinutes)
       if (!Number.isFinite(start) || !Number.isFinite(duration) || duration <= 0 || now < start + duration) return
@@ -700,7 +722,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         ...(current || {}),
         [driver.id]: { ...(current?.[driver.id] || {}), longitude: Number(roadStart[0]), latitude: Number(roadStart[1]) },
       }))
-      setDriverRuntimeProgress(driver.id, 0)
+      setDriverRuntimeProgress(driver.id, 0, 'lunch')
       setLoads((current) => current.map((load) => {
         if (load.id !== loadId) return load
         if (phase === 'delivery') return { ...load, tripStatus: 'en-route-delivery', plannedLoadedRouteGeometry: roadRoute, plannedLoadedDriveTimeMinutes: driveMinutes, deliveryDepartureGameMinute: resumeAt }
@@ -945,6 +967,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         || load.waitingReason !== 'appointment-protected'
         || !Number.isFinite(load.plannedDeliveryDepartureGameMinute)
         || now < load.plannedDeliveryDepartureGameMinute) return false
+      if (!canMoveFreight(load.assignedDriverId, load.id)) return false
       const nextStop = getNextActionableDriverStop(loads, load.assignedDriverId)
       return nextStop?.loadId === load.id && nextStop?.type === 'delivery'
     })
@@ -1036,7 +1059,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
       const nextStop = getNextActionableDriverStop(loads, driver.id)
       if (!nextStop) return
       const nextLoad = loads.find((item) => item.id === nextStop.loadId)
-      if (!nextLoad) return
+      if (!nextLoad || !canMoveFreight(driver.id, nextLoad.id)) return
 
       const liveLoad = getDriverActiveLoad(loads, driver.id)
       const liveTrip = liveLoad?.tripStatus
@@ -1112,6 +1135,11 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             route = await calculateRoute(origin, destination)
             geometry = normalizeRouteGeometry(route.routeShape, origin, destination)
           }
+          if (!canMoveFreight(driver.id, nextLoad.id)
+            || getNextActionableDriverStop(movementStateRef.current.loads, driver.id)?.id !== nextStop.id) return
+          const livePosition = movementStateRef.current.runtimePositions[driver.id] || origin
+          geometry = anchorMovementRoute(geometry, livePosition)
+          const commitMinute = currentAbsoluteGameMinuteRef.current
           const activeSync = itineraryMovementSyncRef.current.get(driver.id)
           if (!activeSync || activeSync.token !== token || activeSync.key !== syncKey) return
           const stopWindowStart = nextStop.dayIndex * 1440 + nextStop.windowStartMinutes
@@ -1147,13 +1175,13 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
               ...item, tripStatus: 'en-route-pickup', status: 'en-route-pickup', queuePosition: 0,
               plannedDeadheadMiles: route.distanceMiles, plannedDeadheadDriveTimeMinutes: route.durationMinutes,
               plannedDeadheadRouteGeometry: geometry, plannedDeadheadRouteSource: route.source,
-              departureGameMinute: now, pickupArrivalGameMinute: null, plannedPickupDepartureGameMinute: null, waitingReason: null,
+              departureGameMinute: commitMinute, pickupArrivalGameMinute: null, plannedPickupDepartureGameMinute: null, waitingReason: null,
             }
             return {
               ...item, tripStatus: 'en-route-delivery', status: 'en-route-delivery',
               plannedLoadedMiles: route.distanceMiles, plannedLoadedDriveTimeMinutes: route.durationMinutes,
               plannedLoadedRouteGeometry: geometry, plannedLoadedRouteSource: route.source,
-              deliveryDepartureGameMinute: now, waitingReason: null,
+              deliveryDepartureGameMinute: commitMinute, waitingReason: null,
             }
           }))
           setDrivers((current) => current.map((item) => item.id === driver.id ? {
@@ -1585,12 +1613,6 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           queuedLoadIds: existingActive
             ? Array.from(new Set([...(driver.queuedLoadIds || []), loadId]))
             : (driver.queuedLoadIds || []),
-          idleSinceGameMinute: null,
-          idleTargetLocationId: null,
-          idleRouteStatus: null,
-          idleRouteGeometry: null,
-          idleRouteStartGameMinute: null,
-          idleRouteDurationMinutes: null,
         }
       : driver))
     const fitStatus = String(currentLoad.assignmentProjection?.status || '').toUpperCase()
@@ -1732,6 +1754,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     const completeMinute = now
     const deliveredLoad = loads.find((item) => item.id === loadId)
+    if (!deliveredLoad || !canMoveFreight(deliveredLoad.assignedDriverId, loadId)) return
     const handoff = getDeliveryHandoffContext({ loads, drivers, loadId, gameTime, now })
     const { releasedDriverId, onboardNext, nextQueued, nextCanAutoHandoff } = handoff
     const delivery = mapLocations.find((location) => location.id === deliveredLoad?.deliveryLocationId)
@@ -1779,13 +1802,14 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         if (onboardDelivery) {
           try {
             const route = await calculateRoute(delivery, onboardDelivery)
+            if (!canMoveFreight(releasedDriverId, onboardNext.id)) return
             const geometry = normalizeRouteGeometry(route.routeShape, delivery, onboardDelivery)
             setLoads((current) => current.map((item) => item.id === onboardNext.id ? {
               ...item,
               tripStatus: 'en-route-delivery', status: 'en-route-delivery', waitingReason: null,
               plannedLoadedMiles: route.distanceMiles, plannedLoadedDriveTimeMinutes: route.durationMinutes,
-              plannedLoadedRouteGeometry: geometry, plannedLoadedRouteSource: route.source,
-              deliveryDepartureGameMinute: completeMinute,
+              plannedLoadedRouteGeometry: anchorMovementRoute(geometry, movementStateRef.current.runtimePositions[releasedDriverId]), plannedLoadedRouteSource: route.source,
+              deliveryDepartureGameMinute: currentAbsoluteGameMinuteRef.current,
             } : item))
             setDriverRuntimeProgress(releasedDriverId, 0)
             const releasedDriver = drivers.find((driver) => driver.id === releasedDriverId)
@@ -1800,15 +1824,16 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       } else if (nextQueued && nextCanAutoHandoff && delivery && nextPickup) {
         try {
           const handoffRoute = await calculateRoute(delivery, nextPickup)
+          if (!canMoveFreight(releasedDriverId, nextQueued.id)) return
           const routeGeometry = normalizeRouteGeometry(handoffRoute.routeShape, delivery, nextPickup)
           setLoads((current) => current.map((item) => item.id === nextQueued.id ? {
             ...item,
             tripStatus: 'en-route-pickup', status: 'en-route-pickup',
             planningStatus: Array.isArray(routeGeometry) && routeGeometry.length >= 2 ? 'route-ready' : item.planningStatus,
             plannedDeadheadMiles: handoffRoute.distanceMiles, plannedDeadheadDriveTimeMinutes: handoffRoute.durationMinutes,
-            plannedDeadheadRouteGeometry: routeGeometry, plannedDeadheadRouteSource: handoffRoute.source,
+            plannedDeadheadRouteGeometry: anchorMovementRoute(routeGeometry, movementStateRef.current.runtimePositions[releasedDriverId]), plannedDeadheadRouteSource: handoffRoute.source,
             selectedDeadheadRouteId: Array.isArray(routeGeometry) && routeGeometry.length >= 2 ? 'handoff-road' : item.selectedDeadheadRouteId,
-            departureGameMinute: completeMinute, pickupArrivalGameMinute: null,
+            departureGameMinute: currentAbsoluteGameMinuteRef.current, pickupArrivalGameMinute: null,
           } : item))
           setDriverRuntimeProgress(releasedDriverId, 0)
           const releasedDriver = drivers.find((driver) => driver.id === releasedDriverId)
@@ -2015,10 +2040,11 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
   useEffect(() => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     const departures = []
+    const claimedDrivers = new Set()
 
     loads.forEach((load) => {
       const driverId = load.assignedDriverId
-      if (!driverId) return
+      if (!driverId || claimedDrivers.has(driverId) || !canMoveFreight(driverId, load.id)) return
 
       // This is the actual load-level state written by sendDriverSchedule().
       if (!Number.isFinite(Number(load.driverAcknowledgedGameMinute))) return
@@ -2049,7 +2075,8 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           driveMinutes > 0 &&
           now >= departAt
         ) {
-          departures.push({ loadId: load.id, driverId, phase: 'pickup' })
+          departures.push({ loadId: load.id, driverId, phase: 'pickup', route })
+          claimedDrivers.add(driverId)
         }
       }
 
@@ -2070,7 +2097,8 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           Number.isFinite(driveMinutes) &&
           driveMinutes > 0
         ) {
-          departures.push({ loadId: load.id, driverId, phase: 'delivery' })
+          departures.push({ loadId: load.id, driverId, phase: 'delivery', route })
+          claimedDrivers.add(driverId)
         }
       }
     })
@@ -2084,12 +2112,13 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
     setLoads((current) =>
       current.map((load) => {
         const departure = departureByLoad.get(load.id)
-        if (!departure) return load
+        if (!departure || !canMoveFreight(departure.driverId, load.id, current)) return load
 
         if (departure.phase === 'pickup' && load.tripStatus === 'assigned') {
           return {
             ...load,
             tripStatus: 'en-route-pickup',
+            plannedDeadheadRouteGeometry: anchorMovementRoute(departure.route, runtimePositions[departure.driverId]),
             departureGameMinute: now,
             gpsDepartureGameMinute: now,
             gpsTravelPhase: 'pickup',
@@ -2100,6 +2129,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           return {
             ...load,
             tripStatus: 'en-route-delivery',
+            plannedLoadedRouteGeometry: anchorMovementRoute(departure.route, runtimePositions[departure.driverId]),
             deliveryDepartureGameMinute: now,
             gpsDepartureGameMinute: now,
             gpsTravelPhase: 'delivery',
@@ -2121,6 +2151,8 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
     gameTime.gameDayIndex,
     gameTime.totalMinutesOfDay,
     loads,
+    drivers,
+    runtimePositions,
     setLoads,
     setRuntimeProgressByDriver,
   ])
@@ -2239,12 +2271,6 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       status: 'unavailable',
       assignedLoadId: existingActive?.id || approvedLoads[0].id,
       queuedLoadIds: Array.from(new Set([...(driver.queuedLoadIds || []), ...queueIds])),
-      idleSinceGameMinute: null,
-      idleTargetLocationId: null,
-      idleRouteStatus: null,
-      idleRouteGeometry: null,
-      idleRouteStartGameMinute: null,
-      idleRouteDurationMinutes: null,
     } : driver))
 
     approvedLoads.forEach((load, index) => {
@@ -2297,6 +2323,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
     const isRouteSend = meta?.operationalAction === 'route-sent' && meta?.loadId && ['pickup', 'delivery'].includes(meta?.phase)
     const contextLoad = meta?.loadId ? loads.find((item) => item.id === meta.loadId) : null
     const routeLoad = isRouteSend ? contextLoad : null
+    if (isRouteSend && !canMoveFreight(driverId, routeLoad?.id)) return
     const routeDriver = drivers.find((item) => item.id === driverId)
     const currentOrigin = isRouteSend
       ? (runtimePositions?.[driverId]
@@ -2392,7 +2419,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       setDriverRuntimeProgress(driverId, 0)
       setLoads((current) => current.map((load) => load.id !== meta.loadId ? load : meta.phase === 'delivery' ? {
         ...load,
-        plannedLoadedRouteGeometry: normalizedDepartureGeometry,
+        plannedLoadedRouteGeometry: anchorMovementRoute(normalizedDepartureGeometry, currentOrigin),
         plannedLoadedDriveTimeMinutes: isNearZeroDeparture ? Math.max(1, Number(load.plannedLoadedDriveTimeMinutes) || 1) : load.plannedLoadedDriveTimeMinutes,
         deliveryRouteSentGameMinute: now,
         deliveryDriverConfirmedRouteGameMinute: now + 0.01,
@@ -2400,7 +2427,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         deliveryDepartureGameMinute: now,
       } : {
         ...load,
-        plannedDeadheadRouteGeometry: normalizedDepartureGeometry,
+        plannedDeadheadRouteGeometry: anchorMovementRoute(normalizedDepartureGeometry, currentOrigin),
         plannedDeadheadDriveTimeMinutes: isNearZeroDeparture ? Math.max(1, Number(load.plannedDeadheadDriveTimeMinutes) || 1) : load.plannedDeadheadDriveTimeMinutes,
         pickupRouteSentGameMinute: now,
         pickupDriverConfirmedRouteGameMinute: now + 0.01,
@@ -2729,7 +2756,8 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
                 className="trip-plan-v2-confirm"
                 disabled={!deliveryPlanningRoute}
                 onClick={() => {
-                  setLoads((current) => current.map((load) => load.id === deliveryPlanning.loadId ? {
+                  setLoads((current) => current.map((load) => load.id === deliveryPlanning.loadId
+                    && (!['en-route-pickup', 'en-route-delivery'].includes(load.tripStatus) || canMoveFreight(load.assignedDriverId, load.id, current)) ? {
                     ...load,
                     deliveryPlanningStatus: 'route-ready',
                     plannedLoadedMiles: deliveryPlanningRoute.distanceMiles,
@@ -2830,7 +2858,8 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
                 className="trip-plan-v2-confirm"
                 disabled={!planningRoute}
                 onClick={() => {
-                  setLoads((current) => current.map((load) => load.id === planningMode.loadId ? {
+                  setLoads((current) => current.map((load) => load.id === planningMode.loadId
+                    && (!['en-route-pickup', 'en-route-delivery'].includes(load.tripStatus) || canMoveFreight(load.assignedDriverId, load.id, current)) ? {
                     ...load,
                     planningStatus: 'route-ready',
                     plannedDeadheadMiles: planningRoute.distanceMiles,
@@ -3045,6 +3074,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
             setPlannedRoute={setPlannedRoute}
             gameTime={gameTime}
             setGameTime={setGameTime}
+            setGameClockPaused={setGameClockPaused}
             initialScreen={phoneInitialScreen}
             initialLoadId={phoneLoadId}
             initialDriverId={phoneInitialDriverId}

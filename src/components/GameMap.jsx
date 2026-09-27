@@ -430,7 +430,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
           if (point) marker.setLngLat(point)
           return
         }
-        if (movementOwner.type === 'lunch-hold' || movementOwner.type === 'runtime-hold') {
+        if (['lunch-hold', 'freight-hold', 'idle-hold', 'runtime-hold', 'none'].includes(movementOwner.type)) {
           const position = currentRuntimePositions?.[driver.id]
           if (position) marker.setLngLat([position.longitude, position.latitude])
           return

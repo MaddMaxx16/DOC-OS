@@ -48,11 +48,12 @@ import { getFreightRouteName } from '../utils/freightIdentity.js'
 import { getLoadFolderLifecycle } from '../utils/documentFolderLifecycle.js'
 import { isLunchDecisionReady } from '../utils/lunchDecisionEvents.js'
 import SettingsScreen from './SettingsScreen.jsx'
+import { getControlled5pmDeliveryTiming } from '../dev/devScenarioTiming.js'
 
 function getReceivable(loads, carriers, workflows, id) { return getReceivables(loads, carriers, workflows).find((item) => item.loadId === id) }
 
 // B.5.4D.4.3.1B — Legacy Route + Diagnostic Cleanup Final
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, gameTime, setGameTime, onEvaluateFit, onAddToSchedule, onAcceptCandidateAssignment, initialScreen = 'home', initialLoadId = null, initialDriverId = null, initialShiftEndPromptDriverId = null, onShiftEndPromptConsumed, onShiftEndAlertFlowExit, initialEmailComposeContext = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, ledgerBanking, setLedgerWorkflowByLoadId, onResetGame, onReturnToTitle, onRequestScheduleApproval, onBookApprovedSchedule, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onPickupCorrectionSent, onSetupOvernightDevScenario, onClose, onCarrierSourceOpened }) {
+function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, gameTime, setGameTime, setGameClockPaused, onEvaluateFit, onAddToSchedule, onAcceptCandidateAssignment, initialScreen = 'home', initialLoadId = null, initialDriverId = null, initialShiftEndPromptDriverId = null, onShiftEndPromptConsumed, onShiftEndAlertFlowExit, initialEmailComposeContext = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, ledgerBanking, setLedgerWorkflowByLoadId, onResetGame, onReturnToTitle, onRequestScheduleApproval, onBookApprovedSchedule, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onPickupCorrectionSent, onSetupOvernightDevScenario, onClose, onCarrierSourceOpened }) {
   // B.5.4D.4.2.5A — Flexible Plan Return Navigation
   const [driverOpsReturnScreen, setDriverOpsReturnScreen] = useState('home')
 
@@ -459,7 +460,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
                   <div>
                     <span>SHIFT BOUNDARY TEST</span>
                     <b>CONTROLLED 5:00 PM CARRYOVER</b>
-                    <small>Places Marcus already en route at 4:55 PM and pauses the clock. Press Play after closing DEV to verify active work survives his 5:00 PM shift boundary.</small>
+                    <small>Places Marcus en route at 4:55 PM and pauses the clock for inspection. Close DEV and press Play to advance freight, dock timers, completion, and staging.</small>
                   </div>
                   <div className="phone-dev-inline-actions">
                     <button
@@ -470,9 +471,10 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
                         const testDay = gameTime.gameDayIndex
                         const testMinute = 16 * 60 + 55
                         await onSetupOvernightDevScenario()
+                        setGameClockPaused?.(true)
                         setLoads((current) => current.map((load) =>
-                          load.tripStatus === 'en-route-delivery' && load.assignedDriverId === 'marcus'
-                            ? { ...load, deliveryDepartureGameMinute: testDay * 1440 + testMinute }
+                          load.id === controlledLoadId
+                            ? { ...load, ...getControlled5pmDeliveryTiming(testDay) }
                             : load
                         ))
                         setGameTime({ gameDayIndex: testDay, totalMinutesOfDay: testMinute })

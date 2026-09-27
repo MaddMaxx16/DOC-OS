@@ -6,7 +6,8 @@ import seedLoads from './data/loads.js'
 import seedCarriers from './data/carriers.js'
 import seedDrivers from './data/drivers.js'
 import mapLocations from './data/mapLocations.js'
-import { DELIVERY_CHECKIN_MINUTES, PICKUP_CHECKIN_MINUTES, getDeliveryDockWaitMinutes, getPickupDockWaitMinutes } from './data/pickupConfig.js'
+import { getDeliveryDockWaitMinutes, getPickupDockWaitMinutes } from './data/pickupConfig.js'
+import { advanceDockLifecycle } from './utils/dockLifecycle.js'
 import { logDocOsState } from './utils/debugLogger.js'
 import { getDriverPanelModel } from './utils/driverOperationalState.js'
 import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
@@ -34,8 +35,9 @@ import { getClockInMessage, getEndOfDayMessage, getRelationshipStartMessage } fr
 import { createCorrectedPodVersion, normalizePodDocument } from './utils/documentLifecycle.js'
 import { createRateConfirmation } from './utils/rateConfirmation.js'
 import { advanceDriverHours, normalizeDriverHours } from './utils/driverHOS.js'
+import { canAcquireDriverMovement } from './utils/driverMovementOwner.js'
 import { sampleRoutePoint } from './utils/routeSampler.js'
-import { reconcileFreightMovement, restoreSavedRouteContinuity } from './utils/runtimeMovement.js'
+import { anchorMovementRoute, reconcileIdleMovement, reconcileFreightMovement, restoreSavedRouteContinuity } from './utils/runtimeMovement.js'
 
 
 const IDLE_DWELL_MINUTES = 20
@@ -92,6 +94,43 @@ function App() {
   const [simulationSpeed, setSimulationSpeed] = useState(1)
   const [runtimePositions, setRuntimePositions] = useState({})
   const [runtimeProgressByDriver, setRuntimeProgressByDriver] = useState({})
+  const movementStateRef = useRef(null)
+  movementStateRef.current = { drivers, loads, gameTime, runtimePositions, stage }
+  const idleRouteRequestsRef = useRef(new Map())
+  const suspendedIdleDriversRef = useRef(new Set())
+
+  // P2.3.4 — recheck ownership and physical origin after asynchronous routing.
+  const requestIdleRoute = (driver, origin) => {
+    if (!origin || idleRouteRequestsRef.current.has(driver.id)) return
+    const target = mapLocations.find((location) => location.id === driver.idleTargetLocationId)
+    if (!target) return
+    const request = {}
+    idleRouteRequestsRef.current.set(driver.id, request)
+    calculateRoute(origin, target).then((route) => {
+      const live = movementStateRef.current
+      const currentDriver = live.drivers.find((item) => item.id === driver.id)
+      if (live.stage !== 'game' || !currentDriver || currentDriver.idleRouteStatus !== 'calculating'
+        || currentDriver.idleTargetLocationId !== target.id
+        || !canAcquireDriverMovement({ driver: currentDriver, loads: live.loads, gameTime: live.gameTime }, 'idle')) return
+      const position = live.runtimePositions[driver.id]
+      if (!position || position.longitude !== origin.longitude || position.latitude !== origin.latitude) return
+      const start = live.gameTime.gameDayIndex * 1440 + live.gameTime.totalMinutesOfDay
+      setDrivers((current) => current.map((item) => item.id === driver.id && item.idleRouteStatus === 'calculating'
+        && item.idleTargetLocationId === target.id
+        && canAcquireDriverMovement({ driver: item, loads: movementStateRef.current.loads, gameTime: movementStateRef.current.gameTime }, 'idle')
+        ? { ...item, idleRouteStatus: 'traveling', idleRouteGeometry: anchorMovementRoute(route.routeShape, position), idleRouteStartGameMinute: start, idleRouteDurationMinutes: Math.max(1, route.durationMinutes) }
+        : item))
+    }).catch((error) => {
+      console.error('Shift-end staging route unavailable:', driver.id, error)
+      setDrivers((current) => current.map((item) => item.id === driver.id && item.idleRouteStatus === 'calculating'
+        && item.idleTargetLocationId === target.id
+        && canAcquireDriverMovement({ driver: item, loads: movementStateRef.current.loads, gameTime: movementStateRef.current.gameTime }, 'idle')
+        ? { ...item, idleRouteStatus: 'route-unavailable' } : item))
+    }).finally(() => {
+      if (idleRouteRequestsRef.current.get(driver.id) === request) idleRouteRequestsRef.current.delete(driver.id)
+    })
+  }
+
   const [hydrated, setHydrated] = useState(false)
   const [hasExistingOperation, setHasExistingOperation] = useState(false)
   const [resumeStage, setResumeStage] = useState(null)
@@ -1243,63 +1282,7 @@ Dispatch Mentor`,
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     // Advance operational pickup phases from the authoritative game clock.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoads((current) => current.map((load) => {
-      if (load.tripStatus === 'at-pickup') return {
-        ...load,
-        tripStatus: 'checking-in-pickup',
-        pickupArrivalGameMinute: Number.isFinite(load.pickupArrivalGameMinute) ? load.pickupArrivalGameMinute : now,
-        pickupCheckInStartGameMinute: now,
-      }
-      if (load.tripStatus === 'checking-in-pickup' && Number.isFinite(load.pickupCheckInStartGameMinute) && now - load.pickupCheckInStartGameMinute >= PICKUP_CHECKIN_MINUTES) {
-        const pickupCheckInGameMinute = now
-        const driver = drivers.find((item) => item.id === load.assignedDriverId)
-        const dayKey = String(gameTime.gameDayIndex)
-        const lunchEvent = driver?.workdayByDay?.[dayKey]?.lunchEvent
-        const lunchEffect = driver?.lunchEffectsByDay?.[dayKey]
-        const bonusAlreadyUsed = current.some((item) => item.id !== load.id && (item.assignedDriverId === load.assignedDriverId || item.completedDriverId === load.assignedDriverId) && Number(item.lunchEarlyCheckInBonusAppliedMinutes || 0) > 0)
-        const earlyCheckInBonusMinutes = !bonusAlreadyUsed && Number(lunchEvent?.selectedGameMinute) <= pickupCheckInGameMinute
-          ? Math.max(0, Number(lunchEffect?.earlyCheckInBonusMinutes || 0))
-          : 0
-        return {
-          ...load,
-          tripStatus: 'waiting-at-pickup',
-          pickupCheckInGameMinute,
-          lunchEarlyCheckInBonusAppliedMinutes: earlyCheckInBonusMinutes,
-          pickupDockReadyGameMinute: pickupCheckInGameMinute + getPickupDockWaitMinutes(load, pickupCheckInGameMinute, earlyCheckInBonusMinutes),
-        }
-      }
-      if (load.tripStatus === 'waiting-at-pickup' && Number.isFinite(load.pickupDockReadyGameMinute) && now >= load.pickupDockReadyGameMinute) {
-        return { ...load, tripStatus: 'checked-in-pickup' }
-      }
-      if (load.tripStatus === 'at-delivery') return {
-        ...load,
-        tripStatus: 'checking-in-delivery',
-        deliveryArrivalGameMinute: Number.isFinite(load.deliveryArrivalGameMinute) ? load.deliveryArrivalGameMinute : now,
-        deliveryCheckInStartGameMinute: now,
-      }
-      if (load.tripStatus === 'checking-in-delivery' && Number.isFinite(load.deliveryCheckInStartGameMinute) && now - load.deliveryCheckInStartGameMinute >= DELIVERY_CHECKIN_MINUTES) {
-        const deliveryCheckInGameMinute = now
-        const driver = drivers.find((item) => item.id === load.assignedDriverId)
-        const dayKey = String(gameTime.gameDayIndex)
-        const lunchEvent = driver?.workdayByDay?.[dayKey]?.lunchEvent
-        const lunchEffect = driver?.lunchEffectsByDay?.[dayKey]
-        const bonusAlreadyUsed = current.some((item) => item.id !== load.id && (item.assignedDriverId === load.assignedDriverId || item.completedDriverId === load.assignedDriverId) && Number(item.lunchEarlyCheckInBonusAppliedMinutes || 0) > 0) || Number(load.lunchEarlyCheckInBonusAppliedMinutes || 0) > 0
-        const earlyCheckInBonusMinutes = !bonusAlreadyUsed && Number(lunchEvent?.selectedGameMinute) <= deliveryCheckInGameMinute
-          ? Math.max(0, Number(lunchEffect?.earlyCheckInBonusMinutes || 0))
-          : 0
-        return {
-          ...load,
-          tripStatus: 'waiting-at-delivery',
-          deliveryCheckInGameMinute,
-          lunchEarlyCheckInBonusAppliedMinutes: earlyCheckInBonusMinutes,
-          deliveryDockReadyGameMinute: deliveryCheckInGameMinute + getDeliveryDockWaitMinutes(load, deliveryCheckInGameMinute, earlyCheckInBonusMinutes),
-        }
-      }
-      if (load.tripStatus === 'waiting-at-delivery' && Number.isFinite(load.deliveryDockReadyGameMinute) && now >= load.deliveryDockReadyGameMinute) {
-        return { ...load, tripStatus: 'checked-in-delivery' }
-      }
-      return load
-    }))
+    setLoads((current) => current.map((load) => advanceDockLifecycle(load, now, { drivers, loads: current, gameDayIndex: gameTime.gameDayIndex })))
   }, [gameTime, drivers])
 
   // Recovery path for legacy saves/dev states that still enter the old
@@ -1312,6 +1295,7 @@ Dispatch Mentor`,
     if (!delivery) return
 
     const driverId = completed.assignedDriverId
+    if (!canAcquireDriverMovement({ driver: drivers.find((item) => item.id === driverId), loads, gameTime }, 'freight', completed.id)) return
     const queuedBeforePromotion = getDriverQueue(loads, driverId)
     const nextQueued = queuedBeforePromotion[0] || null
 
@@ -1349,7 +1333,7 @@ Dispatch Mentor`,
       [driverId]: { longitude: delivery.longitude, latitude: delivery.latitude },
     }))
     setRuntimeProgressByDriver((current) => ({ ...current, [driverId]: null }))
-  }, [loads, gameTime, dayLoop.operationDay])
+  }, [loads, drivers, gameTime, dayLoop.operationDay])
 
 
   // B.4.2.4.2: shift-end staging is an explicit per-driver/per-date plan.
@@ -1361,14 +1345,11 @@ Dispatch Mentor`,
     const dayIndex = gameTime.gameDayIndex
     const now = dayIndex * 1440 + gameTime.totalMinutesOfDay
     drivers.forEach((driver) => {
-      // CS2.0B.4.2.4.1: planned/assigned future freight may be visible and already
-      // communicated, but it must not block an authorized shift-end reposition.
-      // Only freight that has actually entered an operational physical state owns
-      // the driver ahead of staging.
-      const activeLoad = getDriverActiveLoad(loads, driver.id)
-      const activeTripStatus = activeLoad?.tripStatus || activeLoad?.status
-      const freightOwnsMovement = Boolean(activeLoad && !['queued', 'assigned', 'route-ready'].includes(activeTripStatus))
-      if (freightOwnsMovement) return
+      if (!canAcquireDriverMovement({ driver, loads, gameTime }, 'idle')) return
+      if (driver.idleRouteStatus === 'calculating' && driver.idleTargetLocationId) {
+        requestIdleRoute(driver, runtimePositions[driver.id])
+        return
+      }
       const currentWorkday = driver.workdayByDay?.[String(dayIndex)] || driver.workdayByDay?.[dayIndex]
       const priorDayIndex = dayIndex - 1
       const priorWorkday = priorDayIndex >= 0 ? (driver.workdayByDay?.[String(priorDayIndex)] || driver.workdayByDay?.[priorDayIndex]) : null
@@ -1415,7 +1396,7 @@ Dispatch Mentor`,
       const target = mapLocations.find((location) => location.id === targetId)
       if (!target) return
 
-      setDrivers((current) => current.map((item) => item.id === driver.id ? {
+      setDrivers((current) => current.map((item) => item.id === driver.id && canAcquireDriverMovement({ driver: item, loads: movementStateRef.current.loads, gameTime: movementStateRef.current.gameTime }, 'idle') ? {
         ...item,
         overnightAppliedDayIndex: workdayOwnerDay,
         overnightMode: mode,
@@ -1423,19 +1404,6 @@ Dispatch Mentor`,
         idleRouteStatus: 'calculating',
         idleSinceGameMinute: now,
       } : item))
-      calculateRoute(origin, target).then((route) => {
-        setDrivers((current) => current.map((item) => {
-          const routeActiveLoad = getDriverActiveLoad(loads, driver.id)
-          const routeActiveStatus = routeActiveLoad?.tripStatus || routeActiveLoad?.status
-          const routeFreightOwnsMovement = Boolean(routeActiveLoad && !['queued', 'assigned', 'route-ready'].includes(routeActiveStatus))
-          return item.id === driver.id && item.overnightAppliedDayIndex === workdayOwnerDay && item.idleRouteStatus === 'calculating' && !routeFreightOwnsMovement
-            ? { ...item, idleRouteStatus: 'traveling', idleRouteGeometry: route.routeShape, idleRouteStartGameMinute: now, idleRouteDurationMinutes: Math.max(1, route.durationMinutes) }
-            : item
-        }))
-      }).catch((error) => {
-        console.error('Shift-end staging route unavailable:', driver.id, error)
-        setDrivers((current) => current.map((item) => item.id === driver.id && item.overnightAppliedDayIndex === workdayOwnerDay ? { ...item, idleRouteStatus: 'route-unavailable' } : item))
-      })
     })
   }, [hydrated, stage, dayLoop.phase, drivers, loads, gameTime, runtimePositions])
 
@@ -1489,21 +1457,16 @@ Dispatch Mentor`,
 
   useEffect(() => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    const positionUpdates = {}
-    const arrivedDriverIds = new Set()
-    drivers.forEach((driver) => {
-      // B.4.2.3.3: once an overnight staging route has started, it owns the
-      // driver's repositioning movement until arrival. A next-day assigned/open
-      // load must not freeze that already-authorized staging trip. Freight still
-      // blocks staging from STARTING above; it does not cancel staging in flight.
-      if (driver.idleRouteStatus !== 'traveling') return
-      if (!Array.isArray(driver.idleRouteGeometry) || driver.idleRouteGeometry.length < 2 || !Number.isFinite(driver.idleRouteStartGameMinute) || !Number.isFinite(driver.idleRouteDurationMinutes)) return
-      const progress = Math.max(0, Math.min(1, (now - driver.idleRouteStartGameMinute) / driver.idleRouteDurationMinutes))
-      const position = sampleRoutePoint(driver.idleRouteGeometry, progress)
-      if (position) positionUpdates[driver.id] = position
-      if (progress >= 1) arrivedDriverIds.add(driver.id)
+    // P2.3.4 — staging/idle use the same owner decision as freight and map.
+    const arrivedDriverIds = reconcileIdleMovement({
+      drivers, loads, gameTime, runtimePositions,
+      suspendedDriverIds: suspendedIdleDriversRef.current,
+    }, {
+      setRuntimePositions,
+      onResume: (driver) => {
+        setDrivers((current) => current.map((item) => item.id === driver.id ? { ...item, idleRouteStatus: 'calculating' } : item))
+      },
     })
-    if (Object.keys(positionUpdates).length) setRuntimePositions((current) => ({ ...current, ...positionUpdates }))
     if (arrivedDriverIds.size) setDrivers((current) => current.map((driver) => {
       if (!arrivedDriverIds.has(driver.id)) return driver
       const target = mapLocations.find((location) => location.id === driver.idleTargetLocationId)
@@ -1523,7 +1486,7 @@ Dispatch Mentor`,
         },
       }
     }))
-  }, [gameTime, drivers, loads])
+  }, [gameTime, drivers, loads, runtimePositions])
 
 
   // CS2.0B.5.1 — Driver Duty Clock Foundation. Agenda clock-in owns the
