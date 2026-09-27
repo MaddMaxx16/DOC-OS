@@ -34,9 +34,8 @@ import { getClockInMessage, getEndOfDayMessage, getRelationshipStartMessage } fr
 import { createCorrectedPodVersion, normalizePodDocument } from './utils/documentLifecycle.js'
 import { createRateConfirmation } from './utils/rateConfirmation.js'
 import { advanceDriverHours, normalizeDriverHours } from './utils/driverHOS.js'
-import { resolveDriverMovementOwner } from './utils/driverMovementOwner.js'
 import { sampleRoutePoint } from './utils/routeSampler.js'
-import { reconcileRestoredRouteProgress, restoreSavedRouteContinuity } from './utils/runtimeMovement.js'
+import { reconcileFreightMovement, restoreSavedRouteContinuity } from './utils/runtimeMovement.js'
 
 
 const IDLE_DWELL_MINUTES = 20
@@ -1233,66 +1232,12 @@ Dispatch Mentor`,
   }, [loads, drivers, runtimePositions, runtimeProgressByDriver, gameTime])
 
   useEffect(() => {
-    // AV: each driver owns independent travel progress and route state. This keeps
-    // simultaneous drivers from stealing one another's movement.
-    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    // AV2.12: physical movement is driver-owned. A driver can carry many loads,
-    // but only the canonical next itinerary stop is allowed to move the truck.
-    const travelingLoads = drivers.map((driver) => {
-      const owner = resolveDriverMovementOwner({ driver, gameTime, loads })
-      return owner.type === 'freight' ? owner.load : null
-    }).filter(Boolean)
-    if (!travelingLoads.length) return
-
-    const progressUpdates = {}
-    const positionUpdates = {}
-    const arrivedLoadIds = new Set()
-
-    travelingLoads.forEach((load) => {
-      const delivery = load.tripStatus === 'en-route-delivery'
-      const route = delivery ? load.plannedLoadedRouteGeometry : load.plannedDeadheadRouteGeometry
-      const departure = delivery ? load.deliveryDepartureGameMinute : load.departureGameMinute
-      const duration = delivery ? load.plannedLoadedDriveTimeMinutes : load.plannedDeadheadDriveTimeMinutes
-      if (!Array.isArray(route) || route.length < 2 || !Number.isFinite(departure) || !Number.isFinite(duration) || duration <= 0) return
-      const restoredProgress = runtimeProgressByDriver?.[load.assignedDriverId]
-      const movementClock = reconcileRestoredRouteProgress({
-        currentGameMinute: now,
-        startGameMinute: departure,
-        durationMinutes: duration,
-        restoredProgress,
-      })
-      if (!movementClock) return
-      const progress = movementClock.progress
-      progressUpdates[load.assignedDriverId] = progress
-      if (movementClock.rebased) {
-        setLoads((current) => current.map((item) => {
-          if (item.id !== load.id) return item
-          return delivery
-            ? { ...item, deliveryDepartureGameMinute: movementClock.startGameMinute }
-            : { ...item, departureGameMinute: movementClock.startGameMinute }
-        }))
-      }
-      const position = sampleRoutePoint(route, progress)
-      const destination = mapLocations.find((location) => location.id === (delivery ? load.deliveryLocationId : load.pickupLocationId))
-      if (progress >= 1 && destination) positionUpdates[load.assignedDriverId] = { longitude: destination.longitude, latitude: destination.latitude }
-      else if (position) positionUpdates[load.assignedDriverId] = position
-      if (progress >= 1) arrivedLoadIds.add(load.id)
-    })
-
-    if (Object.keys(progressUpdates).length) setRuntimeProgressByDriver((current) => ({ ...current, ...progressUpdates }))
-    if (Object.keys(positionUpdates).length) setRuntimePositions((current) => ({ ...current, ...positionUpdates }))
-    if (arrivedLoadIds.size) {
-      setLoads((current) => current.map((item) => {
-        if (!arrivedLoadIds.has(item.id)) return item
-        const delivery = item.tripStatus === 'en-route-delivery'
-        return {
-          ...item,
-          tripStatus: delivery ? 'at-delivery' : 'at-pickup',
-          ...(delivery ? { deliveryArrivalGameMinute: item.deliveryArrivalGameMinute ?? now } : { pickupArrivalGameMinute: item.pickupArrivalGameMinute ?? now }),
-        }
-      }))
-    }
-  }, [gameTime, loads, drivers, runtimeProgressByDriver])
+    // P2.3.3 — Freight ticks settle without writing identical runtime state.
+    reconcileFreightMovement({
+      gameTime, loads, drivers, runtimePositions, runtimeProgressByDriver,
+      locations: mapLocations,
+    }, { setLoads, setRuntimePositions, setRuntimeProgressByDriver })
+  }, [gameTime, loads, drivers, runtimePositions, runtimeProgressByDriver])
 
   useEffect(() => {
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay

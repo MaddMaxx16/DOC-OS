@@ -1,4 +1,86 @@
 import { sampleRoutePoint } from './routeSampler.js'
+import { resolveDriverMovementOwner } from './driverMovementOwner.js'
+
+function samePosition(a, b) {
+  return a?.longitude === b?.longitude && a?.latitude === b?.latitude
+}
+
+function mergeMovementUpdates(current, updates, equal) {
+  let next = current
+  for (const [id, value] of Object.entries(updates)) {
+    if (equal(current[id], value)) continue
+    if (next === current) next = { ...current }
+    next[id] = value
+  }
+  return next
+}
+
+// P2.3.3: this is the freight effect's calculation AND conditional commit path.
+// Compare against the render snapshot before calling setters, then preserve
+// identity again inside functional updaters (including replayed React updates).
+export function reconcileFreightMovement({ gameTime, loads, drivers, runtimePositions, runtimeProgressByDriver, locations }, { setLoads, setRuntimePositions, setRuntimeProgressByDriver }) {
+  const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+  const progressUpdates = {}
+  const positionUpdates = {}
+  const loadUpdates = new Map()
+
+  drivers.forEach((driver) => {
+    const owner = resolveDriverMovementOwner({ driver, gameTime, loads })
+    if (owner.type !== 'freight') return
+    const load = owner.load
+    const delivery = load.tripStatus === 'en-route-delivery'
+    const route = delivery ? load.plannedLoadedRouteGeometry : load.plannedDeadheadRouteGeometry
+    const departureKey = delivery ? 'deliveryDepartureGameMinute' : 'departureGameMinute'
+    const departure = load[departureKey]
+    const duration = delivery ? load.plannedLoadedDriveTimeMinutes : load.plannedDeadheadDriveTimeMinutes
+    if (!Array.isArray(route) || route.length < 2 || !Number.isFinite(departure) || !Number.isFinite(duration) || duration <= 0) return
+
+    const movementClock = reconcileRestoredRouteProgress({
+      currentGameMinute: now,
+      startGameMinute: departure,
+      durationMinutes: duration,
+      restoredProgress: runtimeProgressByDriver[driver.id],
+    })
+    if (!movementClock) return
+    const progress = movementClock.progress
+    if (runtimeProgressByDriver[driver.id] !== progress) progressUpdates[driver.id] = progress
+
+    const destination = locations.find((location) => location.id === (delivery ? load.deliveryLocationId : load.pickupLocationId))
+    const position = progress >= 1 && destination
+      ? { longitude: destination.longitude, latitude: destination.latitude }
+      : sampleRoutePoint(route, progress)
+    if (position && !samePosition(runtimePositions[driver.id], position)) positionUpdates[driver.id] = position
+
+    const patch = {}
+    if (movementClock.rebased && departure !== movementClock.startGameMinute) patch[departureKey] = movementClock.startGameMinute
+    if (progress >= 1) {
+      const arrivalKey = delivery ? 'deliveryArrivalGameMinute' : 'pickupArrivalGameMinute'
+      patch.tripStatus = delivery ? 'at-delivery' : 'at-pickup'
+      patch[arrivalKey] = load[arrivalKey] ?? now
+    }
+    if (Object.keys(patch).length) loadUpdates.set(load.id, { load, patch })
+  })
+
+  if (Object.keys(progressUpdates).length) {
+    setRuntimeProgressByDriver((current) => mergeMovementUpdates(current, progressUpdates, Object.is))
+  }
+  if (Object.keys(positionUpdates).length) {
+    setRuntimePositions((current) => mergeMovementUpdates(current, positionUpdates, samePosition))
+  }
+  if (loadUpdates.size) {
+    setLoads((current) => {
+      let next = current
+      current.forEach((item, index) => {
+        const update = loadUpdates.get(item.id)
+        if (!update || item.tripStatus !== update.load.tripStatus || item.assignedDriverId !== update.load.assignedDriverId) return
+        if (Object.entries(update.patch).every(([key, value]) => Object.is(item[key], value))) return
+        if (next === current) next = [...current]
+        next[index] = { ...item, ...update.patch }
+      })
+      return next
+    })
+  }
+}
 
 export function getRouteMovementProgress({ currentGameMinute, startGameMinute, durationMinutes }) {
   if (!Number.isFinite(currentGameMinute) || !Number.isFinite(startGameMinute) || !Number.isFinite(durationMinutes) || durationMinutes <= 0) return null
