@@ -1,0 +1,459 @@
+/* P2.4.3 — workstation login surface.
+   This file intentionally owns only the live UI inside the approved cubicle monitor. */
+
+.start-desk-title-p243 {
+  padding: 0 !important;
+}
+
+.start-desk-title-p243 .start-monitor-ui-p243 {
+  overflow: hidden;
+  box-sizing: border-box;
+  color: #eef5fb;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-align: left;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(25, 91, 160, .26), transparent 34%),
+    radial-gradient(circle at 83% 76%, rgba(14, 69, 130, .22), transparent 31%),
+    linear-gradient(145deg, #07111f 0%, #0b213b 48%, #040912 100%);
+  box-shadow: inset 0 0 36px rgba(0, 0, 0, .38);
+}
+
+.start-desk-title-p243 .start-monitor-ui-p243::before,
+.start-desk-title-p243 .start-monitor-ui-p243::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+.start-desk-title-p243 .start-monitor-ui-p243::before {
+  width: 84%;
+  height: 56%;
+  left: -18%;
+  bottom: -33%;
+  border: 1px solid rgba(61, 144, 232, .28);
+  box-shadow: 0 -8px 28px rgba(25, 104, 188, .10);
+  transform: rotate(-7deg);
+}
+
+.start-desk-title-p243 .start-monitor-ui-p243::after {
+  width: 76%;
+  height: 48%;
+  right: -20%;
+  bottom: -26%;
+  border: 1px solid rgba(214, 155, 61, .18);
+  transform: rotate(-10deg);
+}
+
+.docos-login-home-p243,
+.docos-login-subview-p243 {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.docos-login-home-p243 {
+  display: grid;
+  grid-template-rows: 34% 1fr;
+  padding: 3.6% 5.2% 4.5%;
+}
+
+.docos-login-brand-p243 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 0;
+}
+
+.docos-login-brand-p243 img {
+  display: block;
+  width: min(57%, 240px);
+  height: auto;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, .28));
+}
+
+.docos-login-session-p243 {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-1.5%);
+}
+
+.docos-login-account-p243 {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.docos-login-account-p243:disabled {
+  cursor: default;
+}
+
+.docos-login-avatar-p243 {
+  width: clamp(34px, 5.2dvh, 45px);
+  height: clamp(34px, 5.2dvh, 45px);
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border: 1px solid rgba(186, 212, 237, .48);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.02)),
+    rgba(29, 63, 96, .72);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 7px 18px rgba(0,0,0,.20);
+}
+
+.docos-login-avatar-p243 svg {
+  width: 66%;
+  height: 66%;
+  fill: #e7f0f8;
+  opacity: .94;
+}
+
+.docos-login-avatar-p243.new svg {
+  width: 58%;
+  height: 58%;
+}
+
+.docos-login-account-p243 strong {
+  max-width: 76%;
+  margin-top: clamp(4px, .65dvh, 7px);
+  overflow: hidden;
+  color: #f5f8fb;
+  font-size: clamp(9px, 1.35dvh, 12px);
+  font-weight: 560;
+  line-height: 1.05;
+  letter-spacing: -.015em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 2px 7px rgba(0,0,0,.42);
+}
+
+.docos-login-account-p243 small {
+  margin-top: 2px;
+  color: #8fa6bb;
+  font-size: clamp(5.5px, .72dvh, 7px);
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.docos-login-enter-p243 {
+  width: clamp(24px, 3.35dvh, 30px);
+  height: clamp(24px, 3.35dvh, 30px);
+  display: grid;
+  place-items: center;
+  margin-top: clamp(5px, .75dvh, 7px);
+  padding: 0;
+  border: 1px solid rgba(151, 194, 234, .54);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #1d72c8, #0b4f9e);
+  color: #f5fbff;
+  font: inherit;
+  font-size: clamp(14px, 2dvh, 18px);
+  font-weight: 350;
+  line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 4px 12px rgba(0,0,0,.24);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.docos-login-switch-p243 {
+  margin-top: clamp(3px, .48dvh, 5px);
+  padding: 2px 5px;
+  border: 0;
+  background: transparent;
+  color: #c4d3e1;
+  font: inherit;
+  font-size: clamp(5.5px, .75dvh, 7px);
+  font-weight: 620;
+  letter-spacing: .025em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.docos-login-settings-p243 {
+  position: absolute;
+  right: 4.5%;
+  bottom: 5.2%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  border: 0;
+  background: transparent;
+  color: #d6e1ea;
+  font: inherit;
+  font-size: clamp(5.5px, .74dvh, 7px);
+  font-weight: 580;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.docos-login-settings-p243 svg {
+  width: clamp(10px, 1.35dvh, 13px);
+  height: clamp(10px, 1.35dvh, 13px);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+
+.docos-login-account-p243:active,
+.docos-login-enter-p243:active,
+.docos-login-switch-p243:active,
+.docos-login-settings-p243:active,
+.docos-login-slot-p243:active,
+.docos-login-back-p243:active {
+  transform: translateY(1px);
+}
+
+/* Switch-user and Settings screens intentionally feel like the same operating system. */
+.docos-login-subview-p243 {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 5% 6% 5.5%;
+}
+
+.docos-login-subview-header-p243 {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 4%;
+  border-bottom: 1px solid rgba(142, 171, 199, .20);
+}
+
+.docos-login-back-p243 {
+  width: clamp(24px, 3.1dvh, 29px);
+  height: clamp(24px, 3.1dvh, 29px);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(143, 174, 202, .28);
+  border-radius: 6px;
+  background: rgba(13, 30, 48, .72);
+  color: #dce8f2;
+  font: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.docos-login-subview-heading-p243 {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.docos-login-subview-heading-p243 span {
+  color: #7892aa;
+  font-size: clamp(5px, .65dvh, 6.5px);
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.docos-login-subview-heading-p243 h2 {
+  margin: 0;
+  color: #f2f7fb;
+  font-size: clamp(10px, 1.45dvh, 13px);
+  font-weight: 620;
+  letter-spacing: -.01em;
+}
+
+.docos-login-subview-header-p243 img {
+  width: clamp(52px, 8dvh, 72px);
+  height: auto;
+  opacity: .86;
+}
+
+.docos-login-slot-list-p243 {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding-top: 4%;
+}
+
+.docos-login-slot-row-p243 {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+}
+
+.docos-login-slot-p243,
+.docos-login-new-p243 {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: clamp(26px, 3.7dvh, 34px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  border: 1px solid rgba(116, 149, 180, .20);
+  border-radius: 7px;
+  background: rgba(12, 29, 47, .58);
+  color: #eaf2f8;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.docos-login-slot-p243.active {
+  border-color: rgba(109, 166, 219, .48);
+  background: rgba(19, 52, 82, .70);
+}
+
+.docos-login-slot-avatar-p243 {
+  width: clamp(25px, 3.55dvh, 32px);
+  height: clamp(25px, 3.55dvh, 32px);
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(178, 204, 227, .36);
+  border-radius: 6px;
+  background: rgba(41, 75, 106, .66);
+  color: #f4f8fb;
+  font-size: clamp(8px, 1.05dvh, 10px);
+  font-weight: 700;
+}
+
+.docos-login-slot-copy-p243 {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.docos-login-slot-copy-p243 strong,
+.docos-login-slot-copy-p243 span,
+.docos-login-slot-copy-p243 small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.docos-login-slot-copy-p243 strong {
+  color: #eef5fb;
+  font-size: clamp(7px, .95dvh, 9px);
+  font-weight: 650;
+}
+
+.docos-login-slot-copy-p243 span {
+  color: #9fb2c4;
+  font-size: clamp(5px, .68dvh, 6.5px);
+}
+
+.docos-login-slot-copy-p243 small {
+  color: #68839b;
+  font-size: clamp(4.5px, .60dvh, 6px);
+}
+
+.docos-login-slot-arrow-p243 {
+  color: #a9c3d9;
+  font-size: 13px;
+}
+
+.docos-login-delete-p243 {
+  width: clamp(22px, 2.8dvh, 27px);
+  min-height: 100%;
+  padding: 0;
+  border: 1px solid rgba(119, 83, 83, .28);
+  border-radius: 7px;
+  background: rgba(50, 28, 31, .48);
+  color: #b99799;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.docos-login-delete-confirm-p243 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+
+.docos-login-delete-confirm-p243 button {
+  min-height: 100%;
+  padding: 0 6px;
+  border: 1px solid rgba(134, 156, 176, .24);
+  border-radius: 6px;
+  background: rgba(17, 35, 53, .72);
+  color: #c8d6e2;
+  font: inherit;
+  font-size: clamp(4.5px, .62dvh, 6px);
+  font-weight: 760;
+}
+
+.docos-login-delete-confirm-p243 button:last-child {
+  border-color: rgba(151, 85, 85, .38);
+  background: rgba(71, 32, 36, .70);
+  color: #ddb0b3;
+}
+
+.docos-login-settings-panel-p243 {
+  align-self: start;
+  display: grid;
+  gap: 4px;
+  margin-top: 7%;
+  padding: 7% 7%;
+  border: 1px solid rgba(120, 151, 180, .20);
+  border-radius: 8px;
+  background: rgba(11, 27, 43, .60);
+}
+
+.docos-login-settings-panel-p243 span {
+  color: #7892aa;
+  font-size: clamp(5px, .65dvh, 6.5px);
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.docos-login-settings-panel-p243 strong {
+  color: #eef5fb;
+  font-size: clamp(8px, 1.05dvh, 10px);
+  font-weight: 650;
+}
+
+.docos-login-settings-panel-p243 p {
+  margin: 0;
+  color: #9aafc1;
+  font-size: clamp(5.5px, .72dvh, 7px);
+  line-height: 1.35;
+}
+
+@media (max-height: 700px) {
+  .docos-login-home-p243 { padding-top: 2.8%; }
+  .docos-login-brand-p243 img { width: 52%; }
+  .docos-login-session-p243 { transform: translateY(-3%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .docos-login-account-p243:active,
+  .docos-login-enter-p243:active,
+  .docos-login-switch-p243:active,
+  .docos-login-settings-p243:active,
+  .docos-login-slot-p243:active,
+  .docos-login-back-p243:active {
+    transform: none;
+  }
+}
