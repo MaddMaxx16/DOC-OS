@@ -1,15 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
+import PlayerAvatar, {
+  APPEARANCE_CATEGORIES,
+  APPEARANCE_OPTIONS,
+  DEFAULT_APPEARANCE,
+} from './PlayerAvatar'
 import './CareerSetupScreen.css'
 import './CareerSetupScreen.p2443a.css'
+import './CareerLookCreator.css'
 
-// P2.4.4.3A — Create Player / Your Name
-// Employee-career identity setup. Keep this screen intentionally narrow:
-// one player-facing field, keyboard-safe on iOS, no legacy business setup.
+// P2.4.4.3A/B — Create Player
+// Step 01 owns player-facing identity. Step 02 owns appearance.
+// Do not release either step into the legacy business/market creation flow.
 function CareerSetupScreen({ profile = null, onBack }) {
   const [displayName, setDisplayName] = useState(profile?.displayName || '')
   const [keyboardOpen, setKeyboardOpen] = useState(false)
   const [nameFocused, setNameFocused] = useState(false)
   const [phase, setPhase] = useState('name')
+  const [appearance, setAppearance] = useState(() => ({
+    ...DEFAULT_APPEARANCE,
+    ...(profile?.appearance || {}),
+  }))
+  const [appearanceCategory, setAppearanceCategory] = useState('skinTone')
 
   const screenRef = useRef(null)
   const nameRef = useRef(null)
@@ -68,9 +79,10 @@ function CareerSetupScreen({ profile = null, onBack }) {
     if (active && typeof active.blur === 'function') active.blur()
     setNameFocused(false)
 
-    // P2.4.4.3A stops at the Your Look handoff on purpose.
-    // Do not release into the legacy market-creation flow from this checkpoint.
-    window.requestAnimationFrame(() => setPhase('lookPending'))
+    window.requestAnimationFrame(() => {
+      setPhase('look')
+      submitLockRef.current = false
+    })
   }
 
   const submit = (event) => {
@@ -78,17 +90,75 @@ function CareerSetupScreen({ profile = null, onBack }) {
     continueToLook()
   }
 
-  if (phase === 'lookPending') {
+  const setAppearanceValue = (key, value) => {
+    setAppearance((current) => ({ ...current, [key]: value }))
+  }
+
+  const randomizeAppearance = () => {
+    const next = { ...appearance }
+
+    APPEARANCE_CATEGORIES.forEach(({ key }) => {
+      const options = APPEARANCE_OPTIONS[key]
+      next[key] = options[Math.floor(Math.random() * options.length)].value
+    })
+
+    setAppearance(next)
+  }
+
+  const resetAppearance = () => {
+    setAppearance({ ...DEFAULT_APPEARANCE })
+    setAppearanceCategory('skinTone')
+  }
+
+  if (phase === 'marketPending') {
     return (
       <div ref={screenRef} className="career-setup-d434c career-look-handoff-d434c">
         <header className="career-systembar-d434c">
           <button
             className="career-back-d434c"
             type="button"
-            onClick={() => {
-              submitLockRef.current = false
-              setPhase('name')
-            }}
+            onClick={() => setPhase('look')}
+            aria-label="Back to your look"
+          >
+            <span aria-hidden="true">‹</span>
+          </button>
+
+          <div className="career-system-id-d434c">
+            <div className="career-mini-mark-d434c" aria-label="DOC OS">
+              <b>DOC</b><i>OS</i>
+            </div>
+            <span>EMPLOYEE ONBOARDING</span>
+          </div>
+
+          <div className="career-step-d434c" aria-label="Step 3 of 3">
+            <span>03 / 03</span>
+            <div aria-hidden="true"><i /><i /><i className="active" /></div>
+          </div>
+        </header>
+
+        <main className="career-look-handoff-main-d434c">
+          <span>NEXT CHECKPOINT</span>
+          <h1>Choose Your Market</h1>
+          <p>{playerName}, your employee profile is ready. Market selection comes next.</p>
+          <small>P2.4.4.3C · NOT BUILT YET</small>
+        </main>
+      </div>
+    )
+  }
+
+  if (phase === 'look') {
+    const activeOptions = APPEARANCE_OPTIONS[appearanceCategory]
+    const activeCategoryLabel = APPEARANCE_CATEGORIES.find(
+      ({ key }) => key === appearanceCategory,
+    )?.label
+
+    return (
+      <div ref={screenRef} className="career-setup-d434c career-look-creator-d434c">
+        <header className="career-systembar-d434c">
+          <button
+            className="career-back-d434c"
+            type="button"
+            onClick={() => setPhase('name')}
             aria-label="Back to your name"
           >
             <span aria-hidden="true">‹</span>
@@ -107,11 +177,100 @@ function CareerSetupScreen({ profile = null, onBack }) {
           </div>
         </header>
 
-        <main className="career-look-handoff-main-d434c">
-          <span>NEXT CHECKPOINT</span>
-          <h1>Your Look</h1>
-          <p>{playerName}, your name is ready. Player appearance comes next.</p>
-          <small>P2.4.4.3B · NOT BUILT YET</small>
+        <main className="career-look-main-d434c">
+          <div className="career-look-workspace-d434c">
+            <section className="career-look-intro-d434c">
+              <span>CREATE PLAYER · YOUR LOOK</span>
+              <h1>Let’s get your employee photo ready.</h1>
+              <p>Build your DOC OS profile. You can change your look later.</p>
+            </section>
+
+            <section className="career-photo-card-d434c" aria-label={`${playerName} employee photo`}>
+              <div className="career-photo-stage-d434c">
+                <div className="career-photo-frame-d434c">
+                  <PlayerAvatar appearance={appearance} />
+                </div>
+                <div className="career-photo-status-d434c">
+                  <span>EMPLOYEE PHOTO</span>
+                  <strong>LIVE PREVIEW</strong>
+                </div>
+              </div>
+
+              <div className="career-photo-copy-d434c">
+                <span>METROLINE TRANSPORT</span>
+                <strong>{playerName}</strong>
+                <small>Junior Dispatcher · New Hire</small>
+                <div>
+                  <button type="button" onClick={randomizeAppearance}>RANDOMIZE</button>
+                  <button type="button" onClick={resetAppearance}>RESET</button>
+                </div>
+              </div>
+            </section>
+
+            <nav className="career-look-tabs-d434c" aria-label="Appearance categories">
+              {APPEARANCE_CATEGORIES.map((category) => (
+                <button
+                  key={category.key}
+                  type="button"
+                  className={appearanceCategory === category.key ? 'active' : ''}
+                  onClick={() => setAppearanceCategory(category.key)}
+                >
+                  {category.label}
+                </button>
+              ))}
+            </nav>
+
+            <section className="career-look-options-d434c">
+              <div className="career-look-options-head-d434c">
+                <div>
+                  <span>CUSTOMIZE</span>
+                  <strong>{activeCategoryLabel}</strong>
+                </div>
+                <small>{activeOptions.length} OPTIONS</small>
+              </div>
+
+              <div className="career-look-option-grid-d434c">
+                {activeOptions.map((option) => {
+                  const selected = appearance[appearanceCategory] === option.value
+                  const colorOption = Boolean(option.color)
+
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`${selected ? 'selected' : ''} ${colorOption ? 'color-option' : ''}`}
+                      onClick={() => setAppearanceValue(appearanceCategory, option.value)}
+                      aria-pressed={selected}
+                    >
+                      {colorOption && (
+                        <i
+                          aria-hidden="true"
+                          style={{ '--option-color': option.color }}
+                        />
+                      )}
+                      <span>{option.label}</span>
+                      {selected && <b aria-hidden="true">✓</b>}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+
+            <div className="career-look-action-d434c">
+              <div>
+                <span>NEXT</span>
+                <strong>Your Market</strong>
+              </div>
+              <button type="button" onClick={() => setPhase('marketPending')}>
+                <span>CONTINUE</span>
+                <b aria-hidden="true">→</b>
+              </button>
+            </div>
+
+            <p className="career-look-footnote-d434c">
+              Metroline employee profile · DOC OS personnel record
+            </p>
+          </div>
         </main>
       </div>
     )
