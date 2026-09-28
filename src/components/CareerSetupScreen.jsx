@@ -174,7 +174,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
                 }}
                 onFocus={revealName}
                 onBlur={() => setNameFocused(false)}
-                placeholder="Maxx"
+                placeholder="Enter your name"
                 autoComplete="name"
                 autoCapitalize="words"
                 enterKeyHint="go"
