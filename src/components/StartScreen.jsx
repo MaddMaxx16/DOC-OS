@@ -92,6 +92,17 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
 
     workstationEntryTimerRef.current = window.setTimeout(() => {
       setWorkstationEntryPhase('handoff')
+
+      // P2.4.4.2.1 — the physical workstation push is the transition.
+      // App's legacy forward stage curtain would otherwise run immediately after
+      // this handoff and create a second black transition before Career Setup.
+      // Keep the marker alive beyond this component's unmount so only that
+      // redundant curtain is suppressed; later forward transitions are untouched.
+      document.documentElement.classList.add('docos-workstation-handoff-active')
+      window.setTimeout(() => {
+        document.documentElement.classList.remove('docos-workstation-handoff-active')
+      }, 1400)
+
       window.requestAnimationFrame(() => action())
     }, 1180)
   }
