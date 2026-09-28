@@ -10,7 +10,7 @@ import './CareerLookCreator.css'
 
 // P2.4.4.3A/B — Create Player
 // Step 01 owns player-facing identity. Step 02 owns appearance.
-// Do not release either step into the legacy business/market creation flow.
+// Metroline is fixed to the New York market; market selection is not part of onboarding.
 function CareerSetupScreen({ profile = null, onBack }) {
   const [displayName, setDisplayName] = useState(profile?.displayName || '')
   const [keyboardOpen, setKeyboardOpen] = useState(false)
@@ -110,7 +110,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
     setAppearanceCategory('skinTone')
   }
 
-  if (phase === 'marketPending') {
+  if (phase === 'firstDayPending') {
     return (
       <div ref={screenRef} className="career-setup-d434c career-look-handoff-d434c">
         <header className="career-systembar-d434c">
@@ -130,17 +130,17 @@ function CareerSetupScreen({ profile = null, onBack }) {
             <span>EMPLOYEE ONBOARDING</span>
           </div>
 
-          <div className="career-step-d434c" aria-label="Step 3 of 3">
-            <span>03 / 03</span>
-            <div aria-hidden="true"><i /><i /><i className="active" /></div>
+          <div className="career-step-d434c" aria-label="Onboarding complete">
+            <span>02 / 02</span>
+            <div aria-hidden="true"><i /><i className="active" /></div>
           </div>
         </header>
 
         <main className="career-look-handoff-main-d434c">
-          <span>NEXT CHECKPOINT</span>
-          <h1>Choose Your Market</h1>
-          <p>{playerName}, your employee profile is ready. Market selection comes next.</p>
-          <small>P2.4.4.3C · NOT BUILT YET</small>
+          <span>ONBOARDING COMPLETE</span>
+          <h1>First Day</h1>
+          <p>{playerName}, your Metroline employee profile is ready. Your first shift comes next.</p>
+          <small>NEXT EXPERIENCE · NOT BUILT YET</small>
         </main>
       </div>
     )
@@ -171,9 +171,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
             <span>EMPLOYEE ONBOARDING</span>
           </div>
 
-          <div className="career-step-d434c" aria-label="Step 2 of 3">
-            <span>02 / 03</span>
-            <div aria-hidden="true"><i /><i className="active" /><i /></div>
+          <div className="career-step-d434c" aria-label="Step 2 of 2">
+            <span>02 / 02</span>
+            <div aria-hidden="true"><i /><i className="active" /></div>
           </div>
         </header>
 
@@ -182,7 +182,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
             <section className="career-look-intro-d434c">
               <span>CREATE PLAYER · YOUR LOOK</span>
               <h1>Let’s get your employee photo ready.</h1>
-              <p>Build your DOC OS profile. You can change your look later.</p>
+              <p>Create the employee photo that will appear on your Metroline profile.</p>
             </section>
 
             <section className="career-photo-card-d434c" aria-label={`${playerName} employee photo`}>
@@ -192,7 +192,6 @@ function CareerSetupScreen({ profile = null, onBack }) {
                 </div>
                 <div className="career-photo-status-d434c">
                   <span>EMPLOYEE PHOTO</span>
-                  <strong>LIVE PREVIEW</strong>
                 </div>
               </div>
 
@@ -259,9 +258,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
             <div className="career-look-action-d434c">
               <div>
                 <span>NEXT</span>
-                <strong>Your Market</strong>
+                <strong>First Day</strong>
               </div>
-              <button type="button" onClick={() => setPhase('marketPending')}>
+              <button type="button" onClick={() => setPhase('firstDayPending')}>
                 <span>CONTINUE</span>
                 <b aria-hidden="true">→</b>
               </button>
@@ -293,9 +292,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
           <span>EMPLOYEE ONBOARDING</span>
         </div>
 
-        <div className="career-step-d434c" aria-label="Step 1 of 3">
-          <span>01 / 03</span>
-          <div aria-hidden="true"><i /><i /><i /></div>
+        <div className="career-step-d434c" aria-label="Step 1 of 2">
+          <span>01 / 02</span>
+          <div aria-hidden="true"><i /><i /></div>
         </div>
       </header>
 
