@@ -267,7 +267,7 @@ function getAuthoritativeScheduleConstraint(load, driver) {
   return getDriverScheduleConstraint(load, driver)
 }
 
-function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario, initialPhoneOpen = false, initialPhoneScreen = 'home', onInitialPhoneEntryConsumed }) {
+function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario, onInitializeEmployeeCareer, initialPhoneOpen = false, initialPhoneScreen = 'home', onInitialPhoneEntryConsumed }) {
   const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen))
   const [phoneInitialScreen, setPhoneInitialScreen] = useState(initialPhoneScreen || 'home')
   // B.5.4D.1.1 — Opening Guidance + CarrierSource Clock Gate
@@ -3149,6 +3149,13 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
             onResetGame={onResetGame}
             onReturnToTitle={onReturnToTitle}
             onSetupOvernightDevScenario={onSetupOvernightDevScenario}
+            onInitializeEmployeeCareer={() => {
+              const initialized = onInitializeEmployeeCareer?.()
+              if (initialized === false) return false
+              setDayOneCarrierSourceGateActive(false)
+              setIsPhoneOpen(false)
+              return true
+            }}
             onResetDayAfterCarrierApproval={onResetDayAfterCarrierApproval}
             onOpenDriverSchedule={(driverId) => { setIsPhoneOpen(false); setDriverHubOpen(true); if (driverId) { setDriverFocusId(driverId); setDriverFocusRequest((value) => value + 1) } }}
             onRequestScheduleApproval={requestScheduleApproval}

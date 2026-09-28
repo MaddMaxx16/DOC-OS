@@ -20,6 +20,7 @@ class MemoryStorage {
 globalThis.localStorage = new MemoryStorage()
 const saves = await import('../src/utils/saveGame.js')
 const careerState = await import('../src/utils/careerState.js')
+const { initializeMetrolineEmployeeOperation } = await import('../src/utils/employeeCareerInitializer.js')
 const { resolveDriverWorkdayOwnership } = await import('../src/utils/driverWorkdayOwnership.js')
 
 test.beforeEach(() => localStorage.clear())
@@ -128,4 +129,24 @@ test('explicit employee career survives save and reload', () => {
 test('unknown career metadata safely resolves to legacy independent', () => {
   assert.equal(saves.saveGame({ marker: 'unknown', career: { model: 'fleet_owner', origin: 'future' } }, 'save-01'), true)
   assert.deepEqual(saves.loadGame('save-01').career, careerState.createLegacyIndependentCareer())
+})
+
+test('employee operational state survives persistence without duplicating its roster', () => {
+  const initialized = initializeMetrolineEmployeeOperation()
+  const state = {
+    gameTime: { gameDayIndex: 0, totalMinutesOfDay: 360 },
+    career: initialized.career,
+    carriers: initialized.carriers,
+    drivers: initialized.drivers,
+    runtimePositions: initialized.runtimePositions,
+    carrierApplicationsById: initialized.carrierApplicationsById,
+    businessDocuments: initialized.businessDocuments,
+  }
+
+  assert.equal(saves.saveGame(state, 'save-01'), true)
+  const restored = saves.loadGame('save-01')
+  assert.equal(restored.career.model, 'employee')
+  assert.equal(restored.drivers.filter((driver) => driver.id === 'marcus').length, 1)
+  assert.equal(Object.keys(restored.drivers[0].workdayByDay).length, 3)
+  assert.deepEqual(restored.runtimePositions, initialized.runtimePositions)
 })

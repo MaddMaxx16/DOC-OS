@@ -50,11 +50,12 @@ import { getLoadFolderLifecycle } from '../utils/documentFolderLifecycle.js'
 import { isLunchDecisionReady } from '../utils/lunchDecisionEvents.js'
 import SettingsScreen from './SettingsScreen.jsx'
 import { getControlled5pmDeliveryTiming } from '../dev/devScenarioTiming.js'
+import { hasActiveCarrierRoster } from '../utils/carrierOperationalContext.js'
 
 function getReceivable(loads, carriers, workflows, id) { return getReceivables(loads, carriers, workflows).find((item) => item.loadId === id) }
 
 // B.5.4D.4.3.1B — Legacy Route + Diagnostic Cleanup Final
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, gameTime, setGameTime, setGameClockPaused, onEvaluateFit, onAddToSchedule, onAcceptCandidateAssignment, initialScreen = 'home', initialLoadId = null, initialDriverId = null, initialShiftEndPromptDriverId = null, onShiftEndPromptConsumed, onShiftEndAlertFlowExit, initialEmailComposeContext = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, ledgerBanking, setLedgerWorkflowByLoadId, onResetGame, onReturnToTitle, onRequestScheduleApproval, onBookApprovedSchedule, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onPickupCorrectionSent, onSetupOvernightDevScenario, onClose, onCarrierSourceOpened }) {
+function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, gameTime, setGameTime, setGameClockPaused, onEvaluateFit, onAddToSchedule, onAcceptCandidateAssignment, initialScreen = 'home', initialLoadId = null, initialDriverId = null, initialShiftEndPromptDriverId = null, onShiftEndPromptConsumed, onShiftEndAlertFlowExit, initialEmailComposeContext = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, ledgerBanking, setLedgerWorkflowByLoadId, onResetGame, onReturnToTitle, onRequestScheduleApproval, onBookApprovedSchedule, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onPickupCorrectionSent, onSetupOvernightDevScenario, onInitializeEmployeeCareer, onClose, onCarrierSourceOpened }) {
   // B.5.4D.4.2.5A — Flexible Plan Return Navigation
   const [driverOpsReturnScreen, setDriverOpsReturnScreen] = useState('home')
 
@@ -163,7 +164,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
 
   const selectedCarrier = carriers.find((carrier) => carrier.id === selectedCarrierId) || carriers[0] || null
   const nowGameMinute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-  const hasActiveCarrier = carriers.some((carrier) => carrier.status === 'active') && drivers.length > 0
+  const hasActiveCarrier = hasActiveCarrierRoster(carriers, drivers)
   const lunchReadyCount = drivers.filter((driver) => isLunchDecisionReady({ driver, loads, gameTime })).length
   const emailContacts = [
     ...carriers.filter((carrier) => carrier.status === 'active').flatMap((carrier) => [
@@ -398,6 +399,17 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
               <p>Shortcuts for repeated gameplay testing. These controls only change the current test save.</p>
 
               <div className="phone-dev-tool-list">
+                <div className="phone-dev-tool-row">
+                  <div>
+                    <span>P2.4 EMPLOYEE INITIALIZER</span>
+                    <b>METROLINE · JUNIOR DISPATCHER</b>
+                    <small>Replaces this test save with the employee runtime baseline at 6:00 AM, paused. No CarrierSource application or signed dispatch agreement is created.</small>
+                  </div>
+                  <button type="button" disabled={!onInitializeEmployeeCareer} onClick={() => onInitializeEmployeeCareer?.()}>
+                    CREATE EMPLOYEE TEST
+                  </button>
+                </div>
+
                 <div className="phone-dev-tool-row">
                   <div>
                     <span>DISPATCHER PROFILE</span>

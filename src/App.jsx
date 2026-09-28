@@ -41,6 +41,8 @@ import { resolveDriverWorkdayOwnership } from './utils/driverWorkdayOwnership.js
 import { sampleRoutePoint } from './utils/routeSampler.js'
 import { anchorMovementRoute, reconcileIdleMovement, reconcileFreightMovement, restoreMovementOwnerContinuity } from './utils/runtimeMovement.js'
 import { createLegacyIndependentCareer, normalizeCareerState } from './utils/careerState.js'
+import { establishCarrierOperationalContext } from './utils/carrierOperationalContext.js'
+import { initializeMetrolineEmployeeOperation } from './utils/employeeCareerInitializer.js'
 
 
 const IDLE_DWELL_MINUTES = 20
@@ -973,95 +975,75 @@ useEffect(() => {
     setPlayerProgression({ ...DEFAULT_PLAYER_PROGRESSION })
     return true
   }
+
+  const initializeEmployeeCareerForDev = () => {
+    const employeeGameTime = { gameDayIndex: 0, totalMinutesOfDay: 360 }
+    const initialized = initializeMetrolineEmployeeOperation({ gameTime: employeeGameTime })
+    const nextCarrierCareer = buildCarrierCareerById(initialized.carriers, {}, {})
+    if (nextCarrierCareer.metroline) {
+      nextCarrierCareer.metroline = {
+        ...nextCarrierCareer.metroline,
+        relationshipState: CARRIER_RELATIONSHIP_STATES.ACTIVE,
+        applicationState: CARRIER_APPLICATION_STATES.NONE,
+        agreementAccepted: false,
+        agreementAcceptedGameMinute: null,
+      }
+    }
+
+    setCareer(initialized.career)
+    setSelectedMarket('new-york')
+    setGameTime(employeeGameTime)
+    setLoads(seedLoads.map((load) => ({ ...load })))
+    setCarriers(initialized.carriers)
+    setDrivers(initialized.drivers)
+    setRuntimePositions(initialized.runtimePositions)
+    setRuntimeProgressByDriver({})
+    setPlannedRoute(null)
+    setCarrierApplicationsById(initialized.carrierApplicationsById)
+    setCarrierCareerById(nextCarrierCareer)
+    setBusinessDocuments(initialized.businessDocuments)
+    setDispatcherProfile({ displayName: 'P2.4 Employee Test', homeMarket: 'New York Metro', created: true, devGenerated: true })
+    setEmailMessages([])
+    setDriverMessages([])
+    setLedgerWorkflowByLoadId({})
+    setLedgerBanking(createInitialLedgerBanking())
+    setSeenLedgerReceivableIds([])
+    setSeenLedgerPaymentReceivedIds([])
+    setDayLoop({ ...DEFAULT_DAY_LOOP_STATE })
+    setPlayerProgression({ ...DEFAULT_PLAYER_PROGRESSION })
+    setGameEntryScreen(null)
+    setSimulationSpeed(1)
+    setIsGameClockPaused(true)
+    setResumeStage('game')
+    setHasExistingOperation(true)
+    setStage('game')
+    return true
+  }
+
   const activateCarrier = (carrierId = 'metroline') => {
-    const wasActive = carriers.some((carrier) => carrier.id === carrierId && carrier.status === 'active')
     const nextCarriers = carriers.map((carrier) => carrier.id === carrierId ? { ...carrier, status: 'active' } : carrier)
-    setCarriers(nextCarriers)
     const activatedCarrier = nextCarriers.find((carrier) => carrier.id === carrierId)
+    setCarriers(nextCarriers)
     setCarrierCareerById((current) => ({
       ...current,
       [carrierId]: mergeCarrierCareerEntry(current[carrierId], activatedCarrier, { relationshipState: CARRIER_RELATIONSHIP_STATES.ACTIVE }),
     }))
-    setDrivers((current) => {
-      // B.5.3.1.2 — accepting a carrier agreement is the driver's activation
-      // boundary, not a duty-start event. On the first inactive -> active
-      // transition, build that carrier's roster from pristine seed drivers so
-      // stale workdays/HOS from another operation can never clock the driver in.
-      const carrierDriverIds = new Set(activatedCarrier?.driverIds || [])
-      const base = wasActive ? current : current.filter((driver) => !carrierDriverIds.has(driver.id))
-      let nextDrivers = reconcileActiveCarrierDrivers(base, nextCarriers)
-
-      // B.5.4D.4.1.2 — carrier-controlled schedule handoff.
-      // The carrier provides the next three confirmed driver workdays.
-      // The dispatcher may plan freight/lunch/positioning around these shifts,
-      // but does not directly change the carrier's shift times.
-      if (!wasActive && carrierDriverIds.size) {
-        const confirmedStartDay = Number(gameTime.gameDayIndex || 0)
-        const confirmedAtGameMinute =
-          confirmedStartDay * 1440 + Number(gameTime.totalMinutesOfDay || 0)
-
-        nextDrivers = nextDrivers.map((driver) => {
-          if (!carrierDriverIds.has(driver.id)) return driver
-
-          const workdayByDay = { ...(driver.workdayByDay || {}) }
-
-          const templateStart =
-            Number(driver.carrierScheduleTemplate?.startMinutes) ||
-            Number(driver.handoffScheduleTemplate?.startMinutes) ||
-            Number(driver.preferredStartMinutes) ||
-            Number(driver.defaultStartMinutes) ||
-            420
-
-          const templateEnd =
-            Number(driver.carrierScheduleTemplate?.endMinutes) ||
-            Number(driver.handoffScheduleTemplate?.endMinutes) ||
-            Number(driver.preferredEndMinutes) ||
-            Number(driver.defaultEndMinutes) ||
-            ((templateStart + 600) % 1440)
-
-          for (let offset = 0; offset < 3; offset += 1) {
-            const dayIndex = confirmedStartDay + offset
-            const key = String(dayIndex)
-
-            workdayByDay[key] = {
-              ...(workdayByDay[key] || {}),
-              startMinutes: templateStart,
-              endMinutes: templateEnd,
-              crossesMidnight: templateEnd <= templateStart,
-              isDayOff: false,
-              carrierConfirmed: true,
-              scheduleSource: 'carrier',
-              inheritedFromPreviousDispatcher: true,
-              confirmedCarrierId: carrierId,
-              confirmedAtGameMinute,
-            }
-          }
-
-          // Day 4+ is not player-editable. Availability will arrive from carrier updates.
-          return {
-            ...driver,
-            workdayByDay,
-            carrierScheduleControl: true,
-          }
-        })
-      }
-
-      setRuntimePositions((positions) => {
-        const next = { ...positions }
-        nextDrivers.forEach((driver) => {
-          const home = mapLocations.find((location) => location.id === driver.homeBaseLocationId)
-          if (!home) return
-          // First activation owns the spawn point. A newly activated driver
-          // always begins at the carrier yard/home base, never a stale position.
-          if (!wasActive && carrierDriverIds.has(driver.id)) {
-            next[driver.id] = { longitude: home.longitude, latitude: home.latitude }
-            return
-          }
-          if (!next[driver.id]) next[driver.id] = { longitude: home.longitude, latitude: home.latitude }
-        })
-        return next
+    setDrivers((currentDrivers) => {
+      const operational = establishCarrierOperationalContext({
+        carriers,
+        drivers: currentDrivers,
+        runtimePositions: {},
+        carrierId,
+        gameTime,
       })
-      return nextDrivers
+      setRuntimePositions((currentPositions) => establishCarrierOperationalContext({
+        carriers,
+        drivers: operational.drivers,
+        runtimePositions: currentPositions,
+        carrierId,
+        gameTime,
+      }).runtimePositions)
+      return operational.drivers
     })
   }
 
@@ -1951,6 +1933,7 @@ Dispatch Mentor`,receivedGameMinute: now,
             setSimulationSpeed={setSimulationSpeed}
             onApplyDevPreset={applySelectedDevPreset}
             onSetupOvernightDevScenario={setupOvernightDevScenario}
+            onInitializeEmployeeCareer={initializeEmployeeCareerForDev}
             onResetGame={resetGame}
             onReturnToTitle={returnToTitle}
             onResetDayAfterCarrierApproval={resetDayAfterCarrierApproval}
