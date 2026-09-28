@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import docosLoginMark from '../assets/docos-login-mark-p243.svg'
 import './StartScreen.css'
+import './StartScreenPolish.css'
 
 // P2.4.3 — the title monitor is a presentation layer over existing save authority.
 function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null, onResumeSave, onDeleteSave, onStartNew }) {
@@ -43,6 +44,13 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
   }
 
   const initialFor = (value) => String(value || '').trim().match(/[A-Z0-9]/i)?.[0]?.toUpperCase() || 'D'
+  const nameLengthClass = (value) => {
+    const length = Array.from(String(value || '').trim()).length
+    if (length > 30) return 'xlong'
+    if (length > 20) return 'long'
+    return 'normal'
+  }
+
   const hasSavedOperation = saveSlots.length > 0
   const hasEmptySlot = saveSlots.length < 3
   const activeSlot = saveSlots.find((slot) => slot?.id === activeSaveSlotId) || saveSlots[0] || null
@@ -80,6 +88,12 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
     </svg>
   )
 
+  const SystemMark = () => (
+    <span className="docos-system-mark-p243" aria-label="DOC OS">
+      <b>DOC</b><i>OS</i>
+    </span>
+  )
+
   return (
     <div className="entry-screen start-screen-cinematic start-screen-d434 start-desk-title-p243">
       <main className="start-monitor-ui-p243">
@@ -100,7 +114,7 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
                 <span className={`docos-login-avatar-p243 ${activeSlot ? 'active' : 'new'}`}>
                   <UserGlyph isNew={!activeSlot} />
                 </span>
-                <strong>{activeSessionName}</strong>
+                <strong className={`docos-login-name-p243 ${nameLengthClass(activeSessionName)}`}>{activeSessionName}</strong>
                 <small>{activeSlot ? 'Dispatcher' : 'Workstation unconfigured'}</small>
               </button>
 
@@ -111,7 +125,8 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
                 disabled={!activeSlot && !hasEmptySlot}
                 aria-label={activeSlot ? `Enter ${activeSessionName} operation` : 'Begin career'}
               >
-                →
+                <span>Enter</span>
+                <span className="enter-arrow-p243" aria-hidden="true">→</span>
               </button>
 
               <button
@@ -138,7 +153,7 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
                 <span>DOC OS · Session Control</span>
                 <h2 id="other-operations-title-p243">Switch User</h2>
               </div>
-              <img src={docosLoginMark} alt="" aria-hidden="true" />
+              <SystemMark />
             </header>
 
             <div className="docos-login-slot-list-p243">
@@ -197,7 +212,7 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
                 <span>DOC OS · System</span>
                 <h2 id="start-settings-title">Settings</h2>
               </div>
-              <img src={docosLoginMark} alt="" aria-hidden="true" />
+              <SystemMark />
             </header>
             <div className="docos-login-settings-panel-p243">
               <span>SYSTEM SETTINGS</span>
