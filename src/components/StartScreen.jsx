@@ -1,12 +1,25 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import docosLoginMark from '../assets/docos-login-mark-p243.svg'
 import './StartScreen.css'
 import './StartScreenPolish.css'
+
+let startupSplashHasPlayed = false
 
 // P2.4.3 — the title monitor is a presentation layer over existing save authority.
 function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null, onResumeSave, onDeleteSave, onStartNew }) {
   const [monitorView, setMonitorView] = useState('home')
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
+  const [showStartupSplash, setShowStartupSplash] = useState(() => !startupSplashHasPlayed)
+
+  useEffect(() => {
+    if (!showStartupSplash) return undefined
+
+    // P2.4.4.1 — play the branded startup only once per app runtime.
+    // Returning to the title from Career Setup/gameplay must not replay it.
+    startupSplashHasPlayed = true
+    const timer = window.setTimeout(() => setShowStartupSplash(false), 2450)
+    return () => window.clearTimeout(timer)
+  }, [showStartupSplash])
 
   const stateFor = (slot) => slot?.state || slot?.snapshot || slot?.data || slot?.save || slot || {}
 
@@ -88,6 +101,17 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
     </svg>
   )
 
+  const StartupTruck = () => (
+    <svg viewBox="0 0 68 28" aria-hidden="true">
+      <path d="M4 7.5h36v13H4zM40 11h11.5l8 6v3.5H40z" />
+      <path d="M47 12.8h3.7l4.9 3.8H47z" className="startup-truck-window-p244" />
+      <circle cx="16" cy="22" r="3.4" />
+      <circle cx="50" cy="22" r="3.4" />
+      <circle cx="16" cy="22" r="1.5" className="startup-truck-hub-p244" />
+      <circle cx="50" cy="22" r="1.5" className="startup-truck-hub-p244" />
+    </svg>
+  )
+
   const SystemMark = () => (
     <span className="docos-system-mark-p243" aria-label="DOC OS">
       <b>DOC</b><i>OS</i>
@@ -96,7 +120,27 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
 
   return (
     <div className="entry-screen start-screen-cinematic start-screen-d434 start-desk-title-p243">
-      <main className="start-monitor-ui-p243">
+      {showStartupSplash && (
+        <section className="docos-startup-splash-p244" role="status" aria-label="DOC OS starting">
+          <div className="docos-startup-content-p244">
+            <div className="docos-startup-wordmark-p244" aria-hidden="true">
+              <strong>DOC</strong>
+              <i />
+              <b>OS</b>
+            </div>
+            <div className="docos-startup-subtitle-p244">Dispatch Operations Center</div>
+
+            <div className="docos-startup-loader-p244" aria-hidden="true">
+              <span className="docos-startup-truck-p244"><StartupTruck /></span>
+              <span className="docos-startup-dot-p244 dot-one" />
+              <span className="docos-startup-dot-p244 dot-two" />
+              <span className="docos-startup-dot-p244 dot-three" />
+            </div>
+          </div>
+        </section>
+      )}
+
+      <main className="start-monitor-ui-p243" aria-hidden={showStartupSplash ? 'true' : undefined}>
         {monitorView === 'home' && (
           <section className="docos-login-home-p243" aria-label="DOC OS workstation sign in">
             <header className="docos-login-brand-p243">
