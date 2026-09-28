@@ -9,12 +9,12 @@
    exactly like a camera moving through a landscape display. */
 .start-desk-title-p243 .start-monitor-ui-p243 {
   transition:
-    transform 1450ms cubic-bezier(.33, 0, .20, 1),
+    transform 1120ms cubic-bezier(.33, 0, .20, 1),
     box-shadow 900ms ease;
 }
 
 .app:has(.start-desk-title-p243) .start-office-backdrop {
-  transition: transform 1450ms cubic-bezier(.33, 0, .20, 1);
+  transition: transform 1120ms cubic-bezier(.33, 0, .20, 1);
 }
 
 .start-desk-title-p243.workstation-entry-p2442 {
@@ -70,7 +70,7 @@
   background:
     radial-gradient(circle at 50% 48%, rgba(125, 187, 235, .10), transparent 38%),
     linear-gradient(118deg, transparent 24%, rgba(196, 225, 246, .08) 46%, transparent 63%);
-  animation: workstation-glass-pass-p2442 1450ms ease both;
+  animation: workstation-glass-pass-p2442 1120ms ease both;
 }
 
 .start-desk-title-p243.workstation-entry-p2442.handoff .start-monitor-ui-p243 {
