@@ -19,6 +19,7 @@ class MemoryStorage {
 
 globalThis.localStorage = new MemoryStorage()
 const saves = await import('../src/utils/saveGame.js')
+const careerState = await import('../src/utils/careerState.js')
 const { resolveDriverWorkdayOwnership } = await import('../src/utils/driverWorkdayOwnership.js')
 
 test.beforeEach(() => localStorage.clear())
@@ -26,7 +27,7 @@ test.beforeEach(() => localStorage.clear())
 test('save/load round trip preserves game state and active slot', () => {
   const state = { gameTime: { gameDayIndex: 3, totalMinutesOfDay: 515 }, drivers: [{ id: 'marcus' }] }
   assert.equal(saves.saveGame(state, 'save-02'), true)
-  assert.deepEqual(saves.loadGame('save-02'), state)
+  assert.deepEqual(saves.loadGame('save-02'), { ...state, career: careerState.createLegacyIndependentCareer() })
   assert.equal(saves.getActiveSaveSlot(), 'save-02')
   assert.equal(saves.hasSave(), true)
   const raw = JSON.parse(localStorage.getItem('doc-os-saves-v2'))
@@ -53,7 +54,7 @@ test('clearing one slot leaves other saves intact', () => {
   saves.saveGame({ marker: 2 }, 'save-02')
   saves.clearSave('save-02')
   assert.equal(saves.loadGame('save-02'), null)
-  assert.deepEqual(saves.loadGame('save-01'), { marker: 1 })
+  assert.deepEqual(saves.loadGame('save-01'), { marker: 1, career: careerState.createLegacyIndependentCareer() })
   assert.equal(saves.getActiveSaveSlot(), 'save-01')
 })
 
@@ -70,7 +71,7 @@ test('active save ownership can be explicitly cleared when no saves remain', () 
 
 test('legacy single-slot saves migrate into save-01 with current state version', () => {
   localStorage.setItem('doc-os-save-v1', JSON.stringify({ savedAt: '2026-09-01T00:00:00.000Z', state: { legacy: true } }))
-  assert.deepEqual(saves.loadGame('save-01'), { legacy: true })
+  assert.deepEqual(saves.loadGame('save-01'), { legacy: true, career: careerState.createLegacyIndependentCareer() })
   assert.equal(saves.getActiveSaveSlot(), 'save-01')
   assert.equal(localStorage.getItem('doc-os-save-v1'), null)
   const raw = JSON.parse(localStorage.getItem('doc-os-saves-v2'))
@@ -79,7 +80,7 @@ test('legacy single-slot saves migrate into save-01 with current state version',
 
 test('unversioned v2 slots migrate in place to the current state contract', () => {
   localStorage.setItem('doc-os-saves-v2', JSON.stringify({ version: 2, slots: { 'save-01': { savedAt: '2026-09-01T00:00:00.000Z', state: { marker: 'old-v2' } } } }))
-  assert.deepEqual(saves.loadGame('save-01'), { marker: 'old-v2' })
+  assert.deepEqual(saves.loadGame('save-01'), { marker: 'old-v2', career: careerState.createLegacyIndependentCareer() })
   const raw = JSON.parse(localStorage.getItem('doc-os-saves-v2'))
   assert.equal(raw.slots['save-01'].stateVersion, saves.SAVE_STATE_VERSION)
 })
@@ -94,5 +95,37 @@ test('quota pressure evicts disposable road cache and retries player save', () =
   localStorage.failNextQuotaWrite = true
   assert.equal(saves.saveGame({ marker: 'protected' }, 'save-01'), true)
   assert.equal(localStorage.getItem('docos-road-route-cache-v1'), null)
-  assert.deepEqual(saves.loadGame('save-01'), { marker: 'protected' })
+  assert.deepEqual(saves.loadGame('save-01'), { marker: 'protected', career: careerState.createLegacyIndependentCareer() })
+})
+
+test('pre-P2.4 save gains legacy career metadata without changing operational state', () => {
+  const legacyState = {
+    gameTime: { gameDayIndex: 2, totalMinutesOfDay: 75 },
+    loads: [{ id: 'active-load', tripStatus: 'en-route-delivery' }],
+    drivers: [{ id: 'marcus', assignedLoadId: 'active-load' }],
+    carriers: [{ id: 'metroline', status: 'active' }],
+    ledgerBanking: { openingBalance: 2500, transactions: [{ id: 'paid', amount: 52 }] },
+  }
+  localStorage.setItem('doc-os-saves-v2', JSON.stringify({ version: 2, slots: { 'save-01': { savedAt: '2026-09-01T00:00:00.000Z', stateVersion: 1, state: legacyState } } }))
+
+  const restored = saves.loadGame('save-01')
+  assert.deepEqual(restored.career, careerState.createLegacyIndependentCareer())
+  assert.deepEqual({ ...restored, career: undefined }, { ...legacyState, career: undefined })
+})
+
+test('explicit independent career persists and hydrates', () => {
+  const career = careerState.createLegacyIndependentCareer()
+  assert.equal(saves.saveGame({ marker: 'independent', career }, 'save-01'), true)
+  assert.deepEqual(saves.loadGame('save-01').career, career)
+})
+
+test('explicit employee career survives save and reload', () => {
+  const career = careerState.createMetrolineEmployeeCareer()
+  assert.equal(saves.saveGame({ marker: 'employee', career }, 'save-01'), true)
+  assert.deepEqual(saves.loadGame('save-01'), { marker: 'employee', career })
+})
+
+test('unknown career metadata safely resolves to legacy independent', () => {
+  assert.equal(saves.saveGame({ marker: 'unknown', career: { model: 'fleet_owner', origin: 'future' } }, 'save-01'), true)
+  assert.deepEqual(saves.loadGame('save-01').career, careerState.createLegacyIndependentCareer())
 })

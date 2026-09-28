@@ -1,9 +1,11 @@
+import { normalizeCareerState } from './careerState.js'
+
 const LEGACY_SAVE_KEY = 'doc-os-save-v1'
 const SAVE_STORE_KEY = 'doc-os-saves-v2'
 const ACTIVE_SLOT_KEY = 'doc-os-active-save-v2'
 const ROUTE_CACHE_KEY = 'docos-road-route-cache-v1'
 const STORE_VERSION = 2
-export const SAVE_STATE_VERSION = 1
+export const SAVE_STATE_VERSION = 2
 
 export const SAVE_SLOT_IDS = ['save-01', 'save-02', 'save-03']
 
@@ -32,6 +34,19 @@ function migrateState(state, fromVersion = 0) {
   // v0 -> v1 establishes an explicit state contract without rewriting existing
   // player data. Future schema changes get their own migration step here.
   if (version === 0) version = 1
+
+  // v1 -> v2 adds career identity above gameplay state. Saves without explicit
+  // metadata are existing independent-dispatch careers by contract.
+  if (version === 1) {
+    next = { ...next, career: normalizeCareerState(next?.career) }
+    version = 2
+  }
+
+  // Normalize current-version input as well so corrupt or unknown metadata has
+  // the same safe behavior whether it came from storage or a new save call.
+  if (version === SAVE_STATE_VERSION) {
+    next = { ...next, career: normalizeCareerState(next?.career) }
+  }
 
   const validation = validateSaveState(next)
   return validation.ok ? { state: next, version } : null
@@ -121,7 +136,8 @@ export function clearActiveSaveSlot() {
 }
 
 export function saveGame(state, slotId = getActiveSaveSlot() || SAVE_SLOT_IDS[0]) {
-  const validation = validateSaveState(state)
+  const normalizedState = { ...state, career: normalizeCareerState(state?.career) }
+  const validation = validateSaveState(normalizedState)
   if (!validation.ok || !SAVE_SLOT_IDS.includes(slotId)) {
     const error = new Error(validation.ok ? 'Invalid save slot.' : validation.reason)
     console.warn('DOC OS save rejected', error)
@@ -131,7 +147,7 @@ export function saveGame(state, slotId = getActiveSaveSlot() || SAVE_SLOT_IDS[0]
 
   const attempt = () => {
     const store = readStore()
-    store.slots[slotId] = { savedAt: new Date().toISOString(), stateVersion: SAVE_STATE_VERSION, state }
+    store.slots[slotId] = { savedAt: new Date().toISOString(), stateVersion: SAVE_STATE_VERSION, state: normalizedState }
     writeStore(store)
     setActiveSaveSlot(slotId)
   }
