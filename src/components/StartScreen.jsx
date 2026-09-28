@@ -17,7 +17,7 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
     // P2.4.4.1 — play the branded startup only once per app runtime.
     // Returning to the title from Career Setup/gameplay must not replay it.
     startupSplashHasPlayed = true
-    const timer = window.setTimeout(() => setShowStartupSplash(false), 2450)
+    const timer = window.setTimeout(() => setShowStartupSplash(false), 3400)
     return () => window.clearTimeout(timer)
   }, [showStartupSplash])
 
@@ -121,8 +121,13 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
   return (
     <div className="entry-screen start-screen-cinematic start-screen-d434 start-desk-title-p243">
       {showStartupSplash && (
-        <section className="docos-startup-splash-p244" role="status" aria-label="DOC OS starting">
-          <div className="docos-startup-content-p244">
+        <section
+          className="docos-startup-splash-p244"
+          role="status"
+          aria-label="DOC OS starting"
+          style={{ animationDuration: '3400ms' }}
+        >
+          <div className="docos-startup-content-p244" style={{ animationDuration: '760ms' }}>
             <div className="docos-startup-wordmark-p244" aria-hidden="true">
               <strong>DOC</strong>
               <i />
@@ -131,10 +136,15 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
             <div className="docos-startup-subtitle-p244">Dispatch Operations Center</div>
 
             <div className="docos-startup-loader-p244" aria-hidden="true">
-              <span className="docos-startup-truck-p244"><StartupTruck /></span>
-              <span className="docos-startup-dot-p244 dot-one" />
-              <span className="docos-startup-dot-p244 dot-two" />
-              <span className="docos-startup-dot-p244 dot-three" />
+              <span
+                className="docos-startup-truck-p244"
+                style={{ animationDuration: '2150ms', animationDelay: '650ms' }}
+              >
+                <StartupTruck />
+              </span>
+              <span className="docos-startup-dot-p244 dot-one" style={{ animationDuration: '420ms', animationDelay: '1230ms' }} />
+              <span className="docos-startup-dot-p244 dot-two" style={{ animationDuration: '420ms', animationDelay: '1700ms' }} />
+              <span className="docos-startup-dot-p244 dot-three" style={{ animationDuration: '420ms', animationDelay: '2160ms' }} />
             </div>
           </div>
         </section>
