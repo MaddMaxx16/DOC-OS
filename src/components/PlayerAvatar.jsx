@@ -142,10 +142,16 @@ const SKIN_TONE_FILTERS = {
 
 const clampChannel = (value) => Math.max(0, Math.min(255, Math.round(value)))
 
-function drawSkinTone(canvas, skinTone) {
+function drawSkinTone(canvas, skinTone, onDebug) {
   const tone = SKIN_TONE_FILTERS[skinTone] || SKIN_TONE_FILTERS[DEFAULT_APPEARANCE.skinTone]
   const context = canvas.getContext('2d', { willReadFrequently: true })
-  if (!context) return () => {}
+
+  if (!context) {
+    onDebug?.({ stage: 'context-error', skinTone, maskedPixels: 0, changedPixels: 0 })
+    return () => {}
+  }
+
+  onDebug?.({ stage: 'loading-assets', skinTone, maskedPixels: 0, changedPixels: 0 })
 
   const portrait = new Image()
   const mask = new Image()
@@ -156,47 +162,86 @@ function drawSkinTone(canvas, skinTone) {
   const draw = () => {
     if (cancelled || !portraitReady || !maskReady) return
 
-    context.clearRect(0, 0, canvas.width, canvas.height)
-    context.drawImage(portrait, 0, 0, canvas.width, canvas.height)
-    const portraitPixels = context.getImageData(0, 0, canvas.width, canvas.height)
+    try {
+      context.clearRect(0, 0, canvas.width, canvas.height)
+      context.drawImage(portrait, 0, 0, canvas.width, canvas.height)
+      const portraitPixels = context.getImageData(0, 0, canvas.width, canvas.height)
 
-    context.clearRect(0, 0, canvas.width, canvas.height)
-    context.drawImage(mask, 0, 0, canvas.width, canvas.height)
-    const maskPixels = context.getImageData(0, 0, canvas.width, canvas.height)
+      context.clearRect(0, 0, canvas.width, canvas.height)
+      context.drawImage(mask, 0, 0, canvas.width, canvas.height)
+      const maskPixels = context.getImageData(0, 0, canvas.width, canvas.height)
 
-    const pixels = portraitPixels.data
-    const maskData = maskPixels.data
+      const pixels = portraitPixels.data
+      const maskData = maskPixels.data
+      let maskedPixels = 0
+      let changedPixels = 0
+      let totalDelta = 0
 
-    for (let index = 0; index < pixels.length; index += 4) {
-      const weight = (maskData[index] + maskData[index + 1] + maskData[index + 2]) / (255 * 3)
-      if (weight <= 0.01) continue
+      for (let index = 0; index < pixels.length; index += 4) {
+        const weight = (maskData[index] + maskData[index + 1] + maskData[index + 2]) / (255 * 3)
+        if (weight <= 0.01) continue
 
-      const originalR = pixels[index]
-      const originalG = pixels[index + 1]
-      const originalB = pixels[index + 2]
+        maskedPixels += 1
 
-      const recoloredR = clampChannel(originalR * tone.r[0] + tone.r[1] * 255)
-      const recoloredG = clampChannel(originalG * tone.g[0] + tone.g[1] * 255)
-      const recoloredB = clampChannel(originalB * tone.b[0] + tone.b[1] * 255)
+        const originalR = pixels[index]
+        const originalG = pixels[index + 1]
+        const originalB = pixels[index + 2]
 
-      pixels[index] = clampChannel(originalR + (recoloredR - originalR) * weight)
-      pixels[index + 1] = clampChannel(originalG + (recoloredG - originalG) * weight)
-      pixels[index + 2] = clampChannel(originalB + (recoloredB - originalB) * weight)
+        const recoloredR = clampChannel(originalR * tone.r[0] + tone.r[1] * 255)
+        const recoloredG = clampChannel(originalG * tone.g[0] + tone.g[1] * 255)
+        const recoloredB = clampChannel(originalB * tone.b[0] + tone.b[1] * 255)
+
+        const nextR = clampChannel(originalR + (recoloredR - originalR) * weight)
+        const nextG = clampChannel(originalG + (recoloredG - originalG) * weight)
+        const nextB = clampChannel(originalB + (recoloredB - originalB) * weight)
+        const delta = Math.abs(nextR - originalR) + Math.abs(nextG - originalG) + Math.abs(nextB - originalB)
+
+        if (delta > 0) {
+          changedPixels += 1
+          totalDelta += delta
+        }
+
+        pixels[index] = nextR
+        pixels[index + 1] = nextG
+        pixels[index + 2] = nextB
+      }
+
+      if (cancelled) return
+
+      context.clearRect(0, 0, canvas.width, canvas.height)
+      context.putImageData(portraitPixels, 0, 0)
+
+      onDebug?.({
+        stage: 'applied',
+        skinTone,
+        maskedPixels,
+        changedPixels,
+        averageDelta: changedPixels ? Math.round(totalDelta / changedPixels) : 0,
+        canvas: `${canvas.width}x${canvas.height}`,
+      })
+    } catch (error) {
+      onDebug?.({
+        stage: 'draw-error',
+        skinTone,
+        maskedPixels: 0,
+        changedPixels: 0,
+        error: error instanceof Error ? error.message : String(error),
+      })
     }
-
-    if (cancelled) return
-    context.clearRect(0, 0, canvas.width, canvas.height)
-    context.putImageData(portraitPixels, 0, 0)
   }
 
   portrait.onload = () => {
     portraitReady = true
+    onDebug?.({ stage: maskReady ? 'assets-ready' : 'portrait-ready', skinTone })
     draw()
   }
   mask.onload = () => {
     maskReady = true
+    onDebug?.({ stage: portraitReady ? 'assets-ready' : 'mask-ready', skinTone })
     draw()
   }
+  portrait.onerror = () => onDebug?.({ stage: 'portrait-error', skinTone })
+  mask.onerror = () => onDebug?.({ stage: 'mask-error', skinTone })
 
   portrait.src = MASTER_PORTRAIT
   mask.src = SKIN_MASK
@@ -206,7 +251,7 @@ function drawSkinTone(canvas, skinTone) {
   }
 }
 
-function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
+function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '', onDebug }) {
   const canvasRef = useRef(null)
   const skinTone = SKIN_TONE_FILTERS[appearance.skinTone]
     ? appearance.skinTone
@@ -215,8 +260,8 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return undefined
-    return drawSkinTone(canvas, skinTone)
-  }, [skinTone])
+    return drawSkinTone(canvas, skinTone, onDebug)
+  }, [skinTone, onDebug])
 
   return (
     <canvas
