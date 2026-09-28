@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import './CareerSetupScreen.css'
+import './CareerSetupScreen.p2443a.css'
 
 // P2.4.4.3A — Create Player / Your Name
 // Employee-career identity setup. Keep this screen intentionally narrow:
@@ -7,6 +8,7 @@ import './CareerSetupScreen.css'
 function CareerSetupScreen({ profile = null, onBack }) {
   const [displayName, setDisplayName] = useState(profile?.displayName || '')
   const [keyboardOpen, setKeyboardOpen] = useState(false)
+  const [nameFocused, setNameFocused] = useState(false)
   const [phase, setPhase] = useState('name')
 
   const screenRef = useRef(null)
@@ -15,6 +17,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
 
   const playerName = displayName.trim()
   const ready = playerName.length >= 2
+  const keyboardMode = keyboardOpen || nameFocused
 
   useEffect(() => {
     const viewport = window.visualViewport
@@ -46,6 +49,8 @@ function CareerSetupScreen({ profile = null, onBack }) {
   }, [])
 
   const revealName = () => {
+    setNameFocused(true)
+
     window.setTimeout(() => {
       nameRef.current?.scrollIntoView?.({
         block: 'center',
@@ -61,6 +66,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
 
     const active = document.activeElement
     if (active && typeof active.blur === 'function') active.blur()
+    setNameFocused(false)
 
     // P2.4.4.3A stops at the Your Look handoff on purpose.
     // Do not release into the legacy market-creation flow from this checkpoint.
@@ -114,7 +120,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
   return (
     <div
       ref={screenRef}
-      className={`career-setup-d434c ${keyboardOpen ? 'keyboard-open' : ''}`}
+      className={`career-setup-d434c ${keyboardMode ? 'keyboard-open' : ''}`}
     >
       <header className="career-systembar-d434c">
         <button className="career-back-d434c" type="button" onClick={onBack} aria-label="Back to title">
@@ -150,7 +156,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
           <section className="career-intro-d434c">
             <span>CREATE PLAYER · YOUR NAME</span>
             <h1>What should we call you?</h1>
-            <p>This is the name your team will use throughout DOC OS.</p>
+            <p>Let’s get your employee profile started.</p>
           </section>
 
           <form className="career-profile-panel-d434c" onSubmit={submit}>
@@ -167,6 +173,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
                   setDisplayName(event.target.value)
                 }}
                 onFocus={revealName}
+                onBlur={() => setNameFocused(false)}
                 placeholder="Maxx"
                 autoComplete="name"
                 autoCapitalize="words"
