@@ -1,28 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import './CareerSetupScreen.css'
 
-// P2.4.4.3 — Create Your Dispatch workstation setup
-// Keeps the existing profile/save authority while replacing the legacy onboarding-card UI.
+// P2.4.4.3A — Create Player / Your Name
+// Employee-career identity setup. Keep this screen intentionally narrow:
+// one player-facing field, keyboard-safe on iOS, no legacy business setup.
 function CareerSetupScreen({ profile = null, onBack, onContinue }) {
-  const [form, setForm] = useState({
-    displayName: profile?.displayName || '',
-    businessName: profile?.businessName || '',
-  })
+  const [displayName, setDisplayName] = useState(profile?.displayName || '')
   const [keyboardOpen, setKeyboardOpen] = useState(false)
 
   const screenRef = useRef(null)
-  const businessRef = useRef(null)
+  const nameRef = useRef(null)
   const submitLockRef = useRef(false)
 
-  const dispatcherName = form.displayName.trim()
-  const businessName = form.businessName.trim()
-  const completedFields = [dispatcherName, businessName].filter((value) => value.length >= 2).length
-  const ready = completedFields === 2
-
-  const update = (key, value) => {
-    submitLockRef.current = false
-    setForm((current) => ({ ...current, [key]: value }))
-  }
+  const playerName = displayName.trim()
+  const ready = playerName.length >= 2
 
   useEffect(() => {
     const viewport = window.visualViewport
@@ -53,9 +44,9 @@ function CareerSetupScreen({ profile = null, onBack, onContinue }) {
     }
   }, [])
 
-  const revealField = (field) => {
+  const revealName = () => {
     window.setTimeout(() => {
-      field?.scrollIntoView?.({
+      nameRef.current?.scrollIntoView?.({
         block: 'center',
         inline: 'nearest',
         behavior: 'smooth',
@@ -63,7 +54,7 @@ function CareerSetupScreen({ profile = null, onBack, onContinue }) {
     }, 140)
   }
 
-  const continueToMarket = () => {
+  const continueToLook = () => {
     if (!ready || submitLockRef.current) return
     submitLockRef.current = true
 
@@ -72,10 +63,11 @@ function CareerSetupScreen({ profile = null, onBack, onContinue }) {
 
     const nextProfile = {
       ...(profile || {}),
-      displayName: dispatcherName,
-      businessName,
-      businessType: profile?.businessType || 'Independent Dispatch',
-      created: true,
+      displayName: playerName,
+      employerId: profile?.employerId || 'metroline',
+      employerName: profile?.employerName || 'Metroline Transport',
+      roleTitle: profile?.roleTitle || 'Junior Dispatcher',
+      created: false,
     }
 
     window.requestAnimationFrame(() => onContinue?.(nextProfile))
@@ -83,20 +75,7 @@ function CareerSetupScreen({ profile = null, onBack, onContinue }) {
 
   const submit = (event) => {
     event?.preventDefault?.()
-    continueToMarket()
-  }
-
-  const handleNameKeyDown = (event) => {
-    if (event.key !== 'Enter') return
-    event.preventDefault()
-    businessRef.current?.focus()
-    revealField(businessRef.current)
-  }
-
-  const handleBusinessKeyDown = (event) => {
-    if (event.key !== 'Enter' || !ready) return
-    event.preventDefault()
-    continueToMarket()
+    continueToLook()
   }
 
   return (
@@ -113,94 +92,90 @@ function CareerSetupScreen({ profile = null, onBack, onContinue }) {
           <div className="career-mini-mark-d434c" aria-label="DOC OS">
             <b>DOC</b><i>OS</i>
           </div>
-          <span>NEW OPERATION</span>
+          <span>EMPLOYEE ONBOARDING</span>
         </div>
 
-        <div className="career-step-d434c" aria-label="Step 1 of 2">
-          <span>01 / 02</span>
-          <div aria-hidden="true"><i /><i /></div>
+        <div className="career-step-d434c" aria-label="Step 1 of 3">
+          <span>01 / 03</span>
+          <div aria-hidden="true"><i /><i /><i /></div>
         </div>
       </header>
 
       <main className="career-main-d434c">
         <div className="career-workspace-d434c">
+          <section className="career-company-d434c" aria-label="Metroline Transport new employee registration">
+            <div className="career-company-mark-d434c" aria-hidden="true">
+              <span>M</span>
+            </div>
+            <div>
+              <span>METROLINE TRANSPORT</span>
+              <strong>New Employee Registration</strong>
+            </div>
+            <small>NEW HIRE</small>
+          </section>
+
           <section className="career-intro-d434c">
-            <span>WORKSTATION SETUP</span>
-            <h1>Create your dispatch</h1>
-            <p>Set the operator and business identity DOC OS will use across this operation.</p>
+            <span>CREATE PLAYER · YOUR NAME</span>
+            <h1>What should we call you?</h1>
+            <p>This is the name your team will use throughout DOC OS.</p>
           </section>
 
           <form className="career-profile-panel-d434c" onSubmit={submit}>
-            <div className="career-panel-head-d434c">
-              <div>
-                <span>OPERATION IDENTITY</span>
-                <small>Required to continue</small>
-              </div>
-              <strong>{completedFields}/2</strong>
-            </div>
-
-            <label className={`career-field-d434c ${dispatcherName.length >= 2 ? 'complete' : ''}`}>
+            <label className={`career-field-d434c ${ready ? 'complete' : ''}`}>
               <div className="career-field-label-d434c">
-                <span><b>01</b> Dispatcher name</span>
-                <small>{dispatcherName.length >= 2 ? 'READY' : 'REQUIRED'}</small>
+                <span>YOUR NAME</span>
+                <small>{ready ? 'READY' : 'REQUIRED'}</small>
               </div>
               <input
-                value={form.displayName}
-                onChange={(event) => update('displayName', event.target.value)}
-                onFocus={(event) => revealField(event.currentTarget)}
-                onKeyDown={handleNameKeyDown}
+                ref={nameRef}
+                value={displayName}
+                onChange={(event) => {
+                  submitLockRef.current = false
+                  setDisplayName(event.target.value)
+                }}
+                onFocus={revealName}
                 placeholder="Maxx"
                 autoComplete="name"
                 autoCapitalize="words"
-                enterKeyHint="next"
+                enterKeyHint="go"
+                aria-label="Your name"
               />
-              <p>Shown to carriers and drivers.</p>
+              <p>You can change this later from your player profile.</p>
             </label>
 
-            <div className="career-field-rule-d434c" />
-
-            <label className={`career-field-d434c ${businessName.length >= 2 ? 'complete' : ''}`}>
-              <div className="career-field-label-d434c">
-                <span><b>02</b> Business name</span>
-                <small>{businessName.length >= 2 ? 'READY' : 'REQUIRED'}</small>
+            <section className="career-employee-preview-d434c" aria-label="Employee profile preview">
+              <div className="career-id-avatar-d434c" aria-hidden="true">
+                <span />
+                <i />
               </div>
-              <input
-                ref={businessRef}
-                value={form.businessName}
-                onChange={(event) => update('businessName', event.target.value)}
-                onFocus={(event) => revealField(event.currentTarget)}
-                onKeyDown={handleBusinessKeyDown}
-                placeholder="Northstar Dispatch"
-                autoComplete="organization"
-                autoCapitalize="words"
-                enterKeyHint={ready ? 'go' : 'done'}
-              />
-              <p>Used on agreements, billing and DOC OS records.</p>
-            </label>
 
-            <div className="career-business-row-d434c">
-              <div>
-                <span>BUSINESS MODEL</span>
-                <strong>Independent Dispatch</strong>
+              <div className="career-id-copy-d434c">
+                <span>EMPLOYEE PROFILE</span>
+                <strong>{playerName || 'New Dispatcher'}</strong>
+                <small>Metroline Transport</small>
               </div>
-              <small>PRESET</small>
-            </div>
+
+              <div className="career-id-status-d434c">
+                <span>POSITION</span>
+                <strong>Junior Dispatcher</strong>
+              </div>
+            </section>
           </form>
 
           <div className="career-action-d434c">
             <div className="career-next-d434c">
               <span>NEXT</span>
-              <strong>Starting market</strong>
+              <strong>Your Look</strong>
             </div>
-            <button
-              type="button"
-              disabled={!ready}
-              onClick={continueToMarket}
-            >
+            <button type="button" disabled={!ready} onClick={continueToLook}>
               <span>CONTINUE</span>
               <b aria-hidden="true">→</b>
             </button>
           </div>
+
+          <p className="career-footnote-d434c">
+            Metroline employee profile · DOC OS personnel record
+          </p>
         </div>
       </main>
     </div>
