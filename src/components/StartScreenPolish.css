@@ -9,6 +9,7 @@
 .docos-login-brand-p243 img {
   width: min(54%, 226px);
   filter: none;
+  transform: translateY(clamp(5px, .85dvh, 8px));
 }
 
 /* Long dispatcher names must remain readable instead of collapsing to "Independent D…". */
