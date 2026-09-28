@@ -5,9 +5,11 @@ body,
   height: 100%;
   margin: 0;
   overflow: hidden;
+  background: #080c12;
 }
 
-body { min-height: 100dvh; }
+html { background: #080c12; }
+body { min-height: 100dvh; background: #080c12; }
 
 /* AV2.14 schedule-first communication */
 .operations-schedule-send{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;margin:0 0 10px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.035)}

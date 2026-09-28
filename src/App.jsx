@@ -1796,12 +1796,14 @@ Open CarrierSource to review your full account history.`
           />
         )}
 
-        {(stage === 'start' || stage === 'careerSetup') && <StartOfficeBackdrop />}
+        {stage === 'start' && <StartOfficeBackdrop />}
+        {stage === 'careerSetup' && <StartOfficeBackdrop variant="legacy" />}
         {(stage === 'market' || /* B.5.4D.1.1 — Opening Guidance + CarrierSource Clock Gate */
         stage === 'dayOneIntro') && <EntryLiveMap stage={stage} selectedMarket={selectedMarket} />}
         {stage === 'start' && (
           <StartScreen
             saveSlots={saveSlots}
+            saveSlotIds={SAVE_SLOT_IDS}
             activeSaveSlotId={activeSaveSlotId}
             onResumeSave={resumeSave}
             onDeleteSave={deleteSaveSlot}
