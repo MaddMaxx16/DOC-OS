@@ -67,6 +67,14 @@
   box-shadow: none !important;
 }
 
+/* P2.4.4.2.1 — entering the workstation already supplies the forward transition.
+   Suppress App's older black forward curtain only during this handoff. The root
+   marker survives StartScreen unmount long enough to cover the legacy curtain,
+   then StartScreen removes it automatically. */
+.docos-workstation-handoff-active .app-stage-transition.forward {
+  display: none !important;
+}
+
 @keyframes workstation-office-push-p2442 {
   from { transform: translate3d(0, 0, 0) scale(1); }
   to { transform: translate3d(-.455dvh, 5.625dvh, 0) scale(3.81); }
