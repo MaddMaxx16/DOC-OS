@@ -1,5 +1,184 @@
 /* P2.4.3 — workstation login surface.
-   This file intentionally owns only the live UI inside the approved cubicle monitor. */
+   P2.4.4.1 adds only the first-run startup overlay; the approved cubicle/title UI remains unchanged. */
+
+/* P2.4.4.1 — branded app startup. Full-viewport so the office reveal happens after startup. */
+.docos-startup-splash-p244 {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  width: 100vw;
+  height: 100dvh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: max(24px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left));
+  background:
+    radial-gradient(circle at 50% 42%, rgba(18, 64, 109, .32), transparent 38%),
+    radial-gradient(circle at 20% 82%, rgba(9, 42, 78, .24), transparent 36%),
+    linear-gradient(155deg, #06101d 0%, #081a2e 48%, #02060c 100%);
+  color: #f1f6fa;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  animation: docos-startup-surface-p244 2450ms ease both;
+}
+
+.docos-startup-content-p244 {
+  width: min(76vw, 390px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(-3dvh);
+  animation: docos-startup-content-p244 620ms cubic-bezier(.2,.75,.25,1) both;
+}
+
+.docos-startup-wordmark-p244 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(9px, 2.2vw, 14px);
+  line-height: .88;
+  white-space: nowrap;
+  filter: drop-shadow(0 7px 20px rgba(0, 0, 0, .30));
+}
+
+.docos-startup-wordmark-p244 strong,
+.docos-startup-wordmark-p244 b {
+  font-size: clamp(42px, 13vw, 66px);
+  font-style: normal;
+  font-weight: 680;
+  letter-spacing: -.065em;
+}
+
+.docos-startup-wordmark-p244 strong {
+  color: #f2f6f9;
+}
+
+.docos-startup-wordmark-p244 b {
+  color: #d59a2d;
+}
+
+.docos-startup-wordmark-p244 i {
+  width: 1px;
+  height: clamp(35px, 10vw, 52px);
+  display: block;
+  background: linear-gradient(180deg, transparent, rgba(164, 184, 201, .76) 18%, rgba(164, 184, 201, .76) 82%, transparent);
+}
+
+.docos-startup-subtitle-p244 {
+  margin-top: clamp(9px, 1.4dvh, 13px);
+  color: #8fa5b9;
+  font-size: clamp(8px, 2.25vw, 11px);
+  font-weight: 760;
+  letter-spacing: .30em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.docos-startup-loader-p244 {
+  position: relative;
+  width: min(58vw, 270px);
+  height: 42px;
+  margin-top: clamp(30px, 5.2dvh, 48px);
+}
+
+.docos-startup-loader-p244::before {
+  content: "";
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(128, 153, 175, .11) 14%, rgba(128, 153, 175, .11) 86%, transparent);
+}
+
+.docos-startup-truck-p244 {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 7px;
+  width: 38px;
+  height: 20px;
+  color: #d99a28;
+  filter: drop-shadow(0 0 7px rgba(217, 154, 40, .24));
+  animation: docos-startup-truck-drive-p244 1580ms cubic-bezier(.32,.04,.22,1) 420ms both;
+}
+
+.docos-startup-truck-p244 svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+.docos-startup-truck-p244 .startup-truck-window-p244 {
+  fill: #10243a;
+}
+
+.docos-startup-truck-p244 .startup-truck-hub-p244 {
+  fill: #07111f;
+}
+
+.docos-startup-dot-p244 {
+  position: absolute;
+  z-index: 1;
+  top: 19px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(131, 154, 175, .30);
+  box-shadow: 0 0 0 rgba(217, 154, 40, 0);
+}
+
+.docos-startup-dot-p244.dot-one {
+  left: 42%;
+  animation: docos-startup-dot-p244 360ms ease 850ms both;
+}
+
+.docos-startup-dot-p244.dot-two {
+  left: 62%;
+  animation: docos-startup-dot-p244 360ms ease 1190ms both;
+}
+
+.docos-startup-dot-p244.dot-three {
+  left: 82%;
+  animation: docos-startup-dot-p244 360ms ease 1530ms both;
+}
+
+@keyframes docos-startup-content-p244 {
+  from { opacity: 0; transform: translateY(calc(-3dvh + 8px)); }
+  to { opacity: 1; transform: translateY(-3dvh); }
+}
+
+@keyframes docos-startup-truck-drive-p244 {
+  0% { left: 0; opacity: 0; transform: translateX(-12px); }
+  10% { opacity: 1; }
+  86% { opacity: 1; }
+  100% { left: calc(100% - 38px); opacity: 1; transform: translateX(0); }
+}
+
+@keyframes docos-startup-dot-p244 {
+  0% {
+    background: rgba(131, 154, 175, .30);
+    box-shadow: 0 0 0 rgba(217, 154, 40, 0);
+    transform: scale(.8);
+  }
+  45% {
+    background: #e0a33a;
+    box-shadow: 0 0 12px rgba(224, 163, 58, .62);
+    transform: scale(1.45);
+  }
+  100% {
+    background: rgba(217, 154, 40, .72);
+    box-shadow: 0 0 5px rgba(217, 154, 40, .22);
+    transform: scale(1);
+  }
+}
+
+@keyframes docos-startup-surface-p244 {
+  0%, 84% { opacity: 1; }
+  100% { opacity: 0; }
+}
 
 .start-desk-title-p243 {
   padding: 0 !important;
@@ -448,6 +627,21 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .docos-startup-splash-p244,
+  .docos-startup-content-p244,
+  .docos-startup-truck-p244,
+  .docos-startup-dot-p244 {
+    animation: none;
+  }
+
+  .docos-startup-dot-p244 {
+    background: rgba(217, 154, 40, .72);
+  }
+
+  .docos-startup-truck-p244 {
+    left: calc(100% - 38px);
+  }
+
   .docos-login-account-p243:active,
   .docos-login-enter-p243:active,
   .docos-login-switch-p243:active,
