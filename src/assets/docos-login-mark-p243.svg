@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-labelledby="title desc">
+  <title id="title">DOC OS</title>
+  <desc id="desc">Dispatch Operations Control workstation mark with a freight truck</desc>
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="0.48" stop-color="#d9e4ef"/>
+      <stop offset="1" stop-color="#91a6bb"/>
+    </linearGradient>
+    <linearGradient id="amber" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd36a"/>
+      <stop offset="0.5" stop-color="#e6a33b"/>
+      <stop offset="1" stop-color="#a96118"/>
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-30%" width="140%" height="170%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <path d="M28 88V36h286" fill="none" stroke="url(#steel)" stroke-width="8" stroke-linecap="square"/>
+  <path d="M872 88V36H558" fill="none" stroke="url(#amber)" stroke-width="8" stroke-linecap="square"/>
+
+  <g transform="translate(382 3)" fill="url(#amber)" stroke="#7c4a17" stroke-width="2" filter="url(#softGlow)">
+    <path d="M0 42h22v-7H0zm-12 12h34v-7h-34zm-22 12h56v-7h-56z" stroke="none"/>
+    <rect x="25" y="24" width="111" height="50" rx="4"/>
+    <path d="M136 38h28l20 18v18h-48z"/>
+    <path d="M151 42h11l13 12h-24z" fill="#101c2c" stroke="none"/>
+    <circle cx="50" cy="80" r="11" fill="#121b27"/>
+    <circle cx="50" cy="80" r="5" fill="#dca03c" stroke="none"/>
+    <circle cx="116" cy="80" r="11" fill="#121b27"/>
+    <circle cx="116" cy="80" r="5" fill="#dca03c" stroke="none"/>
+    <circle cx="163" cy="80" r="11" fill="#121b27"/>
+    <circle cx="163" cy="80" r="5" fill="#dca03c" stroke="none"/>
+  </g>
+
+  <text x="48" y="205" fill="url(#steel)" font-family="Arial Black, Inter, Arial, sans-serif" font-size="150" font-weight="900" letter-spacing="-12">DOC</text>
+  <text x="530" y="205" fill="none" stroke="url(#amber)" stroke-width="8" font-family="Arial Black, Inter, Arial, sans-serif" font-size="150" font-weight="900" letter-spacing="-10">OS</text>
+  <text x="450" y="270" fill="#d5e0ea" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="600" letter-spacing="17" text-anchor="middle">DISPATCH OPERATIONS CONTROL</text>
+</svg>
