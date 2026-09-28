@@ -180,6 +180,62 @@
   color: #d7a74f;
 }
 
+/* Temporary B.4B diagnostic panel. Remove after the skin pipeline passes on device. */
+.career-avatar-debug-d434c {
+  margin-top: 9px;
+  padding: 10px 12px;
+  border: 1px solid rgba(213, 154, 47, .34);
+  border-radius: 10px;
+  background: rgba(213, 154, 47, .055);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.career-avatar-debug-head-d434c {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.career-avatar-debug-head-d434c span {
+  color: #d7a74f;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.career-avatar-debug-head-d434c strong {
+  color: #dce8f1;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.career-avatar-debug-grid-d434c {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 10px;
+  font-size: 7px;
+  line-height: 1.35;
+}
+
+.career-avatar-debug-grid-d434c span {
+  color: #60798d;
+  font-weight: 750;
+  letter-spacing: .06em;
+}
+
+.career-avatar-debug-grid-d434c b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #b8cad8;
+  font-weight: 750;
+}
+
+.career-avatar-debug-grid-d434c b.error {
+  color: #ff9d8d;
+}
+
 .career-look-tabs-d434c {
   display: flex;
   gap: 7px;
