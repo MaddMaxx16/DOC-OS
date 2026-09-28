@@ -21,6 +21,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
     ...(profile?.appearance || {}),
   }))
   const [appearanceCategory, setAppearanceCategory] = useState('skinTone')
+  const [avatarDebug, setAvatarDebug] = useState({ stage: 'waiting' })
 
   const screenRef = useRef(null)
   const nameRef = useRef(null)
@@ -188,7 +189,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
             <section className="career-photo-card-d434c" aria-label={`${playerName} employee photo`}>
               <div className="career-photo-stage-d434c">
                 <div className="career-photo-frame-d434c">
-                  <PlayerAvatar appearance={appearance} />
+                  <PlayerAvatar appearance={appearance} onDebug={setAvatarDebug} />
                 </div>
                 <div className="career-photo-status-d434c">
                   <span>EMPLOYEE PHOTO</span>
@@ -203,6 +204,26 @@ function CareerSetupScreen({ profile = null, onBack }) {
                   <button type="button" onClick={randomizeAppearance}>RANDOMIZE</button>
                   <button type="button" onClick={resetAppearance}>RESET</button>
                 </div>
+              </div>
+            </section>
+
+            <section className="career-avatar-debug-d434c" aria-label="Skin tone renderer diagnostics">
+              <div className="career-avatar-debug-head-d434c">
+                <span>DEBUG · SKIN PIPELINE</span>
+                <strong>{avatarDebug?.stage || 'waiting'}</strong>
+              </div>
+              <div className="career-avatar-debug-grid-d434c">
+                <span>UI SELECTED</span><b>{appearance.skinTone}</b>
+                <span>AVATAR RECEIVED</span><b>{avatarDebug?.skinTone || '—'}</b>
+                <span>MASK PIXELS</span><b>{avatarDebug?.maskedPixels ?? '—'}</b>
+                <span>CHANGED PIXELS</span><b>{avatarDebug?.changedPixels ?? '—'}</b>
+                <span>AVG DELTA</span><b>{avatarDebug?.averageDelta ?? '—'}</b>
+                <span>CANVAS</span><b>{avatarDebug?.canvas || '—'}</b>
+                {avatarDebug?.error && (
+                  <>
+                    <span>ERROR</span><b className="error">{avatarDebug.error}</b>
+                  </>
+                )}
               </div>
             </section>
 
