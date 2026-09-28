@@ -17,7 +17,8 @@
     <path d="M458 34H718" stroke="#d9a348" stroke-width="4" opacity=".88"/>
   </g>
 
-  <g transform="translate(330 17)" fill="url(#amber)" aria-hidden="true">
+  <!-- Keep the truck as a restrained brand accent: smaller and lifted clear of the OS letterforms. -->
+  <g transform="translate(341 2) scale(.8)" fill="url(#amber)" aria-hidden="true">
     <rect x="0" y="4" width="64" height="24" rx="3"/>
     <path d="M64 10h19l14 11v7H64z"/>
     <rect x="78" y="13" width="8" height="7" rx="1" fill="#0a1726"/>
