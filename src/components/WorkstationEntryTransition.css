@@ -2,21 +2,14 @@
    The title/login remains the approved P2.4.3 surface. This file owns only the
    physical camera push from the cubicle into the monitor before App changes stage. */
 
-/* Important: do NOT morph the landscape monitor rectangle into the portrait phone.
-   That stretches the UI and reads like a broken resize. Instead, keep the approved
-   monitor geometry intact and move the camera toward it with one uniform transform.
-   The monitor eventually overfills the portrait viewport and is naturally cropped,
-   exactly like a camera moving through a landscape display. */
-.start-desk-title-p243 .start-monitor-ui-p243 {
-  transition:
-    transform 1120ms cubic-bezier(.33, 0, .20, 1),
-    box-shadow 900ms ease;
-}
-
-.app:has(.start-desk-title-p243) .start-office-backdrop {
-  transition: transform 1120ms cubic-bezier(.33, 0, .20, 1);
-}
-
+/*
+   WebKit note:
+   P2.4.3's monitor reveal animation owns `transform` with fill-mode `both` even
+   after that reveal has visually finished. A transition from that animation-owned
+   transform can jump directly to the final scale on iPhone. The workstation entry
+   therefore uses its own keyframe animation instead of a transform transition.
+   That gives the camera an explicit 0 -> 3.81 path every time.
+*/
 .start-desk-title-p243.workstation-entry-p2442 {
   overflow: hidden;
   pointer-events: none;
@@ -26,14 +19,12 @@
 /* Approved P2.4.3 monitor center on the 390×844 design viewport:
      x ≈ 198.84px, y ≈ 374.53px.
    Move that point to the viewport center, then scale by 844 / 221.55 ≈ 3.81.
-   Using the same transform origin + camera transform on the office and live monitor
-   keeps the overlay physically attached to the illustrated monitor for the entire
-   push instead of letting the office disappear before the screen moves. */
+   The office and live monitor use the same timing curve so they remain physically
+   attached during the push. */
 .app:has(.workstation-entry-p2442) .start-office-backdrop {
-  animation: none !important;
   transform-origin: 50.985% 44.375%;
   will-change: transform;
-  transform: translate3d(-.455dvh, 5.625dvh, 0) scale(3.81);
+  animation: workstation-office-push-p2442 1120ms cubic-bezier(.33, 0, .20, 1) both !important;
 }
 
 .app:has(.workstation-entry-p2442) .start-office-backdrop-image {
@@ -41,26 +32,23 @@
 }
 
 .start-desk-title-p243.workstation-entry-p2442 .start-monitor-ui-p243 {
-  animation: none !important;
   z-index: 40;
   transform-origin: 50% 50%;
-  transform: translate3d(-.455dvh, 5.625dvh, 0) scale(3.81) !important;
-  box-shadow:
-    inset 0 0 36px rgba(0, 0, 0, .22),
-    0 0 0 1px rgba(71, 136, 194, .08) !important;
-  will-change: transform;
+  will-change: transform, box-shadow;
+  animation: workstation-monitor-push-p2442 1120ms cubic-bezier(.33, 0, .20, 1) both !important;
 }
 
-/* The UI remains rigid during the camera push. Scaling the whole monitor already
-   creates the physical approach; independently scaling/fading its children causes
-   the double-zoom visible in the previous build. */
+/* Do not leave giant login/save-slot typography hanging on screen at the end of
+   the camera move. The workstation UI stays readable through the first half of
+   the push, then quietly clears while the monitor surface becomes the viewport.
+   Career Setup is mounted by the existing App authority after the push. */
 .start-desk-title-p243.workstation-entry-p2442 .docos-login-home-p243,
 .start-desk-title-p243.workstation-entry-p2442 .docos-login-subview-p243 {
-  animation: none !important;
+  animation: workstation-ui-clear-p2442 1120ms ease both !important;
 }
 
-/* A very light glass pass sells the final few inches into the display without
-   hiding the camera motion. The App-level transition begins only after this push. */
+/* A light glass pass sells the final few inches into the display without hiding
+   the physical camera motion. */
 .workstation-entry-glass-p2442 {
   position: absolute;
   inset: 0;
@@ -77,6 +65,40 @@
   box-shadow: none !important;
 }
 
+@keyframes workstation-office-push-p2442 {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-.455dvh, 5.625dvh, 0) scale(3.81);
+  }
+}
+
+@keyframes workstation-monitor-push-p2442 {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+    box-shadow: inset 0 0 36px rgba(0, 0, 0, .38);
+  }
+  to {
+    transform: translate3d(-.455dvh, 5.625dvh, 0) scale(3.81);
+    box-shadow:
+      inset 0 0 36px rgba(0, 0, 0, .22),
+      0 0 0 1px rgba(71, 136, 194, .08);
+  }
+}
+
+@keyframes workstation-ui-clear-p2442 {
+  0%, 52% {
+    opacity: 1;
+  }
+  78% {
+    opacity: .32;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 @keyframes workstation-glass-pass-p2442 {
   0%, 52% { opacity: 0; transform: translateX(-14%); }
   72% { opacity: .34; }
@@ -84,11 +106,34 @@
   100% { opacity: 0; transform: translateX(14%); }
 }
 
+/* Reduced-motion users still need the visual handoff to remain synchronized with
+   the 1180ms App-stage handoff. Replace the zoom with a restrained fade rather
+   than shortening this CSS to 220ms and leaving a frozen magnified frame behind. */
 @media (prefers-reduced-motion: reduce) {
-  .app:has(.start-desk-title-p243) .start-office-backdrop,
-  .start-desk-title-p243 .start-monitor-ui-p243,
-  .workstation-entry-glass-p2442 {
-    transition-duration: 220ms !important;
-    animation-duration: 220ms !important;
+  .app:has(.workstation-entry-p2442) .start-office-backdrop {
+    animation: workstation-office-reduced-p2442 1120ms ease both !important;
   }
+
+  .start-desk-title-p243.workstation-entry-p2442 .start-monitor-ui-p243 {
+    animation: workstation-monitor-reduced-p2442 1120ms ease both !important;
+  }
+
+  .start-desk-title-p243.workstation-entry-p2442 .docos-login-home-p243,
+  .start-desk-title-p243.workstation-entry-p2442 .docos-login-subview-p243 {
+    animation: workstation-ui-clear-p2442 1120ms ease both !important;
+  }
+
+  .workstation-entry-glass-p2442 {
+    animation: none !important;
+  }
+}
+
+@keyframes workstation-office-reduced-p2442 {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: none; }
+}
+
+@keyframes workstation-monitor-reduced-p2442 {
+  0%, 58% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: none; }
 }
