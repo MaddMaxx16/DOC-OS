@@ -7905,18 +7905,54 @@
    ========================================================================== */
 
 :root {
+  --docos-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --docos-font-serif: Georgia, "Times New Roman", serif;
   --docos-bg: #0F1215;
   --docos-panel: #1B1F24;
   --docos-panel-raised: #20262D;
+  --docos-surface-world: #0F1215;
+  --docos-surface-inset: #11181D;
+  --docos-surface: #1B1F24;
+  --docos-surface-raised: #20262D;
+  --docos-surface-selected: #242931;
   --docos-border: #2A313A;
   --docos-border-strong: #394553;
+  --docos-border-subtle: rgba(142, 163, 183, .12);
+  --docos-border-standard: rgba(142, 163, 183, .22);
+  --docos-border-emphasis: rgba(194, 213, 231, .38);
   --docos-text: #8EA3B7;
   --docos-text-bright: #D7E0E8;
+  --docos-text-primary: #D7E0E8;
+  --docos-text-secondary: #9AAAB8;
+  --docos-text-muted: #718391;
+  --docos-text-disabled: #52616D;
   --docos-primary: #756D80;
   --docos-accent: #C2D5E7;
+  --docos-accent-primary: #756D80;
+  --docos-accent-cool: #C2D5E7;
+  --docos-accent-success: #8FB89C;
+  --docos-accent-warning: #C0A473;
+  --docos-type-display: 28px;
+  --docos-type-title: 22px;
+  --docos-type-section: 18px;
+  --docos-type-value: 16px;
+  --docos-type-body: 14px;
+  --docos-type-support: 12px;
+  --docos-type-label: 10px;
+  --docos-type-meta: 10px;
+  --docos-leading-tight: 1.15;
+  --docos-leading-body: 1.42;
+  --docos-tracking-label: .08em;
+  --docos-tracking-system: .11em;
+  --docos-space-1: 4px;
+  --docos-space-2: 8px;
+  --docos-space-3: 12px;
+  --docos-space-4: 16px;
+  --docos-space-5: 24px;
   --docos-radius-sm: 8px;
   --docos-radius-md: 12px;
   --docos-radius-lg: 18px;
+  --docos-control-min: 40px;
 }
 
 /* The phone icon remains the launcher, but the opened surface is now a
@@ -25207,3 +25243,628 @@ button.ledger-transaction.linked .ledger-transaction-amount.credit {
   min-height:0 !important;
   max-height:46% !important;
 }
+
+/* =========================================================
+   P2.4.2 — Experience Foundation reference surface
+   Driver Scheduler presentation only. Operational state and
+   interaction behavior remain owned by DriverSchedulerScreen.
+   ========================================================= */
+
+.driver-scheduler-screen{
+  font-family:var(--docos-font-sans);
+  color:var(--docos-text-primary);
+  background:var(--docos-surface-world);
+}
+
+.driver-scheduler-screen .driver-scheduler-header{
+  min-height:58px;
+  padding:10px 14px 9px;
+  border-bottom-color:var(--docos-border-subtle);
+  background:#0c1115;
+}
+.driver-scheduler-screen .driver-scheduler-header>div{
+  gap:3px;
+}
+.driver-scheduler-screen .driver-scheduler-header>div span{
+  color:var(--docos-text-muted);
+  font-size:var(--docos-type-meta);
+  line-height:var(--docos-leading-tight);
+  letter-spacing:var(--docos-tracking-system);
+}
+.driver-scheduler-screen .driver-scheduler-header>div strong{
+  color:var(--docos-text-primary);
+  font-family:var(--docos-font-serif);
+  font-size:var(--docos-type-title);
+  font-weight:600;
+  line-height:var(--docos-leading-tight);
+  letter-spacing:.01em;
+}
+.driver-scheduler-screen .driver-scheduler-count{
+  color:var(--docos-text-secondary);
+  font-size:var(--docos-type-meta);
+  letter-spacing:var(--docos-tracking-label);
+}
+
+.driver-scheduler-screen .driver-scheduler-tabs{
+  gap:6px;
+  padding:8px 12px;
+  border-bottom:1px solid var(--docos-border-subtle);
+  background:#0d1317;
+}
+.driver-scheduler-screen .driver-scheduler-tabs button{
+  min-height:var(--docos-control-min);
+  height:auto;
+  border-color:var(--docos-border-subtle);
+  border-radius:var(--docos-radius-sm);
+  background:var(--docos-surface-inset);
+  color:var(--docos-text-muted);
+  font-size:var(--docos-type-label);
+  letter-spacing:var(--docos-tracking-label);
+}
+.driver-scheduler-screen .driver-scheduler-tabs button.active{
+  border-color:rgba(117,109,128,.72);
+  background:rgba(117,109,128,.2);
+  color:var(--docos-text-primary);
+  box-shadow:inset 0 -2px 0 var(--docos-accent-primary);
+}
+
+.driver-scheduler-screen .carrier-driver-view.driver-ops-view{
+  gap:var(--docos-space-3);
+  padding:var(--docos-space-3) var(--docos-space-3) calc(var(--docos-space-4) + env(safe-area-inset-bottom,0px));
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+.driver-scheduler-screen .driver-ops-identity{
+  grid-template-columns:48px minmax(0,1fr) auto;
+  gap:var(--docos-space-3);
+  min-width:0;
+  padding:14px;
+  border-color:var(--docos-border-standard);
+  border-radius:var(--docos-radius-md);
+  background:var(--docos-surface);
+  box-shadow:inset 3px 0 0 rgba(117,109,128,.72);
+}
+.driver-scheduler-screen .driver-ops-identity .driver-scheduler-avatar{
+  width:48px;
+  height:48px;
+  font-size:16px;
+}
+.driver-scheduler-screen .driver-ops-identity>div{
+  min-width:0;
+  gap:3px;
+}
+.driver-scheduler-screen .driver-ops-identity>div span{
+  color:var(--docos-text-secondary);
+  font-size:var(--docos-type-label);
+  line-height:var(--docos-leading-tight);
+  letter-spacing:.035em;
+}
+.driver-scheduler-screen .driver-ops-identity>div strong{
+  overflow:hidden;
+  color:var(--docos-text-primary);
+  font-size:17px;
+  line-height:1.12;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.driver-scheduler-screen .driver-ops-identity>div small{
+  overflow:hidden;
+  color:var(--docos-text-muted);
+  font-size:var(--docos-type-support);
+  line-height:1.25;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.driver-scheduler-screen .driver-ops-identity>em{
+  padding:6px 8px;
+  border-color:rgba(143,184,156,.34);
+  background:rgba(64,96,74,.2);
+  color:var(--docos-accent-success);
+  font-size:var(--docos-type-meta);
+  line-height:1;
+  letter-spacing:.06em;
+  white-space:nowrap;
+}
+
+.driver-scheduler-screen .driver-ops-now,
+.driver-scheduler-screen .driver-ops-hos,
+.driver-scheduler-screen .driver-ops-load,
+.driver-scheduler-screen .driver-ops-next{
+  border-color:var(--docos-border-standard);
+  border-radius:var(--docos-radius-md);
+  background:var(--docos-surface-inset);
+}
+.driver-scheduler-screen .driver-ops-now>header,
+.driver-scheduler-screen .driver-ops-hos>header,
+.driver-scheduler-screen .driver-ops-load>header{
+  min-height:50px;
+  padding:10px 12px;
+  border-bottom-color:var(--docos-border-subtle);
+}
+.driver-scheduler-screen .driver-ops-now header span,
+.driver-scheduler-screen .driver-ops-hos header span,
+.driver-scheduler-screen .driver-ops-load header span,
+.driver-scheduler-screen .driver-ops-next>span{
+  color:var(--docos-text-muted);
+  font-size:var(--docos-type-meta);
+  line-height:var(--docos-leading-tight);
+  letter-spacing:var(--docos-tracking-system);
+}
+.driver-scheduler-screen .driver-ops-now header strong,
+.driver-scheduler-screen .driver-ops-hos header strong,
+.driver-scheduler-screen .driver-ops-load header strong{
+  color:var(--docos-text-primary);
+  font-size:var(--docos-type-section);
+  line-height:var(--docos-leading-tight);
+}
+
+.driver-scheduler-screen .driver-ops-facts>div{
+  gap:5px;
+  min-width:0;
+  padding:12px;
+  border-right-color:var(--docos-border-subtle);
+  border-bottom-color:var(--docos-border-subtle);
+}
+.driver-scheduler-screen .driver-ops-facts span,
+.driver-scheduler-screen .driver-ops-load-detail small,
+.driver-scheduler-screen .driver-ops-hos small{
+  color:var(--docos-text-muted);
+  font-size:var(--docos-type-meta);
+  line-height:var(--docos-leading-tight);
+  letter-spacing:var(--docos-tracking-label);
+}
+.driver-scheduler-screen .driver-ops-facts strong{
+  overflow-wrap:anywhere;
+  color:var(--docos-text-primary);
+  font-size:var(--docos-type-body);
+  line-height:1.3;
+}
+.driver-scheduler-screen .driver-ops-hos>div>span{
+  gap:5px;
+  padding:14px 10px;
+  border-right-color:var(--docos-border-subtle);
+}
+.driver-scheduler-screen .driver-ops-hos>div strong{
+  color:var(--docos-text-primary);
+  font-size:var(--docos-type-value);
+  font-variant-numeric:tabular-nums;
+  line-height:1.25;
+  text-align:center;
+}
+.driver-scheduler-screen .driver-ops-load-detail>span{
+  gap:5px;
+  min-width:0;
+  padding:12px;
+  border-right-color:var(--docos-border-subtle);
+  border-bottom-color:var(--docos-border-subtle);
+}
+.driver-scheduler-screen .driver-ops-load-detail strong{
+  overflow-wrap:anywhere;
+  color:var(--docos-text-primary);
+  font-size:var(--docos-type-body);
+  line-height:1.3;
+}
+.driver-scheduler-screen .driver-ops-load>p{
+  padding:16px 12px;
+  color:var(--docos-text-secondary);
+  font-size:var(--docos-type-body);
+  line-height:var(--docos-leading-body);
+}
+.driver-scheduler-screen .driver-ops-next{
+  gap:5px;
+  padding:13px 12px;
+}
+.driver-scheduler-screen .driver-ops-next>strong{
+  color:var(--docos-text-primary);
+  font-size:var(--docos-type-section);
+  line-height:1.25;
+}
+.driver-scheduler-screen .driver-ops-next>small{
+  color:var(--docos-text-secondary);
+  font-size:var(--docos-type-label);
+  line-height:1.3;
+}
+.driver-scheduler-screen .carrier-driver-actions.driver-ops-actions-three{
+  grid-template-columns:1fr 1fr;
+  gap:var(--docos-space-2);
+}
+.driver-scheduler-screen .carrier-driver-actions.driver-ops-actions-three button{
+  min-height:44px;
+  height:auto;
+  padding:8px;
+  border-color:var(--docos-border-standard);
+  border-radius:var(--docos-radius-sm);
+  background:var(--docos-surface-raised);
+  color:var(--docos-text-secondary);
+  font-size:var(--docos-type-label);
+  line-height:1.2;
+  letter-spacing:.035em;
+}
+.driver-scheduler-screen .carrier-driver-actions.driver-ops-actions-three button.primary{
+  grid-column:1 / -1;
+  border-color:#92784f;
+  background:linear-gradient(180deg,#b49764,#98794b);
+  color:#211b12;
+}
+.driver-scheduler-screen .carrier-driver-actions.driver-ops-actions-three button:disabled{
+  color:var(--docos-text-disabled);
+  opacity:.5;
+}
+
+@media (max-width:420px){
+  .driver-scheduler-screen .driver-ops-identity{
+    grid-template-columns:48px minmax(0,1fr);
+  }
+  .driver-scheduler-screen .driver-ops-identity>em{
+    grid-column:2;
+    width:max-content;
+  }
+}
+/* END P2.4.2 */
+
+/* P2.4.2 — iPhone reference-surface readability refinement */
+.driver-scheduler-screen .carrier-schedule-note>strong{
+  color:var(--docos-text-primary);
+  font-size:var(--docos-type-value);
+  line-height:1.25;
+}
+.driver-scheduler-screen .carrier-schedule-note>p{
+  color:var(--docos-text-secondary);
+  font-size:var(--docos-type-support);
+  line-height:var(--docos-leading-body);
+}
+.driver-scheduler-screen .driver-scheduler-today-heading p,
+.driver-scheduler-screen .carrier-driver-operating-card p{
+  color:var(--docos-text-secondary);
+  font-size:var(--docos-type-support);
+  line-height:var(--docos-leading-body);
+}
+
+.driver-scheduler-screen .scheduler-lunch-body>p{
+  color:var(--docos-text-secondary);
+  font-size:var(--docos-type-body);
+  line-height:var(--docos-leading-body);
+}
+.driver-scheduler-screen .scheduler-lunch-body>small{
+  color:var(--docos-text-muted);
+  font-size:var(--docos-type-support);
+  line-height:var(--docos-leading-body);
+}
+
+.main-game-screen .shift-end-planner-sheet>header small{
+  color:var(--docos-text-muted);
+  font-size:var(--docos-type-label);
+  line-height:1.3;
+}
+.main-game-screen .shift-end-planner-body>p{
+  color:var(--docos-text-secondary);
+  font-size:var(--docos-type-support);
+  line-height:var(--docos-leading-body);
+}
+.main-game-screen .shift-end-option-list>button strong{
+  font-size:var(--docos-type-body);
+  line-height:1.25;
+}
+.main-game-screen .shift-end-option-list>button em{
+  color:var(--docos-text-muted);
+  font-size:var(--docos-type-support);
+  line-height:var(--docos-leading-body);
+}
+.main-game-screen .shift-end-rule strong,
+.main-game-screen .shift-end-empty strong{
+  color:var(--docos-text-primary);
+  font-size:var(--docos-type-body);
+  line-height:1.25;
+}
+.main-game-screen .shift-end-rule p,
+.main-game-screen .shift-end-empty span{
+  color:var(--docos-text-muted);
+  font-size:var(--docos-type-support);
+  line-height:var(--docos-leading-body);
+}
+/* END P2.4.2 readability refinement */
+
+/* P2.4.2 — Typography role correction
+   Sans owns operational information and interaction. Serif is restored only
+   for the deliberate title accents identified below. */
+.driver-scheduler-screen,
+.driver-scheduler-screen *,
+.main-game-screen .shift-end-planner-sheet,
+.main-game-screen .shift-end-planner-sheet *{
+  font-family:var(--docos-font-sans);
+}
+
+.driver-scheduler-screen .driver-scheduler-header>div strong,
+.driver-scheduler-screen .driver-scheduler-today-heading>strong,
+.driver-scheduler-screen .scheduler-lunch-sheet>header strong,
+.main-game-screen .shift-end-planner-sheet>header strong{
+  font-family:var(--docos-font-serif);
+  font-weight:600;
+}
+
+/* Scheduler shell and Today */
+.driver-scheduler-screen .driver-scheduler-header>div strong{
+  font-size:var(--docos-type-title);
+}
+.driver-scheduler-screen .driver-scheduler-tabs button{
+  font-family:var(--docos-font-sans);
+  font-size:11px;
+}
+.driver-scheduler-screen .driver-scheduler-today-heading>strong{
+  font-size:19px;
+  line-height:1.15;
+}
+.driver-scheduler-screen .driver-scheduler-today-heading>span,
+.driver-scheduler-screen .carrier-schedule-note>span,
+.driver-scheduler-screen .driver-scheduler-week-nav span{
+  font-family:var(--docos-font-sans);
+  font-size:10px;
+}
+.driver-scheduler-screen .driver-scheduler-today-heading p{
+  color:var(--docos-text-secondary);
+  font-family:var(--docos-font-sans);
+  font-size:13px;
+  line-height:1.45;
+}
+.driver-scheduler-screen .driver-scheduler-today-main .copy>small{
+  color:var(--docos-text-secondary);
+  font-size:12px;
+}
+.driver-scheduler-screen .driver-scheduler-today-main .copy>strong{
+  font-size:15px;
+  line-height:1.2;
+}
+.driver-scheduler-screen .driver-scheduler-today-main .status{
+  font-size:10px;
+}
+.driver-scheduler-screen .driver-scheduler-today-main .shift strong{
+  font-size:15px;
+  font-variant-numeric:tabular-nums;
+}
+.driver-scheduler-screen .driver-scheduler-today-main .shift small{
+  color:var(--docos-text-secondary);
+  font-size:12px;
+}
+.driver-scheduler-screen .driver-scheduler-today-meta>span{
+  font-size:10px;
+}
+.driver-scheduler-screen .driver-scheduler-today-meta>span b{
+  font-size:12px;
+}
+.driver-scheduler-screen .driver-scheduler-today-meta button,
+.driver-scheduler-screen .driver-today-plan-button,
+.driver-scheduler-screen .driver-send-schedule-button{
+  font-family:var(--docos-font-sans);
+  font-size:11px;
+}
+.driver-scheduler-screen .driver-today-plan-button>span,
+.driver-scheduler-screen .driver-today-plan-button b{
+  font-size:12px;
+}
+.driver-scheduler-screen .driver-today-plan-button small{
+  font-size:11px;
+}
+
+/* Schedule grid */
+.driver-scheduler-screen .carrier-schedule-note>strong{
+  font-size:15px;
+}
+.driver-scheduler-screen .carrier-schedule-note>p{
+  color:var(--docos-text-secondary);
+  font-size:13px;
+}
+.driver-scheduler-screen .driver-scheduler-week-nav strong{
+  font-size:12px;
+  font-variant-numeric:tabular-nums;
+}
+.driver-scheduler-screen .driver-scheduler-grid-corner,
+.driver-scheduler-screen .driver-scheduler-day-head span{
+  font-family:var(--docos-font-sans);
+  font-size:10px;
+}
+.driver-scheduler-screen .driver-scheduler-day-head strong{
+  font-family:var(--docos-font-sans);
+  font-size:12px;
+  font-variant-numeric:tabular-nums;
+}
+.driver-scheduler-screen .driver-scheduler-driver-cell strong{
+  font-size:13px;
+}
+.driver-scheduler-screen .driver-scheduler-driver-cell small{
+  color:var(--docos-text-secondary);
+  font-size:11px;
+}
+.driver-scheduler-screen .driver-scheduler-driver-cell em{
+  font-size:10px;
+}
+.driver-scheduler-screen .driver-scheduler-shift-cell strong{
+  font-family:var(--docos-font-sans);
+  font-size:13px;
+  font-variant-numeric:tabular-nums;
+}
+.driver-scheduler-screen .driver-scheduler-shift-cell small,
+.driver-scheduler-screen .driver-scheduler-shift-cell.read-only em,
+.driver-scheduler-screen .carrier-confirmed-chip{
+  font-family:var(--docos-font-sans);
+  font-size:10px;
+}
+
+/* Driver detail */
+.driver-scheduler-screen .driver-ops-identity>div span{
+  font-size:12px;
+}
+.driver-scheduler-screen .driver-ops-identity>div strong{
+  font-family:var(--docos-font-sans);
+  font-size:17px;
+  font-weight:750;
+}
+.driver-scheduler-screen .driver-ops-identity>div small{
+  color:var(--docos-text-secondary);
+  font-size:12px;
+}
+.driver-scheduler-screen .driver-ops-identity>em{
+  font-family:var(--docos-font-sans);
+  font-size:10px;
+}
+.driver-scheduler-screen .driver-ops-now header strong,
+.driver-scheduler-screen .driver-ops-hos header strong,
+.driver-scheduler-screen .driver-ops-load header strong{
+  font-family:var(--docos-font-sans);
+  font-size:16px;
+}
+.driver-scheduler-screen .driver-ops-facts strong,
+.driver-scheduler-screen .driver-ops-load-detail strong{
+  font-family:var(--docos-font-sans);
+  font-size:14px;
+}
+.driver-scheduler-screen .driver-ops-hos>div strong{
+  font-family:var(--docos-font-sans);
+  font-size:16px;
+}
+.driver-scheduler-screen .driver-ops-load>p{
+  font-size:13px;
+}
+.driver-scheduler-screen .driver-ops-next>strong{
+  font-family:var(--docos-font-sans);
+  font-size:15px;
+}
+.driver-scheduler-screen .driver-ops-next>small{
+  color:var(--docos-text-secondary);
+  font-size:12px;
+}
+.driver-scheduler-screen .carrier-driver-actions.driver-ops-actions-three button{
+  font-family:var(--docos-font-sans);
+  font-size:11px;
+}
+
+/* Lunch Window */
+.driver-scheduler-screen .scheduler-lunch-sheet>header span,
+.driver-scheduler-screen .scheduler-lunch-shift span,
+.driver-scheduler-screen .scheduler-lunch-quick>span,
+.driver-scheduler-screen .scheduler-lunch-time-grid label>span{
+  font-family:var(--docos-font-sans);
+  font-size:10px;
+}
+.driver-scheduler-screen .scheduler-lunch-sheet>header strong{
+  font-size:19px;
+}
+.driver-scheduler-screen .scheduler-lunch-body>p{
+  color:var(--docos-text-secondary);
+  font-family:var(--docos-font-sans);
+  font-size:14px;
+}
+.driver-scheduler-screen .scheduler-lunch-shift strong{
+  font-family:var(--docos-font-sans);
+  font-size:15px;
+  font-variant-numeric:tabular-nums;
+}
+.driver-scheduler-screen .scheduler-lunch-quick button{
+  font-family:var(--docos-font-sans);
+  font-size:12px;
+}
+.driver-scheduler-screen .scheduler-lunch-time-grid input{
+  font-family:var(--docos-font-sans);
+  font-size:16px;
+  font-variant-numeric:tabular-nums;
+}
+.driver-scheduler-screen .scheduler-lunch-body>small{
+  color:var(--docos-text-secondary);
+  font-family:var(--docos-font-sans);
+  font-size:12px;
+}
+.driver-scheduler-screen .scheduler-lunch-sheet>footer button{
+  font-family:var(--docos-font-sans);
+  font-size:12px;
+}
+
+/* Shift End Plan */
+.main-game-screen .shift-end-planner-sheet>header span,
+.main-game-screen .shift-end-option-list>button small,
+.main-game-screen .shift-end-rule span{
+  font-family:var(--docos-font-sans);
+  font-size:10px;
+}
+.main-game-screen .shift-end-planner-sheet>header strong{
+  font-size:19px;
+}
+.main-game-screen .shift-end-planner-body>p{
+  color:var(--docos-text-secondary);
+  font-family:var(--docos-font-sans);
+  font-size:13px;
+}
+.main-game-screen .shift-end-option-list>button{
+  font-family:var(--docos-font-sans);
+}
+.main-game-screen .shift-end-option-list>button strong{
+  font-family:var(--docos-font-sans);
+  font-size:14px;
+}
+.main-game-screen .shift-end-option-list>button em{
+  color:var(--docos-text-secondary);
+  font-family:var(--docos-font-sans);
+  font-size:12px;
+}
+.main-game-screen .shift-end-rule strong,
+.main-game-screen .shift-end-empty strong{
+  font-family:var(--docos-font-sans);
+  font-size:14px;
+}
+.main-game-screen .shift-end-rule p,
+.main-game-screen .shift-end-empty span{
+  color:var(--docos-text-secondary);
+  font-family:var(--docos-font-sans);
+  font-size:12px;
+}
+.main-game-screen .shift-end-planner-sheet>footer button{
+  font-family:var(--docos-font-sans);
+  font-size:12px;
+}
+/* END P2.4.2 typography role correction */
+
+/* P2.4.2 — Driver detail natural-flow repair
+   The legacy panels clipped content inside implicitly compressed grid rows.
+   Keep the Driver view as the scroll owner and let each operational row size
+   from its readable content. */
+.driver-scheduler-screen .carrier-driver-view.driver-ops-view{
+  grid-auto-rows:max-content;
+  align-content:start;
+  overflow-x:hidden;
+  overflow-y:auto;
+}
+.driver-scheduler-screen .driver-ops-identity,
+.driver-scheduler-screen .driver-ops-now,
+.driver-scheduler-screen .driver-ops-hos,
+.driver-scheduler-screen .driver-ops-load,
+.driver-scheduler-screen .driver-ops-next,
+.driver-scheduler-screen .driver-ops-actions{
+  height:auto;
+  min-height:min-content;
+  align-self:start;
+}
+.driver-scheduler-screen .driver-ops-now,
+.driver-scheduler-screen .driver-ops-hos,
+.driver-scheduler-screen .driver-ops-load,
+.driver-scheduler-screen .driver-ops-next{
+  overflow:visible;
+}
+.driver-scheduler-screen .driver-ops-now>header,
+.driver-scheduler-screen .driver-ops-hos>header,
+.driver-scheduler-screen .driver-ops-load>header{
+  height:auto;
+  box-sizing:border-box;
+}
+.driver-scheduler-screen .driver-ops-facts,
+.driver-scheduler-screen .driver-ops-hos>div,
+.driver-scheduler-screen .driver-ops-load-detail{
+  grid-auto-rows:minmax(min-content,auto);
+  height:auto;
+  min-height:min-content;
+}
+.driver-scheduler-screen .driver-ops-facts>div,
+.driver-scheduler-screen .driver-ops-hos>div>span,
+.driver-scheduler-screen .driver-ops-load-detail>span{
+  height:auto;
+  min-height:min-content;
+  align-content:start;
+}
+/* END P2.4.2 Driver detail natural-flow repair */
