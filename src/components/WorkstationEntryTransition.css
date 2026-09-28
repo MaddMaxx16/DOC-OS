@@ -8,7 +8,6 @@
    after that reveal has visually finished. A transition from that animation-owned
    transform can jump directly to the final scale on iPhone. The workstation entry
    therefore uses its own keyframe animation instead of a transform transition.
-   That gives the camera an explicit 0 -> 3.81 path every time.
 */
 .start-desk-title-p243.workstation-entry-p2442 {
   overflow: hidden;
@@ -18,9 +17,7 @@
 
 /* Approved P2.4.3 monitor center on the 390×844 design viewport:
      x ≈ 198.84px, y ≈ 374.53px.
-   Move that point to the viewport center, then scale by 844 / 221.55 ≈ 3.81.
-   The office and live monitor use the same timing curve so they remain physically
-   attached during the push. */
+   Move that point to the viewport center, then scale by 844 / 221.55 ≈ 3.81. */
 .app:has(.workstation-entry-p2442) .start-office-backdrop {
   transform-origin: 50.985% 44.375%;
   will-change: transform;
@@ -38,17 +35,22 @@
   animation: workstation-monitor-push-p2442 1120ms cubic-bezier(.33, 0, .20, 1) both !important;
 }
 
-/* Do not leave giant login/save-slot typography hanging on screen at the end of
-   the camera move. The workstation UI stays readable through the first half of
-   the push, then quietly clears while the monitor surface becomes the viewport.
-   Career Setup is mounted by the existing App authority after the push. */
+/* Do not magnify Switch User/login controls into giant cropped text. As soon as
+   the player commits to entering the workstation, clear the old session UI and
+   let the monitor itself become the camera target. */
 .start-desk-title-p243.workstation-entry-p2442 .docos-login-home-p243,
 .start-desk-title-p243.workstation-entry-p2442 .docos-login-subview-p243 {
-  animation: workstation-ui-clear-p2442 1120ms ease both !important;
+  opacity: 0 !important;
+  visibility: hidden;
+  animation: none !important;
 }
 
-/* A light glass pass sells the final few inches into the display without hiding
-   the physical camera motion. */
+.start-desk-title-p243.workstation-entry-p2442 .start-monitor-ui-p243 {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(18, 64, 109, .22), transparent 42%),
+    linear-gradient(155deg, #06101d 0%, #081a2e 48%, #02060c 100%) !important;
+}
+
 .workstation-entry-glass-p2442 {
   position: absolute;
   inset: 0;
@@ -66,12 +68,8 @@
 }
 
 @keyframes workstation-office-push-p2442 {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  to {
-    transform: translate3d(-.455dvh, 5.625dvh, 0) scale(3.81);
-  }
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-.455dvh, 5.625dvh, 0) scale(3.81); }
 }
 
 @keyframes workstation-monitor-push-p2442 {
@@ -87,18 +85,6 @@
   }
 }
 
-@keyframes workstation-ui-clear-p2442 {
-  0%, 52% {
-    opacity: 1;
-  }
-  78% {
-    opacity: .32;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
 @keyframes workstation-glass-pass-p2442 {
   0%, 52% { opacity: 0; transform: translateX(-14%); }
   72% { opacity: .34; }
@@ -106,9 +92,6 @@
   100% { opacity: 0; transform: translateX(14%); }
 }
 
-/* Reduced-motion users still need the visual handoff to remain synchronized with
-   the 1180ms App-stage handoff. Replace the zoom with a restrained fade rather
-   than shortening this CSS to 220ms and leaving a frozen magnified frame behind. */
 @media (prefers-reduced-motion: reduce) {
   .app:has(.workstation-entry-p2442) .start-office-backdrop {
     animation: workstation-office-reduced-p2442 1120ms ease both !important;
@@ -116,11 +99,6 @@
 
   .start-desk-title-p243.workstation-entry-p2442 .start-monitor-ui-p243 {
     animation: workstation-monitor-reduced-p2442 1120ms ease both !important;
-  }
-
-  .start-desk-title-p243.workstation-entry-p2442 .docos-login-home-p243,
-  .start-desk-title-p243.workstation-entry-p2442 .docos-login-subview-p243 {
-    animation: workstation-ui-clear-p2442 1120ms ease both !important;
   }
 
   .workstation-entry-glass-p2442 {
