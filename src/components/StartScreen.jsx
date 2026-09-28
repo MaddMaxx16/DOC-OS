@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import docosLoginMark from '../assets/docos-login-mark-p243.svg'
 import './StartScreen.css'
 import './StartScreenPolish.css'
+import './WorkstationEntryTransition.css'
 
 let startupSplashHasPlayed = false
 
@@ -10,6 +11,8 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
   const [monitorView, setMonitorView] = useState('home')
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
   const [showStartupSplash, setShowStartupSplash] = useState(() => !startupSplashHasPlayed)
+  const [workstationEntryPhase, setWorkstationEntryPhase] = useState('idle')
+  const workstationEntryTimerRef = useRef(null)
 
   useEffect(() => {
     if (!showStartupSplash) return undefined
@@ -20,6 +23,10 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
     const timer = window.setTimeout(() => setShowStartupSplash(false), 3400)
     return () => window.clearTimeout(timer)
   }, [showStartupSplash])
+
+  useEffect(() => () => {
+    if (workstationEntryTimerRef.current) window.clearTimeout(workstationEntryTimerRef.current)
+  }, [])
 
   const stateFor = (slot) => slot?.state || slot?.snapshot || slot?.data || slot?.save || slot || {}
 
@@ -72,13 +79,30 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
     id: slotId,
     slot: saveSlots.find((savedSlot) => savedSlot?.id === slotId) || null,
   }))
+  const workstationEntering = workstationEntryPhase !== 'idle'
+
+  // P2.4.4.2 — ENTER is now a physical move into the workstation, not an instant screen swap.
+  // Keep the approved login mounted long enough for the office + monitor to become the viewport,
+  // then hand control back to the existing save/new-operation authority.
+  const enterWorkstation = (action) => {
+    if (workstationEntering || typeof action !== 'function') return
+
+    setPendingDeleteId(null)
+    setWorkstationEntryPhase('entering')
+
+    workstationEntryTimerRef.current = window.setTimeout(() => {
+      setWorkstationEntryPhase('handoff')
+      window.requestAnimationFrame(() => action())
+    }, 1180)
+  }
 
   const enterActiveSession = () => {
-    if (activeSlot) onResumeSave?.(activeSlot.id)
-    else if (hasEmptySlot) onStartNew?.()
+    if (activeSlot) enterWorkstation(() => onResumeSave?.(activeSlot.id))
+    else if (hasEmptySlot) enterWorkstation(() => onStartNew?.())
   }
 
   const returnHome = () => {
+    if (workstationEntering) return
     setPendingDeleteId(null)
     setMonitorView('home')
   }
@@ -119,7 +143,10 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
   )
 
   return (
-    <div className="entry-screen start-screen-cinematic start-screen-d434 start-desk-title-p243">
+    <div
+      className={`entry-screen start-screen-cinematic start-screen-d434 start-desk-title-p243 ${workstationEntering ? `workstation-entry-p2442 ${workstationEntryPhase}` : ''}`}
+      aria-busy={workstationEntering ? 'true' : undefined}
+    >
       {showStartupSplash && (
         <section
           className="docos-startup-splash-p244"
@@ -150,7 +177,10 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
         </section>
       )}
 
-      <main className="start-monitor-ui-p243" aria-hidden={showStartupSplash ? 'true' : undefined}>
+      <main
+        className="start-monitor-ui-p243"
+        aria-hidden={showStartupSplash ? 'true' : undefined}
+      >
         {monitorView === 'home' && (
           <section className="docos-login-home-p243" aria-label="DOC OS workstation sign in">
             <header className="docos-login-brand-p243">
@@ -162,7 +192,7 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
                 type="button"
                 className="docos-login-account-p243"
                 onClick={enterActiveSession}
-                disabled={!activeSlot && !hasEmptySlot}
+                disabled={workstationEntering || (!activeSlot && !hasEmptySlot)}
                 aria-label={activeSlot ? `Continue as ${activeSessionName}` : 'Begin a new dispatcher career'}
               >
                 <span className={`docos-login-avatar-p243 ${activeSlot ? 'active' : 'new'}`}>
@@ -176,7 +206,7 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
                 type="button"
                 className="docos-login-enter-p243"
                 onClick={enterActiveSession}
-                disabled={!activeSlot && !hasEmptySlot}
+                disabled={workstationEntering || (!activeSlot && !hasEmptySlot)}
                 aria-label={activeSlot ? `Enter ${activeSessionName} operation` : 'Begin career'}
               >
                 <span>Enter</span>
@@ -186,13 +216,19 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
               <button
                 type="button"
                 className="docos-login-switch-p243"
-                onClick={() => hasSavedOperation ? setMonitorView('operations') : onStartNew?.()}
+                disabled={workstationEntering}
+                onClick={() => hasSavedOperation ? setMonitorView('operations') : enterWorkstation(() => onStartNew?.())}
               >
                 {hasSavedOperation ? 'Switch User' : 'Begin Career'}
               </button>
             </div>
 
-            <button type="button" className="docos-login-settings-p243" onClick={() => setMonitorView('settings')}>
+            <button
+              type="button"
+              className="docos-login-settings-p243"
+              disabled={workstationEntering}
+              onClick={() => setMonitorView('settings')}
+            >
               <SettingsGlyph />
               <span>Settings</span>
             </button>
@@ -216,7 +252,8 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
                   <button
                     type="button"
                     className={`docos-login-slot-p243 ${id === activeSlot?.id ? 'active' : ''}`}
-                    onClick={() => onResumeSave?.(id)}
+                    disabled={workstationEntering}
+                    onClick={() => enterWorkstation(() => onResumeSave?.(id))}
                   >
                     <i className="docos-login-slot-avatar-p243" aria-hidden="true">{initialFor(sessionName(slot))}</i>
                     <span className="docos-login-slot-copy-p243">
@@ -236,6 +273,7 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
                     <button
                       type="button"
                       className="docos-login-delete-p243"
+                      disabled={workstationEntering}
                       onClick={() => setPendingDeleteId(id)}
                       aria-label={`Delete ${sessionName(slot)}`}
                     >
@@ -244,7 +282,13 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
                   )}
                 </div>
               ) : (
-                <button type="button" className="docos-login-new-p243" onClick={() => onStartNew?.(id)} key={id}>
+                <button
+                  type="button"
+                  className="docos-login-new-p243"
+                  disabled={workstationEntering}
+                  onClick={() => enterWorkstation(() => onStartNew?.(id))}
+                  key={id}
+                >
                   <i className="docos-login-slot-avatar-p243" aria-hidden="true">+</i>
                   <span className="docos-login-slot-copy-p243">
                     <strong>New Dispatcher</strong>
@@ -276,6 +320,8 @@ function StartScreen({ saveSlots = [], saveSlotIds = [], activeSaveSlotId = null
           </section>
         )}
       </main>
+
+      {workstationEntering && <div className="workstation-entry-glass-p2442" aria-hidden="true" />}
     </div>
   )
 }

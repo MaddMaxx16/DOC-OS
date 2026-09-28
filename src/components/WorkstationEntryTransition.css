@@ -1,0 +1,121 @@
+/* P2.4.4.2 — Enter Workstation
+   The title/login remains the approved P2.4.3 surface. This file only owns the
+   physical camera move from the cubicle into the monitor before App changes stage. */
+
+.start-desk-title-p243.workstation-entry-p2442 {
+  overflow: hidden;
+  pointer-events: none;
+  background: #06101d;
+}
+
+/* The office is a sibling of StartScreen, so :has() lets the mounted start screen
+   drive the camera without adding transition state to App.jsx. */
+.app:has(.workstation-entry-p2442) .start-office-backdrop {
+  animation: none !important;
+  transform-origin: 50% 43%;
+  will-change: transform, opacity, filter;
+  transition:
+    transform 1120ms cubic-bezier(.16,.78,.18,1),
+    opacity 760ms ease 320ms,
+    filter 900ms ease;
+  transform: scale(3.55) translate3d(-.3%, 8.4%, 0);
+  opacity: 0;
+  filter: brightness(.62) blur(1.5px);
+}
+
+.app:has(.workstation-entry-p2442) .start-office-backdrop-image {
+  will-change: transform;
+}
+
+/* The monitor begins at its exact approved P2.4.3 coordinates. Expanding the
+   actual UI — rather than crossfading to a fake copy — makes the screen become
+   the phone viewport while the desk falls away around it. */
+.start-desk-title-p243.workstation-entry-p2442 .start-monitor-ui-p243 {
+  animation: none !important;
+  z-index: 40;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  transform: none !important;
+  transform-origin: 50% 50%;
+  box-shadow:
+    inset 0 0 44px rgba(0, 0, 0, .22),
+    0 0 0 1px rgba(71, 136, 194, .08) !important;
+  transition:
+    top 1120ms cubic-bezier(.16,.78,.18,1),
+    right 1120ms cubic-bezier(.16,.78,.18,1),
+    bottom 1120ms cubic-bezier(.16,.78,.18,1),
+    left 1120ms cubic-bezier(.16,.78,.18,1),
+    width 1120ms cubic-bezier(.16,.78,.18,1),
+    height 1120ms cubic-bezier(.16,.78,.18,1),
+    border-radius 720ms ease,
+    box-shadow 900ms ease;
+  will-change: top, right, bottom, left, width, height, border-radius;
+}
+
+/* Keep the login readable during the move, but let it recede slightly as the
+   player crosses the monitor glass. P2.4.4.3 will replace this with Create Player. */
+.start-desk-title-p243.workstation-entry-p2442 .docos-login-home-p243,
+.start-desk-title-p243.workstation-entry-p2442 .docos-login-subview-p243 {
+  animation: workstation-ui-settle-p2442 1180ms cubic-bezier(.16,.78,.18,1) both;
+  transform-origin: 50% 50%;
+}
+
+.workstation-entry-glass-p2442 {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(125, 187, 235, .13), transparent 34%),
+    linear-gradient(118deg, transparent 24%, rgba(196, 225, 246, .09) 46%, transparent 63%);
+  animation: workstation-glass-pass-p2442 1180ms ease both;
+}
+
+.start-desk-title-p243.workstation-entry-p2442.handoff .start-monitor-ui-p243 {
+  box-shadow: none !important;
+}
+
+@keyframes workstation-ui-settle-p2442 {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  58% {
+    opacity: 1;
+    transform: scale(.985);
+    filter: blur(0);
+  }
+  100% {
+    opacity: .72;
+    transform: scale(.965);
+    filter: blur(.25px);
+  }
+}
+
+@keyframes workstation-glass-pass-p2442 {
+  0%, 28% { opacity: 0; transform: translateX(-18%); }
+  52% { opacity: .62; }
+  82% { opacity: .16; }
+  100% { opacity: 0; transform: translateX(18%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app:has(.workstation-entry-p2442) .start-office-backdrop,
+  .start-desk-title-p243.workstation-entry-p2442 .start-monitor-ui-p243,
+  .start-desk-title-p243.workstation-entry-p2442 .docos-login-home-p243,
+  .start-desk-title-p243.workstation-entry-p2442 .docos-login-subview-p243,
+  .workstation-entry-glass-p2442 {
+    transition-duration: 180ms !important;
+    animation-duration: 180ms !important;
+  }
+}
