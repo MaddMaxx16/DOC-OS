@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import './CareerSetupScreen.css'
 
-// B.5.4D.4.3.4A — Create Your Dispatch Mobile Rebuild
-// B.5.4D.4.3.4B — Startup Layout Refinement
+// P2.4.4.3 — Create Your Dispatch workstation setup
+// Keeps the existing profile/save authority while replacing the legacy onboarding-card UI.
 function CareerSetupScreen({ profile = null, onBack, onContinue }) {
   const [form, setForm] = useState({
     displayName: profile?.displayName || '',
@@ -10,13 +11,13 @@ function CareerSetupScreen({ profile = null, onBack, onContinue }) {
   const [keyboardOpen, setKeyboardOpen] = useState(false)
 
   const screenRef = useRef(null)
-  const nameRef = useRef(null)
   const businessRef = useRef(null)
   const submitLockRef = useRef(false)
 
   const dispatcherName = form.displayName.trim()
   const businessName = form.businessName.trim()
-  const ready = dispatcherName.length >= 2 && businessName.length >= 2
+  const completedFields = [dispatcherName, businessName].filter((value) => value.length >= 2).length
+  const ready = completedFields === 2
 
   const update = (key, value) => {
     submitLockRef.current = false
@@ -37,8 +38,6 @@ function CareerSetupScreen({ profile = null, onBack, onContinue }) {
 
       target.style.setProperty('--career-vv-height', `${visualHeight}px`)
       target.style.setProperty('--career-vv-top', `${visualTop}px`)
-      target.style.setProperty('--career-keyboard-height', `${keyboardHeight}px`)
-
       setKeyboardOpen(keyboardHeight > 100 || visualHeight < layoutHeight * 0.82)
     }
 
@@ -103,125 +102,107 @@ function CareerSetupScreen({ profile = null, onBack, onContinue }) {
   return (
     <div
       ref={screenRef}
-      className={`career-setup-screen career-setup-d434a ${keyboardOpen ? 'keyboard-open' : ''}`}
+      className={`career-setup-d434c ${keyboardOpen ? 'keyboard-open' : ''}`}
     >
-      <header className="career-setup-nav-d434a">
-        <button type="button" onClick={onBack} aria-label="Back to title">
-          ‹ <span>BACK</span>
+      <header className="career-systembar-d434c">
+        <button className="career-back-d434c" type="button" onClick={onBack} aria-label="Back to title">
+          <span aria-hidden="true">‹</span>
         </button>
 
-        <div>
+        <div className="career-system-id-d434c">
+          <div className="career-mini-mark-d434c" aria-label="DOC OS">
+            <b>DOC</b><i>OS</i>
+          </div>
           <span>NEW OPERATION</span>
-          <strong>IDENTITY</strong>
         </div>
 
-        <small>STEP 1 OF 2</small>
+        <div className="career-step-d434c" aria-label="Step 1 of 2">
+          <span>01 / 02</span>
+          <div aria-hidden="true"><i /><i /></div>
+        </div>
       </header>
 
-      <main className="career-setup-scroll-d434a">
-        <section className="career-setup-intro-d434a">
-          <span>OPERATION SETUP</span>
-          <h1>Create Your Dispatch</h1>
-          <p>
-            Set the identity that carriers, drivers, agreements and billing will use
-            throughout this operation.
-          </p>
-        </section>
-
-        <form
-          id="career-operation-form-d434a"
-          className="career-setup-form-d434a"
-          onSubmit={submit}
-        >
-          <label className={`career-input-card-d434a ${dispatcherName ? 'complete' : ''}`}>
-            <div className="career-input-label-d434a">
-              <span><b>01</b> YOUR NAME</span>
-              <small>{dispatcherName ? 'READY' : 'REQUIRED'}</small>
-            </div>
-
-            <input
-              ref={nameRef}
-              value={form.displayName}
-              onChange={(event) => update('displayName', event.target.value)}
-              onFocus={(event) => revealField(event.currentTarget)}
-              onKeyDown={handleNameKeyDown}
-              placeholder="Maxx"
-              autoComplete="name"
-              autoCapitalize="words"
-              enterKeyHint="next"
-            />
-
-            <p>The name carriers and drivers will see.</p>
-          </label>
-
-          <label className={`career-input-card-d434a ${businessName ? 'complete' : ''}`}>
-            <div className="career-input-label-d434a">
-              <span><b>02</b> BUSINESS NAME</span>
-              <small>{businessName ? 'READY' : 'REQUIRED'}</small>
-            </div>
-
-            <input
-              ref={businessRef}
-              value={form.businessName}
-              onChange={(event) => update('businessName', event.target.value)}
-              onFocus={(event) => revealField(event.currentTarget)}
-              onKeyDown={handleBusinessKeyDown}
-              placeholder="Northstar Dispatch"
-              autoComplete="organization"
-              autoCapitalize="words"
-              enterKeyHint={ready ? 'go' : 'done'}
-            />
-
-            <p>Your dispatch business across DOC OS.</p>
-          </label>
-
-          <section className="career-business-type-d434a" aria-label="Business type">
-            <div>
-              <span>BUSINESS TYPE</span>
-              <strong>Independent Dispatch</strong>
-            </div>
-            <small>Carrier coordination · freight planning · driver support</small>
+      <main className="career-main-d434c">
+        <div className="career-workspace-d434c">
+          <section className="career-intro-d434c">
+            <span>WORKSTATION SETUP</span>
+            <h1>Create your dispatch</h1>
+            <p>Set the operator and business identity DOC OS will use across this operation.</p>
           </section>
 
-        </form>
-      </main>
+          <form className="career-profile-panel-d434c" onSubmit={submit}>
+            <div className="career-panel-head-d434c">
+              <div>
+                <span>OPERATION IDENTITY</span>
+                <small>Required to continue</small>
+              </div>
+              <strong>{completedFields}/2</strong>
+            </div>
 
-      <footer className="career-setup-footer-d434a">
-        <div className="career-footer-identity-d434b">
-          <span>{ready ? 'READY TO CONTINUE' : 'SETUP PROGRESS'}</span>
-          <strong>
-            {ready
-              ? businessName
-              : `${[dispatcherName, businessName].filter(Boolean).length} OF 2 COMPLETE`}
-          </strong>
-          <small>
-            {ready
-              ? `Operated by ${dispatcherName}`
-              : 'Complete your operation identity'}
-          </small>
+            <label className={`career-field-d434c ${dispatcherName.length >= 2 ? 'complete' : ''}`}>
+              <div className="career-field-label-d434c">
+                <span><b>01</b> Dispatcher name</span>
+                <small>{dispatcherName.length >= 2 ? 'READY' : 'REQUIRED'}</small>
+              </div>
+              <input
+                value={form.displayName}
+                onChange={(event) => update('displayName', event.target.value)}
+                onFocus={(event) => revealField(event.currentTarget)}
+                onKeyDown={handleNameKeyDown}
+                placeholder="Maxx"
+                autoComplete="name"
+                autoCapitalize="words"
+                enterKeyHint="next"
+              />
+              <p>Shown to carriers and drivers.</p>
+            </label>
+
+            <div className="career-field-rule-d434c" />
+
+            <label className={`career-field-d434c ${businessName.length >= 2 ? 'complete' : ''}`}>
+              <div className="career-field-label-d434c">
+                <span><b>02</b> Business name</span>
+                <small>{businessName.length >= 2 ? 'READY' : 'REQUIRED'}</small>
+              </div>
+              <input
+                ref={businessRef}
+                value={form.businessName}
+                onChange={(event) => update('businessName', event.target.value)}
+                onFocus={(event) => revealField(event.currentTarget)}
+                onKeyDown={handleBusinessKeyDown}
+                placeholder="Northstar Dispatch"
+                autoComplete="organization"
+                autoCapitalize="words"
+                enterKeyHint={ready ? 'go' : 'done'}
+              />
+              <p>Used on agreements, billing and DOC OS records.</p>
+            </label>
+
+            <div className="career-business-row-d434c">
+              <div>
+                <span>BUSINESS MODEL</span>
+                <strong>Independent Dispatch</strong>
+              </div>
+              <small>PRESET</small>
+            </div>
+          </form>
+
+          <div className="career-action-d434c">
+            <div className="career-next-d434c">
+              <span>NEXT</span>
+              <strong>Starting market</strong>
+            </div>
+            <button
+              type="button"
+              disabled={!ready}
+              onClick={continueToMarket}
+            >
+              <span>CONTINUE</span>
+              <b aria-hidden="true">→</b>
+            </button>
+          </div>
         </div>
-
-        <button
-          type="button"
-          className="career-continue-d434a"
-          disabled={!ready}
-          onPointerDown={(event) => {
-            if (!ready) return
-            event.preventDefault()
-            continueToMarket()
-          }}
-          onClick={(event) => {
-            if (!ready || submitLockRef.current) {
-              event.preventDefault()
-              return
-            }
-            continueToMarket()
-          }}
-        >
-          <span>CONTINUE TO MARKET</span>
-          <b aria-hidden="true">→</b>
-        </button>
-      </footer>
+      </main>
     </div>
   )
 }
