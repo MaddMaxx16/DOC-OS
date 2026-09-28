@@ -4,9 +4,10 @@ import './CareerSetupScreen.css'
 // P2.4.4.3A — Create Player / Your Name
 // Employee-career identity setup. Keep this screen intentionally narrow:
 // one player-facing field, keyboard-safe on iOS, no legacy business setup.
-function CareerSetupScreen({ profile = null, onBack, onContinue }) {
+function CareerSetupScreen({ profile = null, onBack }) {
   const [displayName, setDisplayName] = useState(profile?.displayName || '')
   const [keyboardOpen, setKeyboardOpen] = useState(false)
+  const [phase, setPhase] = useState('name')
 
   const screenRef = useRef(null)
   const nameRef = useRef(null)
@@ -61,21 +62,53 @@ function CareerSetupScreen({ profile = null, onBack, onContinue }) {
     const active = document.activeElement
     if (active && typeof active.blur === 'function') active.blur()
 
-    const nextProfile = {
-      ...(profile || {}),
-      displayName: playerName,
-      employerId: profile?.employerId || 'metroline',
-      employerName: profile?.employerName || 'Metroline Transport',
-      roleTitle: profile?.roleTitle || 'Junior Dispatcher',
-      created: false,
-    }
-
-    window.requestAnimationFrame(() => onContinue?.(nextProfile))
+    // P2.4.4.3A stops at the Your Look handoff on purpose.
+    // Do not release into the legacy market-creation flow from this checkpoint.
+    window.requestAnimationFrame(() => setPhase('lookPending'))
   }
 
   const submit = (event) => {
     event?.preventDefault?.()
     continueToLook()
+  }
+
+  if (phase === 'lookPending') {
+    return (
+      <div ref={screenRef} className="career-setup-d434c career-look-handoff-d434c">
+        <header className="career-systembar-d434c">
+          <button
+            className="career-back-d434c"
+            type="button"
+            onClick={() => {
+              submitLockRef.current = false
+              setPhase('name')
+            }}
+            aria-label="Back to your name"
+          >
+            <span aria-hidden="true">‹</span>
+          </button>
+
+          <div className="career-system-id-d434c">
+            <div className="career-mini-mark-d434c" aria-label="DOC OS">
+              <b>DOC</b><i>OS</i>
+            </div>
+            <span>EMPLOYEE ONBOARDING</span>
+          </div>
+
+          <div className="career-step-d434c" aria-label="Step 2 of 3">
+            <span>02 / 03</span>
+            <div aria-hidden="true"><i /><i className="active" /><i /></div>
+          </div>
+        </header>
+
+        <main className="career-look-handoff-main-d434c">
+          <span>NEXT CHECKPOINT</span>
+          <h1>Your Look</h1>
+          <p>{playerName}, your name is ready. Player appearance comes next.</p>
+          <small>P2.4.4.3B · NOT BUILT YET</small>
+        </main>
+      </div>
+    )
   }
 
   return (
