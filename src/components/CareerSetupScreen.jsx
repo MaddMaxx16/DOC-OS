@@ -10,6 +10,7 @@ import './CareerLookCreator.css'
 
 const HAIR_OPTIONS_PER_PAGE = 8
 const HAIR_COLOR_OPTIONS_PER_PAGE = 6
+const BROW_OPTIONS_PER_PAGE = 8
 
 // P2.4.4.3A/B — Create Player
 // Step 01 owns player-facing identity. Step 02 owns appearance.
@@ -26,6 +27,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
   const [appearanceCategory, setAppearanceCategory] = useState('skinTone')
   const [hairPage, setHairPage] = useState(0)
   const [hairColorPage, setHairColorPage] = useState(0)
+  const [browPage, setBrowPage] = useState(0)
 
   const screenRef = useRef(null)
   const nameRef = useRef(null)
@@ -109,16 +111,22 @@ function CareerSetupScreen({ profile = null, onBack }) {
     optionPageForValue('hairColor', value, HAIR_COLOR_OPTIONS_PER_PAGE)
   )
 
+  const browPageForValue = (value) => (
+    optionPageForValue('brows', value, BROW_OPTIONS_PER_PAGE)
+  )
+
   const setAppearanceValue = (key, value) => {
     setAppearance((current) => ({ ...current, [key]: value }))
     if (key === 'hair') setHairPage(hairPageForValue(value))
     if (key === 'hairColor') setHairColorPage(hairColorPageForValue(value))
+    if (key === 'brows') setBrowPage(browPageForValue(value))
   }
 
   const selectAppearanceCategory = (key) => {
     setAppearanceCategory(key)
     if (key === 'hair') setHairPage(hairPageForValue(appearance.hair))
     if (key === 'hairColor') setHairColorPage(hairColorPageForValue(appearance.hairColor))
+    if (key === 'brows') setBrowPage(browPageForValue(appearance.brows))
   }
 
   const randomizeAppearance = () => {
@@ -134,6 +142,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
     if (appearanceCategory === 'hairColor') {
       setHairColorPage(hairColorPageForValue(next.hairColor))
     }
+    if (appearanceCategory === 'brows') setBrowPage(browPageForValue(next.brows))
   }
 
   const resetAppearance = () => {
@@ -141,10 +150,15 @@ function CareerSetupScreen({ profile = null, onBack }) {
     setAppearanceCategory('skinTone')
     setHairPage(hairPageForValue(DEFAULT_APPEARANCE.hair))
     setHairColorPage(hairColorPageForValue(DEFAULT_APPEARANCE.hairColor))
+    setBrowPage(browPageForValue(DEFAULT_APPEARANCE.brows))
   }
 
   const startOptionSwipe = (event) => {
-    if (appearanceCategory !== 'hair' && appearanceCategory !== 'hairColor') return
+    if (
+      appearanceCategory !== 'hair' &&
+      appearanceCategory !== 'hairColor' &&
+      appearanceCategory !== 'brows'
+    ) return
     const touch = event.touches?.[0]
     if (!touch) return
     optionSwipeRef.current = { x: touch.clientX, y: touch.clientY }
@@ -152,7 +166,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
 
   const finishOptionSwipe = (event) => {
     const pagedCategory =
-      appearanceCategory === 'hair' || appearanceCategory === 'hairColor'
+      appearanceCategory === 'hair' ||
+      appearanceCategory === 'hairColor' ||
+      appearanceCategory === 'brows'
     if (!pagedCategory || !optionSwipeRef.current) return
     const touch = event.changedTouches?.[0]
     const start = optionSwipeRef.current
@@ -164,9 +180,18 @@ function CareerSetupScreen({ profile = null, onBack }) {
     if (Math.abs(dx) < 48 || Math.abs(dx) <= Math.abs(dy) * 1.2) return
 
     const perPage =
-      appearanceCategory === 'hair' ? HAIR_OPTIONS_PER_PAGE : HAIR_COLOR_OPTIONS_PER_PAGE
+      appearanceCategory === 'hair'
+        ? HAIR_OPTIONS_PER_PAGE
+        : appearanceCategory === 'hairColor'
+          ? HAIR_COLOR_OPTIONS_PER_PAGE
+          : BROW_OPTIONS_PER_PAGE
     const pageCount = Math.ceil(APPEARANCE_OPTIONS[appearanceCategory].length / perPage)
-    const setPage = appearanceCategory === 'hair' ? setHairPage : setHairColorPage
+    const setPage =
+      appearanceCategory === 'hair'
+        ? setHairPage
+        : appearanceCategory === 'hairColor'
+          ? setHairColorPage
+          : setBrowPage
     setPage((current) => (
       dx < 0
         ? Math.min(pageCount - 1, current + 1)
@@ -216,15 +241,31 @@ function CareerSetupScreen({ profile = null, onBack }) {
       ({ key }) => key === appearanceCategory,
     )?.label
     const optionPaging =
-      appearanceCategory === 'hair' || appearanceCategory === 'hairColor'
+      appearanceCategory === 'hair' ||
+      appearanceCategory === 'hairColor' ||
+      appearanceCategory === 'brows'
     const optionsPerPage =
-      appearanceCategory === 'hair' ? HAIR_OPTIONS_PER_PAGE : HAIR_COLOR_OPTIONS_PER_PAGE
-    const optionPage = appearanceCategory === 'hair' ? hairPage : hairColorPage
+      appearanceCategory === 'hair'
+        ? HAIR_OPTIONS_PER_PAGE
+        : appearanceCategory === 'hairColor'
+          ? HAIR_COLOR_OPTIONS_PER_PAGE
+          : BROW_OPTIONS_PER_PAGE
+    const optionPage =
+      appearanceCategory === 'hair'
+        ? hairPage
+        : appearanceCategory === 'hairColor'
+          ? hairColorPage
+          : browPage
     const optionPageCount = optionPaging
       ? Math.ceil(activeOptions.length / optionsPerPage)
       : 1
     const safeOptionPage = Math.min(optionPage, Math.max(0, optionPageCount - 1))
-    const setOptionPage = appearanceCategory === 'hair' ? setHairPage : setHairColorPage
+    const setOptionPage =
+      appearanceCategory === 'hair'
+        ? setHairPage
+        : appearanceCategory === 'hairColor'
+          ? setHairColorPage
+          : setBrowPage
     const visibleOptions = optionPaging
       ? activeOptions.slice(
         safeOptionPage * optionsPerPage,
