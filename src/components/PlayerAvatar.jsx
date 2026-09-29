@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AVATAAARS_HAIR_VARIANTS, AVATAAARS_LAYERED_HAIR } from '../data/avataaarsHair'
 
-// P2.4.4.3B.6.6C — final per-style Avataaars seating pass on Toon Head
-// The proven global 3.1 fit remains the baseline. Problem styles use local
-// seating or element-level transforms rather than disturbing approved hair.
+// P2.4.4.3B.6.6D — repair Avataaars rear-hair transparency on Toon Head
+// Keep the approved front-hair fit, but bridge the donor head-shape cutouts
+// behind Toon Head so long/medium styles read as solid hair instead of blue gaps.
 export const APPEARANCE_OPTIONS = {
   skinTone: [
     { value: 'porcelain', label: 'Porcelain', color: '#f2c7aa' },
@@ -243,42 +243,78 @@ const AVATAAARS_HAIR_TUNING = {
   theCaesar: { transform: 'translate(-25 20) scale(3.1 3.2)' },
   theCaesarAndSidePart: { transform: 'translate(-25 20) scale(3.1 3.2)' },
 
-  // Fro + Band needs two registrations: the hair uses the narrower fro fit,
-  // while the source headband is vertically compressed into an actual band
-  // at Toon Head's hairline instead of reading as a blue skull cap.
+  // Fro was the one otherwise-good style that still read a little too wide.
+  fro: { transform: 'translate(-12 39) scale(3 3.2)' },
+
+  // Fro + Band keeps its narrower fro silhouette. The headband gets its own
+  // registration: thicker than the previous pass while keeping the lower edge
+  // at the hairline instead of turning into a cap across the scalp.
   froBand: {
     transform: 'translate(14 20) scale(2.8 3.2)',
-    elementTransforms: { 1: 'translate(14 220) scale(2.8 .8)' },
+    elementTransforms: { 1: 'translate(14 170) scale(2.8 1.4)' },
     frontOnlyElements: [1],
   },
 
-  // Mia's flat fringe and Big Hair's asymmetric sweep both sit lower than the
-  // short-hair baseline. Lift the front geometry so brows remain unobstructed.
+  // Mia's fringe was lifted too far in the last pass. Seat it back down while
+  // retaining the cleanup of the source highlight plate.
   miaWallace: {
-    transform: 'translate(-25 5) scale(3.1 3.2)',
+    transform: 'translate(-25 15) scale(3.1 3.2)',
     hideDecorative: true,
   },
   bigHair: {
     transform: 'translate(-25 20) scale(3.1 3.2)',
     hideDecorative: true,
   },
-  shavedSides: { hideDecorative: true },
 
-  // The mullet's front sweep was still landing at eyebrow height. Lift only
-  // the front; keep the already-improved rear tails tucked in around the neck.
+  // Curvy's white source highlight paths become bright streaks when transplanted.
+  // Keep the darker shading, but suppress only the white decorative geometry.
+  curvy: { hideLightDecorative: true },
+  shavedSides: { hideLightDecorative: true },
+
+  // The mullet passed device review. Preserve its front/rear calibration.
   shaggyMullet: {
     transform: 'translate(-25 10) scale(3.1 3.2)',
     rearTransform: 'translate(28 5) scale(2.7 3.2)',
   },
 }
+
+const AVATAAARS_REAR_BACKFILL = new Set([
+  'bob',
+  'curly',
+  'dreads02',
+  'fro',
+  'froBand',
+  'longButNotTooLong',
+  'miaWallace',
+  'bigHair',
+  'curvy',
+  'dreads',
+  'shavedSides',
+  'straight01',
+  'straight02',
+  'straightAndStrand',
+])
+
+const TOON_HEAD_OUTLINE =
+  'M5 313c-20-77.5 33.5-50 33.5-50C2.7 147.2 30.5.5 197.5.5s194.8 146.7 159 262.5c0 0 53.5-27.5 33.5 50-11.1 43-51 43-51 43-6 50.4-91.5 95.5-141.5 95.5S61.9 406.4 56 356c0 0-40 0-51-43Z'
 const AVATAAARS_FRONT_CLIP_BOTTOM = 365
 
-function AvataaarsHairElement({ node, color, keyPath, hideDecorative = false }) {
+function AvataaarsHairElement({
+  node,
+  color,
+  keyPath,
+  hideDecorative = false,
+  hideLightDecorative = false,
+}) {
   const attributes = { ...(node.attributes || {}) }
   const isHairFill = attributes.fill === '__HAIR__'
   const hasDecorativeFill = Boolean(attributes.fill) && !isHairFill
+  const isLightDecorative =
+    typeof attributes.fill === 'string' &&
+    ['#fff', '#ffffff', 'white'].includes(attributes.fill.toLowerCase())
 
   if (node.name === 'path' && hideDecorative && hasDecorativeFill) return null
+  if (node.name === 'path' && hideLightDecorative && isLightDecorative) return null
 
   if (isHairFill) {
     attributes.fill = color
@@ -298,6 +334,7 @@ function AvataaarsHairElement({ node, color, keyPath, hideDecorative = false }) 
             node={child}
             color={color}
             hideDecorative={hideDecorative}
+            hideLightDecorative={hideLightDecorative}
           />
         ))}
       </g>
@@ -305,6 +342,37 @@ function AvataaarsHairElement({ node, color, keyPath, hideDecorative = false }) 
   }
 
   return <path key={keyPath} {...attributes} />
+}
+
+function AvataaarsRearBackfill({ variant, color }) {
+  if (!AVATAAARS_REAR_BACKFILL.has(variant)) return null
+
+  // Avataaars long/medium hair contains a cutout sized for the Avataaars face.
+  // Toon Head is shaped differently, so that cutout exposes the blue portrait
+  // background around the jaw. A clipped, hair-colored expansion of Toon Head's
+  // own silhouette bridges only that lower rear-hair zone. The actual face is
+  // rendered above it, and the donor hair remains the visible outer silhouette.
+  const clipId = `docos-avataaars-${variant}-rear-backfill`
+  return (
+    <>
+      <defs>
+        <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+          <rect x="160" y="315" width="448" height="370" />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipId})`}>
+        <path
+          d={TOON_HEAD_OUTLINE}
+          transform="translate(186.5 139.5)"
+          fill={color}
+          stroke={color}
+          strokeWidth="130"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      </g>
+    </>
+  )
 }
 
 function AvataaarsHair({ variant, color, layer = 'front' }) {
@@ -333,6 +401,7 @@ function AvataaarsHair({ variant, color, layer = 'front' }) {
               node={node}
               color={color}
               hideDecorative={Boolean(tuning.hideDecorative)}
+              hideLightDecorative={Boolean(tuning.hideLightDecorative)}
             />
           </g>
         )
@@ -538,6 +607,10 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             zIndex: 0,
           }}
         >
+          <AvataaarsRearBackfill
+            variant={portrait.avataaarsHair}
+            color={portrait.hairColor}
+          />
           <AvataaarsHair
             variant={portrait.avataaarsHair}
             color={portrait.hairColor}
