@@ -356,6 +356,72 @@
   box-shadow: 0 0 0 2px rgba(3, 12, 21, .42);
 }
 
+.career-look-options-d434c.hair-paged {
+  touch-action: pan-y;
+}
+
+.career-look-pager-d434c {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(125, 160, 189, .14);
+}
+
+.career-look-pager-d434c > button {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  border: 1px solid rgba(128, 163, 191, .20);
+  border-radius: 8px;
+  background: rgba(9, 27, 42, .72);
+  color: #91a5b5;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.career-look-pager-d434c > button:last-child {
+  justify-content: flex-end;
+}
+
+.career-look-pager-d434c > button span {
+  font-size: 6.5px;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.career-look-pager-d434c > button b {
+  color: var(--career-gold);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.career-look-pager-d434c > button:disabled {
+  opacity: .28;
+}
+
+.career-look-pager-d434c > div {
+  min-width: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #7891a5;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.career-look-pager-d434c > div i {
+  color: #425d72;
+  font-style: normal;
+}
+
 .career-look-action-d434c {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(160px, 46%);

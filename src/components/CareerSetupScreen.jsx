@@ -8,6 +8,8 @@ import './CareerSetupScreen.css'
 import './CareerSetupScreen.p2443a.css'
 import './CareerLookCreator.css'
 
+const HAIR_OPTIONS_PER_PAGE = 8
+
 // P2.4.4.3A/B — Create Player
 // Step 01 owns player-facing identity. Step 02 owns appearance.
 // Metroline is fixed to the New York market; market selection is not part of onboarding.
@@ -21,10 +23,12 @@ function CareerSetupScreen({ profile = null, onBack }) {
     ...(profile?.appearance || {}),
   }))
   const [appearanceCategory, setAppearanceCategory] = useState('skinTone')
+  const [hairPage, setHairPage] = useState(0)
 
   const screenRef = useRef(null)
   const nameRef = useRef(null)
   const submitLockRef = useRef(false)
+  const optionSwipeRef = useRef(null)
 
   const playerName = displayName.trim()
   const ready = playerName.length >= 2
@@ -90,8 +94,19 @@ function CareerSetupScreen({ profile = null, onBack }) {
     continueToLook()
   }
 
+  const hairPageForValue = (value) => {
+    const index = APPEARANCE_OPTIONS.hair.findIndex((option) => option.value === value)
+    return Math.max(0, Math.floor(Math.max(0, index) / HAIR_OPTIONS_PER_PAGE))
+  }
+
   const setAppearanceValue = (key, value) => {
     setAppearance((current) => ({ ...current, [key]: value }))
+    if (key === 'hair') setHairPage(hairPageForValue(value))
+  }
+
+  const selectAppearanceCategory = (key) => {
+    setAppearanceCategory(key)
+    if (key === 'hair') setHairPage(hairPageForValue(appearance.hair))
   }
 
   const randomizeAppearance = () => {
@@ -103,11 +118,39 @@ function CareerSetupScreen({ profile = null, onBack }) {
     })
 
     setAppearance(next)
+    if (appearanceCategory === 'hair') setHairPage(hairPageForValue(next.hair))
   }
 
   const resetAppearance = () => {
     setAppearance({ ...DEFAULT_APPEARANCE })
     setAppearanceCategory('skinTone')
+    setHairPage(hairPageForValue(DEFAULT_APPEARANCE.hair))
+  }
+
+  const startOptionSwipe = (event) => {
+    if (appearanceCategory !== 'hair') return
+    const touch = event.touches?.[0]
+    if (!touch) return
+    optionSwipeRef.current = { x: touch.clientX, y: touch.clientY }
+  }
+
+  const finishOptionSwipe = (event) => {
+    if (appearanceCategory !== 'hair' || !optionSwipeRef.current) return
+    const touch = event.changedTouches?.[0]
+    const start = optionSwipeRef.current
+    optionSwipeRef.current = null
+    if (!touch) return
+
+    const dx = touch.clientX - start.x
+    const dy = touch.clientY - start.y
+    if (Math.abs(dx) < 48 || Math.abs(dx) <= Math.abs(dy) * 1.2) return
+
+    const pageCount = Math.ceil(APPEARANCE_OPTIONS.hair.length / HAIR_OPTIONS_PER_PAGE)
+    setHairPage((current) => (
+      dx < 0
+        ? Math.min(pageCount - 1, current + 1)
+        : Math.max(0, current - 1)
+    ))
   }
 
   if (phase === 'firstDayPending') {
@@ -151,6 +194,15 @@ function CareerSetupScreen({ profile = null, onBack }) {
     const activeCategoryLabel = APPEARANCE_CATEGORIES.find(
       ({ key }) => key === appearanceCategory,
     )?.label
+    const hairPaging = appearanceCategory === 'hair'
+    const hairPageCount = Math.ceil(APPEARANCE_OPTIONS.hair.length / HAIR_OPTIONS_PER_PAGE)
+    const safeHairPage = Math.min(hairPage, Math.max(0, hairPageCount - 1))
+    const visibleOptions = hairPaging
+      ? activeOptions.slice(
+        safeHairPage * HAIR_OPTIONS_PER_PAGE,
+        (safeHairPage + 1) * HAIR_OPTIONS_PER_PAGE,
+      )
+      : activeOptions
 
     return (
       <div ref={screenRef} className="career-setup-d434c career-look-creator-d434c">
@@ -213,14 +265,18 @@ function CareerSetupScreen({ profile = null, onBack }) {
                   key={category.key}
                   type="button"
                   className={appearanceCategory === category.key ? 'active' : ''}
-                  onClick={() => setAppearanceCategory(category.key)}
+                  onClick={() => selectAppearanceCategory(category.key)}
                 >
                   {category.label}
                 </button>
               ))}
             </nav>
 
-            <section className="career-look-options-d434c">
+            <section
+              className={`career-look-options-d434c ${hairPaging ? 'hair-paged' : ''}`}
+              onTouchStart={startOptionSwipe}
+              onTouchEnd={finishOptionSwipe}
+            >
               <div className="career-look-options-head-d434c">
                 <div>
                   <span>CUSTOMIZE</span>
@@ -230,7 +286,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
               </div>
 
               <div className="career-look-option-grid-d434c">
-                {activeOptions.map((option) => {
+                {visibleOptions.map((option) => {
                   const selected = appearance[appearanceCategory] === option.value
                   const colorOption = Boolean(option.color)
 
@@ -254,6 +310,36 @@ function CareerSetupScreen({ profile = null, onBack }) {
                   )
                 })}
               </div>
+
+              {hairPaging && (
+                <div className="career-look-pager-d434c" aria-label="Hair pages">
+                  <button
+                    type="button"
+                    onClick={() => setHairPage((current) => Math.max(0, current - 1))}
+                    disabled={safeHairPage === 0}
+                    aria-label="Previous hair page"
+                  >
+                    <b aria-hidden="true">‹</b>
+                    <span>PREVIOUS</span>
+                  </button>
+
+                  <div aria-live="polite">
+                    <span>{safeHairPage + 1}</span>
+                    <i aria-hidden="true">/</i>
+                    <span>{hairPageCount}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setHairPage((current) => Math.min(hairPageCount - 1, current + 1))}
+                    disabled={safeHairPage === hairPageCount - 1}
+                    aria-label="Next hair page"
+                  >
+                    <span>NEXT</span>
+                    <b aria-hidden="true">›</b>
+                  </button>
+                </div>
+              )}
             </section>
 
             <div className="career-look-action-d434c">

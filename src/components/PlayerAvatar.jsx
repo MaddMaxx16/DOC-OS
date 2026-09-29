@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AVATAAARS_HAIR_VARIANTS, AVATAAARS_LAYERED_HAIR } from '../data/avataaarsHair'
 
-// P2.4.4.3B.6.6A — expanded Avataaars hair library on Toon Head
-// Toon Head remains the DOC OS player base. The calibrated Avataaars geometry
-// now supports the full non-headwear hair library, including layered long hair.
+// P2.4.4.3B.6.6B — per-style Avataaars hair polish on Toon Head
+// The proven global 3.1 fit remains the baseline. Only styles that showed
+// device-specific composition issues receive local transform/layer exceptions.
 export const APPEARANCE_OPTIONS = {
   skinTone: [
     { value: 'porcelain', label: 'Porcelain', color: '#f2c7aa' },
@@ -236,11 +236,35 @@ const NOTION_TRANSFORMS = {
 // slightly wider. Keep the original vertical registration (head top ≈ 140)
 // while widening hair around the same x=384 center instead of shifting it.
 const AVATAAARS_HAIR_TRANSFORM = 'translate(-25 39) scale(3.1 3.2)'
+
+const AVATAAARS_HAIR_TUNING = {
+  // Caesar starts lower in the source artwork than the other short cuts.
+  // Lift only these two variants so the Toon Head crown cannot peek through.
+  theCaesar: { transform: 'translate(-25 20) scale(3.1 3.2)' },
+  theCaesarAndSidePart: { transform: 'translate(-25 20) scale(3.1 3.2)' },
+
+  // Fro + Band is much wider than the regular fro. Pull it in and seat the
+  // headband at the hairline while preserving its rear/front layering.
+  froBand: { transform: 'translate(14 20) scale(2.8 3.2)' },
+
+  // These source variants include broad highlight/shadow plates that read as
+  // gray bars once transplanted onto Toon Head. Keep the actual hair geometry.
+  miaWallace: { hideDecorative: true },
+  bigHair: { hideDecorative: true },
+  shavedSides: { hideDecorative: true },
+
+  // The mullet tails sit too far from Toon Head at the global width. Only the
+  // rear layer is pulled inward/up; the approved front hairline stays untouched.
+  shaggyMullet: { rearTransform: 'translate(28 5) scale(2.7 3.2)' },
+}
 const AVATAAARS_FRONT_CLIP_BOTTOM = 365
 
-function AvataaarsHairElement({ node, color, keyPath }) {
+function AvataaarsHairElement({ node, color, keyPath, hideDecorative = false }) {
   const attributes = { ...(node.attributes || {}) }
   const isHairFill = attributes.fill === '__HAIR__'
+  const hasDecorativeFill = Boolean(attributes.fill) && !isHairFill
+
+  if (node.name === 'path' && hideDecorative && hasDecorativeFill) return null
 
   if (isHairFill) {
     attributes.fill = color
@@ -259,6 +283,7 @@ function AvataaarsHairElement({ node, color, keyPath }) {
             keyPath={`${keyPath}-${index}`}
             node={child}
             color={color}
+            hideDecorative={hideDecorative}
           />
         ))}
       </g>
@@ -275,14 +300,21 @@ function AvataaarsHair({ variant, color, layer = 'front' }) {
   const layered = AVATAAARS_LAYERED_HAIR.includes(variant)
   if (layer === 'rear' && !layered) return null
 
+  const tuning = AVATAAARS_HAIR_TUNING[variant] || {}
+  const transform = layer === 'rear'
+    ? (tuning.rearTransform || tuning.transform || AVATAAARS_HAIR_TRANSFORM)
+    : (tuning.transform || AVATAAARS_HAIR_TRANSFORM)
+  const frontClipBottom = tuning.frontClipBottom || AVATAAARS_FRONT_CLIP_BOTTOM
+
   const content = (
-    <g transform={AVATAAARS_HAIR_TRANSFORM}>
+    <g transform={transform}>
       {elements.map((node, index) => (
         <AvataaarsHairElement
           key={`${variant}-${index}`}
           keyPath={`${variant}-${index}`}
           node={node}
           color={color}
+          hideDecorative={Boolean(tuning.hideDecorative)}
         />
       ))}
     </g>
@@ -295,7 +327,7 @@ function AvataaarsHair({ variant, color, layer = 'front' }) {
     <>
       <defs>
         <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
-          <rect x="0" y="0" width="768" height={AVATAAARS_FRONT_CLIP_BOTTOM} />
+          <rect x="0" y="0" width="768" height={frontClipBottom} />
         </clipPath>
       </defs>
       <g clipPath={`url(#${clipId})`}>{content}</g>
