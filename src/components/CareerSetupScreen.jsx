@@ -209,18 +209,15 @@ function CareerSetupScreen({ profile = null, onBack }) {
 
             <section className="career-avatar-debug-d434c" aria-label="Skin tone renderer diagnostics">
               <div className="career-avatar-debug-head-d434c">
-                <span>DEBUG · SKIN PIPELINE</span>
+                <span>DEBUG · SKIN ASSET PIPELINE</span>
                 <strong>{avatarDebug?.stage || 'waiting'}</strong>
               </div>
               <div className="career-avatar-debug-grid-d434c">
                 <span>UI SELECTED</span><b>{appearance.skinTone}</b>
                 <span>AVATAR RECEIVED</span><b>{avatarDebug?.skinTone || '—'}</b>
-                <span>MASK PIXELS</span><b>{avatarDebug?.maskedPixels ?? '—'}</b>
-                <span>SKIN-GRADED</span><b>{avatarDebug?.gradedPixels ?? '—'}</b>
-                <span>DETAIL PROTECTED</span><b>{avatarDebug?.protectedPixels ?? '—'}</b>
-                <span>CHANGED PIXELS</span><b>{avatarDebug?.changedPixels ?? '—'}</b>
-                <span>AVG DELTA</span><b>{avatarDebug?.averageDelta ?? '—'}</b>
-                <span>CANVAS</span><b>{avatarDebug?.canvas || '—'}</b>
+                <span>RENDER MODE</span><b>{avatarDebug?.mode || '—'}</b>
+                <span>ASSET SIZE</span><b>{avatarDebug?.naturalSize || '—'}</b>
+                <span>RUNTIME RECOLOR</span><b>OFF</b>
                 {avatarDebug?.error && (
                   <>
                     <span>ERROR</span><b className="error">{avatarDebug.error}</b>
