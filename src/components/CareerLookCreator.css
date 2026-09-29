@@ -92,7 +92,8 @@
   background: #0a1c2b;
 }
 
-.career-photo-frame-d434c svg {
+.career-photo-frame-d434c svg,
+.career-photo-frame-d434c img {
   width: 100%;
   height: 100%;
   display: block;
@@ -234,6 +235,63 @@
 
 .career-avatar-debug-grid-d434c b.error {
   color: #ff9d8d;
+}
+
+.career-style-audition-d434c {
+  margin-top: 10px;
+  padding: 10px 11px 11px;
+  border: 1px solid rgba(125, 160, 189, .20);
+  border-radius: 11px;
+  background: rgba(7, 22, 35, .72);
+}
+
+.career-style-audition-head-d434c {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.career-style-audition-head-d434c span {
+  color: #d7a74f;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .15em;
+}
+
+.career-style-audition-head-d434c small {
+  color: #637d91;
+  font-size: 6.5px;
+  text-align: right;
+}
+
+.career-style-audition-options-d434c {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.career-style-audition-options-d434c button {
+  min-width: 0;
+  min-height: 31px;
+  padding: 0 5px;
+  border: 1px solid rgba(128, 163, 191, .22);
+  border-radius: 7px;
+  background: rgba(14, 34, 50, .72);
+  color: #8fa6b8;
+  font: inherit;
+  font-size: 6.3px;
+  font-weight: 850;
+  letter-spacing: .06em;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.career-style-audition-options-d434c button.active {
+  border-color: rgba(213, 154, 47, .70);
+  background: rgba(213, 154, 47, .09);
+  color: #e2b65f;
+  box-shadow: inset 0 0 0 1px rgba(213, 154, 47, .12);
 }
 
 .career-look-tabs-d434c {
