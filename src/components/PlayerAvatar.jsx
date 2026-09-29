@@ -33,20 +33,11 @@ export const APPEARANCE_OPTIONS = {
 
     { value: 'avaBob', label: 'Ava · Bob' },
     { value: 'avaCurly', label: 'Ava · Curly' },
-    { value: 'avaDreadsMedium', label: 'Ava · Medium Dreads' },
     { value: 'avaFro', label: 'Ava · Fro' },
-    { value: 'avaFroBand', label: 'Ava · Fro + Band' },
     { value: 'avaLongNotTooLong', label: 'Ava · Medium Long' },
     { value: 'avaMiaWallace', label: 'Ava · Straight Bob' },
     { value: 'avaShaggyMullet', label: 'Ava · Shaggy Mullet' },
 
-    { value: 'avaBigHair', label: 'Ava · Big Hair' },
-    { value: 'avaCurvy', label: 'Ava · Curvy Long' },
-    { value: 'avaDreadsLong', label: 'Ava · Long Dreads' },
-    { value: 'avaShavedSides', label: 'Ava · Shaved Sides' },
-    { value: 'avaStraight1', label: 'Ava · Long Straight 01' },
-    { value: 'avaStraight2', label: 'Ava · Long Straight 02' },
-    { value: 'avaStraightStrand', label: 'Ava · Straight + Strand' },
 
     { value: 'bun', label: 'Bun' },
     { value: 'longStraight', label: 'Long Straight' },
@@ -303,11 +294,8 @@ const AVATAAARS_REAR_BACKFILL = new Set([
 
 const AVATAAARS_FRONT_SEAM_CLEANUP = new Set([
   'bob',
-  'dreads02',
   'longButNotTooLong',
   'miaWallace',
-  'curvy',
-  'dreads',
 ])
 
 const TOON_HEAD_OUTLINE =
