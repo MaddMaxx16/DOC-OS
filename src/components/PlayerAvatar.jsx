@@ -123,7 +123,7 @@ export const DEFAULT_APPEARANCE = {
   outfit: 'polo',
 }
 
-// P2.4.4.3B.4B.3 — deterministic baked skin mask.
+// P2.4.4.3B.4B.4 — skin quality pass.
 // B.4B.1 still converted the recolored bitmap back into a WebP data URL before
 // putting it inside SVG. On physical iPhone that output stayed visually static.
 // This pass removes that extra conversion entirely: the visible portrait IS the
@@ -132,19 +132,46 @@ const MASTER_PORTRAIT = 'data:image/webp;base64,UklGRvwcAABXRUJQVlA4IPAcAADwjACd
 const SKIN_MASK_SPANS = [[72,130,1],[73,119,18],[74,116,27],[75,112,33],[76,109,39],[77,106,44],[78,104,48],[79,101,53],[80,99,56],[81,98,59],[82,97,61],[83,97,63],[84,96,65],[85,95,68],[86,95,69],[87,94,71],[88,94,72],[89,93,73],[90,92,75],[91,92,76],[92,91,78],[93,90,79],[94,90,80],[95,89,82],[96,88,84],[97,87,85],[98,87,86],[99,86,88],[100,85,73],[100,159,16],[101,84,61],[101,163,12],[102,84,10],[102,111,31],[102,165,11],[103,84,7],[103,113,27],[103,166,10],[104,83,7],[104,114,24],[104,167,9],[105,83,6],[105,115,23],[105,154,10],[105,167,9],[106,83,7],[106,95,1],[106,116,21],[106,150,16],[106,168,8],[107,83,3],[107,87,17],[107,117,21],[107,145,5],[107,153,12],[107,170,7],[108,83,2],[108,88,24],[108,116,27],[108,148,2],[108,154,10],[109,82,2],[109,88,20],[109,112,28],[109,149,2],[109,153,12],[110,89,18],[110,116,22],[110,148,20],[111,72,4],[111,88,20],[111,117,20],[111,144,26],[111,181,2],[112,71,4],[112,85,27],[112,119,16],[112,140,31],[112,180,3],[113,71,3],[113,84,31],[113,137,14],[113,153,18],[113,181,1],[114,71,3],[114,83,34],[114,136,9],[114,157,14],[115,72,1],[115,83,16],[115,109,9],[115,136,8],[115,160,12],[115,176,1],[116,83,14],[116,110,8],[116,136,7],[116,162,10],[116,175,2],[116,184,4],[117,83,12],[117,111,8],[117,124,7],[117,136,7],[117,163,9],[117,175,2],[117,183,6],[118,77,1],[118,83,10],[118,112,7],[118,123,9],[118,136,6],[118,164,9],[118,174,3],[118,181,9],[119,67,3],[119,77,2],[119,83,8],[119,113,6],[119,122,10],[119,136,7],[119,163,15],[119,179,11],[120,65,6],[120,77,3],[120,82,8],[120,114,5],[120,122,10],[120,136,9],[120,161,26],[120,188,3],[121,64,9],[121,77,3],[121,83,8],[121,113,6],[121,122,10],[121,136,13],[121,155,17],[121,173,13],[121,189,2],[122,63,12],[122,76,4],[122,83,16],[122,106,13],[122,122,11],[122,136,35],[122,174,13],[122,188,3],[123,63,18],[123,82,37],[123,121,12],[123,136,36],[123,173,18],[124,63,55],[124,121,13],[124,137,54],[125,63,55],[125,121,13],[125,137,55],[126,63,55],[126,120,15],[126,137,55],[127,63,54],[127,120,15],[127,137,55],[128,63,54],[128,120,15],[128,138,54],[129,63,55],[129,119,17],[129,137,55],[130,63,129],[131,62,130],[132,62,130],[133,62,130],[134,62,130],[135,62,130],[136,62,130],[137,63,128],[138,63,128],[139,63,128],[140,63,127],[141,63,127],[142,64,125],[143,64,125],[144,65,123],[145,65,123],[146,66,121],[147,66,121],[148,67,119],[149,67,119],[150,68,117],[151,69,115],[152,70,113],[153,71,111],[154,72,62],[154,135,41],[155,73,58],[155,136,39],[156,74,5],[156,80,41],[156,126,4],[156,137,38],[157,81,38],[157,127,2],[157,139,36],[158,81,36],[158,127,2],[158,140,34],[159,84,32],[159,127,3],[159,141,33],[160,85,30],[160,126,5],[160,140,34],[161,85,29],[161,117,3],[161,125,49],[162,85,30],[162,116,58],[163,86,88],[164,86,88],[165,87,87],[166,87,86],[167,87,86],[168,88,85],[169,88,85],[170,88,85],[171,89,83],[172,89,83],[173,89,83],[174,90,81],[175,90,80],[176,90,80],[177,91,78],[178,91,37],[178,129,40],[179,92,34],[179,131,39],[180,93,33],[180,132,37],[181,93,32],[181,131,38],[182,94,32],[182,131,37],[183,94,34],[183,130,37],[184,95,72],[185,95,71],[186,96,70],[187,96,69],[188,96,57],[188,154,11],[189,96,56],[189,155,10],[190,96,7],[190,104,46],[190,155,10],[191,96,5],[191,105,44],[191,156,9],[192,96,4],[192,107,42],[192,155,10],[193,96,5],[193,108,19],[193,130,18],[193,155,10],[194,96,5],[194,108,18],[194,131,16],[194,154,11],[195,96,6],[195,109,18],[195,131,13],[195,153,12],[196,96,7],[196,111,4],[196,116,11],[196,130,11],[196,153,12],[197,96,8],[197,112,1],[197,117,7],[197,126,1],[197,130,6],[197,139,1],[197,152,13],[198,96,9],[198,118,5],[198,130,1],[198,134,1],[198,150,15],[199,96,10],[199,119,4],[199,149,16],[200,95,12],[200,148,18],[201,95,14],[201,147,19],[202,95,15],[202,145,21],[203,95,16],[203,144,22],[204,95,18],[204,142,24],[205,95,20],[205,140,26],[206,95,23],[206,138,28],[207,95,27],[207,133,33],[208,95,71],[209,95,71],[210,95,71],[211,95,71],[212,95,71],[213,95,71],[214,95,71],[215,95,71],[216,95,71],[217,95,71],[218,95,71],[219,95,71],[220,95,71],[221,95,71],[222,95,71],[223,95,71],[224,95,71],[225,95,71],[226,95,71],[227,95,71],[228,95,71],[229,95,71],[230,94,73],[231,94,73],[232,94,73],[233,94,73],[234,94,73],[235,94,73],[236,94,73],[237,94,73],[238,94,72],[239,94,70],[240,95,68],[241,96,66],[242,98,63],[243,99,61],[244,101,57],[245,103,53],[246,106,49],[247,108,44],[248,111,38],[249,115,31],[250,121,20]]
 
 
-const SKIN_TONE_FILTERS = {
-  porcelain: { r: [0.7404, 0.3545], g: [1.0141, 0.3104], b: [1.1923, 0.3112] },
-  light: { r: [0.8233, 0.2437], g: [0.9875, 0.2125], b: [1.1696, 0.1812] },
-  warm: { r: [0.8128, 0.1666], g: [0.9395, 0.1078], b: [1.1028, 0.0588] },
-  tan: { r: [0.7768, 0.0706], g: [0.8824, -0.0045], b: [1.0459, -0.0359] },
-  brown: { r: [0.6796, -0.046], g: [0.8009, -0.089], b: [0.9336, -0.0822] },
-  deep: { r: [0.4833, -0.0595], g: [0.597, -0.0929], b: [0.7825, -0.0833] },
+const SKIN_TONE_GRADES = {
+  // Warm is the approved master portrait and intentionally remains untouched.
+  // The other grades are relative color moves from that master, not flat fills.
+  porcelain: { target: [242, 199, 170], strength: 0.62 },
+  light: { target: [223, 170, 134], strength: 0.55 },
+  warm: { target: [201, 137, 98], strength: 0 },
+  tan: { target: [169, 101, 69], strength: 0.55 },
+  brown: { target: [119, 70, 48], strength: 0.62 },
+  deep: { target: [75, 43, 35], strength: 0.68 },
 }
 
+const MASTER_SKIN_ANCHOR = SKIN_TONE_GRADES.warm.target
 const clampChannel = (value) => Math.max(0, Math.min(255, Math.round(value)))
+const clamp01 = (value) => Math.max(0, Math.min(1, value))
+
+function smoothstep(edge0, edge1, value) {
+  const t = clamp01((value - edge0) / (edge1 - edge0))
+  return t * t * (3 - 2 * t)
+}
+
+function skinMaterialWeight(r, g, b) {
+  const luma = (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+  const warmth = r - b
+  const redBalance = r - g
+
+  // Preserve dark illustrated detail (brows, beard hairs, nostrils, glasses)
+  // and neutral detail (eye whites / lens highlights) instead of tinting it.
+  const darkDetailProtection = smoothstep(70, 126, luma)
+  const warmMaterial = smoothstep(8, 42, warmth)
+  const redMaterial = smoothstep(-4, 22, redBalance)
+
+  // Bright highlights should remain highlights rather than clipping to a flat
+  // porcelain patch. We still grade them, just more gently.
+  const highlightProtection = 1 - (0.28 * smoothstep(220, 250, luma))
+
+  return clamp01(darkDetailProtection * warmMaterial * redMaterial * highlightProtection)
+}
 
 function drawSkinTone(canvas, skinTone, onDebug) {
-  const tone = SKIN_TONE_FILTERS[skinTone] || SKIN_TONE_FILTERS[DEFAULT_APPEARANCE.skinTone]
+  const grade = SKIN_TONE_GRADES[skinTone] || SKIN_TONE_GRADES[DEFAULT_APPEARANCE.skinTone]
   const context = canvas.getContext('2d', { willReadFrequently: true })
 
   if (!context) {
@@ -166,13 +193,16 @@ function drawSkinTone(canvas, skinTone, onDebug) {
       const portraitPixels = context.getImageData(0, 0, canvas.width, canvas.height)
       const pixels = portraitPixels.data
 
+      const redShift = (grade.target[0] - MASTER_SKIN_ANCHOR[0]) * grade.strength
+      const greenShift = (grade.target[1] - MASTER_SKIN_ANCHOR[1]) * grade.strength
+      const blueShift = (grade.target[2] - MASTER_SKIN_ANCHOR[2]) * grade.strength
+
       let maskedPixels = 0
+      let gradedPixels = 0
+      let protectedPixels = 0
       let changedPixels = 0
       let totalDelta = 0
 
-      // The mask is now deterministic geometry baked into the app instead of
-      // a WebP mask. Physical iPhone proved the WebP loaded but decoded as an
-      // all-black canvas (0 mask pixels). These spans cannot silently decode.
       for (const [y, startX, length] of SKIN_MASK_SPANS) {
         for (let x = startX; x < startX + length; x += 1) {
           const index = (y * canvas.width + x) * 4
@@ -182,19 +212,23 @@ function drawSkinTone(canvas, skinTone, onDebug) {
           const originalG = pixels[index + 1]
           const originalB = pixels[index + 2]
 
-          const recoloredR = clampChannel(originalR * tone.r[0] + tone.r[1] * 255)
-          const recoloredG = clampChannel(originalG * tone.g[0] + tone.g[1] * 255)
-          const recoloredB = clampChannel(originalB * tone.b[0] + tone.b[1] * 255)
+          const materialWeight = skinMaterialWeight(originalR, originalG, originalB)
+          if (materialWeight < 0.08) protectedPixels += 1
 
-          // Feather each horizontal edge slightly so the baked mask blends
-          // naturally into hairline, ears, beard, and hoodie boundaries.
           const offset = x - startX
           const edgeDistance = Math.min(offset, length - 1 - offset)
-          const weight = edgeDistance === 0 ? 0.55 : edgeDistance === 1 ? 0.82 : 1
+          const edgeWeight = edgeDistance === 0 ? 0.5 : edgeDistance === 1 ? 0.78 : 1
+          const weight = materialWeight * edgeWeight
 
-          const nextR = clampChannel(originalR + (recoloredR - originalR) * weight)
-          const nextG = clampChannel(originalG + (recoloredG - originalG) * weight)
-          const nextB = clampChannel(originalB + (recoloredB - originalB) * weight)
+          if (weight <= 0.01) continue
+          gradedPixels += 1
+
+          // Apply one relative color grade to the existing artwork. Because the
+          // local RGB differences remain intact, cheek warmth, lip color, nose
+          // shading, highlights, and painted texture survive across every tone.
+          const nextR = clampChannel(originalR + (redShift * weight))
+          const nextG = clampChannel(originalG + (greenShift * weight))
+          const nextB = clampChannel(originalB + (blueShift * weight))
           const delta = Math.abs(nextR - originalR) + Math.abs(nextG - originalG) + Math.abs(nextB - originalB)
 
           if (delta > 0) {
@@ -217,6 +251,8 @@ function drawSkinTone(canvas, skinTone, onDebug) {
         stage: 'applied',
         skinTone,
         maskedPixels,
+        gradedPixels,
+        protectedPixels,
         changedPixels,
         averageDelta: changedPixels ? Math.round(totalDelta / changedPixels) : 0,
         canvas: `${canvas.width}x${canvas.height}`,
