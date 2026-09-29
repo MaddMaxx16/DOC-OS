@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AVATAAARS_HAIR_VARIANTS, AVATAAARS_LAYERED_HAIR } from '../data/avataaarsHair'
 
-// P2.4.4.3B.6.6B — per-style Avataaars hair polish on Toon Head
-// The proven global 3.1 fit remains the baseline. Only styles that showed
-// device-specific composition issues receive local transform/layer exceptions.
+// P2.4.4.3B.6.6C — final per-style Avataaars seating pass on Toon Head
+// The proven global 3.1 fit remains the baseline. Problem styles use local
+// seating or element-level transforms rather than disturbing approved hair.
 export const APPEARANCE_OPTIONS = {
   skinTone: [
     { value: 'porcelain', label: 'Porcelain', color: '#f2c7aa' },
@@ -243,19 +243,33 @@ const AVATAAARS_HAIR_TUNING = {
   theCaesar: { transform: 'translate(-25 20) scale(3.1 3.2)' },
   theCaesarAndSidePart: { transform: 'translate(-25 20) scale(3.1 3.2)' },
 
-  // Fro + Band is much wider than the regular fro. Pull it in and seat the
-  // headband at the hairline while preserving its rear/front layering.
-  froBand: { transform: 'translate(14 20) scale(2.8 3.2)' },
+  // Fro + Band needs two registrations: the hair uses the narrower fro fit,
+  // while the source headband is vertically compressed into an actual band
+  // at Toon Head's hairline instead of reading as a blue skull cap.
+  froBand: {
+    transform: 'translate(14 20) scale(2.8 3.2)',
+    elementTransforms: { 1: 'translate(14 220) scale(2.8 .8)' },
+    frontOnlyElements: [1],
+  },
 
-  // These source variants include broad highlight/shadow plates that read as
-  // gray bars once transplanted onto Toon Head. Keep the actual hair geometry.
-  miaWallace: { hideDecorative: true },
-  bigHair: { hideDecorative: true },
+  // Mia's flat fringe and Big Hair's asymmetric sweep both sit lower than the
+  // short-hair baseline. Lift the front geometry so brows remain unobstructed.
+  miaWallace: {
+    transform: 'translate(-25 5) scale(3.1 3.2)',
+    hideDecorative: true,
+  },
+  bigHair: {
+    transform: 'translate(-25 20) scale(3.1 3.2)',
+    hideDecorative: true,
+  },
   shavedSides: { hideDecorative: true },
 
-  // The mullet tails sit too far from Toon Head at the global width. Only the
-  // rear layer is pulled inward/up; the approved front hairline stays untouched.
-  shaggyMullet: { rearTransform: 'translate(28 5) scale(2.7 3.2)' },
+  // The mullet's front sweep was still landing at eyebrow height. Lift only
+  // the front; keep the already-improved rear tails tucked in around the neck.
+  shaggyMullet: {
+    transform: 'translate(-25 10) scale(3.1 3.2)',
+    rearTransform: 'translate(28 5) scale(2.7 3.2)',
+  },
 }
 const AVATAAARS_FRONT_CLIP_BOTTOM = 365
 
@@ -307,17 +321,23 @@ function AvataaarsHair({ variant, color, layer = 'front' }) {
   const frontClipBottom = tuning.frontClipBottom || AVATAAARS_FRONT_CLIP_BOTTOM
 
   const content = (
-    <g transform={transform}>
-      {elements.map((node, index) => (
-        <AvataaarsHairElement
-          key={`${variant}-${index}`}
-          keyPath={`${variant}-${index}`}
-          node={node}
-          color={color}
-          hideDecorative={Boolean(tuning.hideDecorative)}
-        />
-      ))}
-    </g>
+    <>
+      {elements.map((node, index) => {
+        if (layer === 'rear' && tuning.frontOnlyElements?.includes(index)) return null
+
+        const elementTransform = tuning.elementTransforms?.[index] || transform
+        return (
+          <g key={`${variant}-${index}`} transform={elementTransform}>
+            <AvataaarsHairElement
+              keyPath={`${variant}-${index}`}
+              node={node}
+              color={color}
+              hideDecorative={Boolean(tuning.hideDecorative)}
+            />
+          </g>
+        )
+      })}
+    </>
   )
 
   if (layer === 'rear' || !layered) return content
