@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-// P2.4.4.3B.6.4B — frontalized Notion hair calibration on Toon Head
+// P2.4.4.3B.6.4C — Toon Head hair depth / frontal-perspective calibration
 // Toon Head remains the DOC OS player base. A curated set of CC0 Notion Avatar
 // Maker parts is overlaid to test hair / eyes / glasses / accessories without
 // losing the full-color Toon Head character.
@@ -209,29 +209,8 @@ function stripOuterSvg(svg) {
     .replace(/<\/svg>\s*$/i, '')
 }
 
-function frontalizeNotionHairSvg(svg, index) {
-  // Notion's hair silhouettes include a long left temple/sideburn because its
-  // source face is asymmetric. Toon Head is front-facing, so shorten that
-  // projection while preserving the crown and recognizable hairstyle.
-  if (index === '1' || index === '12') {
-    return svg.replace(
-      'M287.145773,564.824988 L328.116663,564.824988 L366,655 C383.576343,574.554316 392.364515,528.467337 392.364515,516.739062',
-      'M304,540 L344,540 L366,574 C379,548 388,526 392.364515,516.739062',
-    )
-  }
-
-  if (index === '5') {
-    return svg.replace(
-      'C391.19759,494.978015 399,522 395,559 C392.333333,583.666667 384.333333,621.333333 371,672 C346.672242,617.194008 331.338909,585.527342 325,577 C318.661091,568.472658 305.994424,562.472658 287,559',
-      'C391.19759,494.978015 397,518 392,540 C386,556 378,570 366,582 C350,566 336,552 325,548 C316,544 306,540 296,538',
-    )
-  }
-
-  return svg
-}
-
-function recolorNotionSvg(svg, kind, color, index) {
-  let next = stripOuterSvg(kind === 'hair' ? frontalizeNotionHairSvg(svg, index) : svg)
+function recolorNotionSvg(svg, kind, color) {
+  let next = stripOuterSvg(svg)
 
   if (kind === 'hair') {
     next = next
@@ -250,7 +229,7 @@ function recolorNotionSvg(svg, kind, color, index) {
   return next
 }
 
-function NotionPart({ assetKey, index, kind, transform, color = '#4b2422' }) {
+function NotionPart({ assetKey, index, kind, transform, color = '#4b2422', clipBottom = null }) {
   const [markup, setMarkup] = useState('')
 
   useEffect(() => {
@@ -259,7 +238,7 @@ function NotionPart({ assetKey, index, kind, transform, color = '#4b2422' }) {
 
     loadNotionAsset(assetKey, index)
       .then((svg) => {
-        if (!cancelled) setMarkup(recolorNotionSvg(svg, kind, color, index))
+        if (!cancelled) setMarkup(recolorNotionSvg(svg, kind, color))
       })
       .catch(() => {
         if (!cancelled) setMarkup('')
@@ -272,11 +251,26 @@ function NotionPart({ assetKey, index, kind, transform, color = '#4b2422' }) {
 
   if (!markup) return null
 
+  const clipId = `docos-notion-${assetKey}-${index}-front-clip`
+
   return (
-    <g
-      transform={transform}
-      dangerouslySetInnerHTML={{ __html: markup }}
-    />
+    <g transform={transform}>
+      {clipBottom !== null ? (
+        <>
+          <defs>
+            <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+              <rect x="0" y="0" width="1080" height={clipBottom} />
+            </clipPath>
+          </defs>
+          <g
+            clipPath={`url(#${clipId})`}
+            dangerouslySetInnerHTML={{ __html: markup }}
+          />
+        </>
+      ) : (
+        <g dangerouslySetInnerHTML={{ __html: markup }} />
+      )}
+    </g>
   )
 }
 
@@ -309,7 +303,6 @@ function buildToonHeadPortrait(appearance) {
 
   const params = new URLSearchParams({
     seed: 'doc-os-metroline-player',
-    backgroundColor: METROLINE_PORTRAIT_BACKGROUND,
     skinColor,
     hairColor,
     clothesColor: METROLINE_OUTFIT_COLOR,
@@ -346,23 +339,61 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
     portrait.notionGlasses ||
     portrait.notionAccessories,
   )
+  const notionHairTransform =
+    NOTION_HAIR_TRANSFORMS[portrait.notionHair] || 'translate(-4 -137) scale(.73)'
 
   return (
     <div
       className={className}
       role="img"
       aria-label={`Customized Metroline employee portrait — ${portrait.skinTone} skin tone`}
-      data-avatar-engine="dicebear-toon-head-notion-hybrid-audition"
+      data-avatar-engine="dicebear-toon-head-notion-depth-hybrid-audition"
       data-skin-tone={portrait.skinTone}
-      style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
+      style={{
+        width: '100%',
+        height: '100%',
+        position: 'relative',
+        overflow: 'hidden',
+        background: `#${METROLINE_PORTRAIT_BACKGROUND}`,
+      }}
     >
+      {portrait.notionHair && (
+        <svg
+          viewBox="0 0 768 768"
+          preserveAspectRatio="xMidYMid slice"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            display: 'block',
+            pointerEvents: 'none',
+          }}
+        >
+          <NotionPart
+            assetKey="hair"
+            index={portrait.notionHair}
+            kind="hair"
+            transform={notionHairTransform}
+            color={portrait.hairColor}
+          />
+        </svg>
+      )}
+
       <img
         src={portrait.src}
         width="260"
         height="320"
         alt=""
         aria-hidden="true"
-        style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          display: 'block',
+          objectFit: 'cover',
+        }}
       />
 
       {hasNotionParts && (
@@ -384,8 +415,9 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
               assetKey="hair"
               index={portrait.notionHair}
               kind="hair"
-              transform={NOTION_HAIR_TRANSFORMS[portrait.notionHair] || 'translate(-4 -137) scale(.73)'}
+              transform={notionHairTransform}
               color={portrait.hairColor}
+              clipBottom={515}
             />
           )}
           {portrait.notionEyes && (
