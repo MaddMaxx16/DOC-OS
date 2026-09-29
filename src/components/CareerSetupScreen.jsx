@@ -20,7 +20,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
     ...DEFAULT_APPEARANCE,
     ...(profile?.appearance || {}),
   }))
-  const [appearanceCategory, setAppearanceCategory] = useState('skinTone')
+  const [appearanceCategory, setAppearanceCategory] = useState('face')
 
   const screenRef = useRef(null)
   const nameRef = useRef(null)
@@ -107,7 +107,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
 
   const resetAppearance = () => {
     setAppearance({ ...DEFAULT_APPEARANCE })
-    setAppearanceCategory('skinTone')
+    setAppearanceCategory('face')
   }
 
   if (phase === 'firstDayPending') {
