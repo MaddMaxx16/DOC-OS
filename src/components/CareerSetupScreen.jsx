@@ -9,7 +9,7 @@ import './CareerSetupScreen.p2443a.css'
 import './CareerLookCreator.css'
 
 const HAIR_OPTIONS_PER_PAGE = 8
-const HAIR_COLOR_OPTIONS_PER_PAGE = 8
+const HAIR_COLOR_OPTIONS_PER_PAGE = 6
 
 // P2.4.4.3A/B — Create Player
 // Step 01 owns player-facing identity. Step 02 owns appearance.
