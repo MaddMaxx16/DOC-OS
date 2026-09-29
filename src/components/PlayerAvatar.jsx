@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AVATAAARS_HAIR_VARIANTS, AVATAAARS_LAYERED_HAIR } from '../data/avataaarsHair'
 
-// P2.4.4.3B.6.6E — clean Avataaars rear-hair seams on Toon Head
-// Keep the successful rear-hair backfill, but let it cover the donor face-cutout
-// outline and constrain the front copy to the crown so long side hair cannot spill.
+// P2.4.4.3B.6.6F — finish Avataaars rear-hair registration on Toon Head
+// Replace the rectangular rear-hair bridge with a smooth head-shaped bridge so
+// the last two long styles keep their fill without exposing hard clip edges.
 export const APPEARANCE_OPTIONS = {
   skinTone: [
     { value: 'porcelain', label: 'Porcelain', color: '#f2c7aa' },
@@ -274,7 +274,7 @@ const AVATAAARS_HAIR_TUNING = {
   // Straight 01 is intentionally asymmetric, but its rear tail was sitting too
   // far to the right of Toon Head. Shift only the rear silhouette left; keep the
   // already-good front sweep registered to the face.
-  straight01: { rearTransform: 'translate(-35 39) scale(3.1 3.2)' },
+  straight01: { rearTransform: 'translate(-10 39) scale(2.9 3.2)' },
 
   // The mullet passed device review. Preserve its front/rear calibration.
   shaggyMullet: {
@@ -354,31 +354,22 @@ function AvataaarsHairElement({
 function AvataaarsRearBackfill({ variant, color }) {
   if (!AVATAAARS_REAR_BACKFILL.has(variant)) return null
 
-  // Avataaars long/medium hair contains a cutout sized for the Avataaars face.
-  // Toon Head is shaped differently, so that cutout exposes the portrait
-  // background and its donor outline around the jaw. This hair-colored bridge
-  // is intentionally rendered AFTER the donor rear hair but BEFORE Toon Head:
-  // it covers that inner seam without changing the hairstyle's outer silhouette.
-  const clipId = `docos-avataaars-${variant}-rear-backfill`
+  // Avataaars long/medium hair contains a face cutout sized for its own head.
+  // Toon Head is wider through the jaw, so a hair-colored copy of Toon Head's
+  // silhouette sits between the donor rear hair and the face. The wide rounded
+  // stroke bridges the mismatch, while the real face and front hair render over
+  // it. Do not rectangular-clip this bridge: those clip edges were the blocks
+  // visible beside Shaved Sides and Long Straight 01.
   return (
-    <>
-      <defs>
-        <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
-          <rect x="160" y="315" width="448" height="370" />
-        </clipPath>
-      </defs>
-      <g clipPath={`url(#${clipId})`}>
-        <path
-          d={TOON_HEAD_OUTLINE}
-          transform="translate(186.5 139.5)"
-          fill={color}
-          stroke={color}
-          strokeWidth="130"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-      </g>
-    </>
+    <path
+      d={TOON_HEAD_OUTLINE}
+      transform="translate(186.5 139.5)"
+      fill={color}
+      stroke={color}
+      strokeWidth="130"
+      strokeLinejoin="round"
+      strokeLinecap="round"
+    />
   )
 }
 
