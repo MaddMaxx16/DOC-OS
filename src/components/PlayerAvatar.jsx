@@ -1,4 +1,4 @@
-// P2.4.4.3B.6.2 — DOC OS Toon Head expansion
+// P2.4.4.3B.6.2A — hybrid DiceBear component audition
 // Toon Head is the locked DOC OS player-avatar art direction. Keep player-facing
 // options limited to components the style actually supports.
 export const APPEARANCE_OPTIONS = {
@@ -14,12 +14,11 @@ export const APPEARANCE_OPTIONS = {
     { value: 'sidepart', label: 'Side Part' },
     { value: 'undercut', label: 'Undercut' },
     { value: 'spiky', label: 'Spiky' },
-    { value: 'docCrew', label: 'Crew Cut' },
-    { value: 'docBuzz', label: 'Buzz Cut' },
-    { value: 'docCrop', label: 'Textured Crop' },
-    { value: 'docCurls', label: 'Short Curls' },
-    { value: 'docFade', label: 'Classic Fade' },
-    { value: 'docSlick', label: 'Slick Back' },
+    { value: 'hybridMicahFonze', label: 'Micah · Short' },
+    { value: 'hybridMicahMrT', label: 'Micah · Fade' },
+    { value: 'hybridMiniClassic', label: 'Miniavs · Classic' },
+    { value: 'hybridMiniCurly', label: 'Miniavs · Curly' },
+    { value: 'hybridMiniStylish', label: 'Miniavs · Stylish' },
     { value: 'bun', label: 'Bun' },
     { value: 'longStraight', label: 'Long Straight' },
     { value: 'longWavy', label: 'Long Wavy' },
@@ -46,10 +45,10 @@ export const APPEARANCE_OPTIONS = {
     { value: 'humble', label: 'Natural' },
     { value: 'happy', label: 'Friendly' },
     { value: 'wide', label: 'Wide' },
-    { value: 'docFocused', label: 'Focused' },
-    { value: 'docRelaxed', label: 'Relaxed' },
-    { value: 'docDeepSet', label: 'Deep Set' },
-    { value: 'docSoft', label: 'Soft' },
+    { value: 'hybridAvaDefault', label: 'Avataaars · Standard' },
+    { value: 'hybridAvaSquint', label: 'Avataaars · Squint' },
+    { value: 'hybridAvaSide', label: 'Avataaars · Side' },
+    { value: 'hybridAvaHappy', label: 'Avataaars · Happy' },
     { value: 'bow', label: 'Bow' },
     { value: 'wink', label: 'Wink' },
   ],
@@ -107,12 +106,11 @@ const HAIR_CONFIG = {
   sidepart: { front: 'sideComed', rear: null },
   undercut: { front: 'undercut', rear: null },
   spiky: { front: 'spiky', rear: null },
-  docCrew: { custom: 'crew', front: null, rear: null },
-  docBuzz: { custom: 'buzz', front: null, rear: null },
-  docCrop: { custom: 'crop', front: null, rear: null },
-  docCurls: { custom: 'curls', front: null, rear: null },
-  docFade: { custom: 'fade', front: null, rear: null },
-  docSlick: { custom: 'slick', front: null, rear: null },
+  hybridMicahFonze: { custom: 'micahFonze', front: null, rear: null },
+  hybridMicahMrT: { custom: 'micahMrT', front: null, rear: null },
+  hybridMiniClassic: { custom: 'miniClassic', front: null, rear: null },
+  hybridMiniCurly: { custom: 'miniCurly', front: null, rear: null },
+  hybridMiniStylish: { custom: 'miniStylish', front: null, rear: null },
   bun: { front: 'bun', rear: null },
   longStraight: { front: 'sideComed', rear: 'longStraight' },
   longWavy: { front: 'sideComed', rear: 'longWavy' },
@@ -121,70 +119,47 @@ const HAIR_CONFIG = {
   bald: { front: null, rear: null },
 }
 
-const CUSTOM_EYES = new Set(['docFocused', 'docRelaxed', 'docDeepSet', 'docSoft'])
+// Hybrid audition sources:
+// - Micah by Micah Lanier, CC BY 4.0
+// - Miniavs by Webpixels, CC BY 4.0
+// - Avataaars by Pablo Stanley, free for personal and commercial use
+// These donor components are transformed onto Toon Head's 768px canvas for fit testing.
+const CUSTOM_EYES = new Set(['hybridAvaDefault', 'hybridAvaSquint', 'hybridAvaSide', 'hybridAvaHappy'])
 
 function CustomHair({ variant, color }) {
-  const common = { fill: color, stroke: '#000000', strokeWidth: 2, strokeLinejoin: 'round' }
-
-  if (variant === 'crew') {
+  if (variant === 'micahFonze') {
     return (
-      <g transform="translate(158.2 0)">
-        <path {...common} d="M67 318c3-99 49-177 133-199 87-23 170 16 196 103 8 27 8 62 3 96l-28 12c-2-64-19-111-55-139-28 17-66 28-112 31-43 3-80-3-111-17-15 34-22 74-22 121z" />
-        <path d="M93 205c50 23 151 25 223-14" fill="none" stroke="#000000" strokeOpacity=".2" strokeWidth="16" strokeLinecap="round" />
+      <g transform="translate(155 78) scale(1.58)">
+        <path d="M235.18 61.4c-1.27 6.05-4.6 11.32-9.43 15.9 9.4 34.06 9.6 53.87 4.38 57.65l-14.8-49.99c-31.94 18.74-91.69 21.94-106.65 21.94q-2.32.26-4.43.67c-14.65 9-2.6 52.12 11.75 70.43l-11 2c-5.14-24.97-17.41-22.92-26.61-21.38l-.32.05c2.2 13.63 6.72 27.74 10.45 39.32q1.44 4.5 2.66 8.4c-.79.11-1.48.3-2.12.48-5.5 1.53-7.41 2.06-33.38-61.97-6.47-15.95-6.03-30.16-.97-42.62-4.78-4.8-14.37-7.14-19.71-7.78 10.44-6.12 20.58-4.87 25.54-3.1q.75-1.12 1.56-2.22c-.97-4.41-7.96-9.46-12.11-11.82 8.56-4.3 18.62-2.03 23-.2C92.62 59.13 122.02 47.05 147 41c48.82-11.83 67.5-28.5 67.5-28.5 20.68 8.5 25.62 25.22 20.68 48.9Z" fill={color} fillRule="evenodd" clipRule="evenodd" stroke="#000" strokeWidth="4" />
       </g>
     )
   }
 
-  if (variant === 'buzz') {
+  if (variant === 'micahMrT') {
     return (
-      <g transform="translate(158.2 0)">
-        <path {...common} d="M73 306c4-106 59-184 150-194 94-11 165 50 174 151 2 19 1 39-1 58l-27 8c-2-71-22-124-60-154-26-20-55-29-88-27-71 4-115 57-122 153l-2 27-25-9z" />
-        <path d="M104 190c71-51 170-49 238 4M91 226c83-45 190-42 275 5" fill="none" stroke="#000000" strokeOpacity=".16" strokeWidth="5" strokeLinecap="round" />
+      <g transform="translate(185 120) scale(1.7)">
+        <path d="M212.99 89.17c-8-6.4-21.84-7-27.5-6.5l-8-26.5c13.6 3.2 32 24 35.5 33" fill={color} opacity=".22" />
+        <path d="M110.8 23.76s5.73-3.96 29.95-10.06 33.04-3.72 33.04-3.72l11.79 72.84s-8.04-.18-28.03 4.19-29.56 9.67-29.56 9.67zM73.99 98.68c-6.8-41.6 23.33-68.17 37-75.5l17 73.5c-19.2-39.6-45.34-15.17-54 2" fill={color} />
+        <path d="M92.49 142.67c-7.2-27.2 22-41.83 35.5-46-7-16.33-23-31-42.5-13-18 30.5-11 54-5.5 72z" fill={color} opacity=".22" />
       </g>
     )
   }
 
-  if (variant === 'crop') {
+  if (variant === 'miniClassic') {
+    return <path d="M28.96 23.2c5.62 1.86 13.4 4.45 21.54-3.7 4-4-14-21-28.5-11.5-11.33 1.68-10.69 8.47-10.19 13.71.1 1 .2 1.95.2 2.8q0 .78.2 1.2a27 27 0 0 0-.2 3.3 4 4 0 0 0 8.02 0A4 4 0 0 0 23.88 24H24a4 4 0 0 0 3.05-1.42z" fill={color} fillRule="evenodd" clipRule="evenodd" transform="translate(150 82) scale(8.5)" />
+  }
+
+  if (variant === 'miniCurly') {
     return (
-      <g transform="translate(158.2 0)">
-        <path {...common} d="M62 323c4-89 30-151 78-187 30-23 67-34 111-34 71 0 126 32 153 94 13 30 17 71 10 122l-31 12c-2-47-11-85-27-113l-26 23-22-32-35 28-28-35-35 31-30-32-32 31-25-29-25 28-18-14c-7 28-11 63-12 105z" />
-        <path d="M115 178c60-42 157-49 224 1" fill="none" stroke="#000000" strokeOpacity=".18" strokeWidth="12" strokeLinecap="round" />
+      <g transform="translate(150 72) scale(8.2)" fill={color}>
+        <path d="M45.97 29.48a4 4 0 0 0 1.78-4.88 4 4 0 0 0-2.97-7.41c1.42 3.67 1.32 8.22 1.19 12.3" fillRule="evenodd" clipRule="evenodd" />
+        <path d="M37.5 0a6.5 6.5 0 0 1 6.01 4.03 4 4 0 0 1 3.44 4.58 7.3 7.3 0 0 1 3.05 5.9c0 4.13-3.58 7.49-8 7.49a8.3 8.3 0 0 1-5.7-2.24 5 5 0 0 1-6.36.2 7 7 0 0 1-7 1.74q-.4.43-.88.73a3.98 3.98 0 0 1-1.35 6.19q.3.37.3.88c0 .83-.65 1.5-1.5 1.5h-.02a4 4 0 0 1-7.3-3.17 4 4 0 0 1 0-5.66 4 4 0 0 1 .75-3.71 7 7 0 0 1 4.1-10.17v-.31a4 4 0 0 1 5.94-3.51 7 7 0 0 1 9.8-2.42A6.5 6.5 0 0 1 37.5 0" />
       </g>
     )
   }
 
-  if (variant === 'curls') {
-    return (
-      <g transform="translate(158.2 0)" {...common}>
-        <path d="M65 326c1-62 12-112 34-149 27-45 70-69 129-72 66-4 118 20 149 69 25 39 34 90 26 151l-31 7c-3-60-17-101-43-124-24 22-58 33-102 34-43 1-79-9-108-31-18 30-27 69-28 118z" />
-        <circle cx="119" cy="177" r="42" />
-        <circle cx="166" cy="140" r="45" />
-        <circle cx="219" cy="126" r="47" />
-        <circle cx="273" cy="132" r="46" />
-        <circle cx="326" cy="157" r="43" />
-        <circle cx="365" cy="196" r="37" />
-        <path d="M128 190c54 31 146 35 205 3" fill="none" stroke="#000000" strokeOpacity=".18" strokeWidth="11" strokeLinecap="round" />
-      </g>
-    )
-  }
-
-  if (variant === 'fade') {
-    return (
-      <g transform="translate(158.2 0)">
-        <path {...common} d="M74 322c0-78 17-136 50-175 35-42 84-62 147-58 69 5 118 39 139 101 11 32 12 74 4 127l-31 12c-2-68-18-117-48-148-42 28-102 42-180 39-30-1-54-5-72-12-7 31-10 69-9 114z" />
-        <path d="M83 208c55 18 174 21 252-27" fill="none" stroke="#000000" strokeOpacity=".22" strokeWidth="18" strokeLinecap="round" />
-        <path d="M78 250c37 12 62 15 86 15M373 239c-23 14-45 20-68 23" fill="none" stroke="#000000" strokeOpacity=".16" strokeWidth="12" strokeLinecap="round" />
-      </g>
-    )
-  }
-
-  if (variant === 'slick') {
-    return (
-      <g transform="translate(158.2 0)">
-        <path {...common} d="M68 325c0-83 18-146 55-188 37-43 91-62 161-55 62 6 107 35 135 86-55-25-111-25-168 0 54 1 101 15 141 43-77-20-146-10-207 29-32 20-64 31-96 33-7 16-11 35-13 57z" />
-        <path d="M122 183c74-60 173-71 249-24M112 218c79-47 168-54 244-21" fill="none" stroke="#000000" strokeOpacity=".18" strokeWidth="10" strokeLinecap="round" />
-      </g>
-    )
+  if (variant === 'miniStylish') {
+    return <path d="M20.67 25.22v6.02c0 .76-.67 1.76-1.17 2.26s-2 1.5-2.85 1.5-3.54-.45-4.83-2.26c-1.28-1.8-.9-11.32 0-13.54S16 12.32 20.67 8.75a26 26 0 0 1 12.88-5.34C58.48.4 49.22 18 46 22.5c-5.5-2-9.5-2.5-16.72-1.52s-8.01 1.98-8.6 4.24" fill={color} transform="translate(150 74) scale(8.5)" />
   }
 
   return null
@@ -192,50 +167,35 @@ function CustomHair({ variant, color }) {
 
 function CustomEyes({ variant }) {
   const ink = '#4b2422'
-  const white = '#f6f1e4'
+  const transform = 'translate(248 374) scale(3.2)'
 
-  if (variant === 'docFocused') {
+  if (variant === 'hybridAvaDefault') {
     return (
-      <g transform="translate(253 367)">
-        <path d="M9 39c20-27 64-34 87-4-15 31-65 36-87 4Z" fill={white} />
-        <circle cx="60" cy="38" r="21" fill={ink} />
-        <path d="M9 39c24-25 62-29 87-4M165 35c25-25 63-21 87 4" fill="none" stroke={ink} strokeWidth="9" strokeLinecap="round" />
-        <path d="M165 35c23-30 67-23 87 4-22 32-72 27-87-4Z" fill={white} />
-        <circle cx="201" cy="38" r="21" fill={ink} />
+      <g transform={transform} fill={ink} fillOpacity=".92">
+        <circle cx="16" cy="14" r="6" />
+        <circle cx="68" cy="14" r="6" />
       </g>
     )
   }
 
-  if (variant === 'docRelaxed') {
+  if (variant === 'hybridAvaSquint') {
     return (
-      <g transform="translate(253 367)" fill="none" stroke={ink} strokeWidth="12" strokeLinecap="round">
-        <path d="M12 39c24 18 58 18 82-2" />
-        <path d="M167 37c24 20 58 20 82 2" />
+      <g transform={transform}>
+        <g transform="translate(2 5)" fill="#fff">
+          <ellipse cx="14" cy="7.72" rx="14" ry="7.72" />
+          <ellipse cx="66" cy="7.72" rx="14" ry="7.72" />
+        </g>
+        <path d="M18.82 20.3a25 25 0 0 1-5.64 0 6 6 0 1 1 5.64 0m52 0a25 25 0 0 1-5.64 0 6 6 0 1 1 5.64 0" fill={ink} />
       </g>
     )
   }
 
-  if (variant === 'docDeepSet') {
-    return (
-      <g transform="translate(253 367)">
-        <path d="M14 35c18-18 56-24 79 1-17 25-60 28-79-1ZM168 36c23-25 61-19 79-1-19 29-62 26-79 1Z" fill={white} />
-        <circle cx="58" cy="38" r="17" fill={ink} />
-        <circle cx="203" cy="38" r="17" fill={ink} />
-        <path d="M17 23c22-13 50-14 73-2M171 21c23-12 51-11 73 2" fill="none" stroke={ink} strokeWidth="7" strokeLinecap="round" />
-      </g>
-    )
+  if (variant === 'hybridAvaSide') {
+    return <path d="M13 8c-4.84 0-9 2.65-10.84 6.45-.54 1.1.39 1.85 1.28 1.12a15 15 0 0 1 9.8-3.22 6 6 0 1 0 10.7 2.8 2 2 0 0 0-.12-.74l-.15-.38a6 6 0 0 0-1.64-2.48C19.9 9.32 16.5 8 13 8m58 0c-4.84 0-9 2.65-10.84 6.45-.54 1.1.39 1.85 1.28 1.12a15 15 0 0 1 9.8-3.22 6 6 0 1 0 10.7 2.8 2 2 0 0 0-.12-.74l-.15-.38a6 6 0 0 0-1.64-2.48C77.9 9.32 74.5 8 71 8" fill={ink} transform={transform} />
   }
 
-  if (variant === 'docSoft') {
-    return (
-      <g transform="translate(253 367)">
-        <path d="M11 37c20-24 61-28 84 0-19 27-65 30-84 0ZM166 37c23-28 64-24 84 0-19 30-65 27-84 0Z" fill={white} />
-        <circle cx="59" cy="39" r="19" fill={ink} />
-        <circle cx="202" cy="39" r="19" fill={ink} />
-        <circle cx="52" cy="32" r="5" fill={white} />
-        <circle cx="195" cy="32" r="5" fill={white} />
-      </g>
-    )
+  if (variant === 'hybridAvaHappy') {
+    return <path d="M2.16 14.45C4.01 10.65 8.16 8 13 8c4.81 0 8.96 2.63 10.82 6.4.55 1.13-.24 2.05-1.03 1.37A15 15 0 0 0 13 12.34c-3.73 0-7.12 1.24-9.55 3.23-.9.73-1.82-.01-1.28-1.12m57.99 0C62.01 10.65 66.16 8 71 8c4.81 0 8.96 2.63 10.82 6.4.55 1.13-.24 2.05-1.03 1.37A15 15 0 0 0 71 12.34c-3.73 0-7.12 1.24-9.55 3.23-.9.73-1.82-.01-1.28-1.12" fill={ink} fillRule="evenodd" clipRule="evenodd" transform={transform} />
   }
 
   return null
