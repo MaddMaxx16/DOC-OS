@@ -91,8 +91,8 @@ export const APPEARANCE_OPTIONS = {
   ],
 }
 
-// P2.4.4.3B.5 — DiceBear proof of concept.
-// Keep the test deliberately small: every visible category below is genuinely live.
+// B.5.1 art-direction audition: keep the proven modular controls small while
+// comparing four distinct DiceBear illustration systems inside DOC OS.
 export const APPEARANCE_CATEGORIES = [
   { key: 'skinTone', label: 'Skin' },
   { key: 'hair', label: 'Hair' },
@@ -100,7 +100,15 @@ export const APPEARANCE_CATEGORIES = [
   { key: 'facialHair', label: 'Facial Hair' },
 ]
 
+export const AVATAR_STYLE_OPTIONS = [
+  { value: 'personas', label: 'Personas' },
+  { value: 'lorelei', label: 'Lorelei' },
+  { value: 'micah', label: 'Micah' },
+  { value: 'adventurer', label: 'Adventurer' },
+]
+
 export const DEFAULT_APPEARANCE = {
+  avatarStyle: 'lorelei',
   skinTone: 'warm',
   face: 'oval',
   hair: 'sidepart',
@@ -115,21 +123,32 @@ export const DEFAULT_APPEARANCE = {
   outfit: 'polo',
 }
 
-const DICEBEAR_PERSONAS_ENDPOINT = 'https://api.dicebear.com/10.x/personas/svg'
+const DICEBEAR_BASE = 'https://api.dicebear.com/10.x'
 
-const HAIR_VARIANTS = {
-  crop: 'shortCombover',
-  fade: 'fade',
-  sidepart: 'shortComboverChops',
-  waves: 'curly',
-  curls: 'curlyHighTop',
-  bun: 'straightBun',
-  long: 'long',
-  buzz: 'buzzcut',
-  bald: 'bald',
+const STYLE_HAIR = {
+  personas: {
+    crop: 'shortCombover', fade: 'fade', sidepart: 'shortComboverChops',
+    waves: 'curly', curls: 'curlyHighTop', bun: 'straightBun',
+    long: 'long', buzz: 'buzzcut', bald: 'bald',
+  },
+  lorelei: {
+    crop: 'variant04', fade: 'variant09', sidepart: 'variant14',
+    waves: 'variant22', curls: 'variant28', bun: 'variant34',
+    long: 'variant41', buzz: 'variant07', bald: 'variant02',
+  },
+  micah: {
+    crop: 'fonze', fade: 'mrT', sidepart: 'dannyPhantom',
+    waves: 'full', curls: 'pixie', bun: 'dougFunny',
+    long: 'full', buzz: 'mrT', bald: 'mrClean',
+  },
+  adventurer: {
+    crop: 'short05', fade: 'short10', sidepart: 'short13',
+    waves: 'short17', curls: 'long07', bun: 'long15',
+    long: 'long22', buzz: 'short02', bald: 'short01',
+  },
 }
 
-const FACIAL_HAIR_VARIANTS = {
+const PERSONAS_FACIAL_HAIR = {
   stubble: 'shadow',
   mustache: 'walrus',
   goatee: 'goatee',
@@ -142,40 +161,97 @@ function optionColor(group, value, fallback) {
     .replace('#', '')
 }
 
+function appendFacialHair(params, style, facialHair, hairColor) {
+  const enabled = facialHair && facialHair !== 'none'
+
+  if (style === 'personas') {
+    const variant = PERSONAS_FACIAL_HAIR[facialHair]
+    params.set('facialHairProbability', variant ? '100' : '0')
+    params.set('facialHairColor', hairColor)
+    if (variant) params.set('facialHairVariant', variant)
+    return
+  }
+
+  if (style === 'lorelei') {
+    params.set('beardProbability', enabled ? '100' : '0')
+    if (enabled) params.set('beardVariant', facialHair === 'fullbeard' ? 'variant02' : 'variant01')
+    return
+  }
+
+  if (style === 'micah') {
+    params.set('facialHairProbability', enabled ? '100' : '0')
+    params.set('facialHairColor', hairColor)
+    if (enabled) params.set('facialHairVariant', facialHair === 'stubble' ? 'scruff' : 'beard')
+    return
+  }
+
+  // Adventurer exposes a mustache detail rather than a full facial-hair layer.
+  params.set('detailsProbability', enabled ? '100' : '0')
+  if (enabled) params.set('detailsVariant', 'mustache')
+}
+
 function buildDiceBearPortrait(appearance) {
+  const style = AVATAR_STYLE_OPTIONS.some(({ value }) => value === appearance.avatarStyle)
+    ? appearance.avatarStyle
+    : DEFAULT_APPEARANCE.avatarStyle
   const skinTone = APPEARANCE_OPTIONS.skinTone.some(({ value }) => value === appearance.skinTone)
     ? appearance.skinTone
     : DEFAULT_APPEARANCE.skinTone
-  const hair = HAIR_VARIANTS[appearance.hair] || HAIR_VARIANTS[DEFAULT_APPEARANCE.hair]
+  const hair = STYLE_HAIR[style][appearance.hair] || STYLE_HAIR[style][DEFAULT_APPEARANCE.hair]
   const hairColor = optionColor('hairColor', appearance.hairColor, '#35251f')
   const skinColor = optionColor('skinTone', skinTone, '#c98962')
-  const facialHair = FACIAL_HAIR_VARIANTS[appearance.facialHair]
 
   const params = new URLSearchParams({
     seed: 'doc-os-metroline-player',
-    skinColor,
+    backgroundColor: '0b2a45',
     hairVariant: hair,
     hairColor,
-    eyesVariant: 'open',
-    mouthVariant: 'smile',
-    noseVariant: 'mediumRound',
-    clothesVariant: 'rounded',
-    clothingColor: '101f31',
-    backgroundColor: '0b2a45',
-    facialHairProbability: facialHair ? '100' : '0',
-    facialHairColor: hairColor,
   })
 
-  if (facialHair) params.set('facialHairVariant', facialHair)
+  if (style === 'micah') {
+    params.set('baseColor', skinColor)
+    params.set('clothesVariant', 'collared')
+    params.set('shirtColor', '101f31')
+    params.set('mouthVariant', 'smile')
+    params.set('eyesVariant', 'eyes')
+    params.set('noseVariant', 'curve')
+  } else {
+    params.set('skinColor', skinColor)
+  }
+
+  if (style === 'personas') {
+    params.set('eyesVariant', 'open')
+    params.set('mouthVariant', 'smile')
+    params.set('noseVariant', 'mediumRound')
+    params.set('clothesVariant', 'rounded')
+    params.set('clothingColor', '101f31')
+  }
+
+  if (style === 'lorelei') {
+    params.set('eyesVariant', 'variant05')
+    params.set('eyebrowsVariant', 'variant07')
+    params.set('mouthVariant', 'happy07')
+    params.set('noseVariant', 'variant03')
+  }
+
+  if (style === 'adventurer') {
+    params.set('eyesVariant', 'variant09')
+    params.set('eyebrowsVariant', 'variant07')
+    params.set('mouthVariant', 'variant15')
+  }
+
+  appendFacialHair(params, style, appearance.facialHair, hairColor)
 
   return {
-    src: `${DICEBEAR_PERSONAS_ENDPOINT}?${params.toString()}`,
+    src: `${DICEBEAR_BASE}/${style}/svg?${params.toString()}`,
     skinTone,
+    style,
   }
 }
 
 function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
   const portrait = buildDiceBearPortrait(appearance)
+  const styleLabel = AVATAR_STYLE_OPTIONS.find(({ value }) => value === portrait.style)?.label || portrait.style
 
   return (
     <img
@@ -185,8 +261,9 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
       height="320"
       role="img"
       alt=""
-      aria-label={`Customized Metroline employee portrait — DiceBear Personas, ${portrait.skinTone} skin tone`}
-      data-avatar-engine="dicebear-personas-poc"
+      aria-label={`Customized Metroline employee portrait — ${styleLabel}, ${portrait.skinTone} skin tone`}
+      data-avatar-engine={`dicebear-${portrait.style}-audition`}
+      data-avatar-style={portrait.style}
       data-skin-tone={portrait.skinTone}
       style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
     />
