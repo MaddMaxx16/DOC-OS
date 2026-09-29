@@ -101,14 +101,14 @@ export const APPEARANCE_CATEGORIES = [
 ]
 
 export const AVATAR_STYLE_OPTIONS = [
-  { value: 'personas', label: 'Personas' },
-  { value: 'lorelei', label: 'Lorelei' },
   { value: 'micah', label: 'Micah' },
-  { value: 'adventurer', label: 'Adventurer' },
+  { value: 'toon-head', label: 'Toon Head' },
+  { value: 'notionists', label: 'Notionists' },
+  { value: 'open-peeps', label: 'Open Peeps' },
 ]
 
 export const DEFAULT_APPEARANCE = {
-  avatarStyle: 'lorelei',
+  avatarStyle: 'micah',
   skinTone: 'warm',
   face: 'oval',
   hair: 'sidepart',
@@ -126,68 +126,50 @@ export const DEFAULT_APPEARANCE = {
 const DICEBEAR_BASE = 'https://api.dicebear.com/10.x'
 
 const STYLE_HAIR = {
-  personas: {
-    crop: 'shortCombover', fade: 'fade', sidepart: 'shortComboverChops',
-    waves: 'curly', curls: 'curlyHighTop', bun: 'straightBun',
-    long: 'long', buzz: 'buzzcut', bald: 'bald',
-  },
-  lorelei: {
-    crop: 'variant04', fade: 'variant09', sidepart: 'variant14',
-    waves: 'variant22', curls: 'variant28', bun: 'variant34',
-    long: 'variant41', buzz: 'variant07', bald: 'variant02',
-  },
   micah: {
     crop: 'fonze', fade: 'mrT', sidepart: 'dannyPhantom',
     waves: 'full', curls: 'pixie', bun: 'dougFunny',
     long: 'full', buzz: 'mrT', bald: 'mrClean',
   },
-  adventurer: {
-    crop: 'short05', fade: 'short10', sidepart: 'short13',
-    waves: 'short17', curls: 'long07', bun: 'long15',
-    long: 'long22', buzz: 'short02', bald: 'short01',
+  'toon-head': {
+    crop: 'sideComed', fade: 'undercut', sidepart: 'sideComed',
+    waves: 'spiky', curls: 'spiky', bun: 'bun',
+    long: 'bun', buzz: 'undercut', bald: 'undercut',
+  },
+  notionists: {
+    crop: 'variant08', fade: 'variant16', sidepart: 'variant23',
+    waves: 'variant31', curls: 'variant38', bun: 'variant45',
+    long: 'variant52', buzz: 'variant05', bald: 'variant01',
+  },
+  'open-peeps': {
+    crop: 'short3', fade: 'shaved2', sidepart: 'short5',
+    waves: 'medium3', curls: 'longCurly', bun: 'bun',
+    long: 'long', buzz: 'shaved1', bald: 'noHair1',
   },
 }
 
-const PERSONAS_FACIAL_HAIR = {
-  stubble: 'shadow',
-  mustache: 'walrus',
-  goatee: 'goatee',
-  beard: 'beardMustache',
-  fullbeard: 'pyramid',
+const STYLE_FACIAL_HAIR = {
+  micah: {
+    stubble: 'scruff', mustache: 'beard', goatee: 'beard',
+    beard: 'beard', fullbeard: 'beard',
+  },
+  'toon-head': {
+    stubble: 'chin', mustache: 'moustacheTwirl', goatee: 'chinMoustache',
+    beard: 'fullBeard', fullbeard: 'longBeard',
+  },
+  notionists: {
+    stubble: 'variant01', mustache: 'variant04', goatee: 'variant06',
+    beard: 'variant09', fullbeard: 'variant12',
+  },
+  'open-peeps': {
+    stubble: 'chin', mustache: 'moustache3', goatee: 'goatee1',
+    beard: 'full2', fullbeard: 'full4',
+  },
 }
 
 function optionColor(group, value, fallback) {
   return (APPEARANCE_OPTIONS[group].find((option) => option.value === value)?.color || fallback)
     .replace('#', '')
-}
-
-function appendFacialHair(params, style, facialHair, hairColor) {
-  const enabled = facialHair && facialHair !== 'none'
-
-  if (style === 'personas') {
-    const variant = PERSONAS_FACIAL_HAIR[facialHair]
-    params.set('facialHairProbability', variant ? '100' : '0')
-    params.set('facialHairColor', hairColor)
-    if (variant) params.set('facialHairVariant', variant)
-    return
-  }
-
-  if (style === 'lorelei') {
-    params.set('beardProbability', enabled ? '100' : '0')
-    if (enabled) params.set('beardVariant', facialHair === 'fullbeard' ? 'variant02' : 'variant01')
-    return
-  }
-
-  if (style === 'micah') {
-    params.set('facialHairProbability', enabled ? '100' : '0')
-    params.set('facialHairColor', hairColor)
-    if (enabled) params.set('facialHairVariant', facialHair === 'stubble' ? 'scruff' : 'beard')
-    return
-  }
-
-  // Adventurer exposes a mustache detail rather than a full facial-hair layer.
-  params.set('detailsProbability', enabled ? '100' : '0')
-  if (enabled) params.set('detailsVariant', 'mustache')
 }
 
 function buildDiceBearPortrait(appearance) {
@@ -197,50 +179,69 @@ function buildDiceBearPortrait(appearance) {
   const skinTone = APPEARANCE_OPTIONS.skinTone.some(({ value }) => value === appearance.skinTone)
     ? appearance.skinTone
     : DEFAULT_APPEARANCE.skinTone
-  const hair = STYLE_HAIR[style][appearance.hair] || STYLE_HAIR[style][DEFAULT_APPEARANCE.hair]
+  const hairChoice = appearance.hair || DEFAULT_APPEARANCE.hair
+  const hair = STYLE_HAIR[style][hairChoice] || STYLE_HAIR[style][DEFAULT_APPEARANCE.hair]
+  const facialHair = STYLE_FACIAL_HAIR[style][appearance.facialHair]
   const hairColor = optionColor('hairColor', appearance.hairColor, '#35251f')
   const skinColor = optionColor('skinTone', skinTone, '#c98962')
+  const hasFacialHair = Boolean(facialHair && appearance.facialHair !== 'none')
 
   const params = new URLSearchParams({
     seed: 'doc-os-metroline-player',
     backgroundColor: '0b2a45',
-    hairVariant: hair,
-    hairColor,
   })
 
   if (style === 'micah') {
     params.set('baseColor', skinColor)
+    params.set('hairVariant', hair)
+    params.set('hairColor', hairColor)
     params.set('clothesVariant', 'collared')
     params.set('shirtColor', '101f31')
     params.set('mouthVariant', 'smile')
     params.set('eyesVariant', 'eyes')
     params.set('noseVariant', 'curve')
-  } else {
+    params.set('facialHairProbability', hasFacialHair ? '100' : '0')
+    params.set('facialHairColor', hairColor)
+    if (hasFacialHair) params.set('facialHairVariant', facialHair)
+  }
+
+  if (style === 'toon-head') {
     params.set('skinColor', skinColor)
-  }
-
-  if (style === 'personas') {
-    params.set('eyesVariant', 'open')
+    params.set('hairVariant', hair)
+    params.set('hairColor', hairColor)
+    params.set('clothesVariant', 'shirt')
+    params.set('clothesColor', '101f31')
+    params.set('eyebrowsVariant', 'neutral')
+    params.set('eyesVariant', 'humble')
     params.set('mouthVariant', 'smile')
-    params.set('noseVariant', 'mediumRound')
-    params.set('clothesVariant', 'rounded')
+    params.set('beardProbability', hasFacialHair ? '100' : '0')
+    if (hasFacialHair) params.set('beardVariant', facialHair)
+
+    if (hairChoice === 'long') params.set('rearHairVariant', 'longWavy')
+    if (hairChoice === 'waves') params.set('rearHairVariant', 'neckHigh')
+    if (hairChoice === 'bun') params.set('rearHairVariant', 'shoulderHigh')
+  }
+
+  if (style === 'notionists') {
+    params.set('hairVariant', hair)
+    params.set('clothesVariant', 'variant08')
+    params.set('eyebrowsVariant', 'variant07')
+    params.set('eyesVariant', 'variant03')
+    params.set('mouthVariant', 'variant14')
+    params.set('noseVariant', 'variant08')
+    params.set('beardProbability', hasFacialHair ? '100' : '0')
+    if (hasFacialHair) params.set('beardVariant', facialHair)
+  }
+
+  if (style === 'open-peeps') {
+    params.set('skinColor', skinColor)
+    params.set('headVariant', hair)
+    params.set('headContrastColor', hairColor)
     params.set('clothingColor', '101f31')
+    params.set('expressionVariant', 'calm')
+    params.set('facialHairProbability', hasFacialHair ? '100' : '0')
+    if (hasFacialHair) params.set('facialHairVariant', facialHair)
   }
-
-  if (style === 'lorelei') {
-    params.set('eyesVariant', 'variant05')
-    params.set('eyebrowsVariant', 'variant07')
-    params.set('mouthVariant', 'happy07')
-    params.set('noseVariant', 'variant03')
-  }
-
-  if (style === 'adventurer') {
-    params.set('eyesVariant', 'variant09')
-    params.set('eyebrowsVariant', 'variant07')
-    params.set('mouthVariant', 'variant15')
-  }
-
-  appendFacialHair(params, style, appearance.facialHair, hairColor)
 
   return {
     src: `${DICEBEAR_BASE}/${style}/svg?${params.toString()}`,
