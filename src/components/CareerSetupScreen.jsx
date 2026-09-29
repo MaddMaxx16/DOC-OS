@@ -3,6 +3,7 @@ import PlayerAvatar, {
   APPEARANCE_CATEGORIES,
   APPEARANCE_OPTIONS,
   DEFAULT_APPEARANCE,
+  AVATAR_STYLE_OPTIONS,
 } from './PlayerAvatar'
 import './CareerSetupScreen.css'
 import './CareerSetupScreen.p2443a.css'
@@ -192,6 +193,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
                 </div>
                 <div className="career-photo-status-d434c">
                   <span>EMPLOYEE PHOTO</span>
+                  <strong>{AVATAR_STYLE_OPTIONS.find(({ value }) => value === appearance.avatarStyle)?.label || 'STYLE TEST'}</strong>
                 </div>
               </div>
 
@@ -203,6 +205,25 @@ function CareerSetupScreen({ profile = null, onBack }) {
                   <button type="button" onClick={randomizeAppearance}>RANDOMIZE</button>
                   <button type="button" onClick={resetAppearance}>RESET</button>
                 </div>
+              </div>
+            </section>
+
+            <section className="career-style-audition-d434c" aria-label="Avatar art style audition">
+              <div className="career-style-audition-head-d434c">
+                <span>ART STYLE TEST</span>
+                <small>Same employee · different illustration system</small>
+              </div>
+              <div className="career-style-audition-options-d434c">
+                {AVATAR_STYLE_OPTIONS.map((style) => (
+                  <button
+                    key={style.value}
+                    type="button"
+                    className={appearance.avatarStyle === style.value ? 'active' : ''}
+                    onClick={() => setAppearanceValue('avatarStyle', style.value)}
+                  >
+                    {style.label}
+                  </button>
+                ))}
               </div>
             </section>
 
