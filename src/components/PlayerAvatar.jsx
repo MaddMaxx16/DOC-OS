@@ -1,10 +1,27 @@
-// P2.4.4.3B.6.3A — Notion Avatar Maker renderer audition
+import { useEffect, useMemo, useState } from 'react'
+
+// P2.4.4.3B.6.3A.1 — Notion Avatar Maker renderer hotfix
 // Source artwork: Mayandev/notion-avatar. Repository: MIT. Avatar assets: CC0.
-// This audition intentionally keeps the locked DOC OS onboarding shell unchanged
-// while replacing only the employee-photo renderer and its compatible controls.
+// The upstream editor composes the individual SVGs into one SVG and explicitly
+// fills the face white. Loading each source SVG as a separate <img> loses that
+// inherited face fill and turns the head into a black silhouette.
 
 const NOTION_ASSET_BASE =
   'https://raw.githubusercontent.com/Mayandev/notion-avatar/main/public/avatar/preview'
+
+const NOTION_SVG_FILTER = `<defs>
+  <filter id="notion-avatar-outline" x="-20%" y="-20%" width="140%" height="140%" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse" color-interpolation-filters="linearRGB">
+    <feMorphology operator="dilate" radius="20 20" in="SourceAlpha" result="morphology"/>
+    <feFlood flood-color="#ffffff" flood-opacity="1" result="flood"/>
+    <feComposite in="flood" in2="morphology" operator="in" result="composite"/>
+    <feMerge result="merge">
+      <feMergeNode in="composite" result="mergeNode"/>
+      <feMergeNode in="SourceGraphic" result="mergeNode1"/>
+    </feMerge>
+  </filter>
+</defs>`
+
+const NOTION_ASSET_CACHE = new Map()
 
 function numberedOptions(count, prefix, { noneAtZero = false } = {}) {
   return Array.from({ length: count }, (_, index) => ({
@@ -72,7 +89,78 @@ function safeIndex(group, value) {
     : DEFAULT_APPEARANCE[group]
 }
 
+function loadNotionAsset(assetKey, index) {
+  const url = `${NOTION_ASSET_BASE}/${assetKey}/${index}.svg`
+
+  if (!NOTION_ASSET_CACHE.has(url)) {
+    NOTION_ASSET_CACHE.set(
+      url,
+      fetch(url).then((response) => {
+        if (!response.ok) throw new Error(`Unable to load Notion avatar asset: ${url}`)
+        return response.text()
+      }),
+    )
+  }
+
+  return NOTION_ASSET_CACHE.get(url)
+}
+
+function stripOuterSvg(svg) {
+  return svg
+    .replace(/^\s*<svg[^>]*>/i, '')
+    .replace(/<\/svg>\s*$/i, '')
+}
+
 function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
+  const [previewSvg, setPreviewSvg] = useState('')
+  const [loadFailed, setLoadFailed] = useState(false)
+
+  const selection = useMemo(
+    () =>
+      NOTION_LAYER_ORDER.map(([appearanceKey, assetKey]) => ({
+        appearanceKey,
+        assetKey,
+        index: safeIndex(appearanceKey, appearance[appearanceKey]),
+      })),
+    [appearance],
+  )
+
+  const selectionKey = selection
+    .map(({ appearanceKey, index }) => `${appearanceKey}:${index}`)
+    .join('|')
+
+  useEffect(() => {
+    let cancelled = false
+    setLoadFailed(false)
+
+    Promise.all(
+      selection.map(async ({ appearanceKey, assetKey, index }) => {
+        const rawSvg = await loadNotionAsset(assetKey, index)
+        const faceFill = appearanceKey === 'face' ? ' fill="#ffffff"' : ''
+        return `<g id="docos-notion-${assetKey}"${faceFill}>${stripOuterSvg(rawSvg)}</g>`
+      }),
+    )
+      .then((groups) => {
+        if (cancelled) return
+
+        setPreviewSvg(
+          `<svg viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+            ${NOTION_SVG_FILTER}
+            <g id="docos-notion-avatar" filter="url(#notion-avatar-outline)">
+              ${groups.join('\n')}
+            </g>
+          </svg>`,
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setLoadFailed(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectionKey])
+
   return (
     <div
       className={className}
@@ -87,27 +175,36 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
         background: '#f7f5ef',
       }}
     >
-      {NOTION_LAYER_ORDER.map(([appearanceKey, assetKey]) => {
-        const index = safeIndex(appearanceKey, appearance[appearanceKey])
-        return (
-          <img
-            key={appearanceKey}
-            src={`${NOTION_ASSET_BASE}/${assetKey}/${index}.svg`}
-            alt=""
-            aria-hidden="true"
-            draggable="false"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              display: 'block',
-              objectFit: 'contain',
-              pointerEvents: 'none',
-            }}
-          />
-        )
-      })}
+      {previewSvg && !loadFailed ? (
+        <div
+          aria-hidden="true"
+          dangerouslySetInnerHTML={{ __html: previewSvg }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+          }}
+        />
+      ) : (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'grid',
+            placeItems: 'center',
+            padding: '24px',
+            color: '#60758a',
+            fontSize: '12px',
+            fontWeight: 800,
+            letterSpacing: '0.14em',
+            textAlign: 'center',
+          }}
+        >
+          {loadFailed ? 'PORTRAIT UNAVAILABLE' : 'LOADING PORTRAIT'}
+        </div>
+      )}
     </div>
   )
 }
