@@ -526,6 +526,16 @@ function recolorNotionSvg(svg, kind, color) {
       .replace(/fill="black"/gi, `fill="${color}"`)
       .replace(/stroke="#000000"/gi, 'stroke="#241b19"')
       .replace(/stroke="black"/gi, 'stroke="#241b19"')
+  } else if (kind === 'brows') {
+    // Imported brows should behave like Toon Head brows: their visible ink
+    // follows Hair Color instead of falling back to the generic face-feature ink.
+    // Recolor both fill-based and stroke-only Notion brow drawings so every
+    // audition variant responds consistently.
+    next = next
+      .replace(/fill="#000000"/gi, `fill="${color}"`)
+      .replace(/fill="black"/gi, `fill="${color}"`)
+      .replace(/stroke="#000000"/gi, `stroke="${color}"`)
+      .replace(/stroke="black"/gi, `stroke="${color}"`)
   } else {
     next = next
       .replace(/fill="#000000"/gi, 'fill="#4b2422"')
@@ -744,6 +754,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
               index={portrait.notionBrows}
               kind="brows"
               transform={NOTION_TRANSFORMS.brows}
+              color={portrait.hairColor}
             />
           )}
           {portrait.notionEyes && (
