@@ -70,6 +70,14 @@ export const APPEARANCE_OPTIONS = {
     { value: 'raised', label: 'Raised' },
     { value: 'sad', label: 'Downturned' },
     { value: 'angry', label: 'Strong' },
+    { value: 'notionBrow2', label: 'Full' },
+    { value: 'notionBrow3', label: 'Long Arch' },
+    { value: 'notionBrow5', label: 'Sharp' },
+    { value: 'notionBrow6', label: 'Sculpted' },
+    { value: 'notionBrow10', label: 'Flat' },
+    { value: 'notionBrow12', label: 'Tapered' },
+    { value: 'notionBrow14', label: 'Bold' },
+    { value: 'notionBrow15', label: 'Relaxed' },
   ],
   eyes: [
     { value: 'humble', label: 'Natural' },
@@ -200,6 +208,17 @@ const HAIR_CONFIG = {
   bald: { front: null, rear: null },
 }
 
+const NOTION_BROWS = {
+  notionBrow2: '2',
+  notionBrow3: '3',
+  notionBrow5: '5',
+  notionBrow6: '6',
+  notionBrow10: '10',
+  notionBrow12: '12',
+  notionBrow14: '14',
+  notionBrow15: '15',
+}
+
 const NOTION_EYES = {
   notionEye0: '0',
   notionEye2: '2',
@@ -227,7 +246,8 @@ const NOTION_ACCESSORIES = {
 }
 
 const NOTION_TRANSFORMS = {
-  // Eyes/glasses: map Notion eye anchors directly to Toon Head eye anchors.
+  // Brows/eyes/glasses share the same Notion face coordinate system.
+  brows: 'translate(-260 -130) scale(1.007)',
   eyes: 'translate(-260 -130) scale(1.007)',
   glasses: 'translate(-260 -130) scale(1.007)',
   // Ear/temple accessories need a separate anchor from the face-centered parts.
@@ -587,6 +607,7 @@ function buildToonHeadPortrait(appearance) {
   const hairColor = optionColor('hairColor', hairColorChoice, '#35251f')
   const skinColor = optionColor('skinTone', skinTone, '#c98962')
   const hasFacialHair = facialHair !== 'none'
+  const notionBrows = NOTION_BROWS[brows] || null
   const notionEyes = NOTION_EYES[eyes] || null
 
   const params = new URLSearchParams({
@@ -594,15 +615,16 @@ function buildToonHeadPortrait(appearance) {
     skinColor,
     hairColor,
     clothesColor: METROLINE_OUTFIT_COLOR,
-    eyebrowsVariant: brows,
     mouthVariant: mouth,
     clothesVariant: outfit,
     beardProbability: hasFacialHair ? '100' : '0',
+    eyebrowsProbability: notionBrows ? '0' : '100',
     eyesProbability: notionEyes ? '0' : '100',
     hairProbability: hair.avataaars ? '0' : (hair.front ? '100' : '0'),
     rearHairProbability: hair.avataaars ? '0' : (hair.rear ? '100' : '0'),
   })
 
+  if (!notionBrows) params.set('eyebrowsVariant', brows)
   if (!notionEyes) params.set('eyesVariant', eyes)
   if (!hair.avataaars && hair.front) params.set('hairVariant', hair.front)
   if (!hair.avataaars && hair.rear) params.set('rearHairVariant', hair.rear)
@@ -612,6 +634,7 @@ function buildToonHeadPortrait(appearance) {
     src: `${DICEBEAR_TOON_HEAD}?${params.toString()}`,
     skinTone,
     avataaarsHair: hair.avataaars || null,
+    notionBrows,
     notionEyes,
     notionGlasses: NOTION_GLASSES[glasses] || null,
     notionAccessories: NOTION_ACCESSORIES[accessories] || null,
@@ -623,6 +646,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
   const portrait = buildToonHeadPortrait(appearance)
   const hasOverlayParts = Boolean(
     portrait.avataaarsHair ||
+    portrait.notionBrows ||
     portrait.notionEyes ||
     portrait.notionGlasses ||
     portrait.notionAccessories,
@@ -712,6 +736,14 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
               variant={portrait.avataaarsHair}
               color={portrait.hairColor}
               layer="front"
+            />
+          )}
+          {portrait.notionBrows && (
+            <NotionPart
+              assetKey="eyebrows"
+              index={portrait.notionBrows}
+              kind="brows"
+              transform={NOTION_TRANSFORMS.brows}
             />
           )}
           {portrait.notionEyes && (
