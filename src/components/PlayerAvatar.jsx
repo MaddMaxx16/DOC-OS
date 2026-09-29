@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { AVATAAARS_HAIR_VARIANTS, AVATAAARS_LAYERED_HAIR } from '../data/avataaarsHair'
 
-// P2.4.4.3B.6.6F — finish Avataaars rear-hair registration on Toon Head
-// Replace the rectangular rear-hair bridge with a smooth head-shaped bridge so
-// the last two long styles keep their fill without exposing hard clip edges.
+// P2.4.4.3B.6.6G — final targeted Avataaars seam cleanup
+// Clean the six approved audition candidates without reopening the whole hair
+// library: rear hair keeps its exterior outline, while the front copy drops the
+// donor face-cutout stroke and masks the Toon Head crown seam beneath it.
 export const APPEARANCE_OPTIONS = {
   skinTone: [
     { value: 'porcelain', label: 'Porcelain', color: '#f2c7aa' },
@@ -300,6 +301,15 @@ const AVATAAARS_REAR_BACKFILL = new Set([
   'straightAndStrand',
 ])
 
+const AVATAAARS_FRONT_SEAM_CLEANUP = new Set([
+  'bob',
+  'dreads02',
+  'longButNotTooLong',
+  'miaWallace',
+  'curvy',
+  'dreads',
+])
+
 const TOON_HEAD_OUTLINE =
   'M5 313c-20-77.5 33.5-50 33.5-50C2.7 147.2 30.5.5 197.5.5s194.8 146.7 159 262.5c0 0 53.5-27.5 33.5 50-11.1 43-51 43-51 43-6 50.4-91.5 95.5-141.5 95.5S61.9 406.4 56 356c0 0-40 0-51-43Z'
 const AVATAAARS_FRONT_CLIP_X = 150
@@ -312,6 +322,7 @@ function AvataaarsHairElement({
   keyPath,
   hideDecorative = false,
   hideLightDecorative = false,
+  suppressOutline = false,
 }) {
   const attributes = { ...(node.attributes || {}) }
   const isHairFill = attributes.fill === '__HAIR__'
@@ -325,10 +336,17 @@ function AvataaarsHairElement({
 
   if (isHairFill) {
     attributes.fill = color
-    attributes.stroke = '#241b19'
-    attributes.strokeWidth = '2'
-    attributes.strokeLinejoin = 'round'
-    attributes.strokeLinecap = 'round'
+    if (suppressOutline) {
+      delete attributes.stroke
+      delete attributes.strokeWidth
+      delete attributes.strokeLinejoin
+      delete attributes.strokeLinecap
+    } else {
+      attributes.stroke = '#241b19'
+      attributes.strokeWidth = '2'
+      attributes.strokeLinejoin = 'round'
+      attributes.strokeLinecap = 'round'
+    }
   }
 
   if (node.name === 'g') {
@@ -342,6 +360,7 @@ function AvataaarsHairElement({
             color={color}
             hideDecorative={hideDecorative}
             hideLightDecorative={hideLightDecorative}
+            suppressOutline={suppressOutline}
           />
         ))}
       </g>
@@ -373,6 +392,35 @@ function AvataaarsRearBackfill({ variant, color }) {
   )
 }
 
+function AvataaarsFrontSeamCleanup({ variant, color }) {
+  if (!AVATAAARS_FRONT_SEAM_CLEANUP.has(variant)) return null
+
+  // The Toon Head image owns a dark skull outline. These six donor hairstyles
+  // leave part of that outline exposed inside the hair mass. Paint only that
+  // crown segment back to hair color; the donor hair renders over this next.
+  const clipId = `docos-avataaars-${variant}-crown-seam-cleanup`
+  return (
+    <>
+      <defs>
+        <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+          <rect x="165" y="120" width="438" height="245" />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipId})`}>
+        <path
+          d={TOON_HEAD_OUTLINE}
+          transform="translate(186.5 139.5)"
+          fill="none"
+          stroke={color}
+          strokeWidth="18"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      </g>
+    </>
+  )
+}
+
 function AvataaarsHair({ variant, color, layer = 'front' }) {
   const elements = AVATAAARS_HAIR_VARIANTS[variant]
   if (!elements) return null
@@ -385,6 +433,8 @@ function AvataaarsHair({ variant, color, layer = 'front' }) {
     ? (tuning.rearTransform || tuning.transform || AVATAAARS_HAIR_TRANSFORM)
     : (tuning.transform || AVATAAARS_HAIR_TRANSFORM)
   const frontClipBottom = tuning.frontClipBottom || AVATAAARS_FRONT_CLIP_BOTTOM
+  const suppressOutline =
+    layer === 'front' && AVATAAARS_FRONT_SEAM_CLEANUP.has(variant)
 
   const content = (
     <>
@@ -400,6 +450,7 @@ function AvataaarsHair({ variant, color, layer = 'front' }) {
               color={color}
               hideDecorative={Boolean(tuning.hideDecorative)}
               hideLightDecorative={Boolean(tuning.hideLightDecorative)}
+              suppressOutline={suppressOutline}
             />
           </g>
         )
@@ -653,6 +704,12 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             zIndex: 2,
           }}
         >
+          {portrait.avataaarsHair && (
+            <AvataaarsFrontSeamCleanup
+              variant={portrait.avataaarsHair}
+              color={portrait.hairColor}
+            />
+          )}
           {portrait.avataaarsHair && (
             <AvataaarsHair
               variant={portrait.avataaarsHair}
