@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-// P2.4.4.3B.6.4A — Toon Head + Notion parts hybrid audition
+// P2.4.4.3B.6.4B — frontalized Notion hair calibration on Toon Head
 // Toon Head remains the DOC OS player base. A curated set of CC0 Notion Avatar
 // Maker parts is overlaid to test hair / eyes / glasses / accessories without
 // losing the full-color Toon Head character.
@@ -20,11 +20,6 @@ export const APPEARANCE_OPTIONS = {
     { value: 'notionHair1', label: 'Notion · 01' },
     { value: 'notionHair5', label: 'Notion · 05' },
     { value: 'notionHair12', label: 'Notion · 12' },
-    { value: 'notionHair32', label: 'Notion · 32' },
-    { value: 'notionHair35', label: 'Notion · 35' },
-    { value: 'notionHair39', label: 'Notion · 39' },
-    { value: 'notionHair47', label: 'Notion · 47' },
-    { value: 'notionHair58', label: 'Notion · 58' },
     { value: 'bun', label: 'Bun' },
     { value: 'longStraight', label: 'Long Straight' },
     { value: 'longWavy', label: 'Long Wavy' },
@@ -141,11 +136,6 @@ const HAIR_CONFIG = {
   notionHair1: { notion: '1' },
   notionHair5: { notion: '5' },
   notionHair12: { notion: '12' },
-  notionHair32: { notion: '32' },
-  notionHair35: { notion: '35' },
-  notionHair39: { notion: '39' },
-  notionHair47: { notion: '47' },
-  notionHair58: { notion: '58' },
   bun: { front: 'bun', rear: null },
   longStraight: { front: 'sideComed', rear: 'longStraight' },
   longWavy: { front: 'sideComed', rear: 'longWavy' },
@@ -180,10 +170,16 @@ const NOTION_ACCESSORIES = {
   notionAccessory10: '10',
 }
 
+const NOTION_HAIR_TRANSFORMS = {
+  // The first audition proved the overall scale is right, but Notion's native
+  // face is three-quarter/asymmetric while Toon Head is straight-on. These
+  // calibration transforms center each test silhouette on Toon Head.
+  '1': 'translate(-4 -137) scale(.73)',
+  '5': 'translate(-4 -137) scale(.73)',
+  '12': 'translate(2 -137) scale(.73)',
+}
+
 const NOTION_TRANSFORMS = {
-  // Hair: map Notion head center 532 -> Toon Head center 384 and
-  // Notion face top 379 -> Toon Head face top 140.
-  hair: 'translate(-4 -137) scale(.73)',
   // Eyes/glasses: map Notion eye anchors directly to Toon Head eye anchors.
   eyes: 'translate(-260 -130) scale(1.007)',
   glasses: 'translate(-260 -130) scale(1.007)',
@@ -213,8 +209,29 @@ function stripOuterSvg(svg) {
     .replace(/<\/svg>\s*$/i, '')
 }
 
-function recolorNotionSvg(svg, kind, color) {
-  let next = stripOuterSvg(svg)
+function frontalizeNotionHairSvg(svg, index) {
+  // Notion's hair silhouettes include a long left temple/sideburn because its
+  // source face is asymmetric. Toon Head is front-facing, so shorten that
+  // projection while preserving the crown and recognizable hairstyle.
+  if (index === '1' || index === '12') {
+    return svg.replace(
+      'M287.145773,564.824988 L328.116663,564.824988 L366,655 C383.576343,574.554316 392.364515,528.467337 392.364515,516.739062',
+      'M304,540 L344,540 L366,574 C379,548 388,526 392.364515,516.739062',
+    )
+  }
+
+  if (index === '5') {
+    return svg.replace(
+      'C391.19759,494.978015 399,522 395,559 C392.333333,583.666667 384.333333,621.333333 371,672 C346.672242,617.194008 331.338909,585.527342 325,577 C318.661091,568.472658 305.994424,562.472658 287,559',
+      'C391.19759,494.978015 397,518 392,540 C386,556 378,570 366,582 C350,566 336,552 325,548 C316,544 306,540 296,538',
+    )
+  }
+
+  return svg
+}
+
+function recolorNotionSvg(svg, kind, color, index) {
+  let next = stripOuterSvg(kind === 'hair' ? frontalizeNotionHairSvg(svg, index) : svg)
 
   if (kind === 'hair') {
     next = next
@@ -242,7 +259,7 @@ function NotionPart({ assetKey, index, kind, transform, color = '#4b2422' }) {
 
     loadNotionAsset(assetKey, index)
       .then((svg) => {
-        if (!cancelled) setMarkup(recolorNotionSvg(svg, kind, color))
+        if (!cancelled) setMarkup(recolorNotionSvg(svg, kind, color, index))
       })
       .catch(() => {
         if (!cancelled) setMarkup('')
@@ -367,7 +384,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
               assetKey="hair"
               index={portrait.notionHair}
               kind="hair"
-              transform={NOTION_TRANSFORMS.hair}
+              transform={NOTION_HAIR_TRANSFORMS[portrait.notionHair] || 'translate(-4 -137) scale(.73)'}
               color={portrait.hairColor}
             />
           )}
