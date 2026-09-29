@@ -1,3 +1,6 @@
+// P2.4.4.3B.6.1 — Toon Head creator foundation
+// Toon Head is the locked DOC OS player-avatar art direction. Keep player-facing
+// options limited to components the style actually supports.
 export const APPEARANCE_OPTIONS = {
   skinTone: [
     { value: 'porcelain', label: 'Porcelain', color: '#f2c7aa' },
@@ -7,23 +10,15 @@ export const APPEARANCE_OPTIONS = {
     { value: 'brown', label: 'Brown', color: '#774630' },
     { value: 'deep', label: 'Deep', color: '#4b2b23' },
   ],
-  face: [
-    { value: 'oval', label: 'Oval' },
-    { value: 'round', label: 'Round' },
-    { value: 'square', label: 'Square' },
-    { value: 'long', label: 'Long' },
-    { value: 'soft', label: 'Soft Angular' },
-    { value: 'heart', label: 'Heart' },
-  ],
   hair: [
-    { value: 'crop', label: 'Textured Crop' },
-    { value: 'fade', label: 'Fade' },
     { value: 'sidepart', label: 'Side Part' },
-    { value: 'waves', label: 'Waves' },
-    { value: 'curls', label: 'Curls' },
-    { value: 'bun', label: 'Top Bun' },
-    { value: 'long', label: 'Long' },
-    { value: 'buzz', label: 'Buzz' },
+    { value: 'undercut', label: 'Undercut' },
+    { value: 'spiky', label: 'Spiky' },
+    { value: 'bun', label: 'Bun' },
+    { value: 'longStraight', label: 'Long Straight' },
+    { value: 'longWavy', label: 'Long Wavy' },
+    { value: 'neckHigh', label: 'Neck Length' },
+    { value: 'shoulderHigh', label: 'Shoulder Length' },
     { value: 'bald', label: 'Bald' },
   ],
   hairColor: [
@@ -35,136 +30,79 @@ export const APPEARANCE_OPTIONS = {
     { value: 'silver', label: 'Silver', color: '#aab0b6' },
   ],
   brows: [
-    { value: 'natural', label: 'Natural' },
-    { value: 'soft', label: 'Soft' },
-    { value: 'defined', label: 'Defined' },
-    { value: 'straight', label: 'Straight' },
-    { value: 'full', label: 'Full' },
+    { value: 'neutral', label: 'Natural' },
+    { value: 'happy', label: 'Soft Arch' },
+    { value: 'raised', label: 'Raised' },
+    { value: 'sad', label: 'Downturned' },
+    { value: 'angry', label: 'Strong' },
   ],
   eyes: [
-    { value: 'standard', label: 'Almond' },
-    { value: 'soft', label: 'Soft' },
-    { value: 'narrow', label: 'Narrow' },
-    { value: 'round', label: 'Round' },
-    { value: 'upturned', label: 'Upturned' },
-  ],
-  eyeColor: [
-    { value: 'brown', label: 'Brown', color: '#6b4b35' },
-    { value: 'hazel', label: 'Hazel', color: '#8b7542' },
-    { value: 'green', label: 'Green', color: '#5d7862' },
-    { value: 'blue', label: 'Blue', color: '#5d819e' },
-    { value: 'gray', label: 'Gray', color: '#7f8d96' },
-  ],
-  nose: [
-    { value: 'soft', label: 'Soft' },
-    { value: 'straight', label: 'Straight' },
+    { value: 'humble', label: 'Natural' },
+    { value: 'happy', label: 'Friendly' },
     { value: 'wide', label: 'Wide' },
-    { value: 'button', label: 'Button' },
-    { value: 'defined', label: 'Defined' },
+    { value: 'bow', label: 'Bow' },
+    { value: 'wink', label: 'Wink' },
   ],
   mouth: [
-    { value: 'neutral', label: 'Neutral' },
-    { value: 'soft', label: 'Soft Smile' },
-    { value: 'full', label: 'Full' },
-    { value: 'smile', label: 'Smile' },
-    { value: 'wide', label: 'Wide' },
+    { value: 'smile', label: 'Soft Smile' },
+    { value: 'laugh', label: 'Laugh' },
+    { value: 'agape', label: 'Open' },
+    { value: 'sad', label: 'Downturned' },
+    { value: 'angry', label: 'Firm' },
   ],
   facialHair: [
     { value: 'none', label: 'Clean Shaven' },
-    { value: 'stubble', label: 'Stubble' },
-    { value: 'mustache', label: 'Mustache' },
-    { value: 'goatee', label: 'Goatee' },
-    { value: 'beard', label: 'Short Beard' },
-    { value: 'fullbeard', label: 'Full Beard' },
-  ],
-  glasses: [
-    { value: 'none', label: 'None' },
-    { value: 'square', label: 'Square' },
-    { value: 'round', label: 'Round' },
-    { value: 'aviator', label: 'Aviator' },
+    { value: 'chin', label: 'Chin Beard' },
+    { value: 'chinMoustache', label: 'Goatee + Mustache' },
+    { value: 'moustacheTwirl', label: 'Mustache' },
+    { value: 'fullBeard', label: 'Full Beard' },
+    { value: 'longBeard', label: 'Long Beard' },
   ],
   outfit: [
-    { value: 'polo', label: 'Metroline Polo' },
-    { value: 'buttondown', label: 'Button Down' },
-    { value: 'sweater', label: 'Crew Sweater' },
-    { value: 'hoodie', label: 'Metroline Hoodie' },
+    { value: 'shirt', label: 'Work Shirt' },
+    { value: 'openJacket', label: 'Open Jacket' },
+    { value: 'tShirt', label: 'Crew Tee' },
+    { value: 'turtleNeck', label: 'Turtleneck' },
+    { value: 'dress', label: 'Tailored Dress' },
   ],
 }
 
-// B.5.1 art-direction audition: keep the proven modular controls small while
-// comparing four distinct DiceBear illustration systems inside DOC OS.
 export const APPEARANCE_CATEGORIES = [
   { key: 'skinTone', label: 'Skin' },
   { key: 'hair', label: 'Hair' },
   { key: 'hairColor', label: 'Hair Color' },
+  { key: 'brows', label: 'Brows' },
+  { key: 'eyes', label: 'Eyes' },
+  { key: 'mouth', label: 'Mouth' },
   { key: 'facialHair', label: 'Facial Hair' },
-]
-
-export const AVATAR_STYLE_OPTIONS = [
-  { value: 'micah', label: 'Micah' },
-  { value: 'toon-head', label: 'Toon Head' },
-  { value: 'notionists', label: 'Notionists' },
-  { value: 'open-peeps', label: 'Open Peeps' },
+  { key: 'outfit', label: 'Outfit' },
 ]
 
 export const DEFAULT_APPEARANCE = {
-  avatarStyle: 'micah',
   skinTone: 'warm',
-  face: 'oval',
   hair: 'sidepart',
   hairColor: 'espresso',
-  brows: 'natural',
-  eyes: 'standard',
-  eyeColor: 'brown',
-  nose: 'straight',
-  mouth: 'soft',
+  brows: 'neutral',
+  eyes: 'humble',
+  mouth: 'smile',
   facialHair: 'none',
-  glasses: 'none',
-  outfit: 'polo',
+  outfit: 'shirt',
 }
 
-const DICEBEAR_BASE = 'https://api.dicebear.com/10.x'
+const DICEBEAR_TOON_HEAD = 'https://api.dicebear.com/10.x/toon-head/svg'
+const METROLINE_PORTRAIT_BACKGROUND = '0b2a45'
+const METROLINE_OUTFIT_COLOR = '101f31'
 
-const STYLE_HAIR = {
-  micah: {
-    crop: 'fonze', fade: 'mrT', sidepart: 'dannyPhantom',
-    waves: 'full', curls: 'pixie', bun: 'dougFunny',
-    long: 'full', buzz: 'mrT', bald: 'mrClean',
-  },
-  'toon-head': {
-    crop: 'sideComed', fade: 'undercut', sidepart: 'sideComed',
-    waves: 'spiky', curls: 'spiky', bun: 'bun',
-    long: 'bun', buzz: 'undercut', bald: 'undercut',
-  },
-  notionists: {
-    crop: 'variant08', fade: 'variant16', sidepart: 'variant23',
-    waves: 'variant31', curls: 'variant38', bun: 'variant45',
-    long: 'variant52', buzz: 'variant05', bald: 'variant01',
-  },
-  'open-peeps': {
-    crop: 'short3', fade: 'shaved2', sidepart: 'short5',
-    waves: 'medium3', curls: 'longCurly', bun: 'bun',
-    long: 'long', buzz: 'shaved1', bald: 'noHair1',
-  },
-}
-
-const STYLE_FACIAL_HAIR = {
-  micah: {
-    stubble: 'scruff', mustache: 'beard', goatee: 'beard',
-    beard: 'beard', fullbeard: 'beard',
-  },
-  'toon-head': {
-    stubble: 'chin', mustache: 'moustacheTwirl', goatee: 'chinMoustache',
-    beard: 'fullBeard', fullbeard: 'longBeard',
-  },
-  notionists: {
-    stubble: 'variant01', mustache: 'variant04', goatee: 'variant06',
-    beard: 'variant09', fullbeard: 'variant12',
-  },
-  'open-peeps': {
-    stubble: 'chin', mustache: 'moustache3', goatee: 'goatee1',
-    beard: 'full2', fullbeard: 'full4',
-  },
+const HAIR_CONFIG = {
+  sidepart: { front: 'sideComed', rear: null },
+  undercut: { front: 'undercut', rear: null },
+  spiky: { front: 'spiky', rear: null },
+  bun: { front: 'bun', rear: null },
+  longStraight: { front: 'sideComed', rear: 'longStraight' },
+  longWavy: { front: 'sideComed', rear: 'longWavy' },
+  neckHigh: { front: 'sideComed', rear: 'neckHigh' },
+  shoulderHigh: { front: 'sideComed', rear: 'shoulderHigh' },
+  bald: { front: null, rear: null },
 }
 
 function optionColor(group, value, fallback) {
@@ -172,87 +110,52 @@ function optionColor(group, value, fallback) {
     .replace('#', '')
 }
 
-function buildDiceBearPortrait(appearance) {
-  const style = AVATAR_STYLE_OPTIONS.some(({ value }) => value === appearance.avatarStyle)
-    ? appearance.avatarStyle
-    : DEFAULT_APPEARANCE.avatarStyle
-  const skinTone = APPEARANCE_OPTIONS.skinTone.some(({ value }) => value === appearance.skinTone)
-    ? appearance.skinTone
-    : DEFAULT_APPEARANCE.skinTone
-  const hairChoice = appearance.hair || DEFAULT_APPEARANCE.hair
-  const hair = STYLE_HAIR[style][hairChoice] || STYLE_HAIR[style][DEFAULT_APPEARANCE.hair]
-  const facialHair = STYLE_FACIAL_HAIR[style][appearance.facialHair]
-  const hairColor = optionColor('hairColor', appearance.hairColor, '#35251f')
+function validOption(group, value, fallback) {
+  return APPEARANCE_OPTIONS[group].some((option) => option.value === value) ? value : fallback
+}
+
+function buildToonHeadPortrait(appearance) {
+  const skinTone = validOption('skinTone', appearance.skinTone, DEFAULT_APPEARANCE.skinTone)
+  const hairChoice = validOption('hair', appearance.hair, DEFAULT_APPEARANCE.hair)
+  const hairColorChoice = validOption('hairColor', appearance.hairColor, DEFAULT_APPEARANCE.hairColor)
+  const brows = validOption('brows', appearance.brows, DEFAULT_APPEARANCE.brows)
+  const eyes = validOption('eyes', appearance.eyes, DEFAULT_APPEARANCE.eyes)
+  const mouth = validOption('mouth', appearance.mouth, DEFAULT_APPEARANCE.mouth)
+  const facialHair = validOption('facialHair', appearance.facialHair, DEFAULT_APPEARANCE.facialHair)
+  const outfit = validOption('outfit', appearance.outfit, DEFAULT_APPEARANCE.outfit)
+
+  const hair = HAIR_CONFIG[hairChoice] || HAIR_CONFIG[DEFAULT_APPEARANCE.hair]
+  const hairColor = optionColor('hairColor', hairColorChoice, '#35251f')
   const skinColor = optionColor('skinTone', skinTone, '#c98962')
-  const hasFacialHair = Boolean(facialHair && appearance.facialHair !== 'none')
+  const hasFacialHair = facialHair !== 'none'
 
   const params = new URLSearchParams({
     seed: 'doc-os-metroline-player',
-    backgroundColor: '0b2a45',
+    backgroundColor: METROLINE_PORTRAIT_BACKGROUND,
+    skinColor,
+    hairColor,
+    clothesColor: METROLINE_OUTFIT_COLOR,
+    eyebrowsVariant: brows,
+    eyesVariant: eyes,
+    mouthVariant: mouth,
+    clothesVariant: outfit,
+    beardProbability: hasFacialHair ? '100' : '0',
+    hairProbability: hair.front ? '100' : '0',
+    rearHairProbability: hair.rear ? '100' : '0',
   })
 
-  if (style === 'micah') {
-    params.set('baseColor', skinColor)
-    params.set('hairVariant', hair)
-    params.set('hairColor', hairColor)
-    params.set('clothesVariant', 'collared')
-    params.set('shirtColor', '101f31')
-    params.set('mouthVariant', 'smile')
-    params.set('eyesVariant', 'eyes')
-    params.set('noseVariant', 'curve')
-    params.set('facialHairProbability', hasFacialHair ? '100' : '0')
-    params.set('facialHairColor', hairColor)
-    if (hasFacialHair) params.set('facialHairVariant', facialHair)
-  }
-
-  if (style === 'toon-head') {
-    params.set('skinColor', skinColor)
-    params.set('hairVariant', hair)
-    params.set('hairColor', hairColor)
-    params.set('clothesVariant', 'shirt')
-    params.set('clothesColor', '101f31')
-    params.set('eyebrowsVariant', 'neutral')
-    params.set('eyesVariant', 'humble')
-    params.set('mouthVariant', 'smile')
-    params.set('beardProbability', hasFacialHair ? '100' : '0')
-    if (hasFacialHair) params.set('beardVariant', facialHair)
-
-    if (hairChoice === 'long') params.set('rearHairVariant', 'longWavy')
-    if (hairChoice === 'waves') params.set('rearHairVariant', 'neckHigh')
-    if (hairChoice === 'bun') params.set('rearHairVariant', 'shoulderHigh')
-  }
-
-  if (style === 'notionists') {
-    params.set('hairVariant', hair)
-    params.set('clothesVariant', 'variant08')
-    params.set('eyebrowsVariant', 'variant07')
-    params.set('eyesVariant', 'variant03')
-    params.set('mouthVariant', 'variant14')
-    params.set('noseVariant', 'variant08')
-    params.set('beardProbability', hasFacialHair ? '100' : '0')
-    if (hasFacialHair) params.set('beardVariant', facialHair)
-  }
-
-  if (style === 'open-peeps') {
-    params.set('skinColor', skinColor)
-    params.set('headVariant', hair)
-    params.set('headContrastColor', hairColor)
-    params.set('clothingColor', '101f31')
-    params.set('expressionVariant', 'calm')
-    params.set('facialHairProbability', hasFacialHair ? '100' : '0')
-    if (hasFacialHair) params.set('facialHairVariant', facialHair)
-  }
+  if (hair.front) params.set('hairVariant', hair.front)
+  if (hair.rear) params.set('rearHairVariant', hair.rear)
+  if (hasFacialHair) params.set('beardVariant', facialHair)
 
   return {
-    src: `${DICEBEAR_BASE}/${style}/svg?${params.toString()}`,
+    src: `${DICEBEAR_TOON_HEAD}?${params.toString()}`,
     skinTone,
-    style,
   }
 }
 
 function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
-  const portrait = buildDiceBearPortrait(appearance)
-  const styleLabel = AVATAR_STYLE_OPTIONS.find(({ value }) => value === portrait.style)?.label || portrait.style
+  const portrait = buildToonHeadPortrait(appearance)
 
   return (
     <img
@@ -262,9 +165,8 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
       height="320"
       role="img"
       alt=""
-      aria-label={`Customized Metroline employee portrait — ${styleLabel}, ${portrait.skinTone} skin tone`}
-      data-avatar-engine={`dicebear-${portrait.style}-audition`}
-      data-avatar-style={portrait.style}
+      aria-label={`Customized Metroline employee portrait — ${portrait.skinTone} skin tone`}
+      data-avatar-engine="dicebear-toon-head"
       data-skin-tone={portrait.skinTone}
       style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
     />
