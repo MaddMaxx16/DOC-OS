@@ -259,13 +259,16 @@ function CareerSetupScreen({ profile = null, onBack }) {
     const optionPaging =
       appearanceCategory === 'hair' ||
       appearanceCategory === 'hairColor' ||
-      appearanceCategory === 'brows'
+      appearanceCategory === 'brows' ||
+      appearanceCategory === 'eyes'
     const optionsPerPage =
       appearanceCategory === 'hair'
         ? HAIR_OPTIONS_PER_PAGE
         : appearanceCategory === 'hairColor'
           ? HAIR_COLOR_OPTIONS_PER_PAGE
-          : BROW_OPTIONS_PER_PAGE
+          : appearanceCategory === 'brows'
+            ? BROW_OPTIONS_PER_PAGE
+            : EYE_OPTIONS_PER_PAGE
     const optionPage =
       appearanceCategory === 'hair'
         ? hairPage
@@ -283,7 +286,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
         ? setHairPage
         : appearanceCategory === 'hairColor'
           ? setHairColorPage
-          : setBrowPage
+          : appearanceCategory === 'brows'
+            ? setBrowPage
+            : setEyePage
     const visibleOptions = optionPaging
       ? activeOptions.slice(
         safeOptionPage * optionsPerPage,
