@@ -54,7 +54,7 @@ export const APPEARANCE_OPTIONS = {
     { value: 'auburn', label: 'Auburn', color: '#7a3e2b' },
     { value: 'copper', label: 'Copper', color: '#a85b38' },
     { value: 'ginger', label: 'Ginger', color: '#c97948' },
-    { value: 'honeyBlonde', label: 'Honey Blonde', color: '#b98d4e' },
+    { value: 'brightRed', label: 'Bright Red', color: '#d63b32' },
     { value: 'goldenBlonde', label: 'Golden Blonde', color: '#d0ad62' },
     { value: 'ashBlonde', label: 'Ash Blonde', color: '#b7aa91' },
     { value: 'platinum', label: 'Platinum', color: '#e0d2b7' },
