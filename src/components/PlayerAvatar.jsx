@@ -278,7 +278,7 @@ function drawSkinTone(canvas, skinTone, onDebug) {
 
 function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '', onDebug }) {
   const canvasRef = useRef(null)
-  const skinTone = SKIN_TONE_FILTERS[appearance.skinTone]
+  const skinTone = SKIN_TONE_GRADES[appearance.skinTone]
     ? appearance.skinTone
     : DEFAULT_APPEARANCE.skinTone
 
