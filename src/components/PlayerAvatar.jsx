@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AVATAAARS_HAIR_VARIANTS, AVATAAARS_LAYERED_HAIR } from '../data/avataaarsHair'
 
-// P2.4.4.3B.6.6D — repair Avataaars rear-hair transparency on Toon Head
-// Keep the approved front-hair fit, but bridge the donor head-shape cutouts
-// behind Toon Head so long/medium styles read as solid hair instead of blue gaps.
+// P2.4.4.3B.6.6E — clean Avataaars rear-hair seams on Toon Head
+// Keep the successful rear-hair backfill, but let it cover the donor face-cutout
+// outline and constrain the front copy to the crown so long side hair cannot spill.
 export const APPEARANCE_OPTIONS = {
   skinTone: [
     { value: 'porcelain', label: 'Porcelain', color: '#f2c7aa' },
@@ -271,6 +271,11 @@ const AVATAAARS_HAIR_TUNING = {
   curvy: { hideLightDecorative: true },
   shavedSides: { hideLightDecorative: true },
 
+  // Straight 01 is intentionally asymmetric, but its rear tail was sitting too
+  // far to the right of Toon Head. Shift only the rear silhouette left; keep the
+  // already-good front sweep registered to the face.
+  straight01: { rearTransform: 'translate(-35 39) scale(3.1 3.2)' },
+
   // The mullet passed device review. Preserve its front/rear calibration.
   shaggyMullet: {
     transform: 'translate(-25 10) scale(3.1 3.2)',
@@ -297,6 +302,8 @@ const AVATAAARS_REAR_BACKFILL = new Set([
 
 const TOON_HEAD_OUTLINE =
   'M5 313c-20-77.5 33.5-50 33.5-50C2.7 147.2 30.5.5 197.5.5s194.8 146.7 159 262.5c0 0 53.5-27.5 33.5 50-11.1 43-51 43-51 43-6 50.4-91.5 95.5-141.5 95.5S61.9 406.4 56 356c0 0-40 0-51-43Z'
+const AVATAAARS_FRONT_CLIP_X = 150
+const AVATAAARS_FRONT_CLIP_WIDTH = 468
 const AVATAAARS_FRONT_CLIP_BOTTOM = 365
 
 function AvataaarsHairElement({
@@ -348,10 +355,10 @@ function AvataaarsRearBackfill({ variant, color }) {
   if (!AVATAAARS_REAR_BACKFILL.has(variant)) return null
 
   // Avataaars long/medium hair contains a cutout sized for the Avataaars face.
-  // Toon Head is shaped differently, so that cutout exposes the blue portrait
-  // background around the jaw. A clipped, hair-colored expansion of Toon Head's
-  // own silhouette bridges only that lower rear-hair zone. The actual face is
-  // rendered above it, and the donor hair remains the visible outer silhouette.
+  // Toon Head is shaped differently, so that cutout exposes the portrait
+  // background and its donor outline around the jaw. This hair-colored bridge
+  // is intentionally rendered AFTER the donor rear hair but BEFORE Toon Head:
+  // it covers that inner seam without changing the hairstyle's outer silhouette.
   const clipId = `docos-avataaars-${variant}-rear-backfill`
   return (
     <>
@@ -416,7 +423,12 @@ function AvataaarsHair({ variant, color, layer = 'front' }) {
     <>
       <defs>
         <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
-          <rect x="0" y="0" width="768" height={frontClipBottom} />
+          <rect
+            x={AVATAAARS_FRONT_CLIP_X}
+            y="0"
+            width={AVATAAARS_FRONT_CLIP_WIDTH}
+            height={frontClipBottom}
+          />
         </clipPath>
       </defs>
       <g clipPath={`url(#${clipId})`}>{content}</g>
@@ -607,14 +619,14 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             zIndex: 0,
           }}
         >
-          <AvataaarsRearBackfill
-            variant={portrait.avataaarsHair}
-            color={portrait.hairColor}
-          />
           <AvataaarsHair
             variant={portrait.avataaarsHair}
             color={portrait.hairColor}
             layer="rear"
+          />
+          <AvataaarsRearBackfill
+            variant={portrait.avataaarsHair}
+            color={portrait.hairColor}
           />
         </svg>
       )}
