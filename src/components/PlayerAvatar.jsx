@@ -1,4 +1,4 @@
-// P2.4.4.3B.6.2A — hybrid DiceBear component audition
+// P2.4.4.3B.6.2B — expanded DiceBear eye audition
 // Toon Head is the locked DOC OS player-avatar art direction. Keep player-facing
 // options limited to components the style actually supports.
 export const APPEARANCE_OPTIONS = {
@@ -14,11 +14,6 @@ export const APPEARANCE_OPTIONS = {
     { value: 'sidepart', label: 'Side Part' },
     { value: 'undercut', label: 'Undercut' },
     { value: 'spiky', label: 'Spiky' },
-    { value: 'hybridMicahFonze', label: 'Micah · Short' },
-    { value: 'hybridMicahMrT', label: 'Micah · Fade' },
-    { value: 'hybridMiniClassic', label: 'Miniavs · Classic' },
-    { value: 'hybridMiniCurly', label: 'Miniavs · Curly' },
-    { value: 'hybridMiniStylish', label: 'Miniavs · Stylish' },
     { value: 'bun', label: 'Bun' },
     { value: 'longStraight', label: 'Long Straight' },
     { value: 'longWavy', label: 'Long Wavy' },
@@ -46,9 +41,12 @@ export const APPEARANCE_OPTIONS = {
     { value: 'happy', label: 'Friendly' },
     { value: 'wide', label: 'Wide' },
     { value: 'hybridAvaDefault', label: 'Avataaars · Standard' },
-    { value: 'hybridAvaSquint', label: 'Avataaars · Squint' },
     { value: 'hybridAvaSide', label: 'Avataaars · Side' },
     { value: 'hybridAvaHappy', label: 'Avataaars · Happy' },
+    { value: 'hybridAvaClosed', label: 'Avataaars · Closed' },
+    { value: 'hybridAvaEyeRoll', label: 'Avataaars · Eye Roll' },
+    { value: 'hybridAvaSurprised', label: 'Avataaars · Surprised' },
+    { value: 'hybridAvaWink', label: 'Avataaars · Wink' },
     { value: 'bow', label: 'Bow' },
     { value: 'wink', label: 'Wink' },
   ],
@@ -106,11 +104,6 @@ const HAIR_CONFIG = {
   sidepart: { front: 'sideComed', rear: null },
   undercut: { front: 'undercut', rear: null },
   spiky: { front: 'spiky', rear: null },
-  hybridMicahFonze: { custom: 'micahFonze', front: null, rear: null },
-  hybridMicahMrT: { custom: 'micahMrT', front: null, rear: null },
-  hybridMiniClassic: { custom: 'miniClassic', front: null, rear: null },
-  hybridMiniCurly: { custom: 'miniCurly', front: null, rear: null },
-  hybridMiniStylish: { custom: 'miniStylish', front: null, rear: null },
   bun: { front: 'bun', rear: null },
   longStraight: { front: 'sideComed', rear: 'longStraight' },
   longWavy: { front: 'sideComed', rear: 'longWavy' },
@@ -119,51 +112,18 @@ const HAIR_CONFIG = {
   bald: { front: null, rear: null },
 }
 
-// Hybrid audition sources:
-// - Micah by Micah Lanier, CC BY 4.0
-// - Miniavs by Webpixels, CC BY 4.0
-// - Avataaars by Pablo Stanley, free for personal and commercial use
-// These donor components are transformed onto Toon Head's 768px canvas for fit testing.
-const CUSTOM_EYES = new Set(['hybridAvaDefault', 'hybridAvaSquint', 'hybridAvaSide', 'hybridAvaHappy'])
-
-function CustomHair({ variant, color }) {
-  if (variant === 'micahFonze') {
-    return (
-      <g transform="translate(155 78) scale(1.58)">
-        <path d="M235.18 61.4c-1.27 6.05-4.6 11.32-9.43 15.9 9.4 34.06 9.6 53.87 4.38 57.65l-14.8-49.99c-31.94 18.74-91.69 21.94-106.65 21.94q-2.32.26-4.43.67c-14.65 9-2.6 52.12 11.75 70.43l-11 2c-5.14-24.97-17.41-22.92-26.61-21.38l-.32.05c2.2 13.63 6.72 27.74 10.45 39.32q1.44 4.5 2.66 8.4c-.79.11-1.48.3-2.12.48-5.5 1.53-7.41 2.06-33.38-61.97-6.47-15.95-6.03-30.16-.97-42.62-4.78-4.8-14.37-7.14-19.71-7.78 10.44-6.12 20.58-4.87 25.54-3.1q.75-1.12 1.56-2.22c-.97-4.41-7.96-9.46-12.11-11.82 8.56-4.3 18.62-2.03 23-.2C92.62 59.13 122.02 47.05 147 41c48.82-11.83 67.5-28.5 67.5-28.5 20.68 8.5 25.62 25.22 20.68 48.9Z" fill={color} fillRule="evenodd" clipRule="evenodd" stroke="#000" strokeWidth="4" />
-      </g>
-    )
-  }
-
-  if (variant === 'micahMrT') {
-    return (
-      <g transform="translate(185 120) scale(1.7)">
-        <path d="M212.99 89.17c-8-6.4-21.84-7-27.5-6.5l-8-26.5c13.6 3.2 32 24 35.5 33" fill={color} opacity=".22" />
-        <path d="M110.8 23.76s5.73-3.96 29.95-10.06 33.04-3.72 33.04-3.72l11.79 72.84s-8.04-.18-28.03 4.19-29.56 9.67-29.56 9.67zM73.99 98.68c-6.8-41.6 23.33-68.17 37-75.5l17 73.5c-19.2-39.6-45.34-15.17-54 2" fill={color} />
-        <path d="M92.49 142.67c-7.2-27.2 22-41.83 35.5-46-7-16.33-23-31-42.5-13-18 30.5-11 54-5.5 72z" fill={color} opacity=".22" />
-      </g>
-    )
-  }
-
-  if (variant === 'miniClassic') {
-    return <path d="M28.96 23.2c5.62 1.86 13.4 4.45 21.54-3.7 4-4-14-21-28.5-11.5-11.33 1.68-10.69 8.47-10.19 13.71.1 1 .2 1.95.2 2.8q0 .78.2 1.2a27 27 0 0 0-.2 3.3 4 4 0 0 0 8.02 0A4 4 0 0 0 23.88 24H24a4 4 0 0 0 3.05-1.42z" fill={color} fillRule="evenodd" clipRule="evenodd" transform="translate(150 82) scale(8.5)" />
-  }
-
-  if (variant === 'miniCurly') {
-    return (
-      <g transform="translate(150 72) scale(8.2)" fill={color}>
-        <path d="M45.97 29.48a4 4 0 0 0 1.78-4.88 4 4 0 0 0-2.97-7.41c1.42 3.67 1.32 8.22 1.19 12.3" fillRule="evenodd" clipRule="evenodd" />
-        <path d="M37.5 0a6.5 6.5 0 0 1 6.01 4.03 4 4 0 0 1 3.44 4.58 7.3 7.3 0 0 1 3.05 5.9c0 4.13-3.58 7.49-8 7.49a8.3 8.3 0 0 1-5.7-2.24 5 5 0 0 1-6.36.2 7 7 0 0 1-7 1.74q-.4.43-.88.73a3.98 3.98 0 0 1-1.35 6.19q.3.37.3.88c0 .83-.65 1.5-1.5 1.5h-.02a4 4 0 0 1-7.3-3.17 4 4 0 0 1 0-5.66 4 4 0 0 1 .75-3.71 7 7 0 0 1 4.1-10.17v-.31a4 4 0 0 1 5.94-3.51 7 7 0 0 1 9.8-2.42A6.5 6.5 0 0 1 37.5 0" />
-      </g>
-    )
-  }
-
-  if (variant === 'miniStylish') {
-    return <path d="M20.67 25.22v6.02c0 .76-.67 1.76-1.17 2.26s-2 1.5-2.85 1.5-3.54-.45-4.83-2.26c-1.28-1.8-.9-11.32 0-13.54S16 12.32 20.67 8.75a26 26 0 0 1 12.88-5.34C58.48.4 49.22 18 46 22.5c-5.5-2-9.5-2.5-16.72-1.52s-8.01 1.98-8.6 4.24" fill={color} transform="translate(150 74) scale(8.5)" />
-  }
-
-  return null
-}
+// Eye audition source: Avataaars by Pablo Stanley.
+// DiceBear lists Avataaars as free for personal and commercial use.
+// Keep Toon Head as the base portrait; only the donor eye component is overlaid.
+const CUSTOM_EYES = new Set([
+  'hybridAvaDefault',
+  'hybridAvaSide',
+  'hybridAvaHappy',
+  'hybridAvaClosed',
+  'hybridAvaEyeRoll',
+  'hybridAvaSurprised',
+  'hybridAvaWink',
+])
 
 function CustomEyes({ variant }) {
   const ink = '#4b2422'
@@ -178,24 +138,57 @@ function CustomEyes({ variant }) {
     )
   }
 
-  if (variant === 'hybridAvaSquint') {
-    return (
-      <g transform={transform}>
-        <g transform="translate(2 5)" fill="#fff">
-          <ellipse cx="14" cy="7.72" rx="14" ry="7.72" />
-          <ellipse cx="66" cy="7.72" rx="14" ry="7.72" />
-        </g>
-        <path d="M18.82 20.3a25 25 0 0 1-5.64 0 6 6 0 1 1 5.64 0m52 0a25 25 0 0 1-5.64 0 6 6 0 1 1 5.64 0" fill={ink} />
-      </g>
-    )
-  }
-
   if (variant === 'hybridAvaSide') {
     return <path d="M13 8c-4.84 0-9 2.65-10.84 6.45-.54 1.1.39 1.85 1.28 1.12a15 15 0 0 1 9.8-3.22 6 6 0 1 0 10.7 2.8 2 2 0 0 0-.12-.74l-.15-.38a6 6 0 0 0-1.64-2.48C19.9 9.32 16.5 8 13 8m58 0c-4.84 0-9 2.65-10.84 6.45-.54 1.1.39 1.85 1.28 1.12a15 15 0 0 1 9.8-3.22 6 6 0 1 0 10.7 2.8 2 2 0 0 0-.12-.74l-.15-.38a6 6 0 0 0-1.64-2.48C77.9 9.32 74.5 8 71 8" fill={ink} transform={transform} />
   }
 
   if (variant === 'hybridAvaHappy') {
     return <path d="M2.16 14.45C4.01 10.65 8.16 8 13 8c4.81 0 8.96 2.63 10.82 6.4.55 1.13-.24 2.05-1.03 1.37A15 15 0 0 0 13 12.34c-3.73 0-7.12 1.24-9.55 3.23-.9.73-1.82-.01-1.28-1.12m57.99 0C62.01 10.65 66.16 8 71 8c4.81 0 8.96 2.63 10.82 6.4.55 1.13-.24 2.05-1.03 1.37A15 15 0 0 0 71 12.34c-3.73 0-7.12 1.24-9.55 3.23-.9.73-1.82-.01-1.28-1.12" fill={ink} fillRule="evenodd" clipRule="evenodd" transform={transform} />
+  }
+
+  if (variant === 'hybridAvaClosed') {
+    return <path d="M2.16 19.55C4.01 23.35 8.16 26 13 26c4.81 0 8.96-2.63 10.82-6.4.55-1.13-.24-2.05-1.03-1.37A15 15 0 0 1 13 21.66c-3.73 0-7.12-1.24-9.55-3.23-.91-.73-1.83.01-1.29 1.12m58 0c1.85 3.8 6 6.45 10.84 6.45 4.81 0 8.96-2.63 10.82-6.4.55-1.13-.24-2.05-1.03-1.37A15 15 0 0 1 71 21.66c-3.73 0-7.12-1.24-9.55-3.23-.9-.73-1.82.01-1.28 1.12" fill={ink} fillRule="evenodd" clipRule="evenodd" transform={transform} />
+  }
+
+  if (variant === 'hybridAvaEyeRoll') {
+    return (
+      <g transform={transform}>
+        <g transform="translate(2)" fill="#fff">
+          <circle cx="14" cy="14" r="14" />
+          <circle cx="66" cy="14" r="14" />
+        </g>
+        <g transform="translate(10)" fill={ink} fillOpacity=".92">
+          <circle cx="6" cy="6" r="6" />
+          <circle cx="58" cy="6" r="6" />
+        </g>
+      </g>
+    )
+  }
+
+  if (variant === 'hybridAvaSurprised') {
+    return (
+      <g transform={transform}>
+        <g transform="translate(2)" fill="#fff">
+          <circle cx="14" cy="14" r="14" />
+          <circle cx="66" cy="14" r="14" />
+        </g>
+        <g transform="translate(10 8)" fill={ink} fillOpacity=".92">
+          <circle cx="6" cy="6" r="6" />
+          <circle cx="58" cy="6" r="6" />
+        </g>
+      </g>
+    )
+  }
+
+  if (variant === 'hybridAvaWink') {
+    return (
+      <g transform={transform}>
+        <g transform="translate(10 8)" fill={ink} fillOpacity=".92">
+          <circle cx="6" cy="6" r="6" />
+          <path d="M46.6 8.96c1.59-3.92 5.55-6.86 10.37-7.2 4.8-.33 9.12 2 11.24 5.64.63 1.09-.1 2.06-.93 1.43-2.59-1.93-6.15-3-10-2.73a15 15 0 0 0-9.33 3.9c-.84.79-1.81.11-1.35-1.03" />
+        </g>
+      </g>
+    )
   }
 
   return null
@@ -237,8 +230,8 @@ function buildToonHeadPortrait(appearance) {
     clothesVariant: outfit,
     beardProbability: hasFacialHair ? '100' : '0',
     eyesProbability: customEyes ? '0' : '100',
-    hairProbability: hair.custom ? '0' : (hair.front ? '100' : '0'),
-    rearHairProbability: hair.custom ? '0' : (hair.rear ? '100' : '0'),
+    hairProbability: hair.front ? '100' : '0',
+    rearHairProbability: hair.rear ? '100' : '0',
   })
 
   if (!customEyes) params.set('eyesVariant', eyes)
@@ -249,8 +242,6 @@ function buildToonHeadPortrait(appearance) {
   return {
     src: `${DICEBEAR_TOON_HEAD}?${params.toString()}`,
     skinTone,
-    hairColor: `#${hairColor}`,
-    customHair: hair.custom || null,
     customEyes: customEyes ? eyes : null,
   }
 }
@@ -275,7 +266,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
         aria-hidden="true"
         style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
       />
-      {(portrait.customHair || portrait.customEyes) && (
+      {portrait.customEyes && (
         <svg
           viewBox="0 0 768 768"
           preserveAspectRatio="xMidYMid slice"
@@ -289,8 +280,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             pointerEvents: 'none',
           }}
         >
-          {portrait.customEyes && <CustomEyes variant={portrait.customEyes} />}
-          {portrait.customHair && <CustomHair variant={portrait.customHair} color={portrait.hairColor} />}
+          <CustomEyes variant={portrait.customEyes} />
         </svg>
       )}
     </div>
