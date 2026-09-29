@@ -216,6 +216,8 @@ function CareerSetupScreen({ profile = null, onBack }) {
                 <span>UI SELECTED</span><b>{appearance.skinTone}</b>
                 <span>AVATAR RECEIVED</span><b>{avatarDebug?.skinTone || '—'}</b>
                 <span>MASK PIXELS</span><b>{avatarDebug?.maskedPixels ?? '—'}</b>
+                <span>SKIN-GRADED</span><b>{avatarDebug?.gradedPixels ?? '—'}</b>
+                <span>DETAIL PROTECTED</span><b>{avatarDebug?.protectedPixels ?? '—'}</b>
                 <span>CHANGED PIXELS</span><b>{avatarDebug?.changedPixels ?? '—'}</b>
                 <span>AVG DELTA</span><b>{avatarDebug?.averageDelta ?? '—'}</b>
                 <span>CANVAS</span><b>{avatarDebug?.canvas || '—'}</b>
