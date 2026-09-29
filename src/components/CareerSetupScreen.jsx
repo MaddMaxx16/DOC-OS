@@ -9,6 +9,7 @@ import './CareerSetupScreen.p2443a.css'
 import './CareerLookCreator.css'
 
 const HAIR_OPTIONS_PER_PAGE = 8
+const HAIR_COLOR_OPTIONS_PER_PAGE = 8
 
 // P2.4.4.3A/B — Create Player
 // Step 01 owns player-facing identity. Step 02 owns appearance.
@@ -24,6 +25,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
   }))
   const [appearanceCategory, setAppearanceCategory] = useState('skinTone')
   const [hairPage, setHairPage] = useState(0)
+  const [hairColorPage, setHairColorPage] = useState(0)
 
   const screenRef = useRef(null)
   const nameRef = useRef(null)
@@ -94,19 +96,29 @@ function CareerSetupScreen({ profile = null, onBack }) {
     continueToLook()
   }
 
-  const hairPageForValue = (value) => {
-    const index = APPEARANCE_OPTIONS.hair.findIndex((option) => option.value === value)
-    return Math.max(0, Math.floor(Math.max(0, index) / HAIR_OPTIONS_PER_PAGE))
+  const optionPageForValue = (key, value, perPage) => {
+    const index = APPEARANCE_OPTIONS[key].findIndex((option) => option.value === value)
+    return Math.max(0, Math.floor(Math.max(0, index) / perPage))
   }
+
+  const hairPageForValue = (value) => (
+    optionPageForValue('hair', value, HAIR_OPTIONS_PER_PAGE)
+  )
+
+  const hairColorPageForValue = (value) => (
+    optionPageForValue('hairColor', value, HAIR_COLOR_OPTIONS_PER_PAGE)
+  )
 
   const setAppearanceValue = (key, value) => {
     setAppearance((current) => ({ ...current, [key]: value }))
     if (key === 'hair') setHairPage(hairPageForValue(value))
+    if (key === 'hairColor') setHairColorPage(hairColorPageForValue(value))
   }
 
   const selectAppearanceCategory = (key) => {
     setAppearanceCategory(key)
     if (key === 'hair') setHairPage(hairPageForValue(appearance.hair))
+    if (key === 'hairColor') setHairColorPage(hairColorPageForValue(appearance.hairColor))
   }
 
   const randomizeAppearance = () => {
@@ -119,23 +131,29 @@ function CareerSetupScreen({ profile = null, onBack }) {
 
     setAppearance(next)
     if (appearanceCategory === 'hair') setHairPage(hairPageForValue(next.hair))
+    if (appearanceCategory === 'hairColor') {
+      setHairColorPage(hairColorPageForValue(next.hairColor))
+    }
   }
 
   const resetAppearance = () => {
     setAppearance({ ...DEFAULT_APPEARANCE })
     setAppearanceCategory('skinTone')
     setHairPage(hairPageForValue(DEFAULT_APPEARANCE.hair))
+    setHairColorPage(hairColorPageForValue(DEFAULT_APPEARANCE.hairColor))
   }
 
   const startOptionSwipe = (event) => {
-    if (appearanceCategory !== 'hair') return
+    if (appearanceCategory !== 'hair' && appearanceCategory !== 'hairColor') return
     const touch = event.touches?.[0]
     if (!touch) return
     optionSwipeRef.current = { x: touch.clientX, y: touch.clientY }
   }
 
   const finishOptionSwipe = (event) => {
-    if (appearanceCategory !== 'hair' || !optionSwipeRef.current) return
+    const pagedCategory =
+      appearanceCategory === 'hair' || appearanceCategory === 'hairColor'
+    if (!pagedCategory || !optionSwipeRef.current) return
     const touch = event.changedTouches?.[0]
     const start = optionSwipeRef.current
     optionSwipeRef.current = null
@@ -145,8 +163,11 @@ function CareerSetupScreen({ profile = null, onBack }) {
     const dy = touch.clientY - start.y
     if (Math.abs(dx) < 48 || Math.abs(dx) <= Math.abs(dy) * 1.2) return
 
-    const pageCount = Math.ceil(APPEARANCE_OPTIONS.hair.length / HAIR_OPTIONS_PER_PAGE)
-    setHairPage((current) => (
+    const perPage =
+      appearanceCategory === 'hair' ? HAIR_OPTIONS_PER_PAGE : HAIR_COLOR_OPTIONS_PER_PAGE
+    const pageCount = Math.ceil(APPEARANCE_OPTIONS[appearanceCategory].length / perPage)
+    const setPage = appearanceCategory === 'hair' ? setHairPage : setHairColorPage
+    setPage((current) => (
       dx < 0
         ? Math.min(pageCount - 1, current + 1)
         : Math.max(0, current - 1)
@@ -194,13 +215,20 @@ function CareerSetupScreen({ profile = null, onBack }) {
     const activeCategoryLabel = APPEARANCE_CATEGORIES.find(
       ({ key }) => key === appearanceCategory,
     )?.label
-    const hairPaging = appearanceCategory === 'hair'
-    const hairPageCount = Math.ceil(APPEARANCE_OPTIONS.hair.length / HAIR_OPTIONS_PER_PAGE)
-    const safeHairPage = Math.min(hairPage, Math.max(0, hairPageCount - 1))
-    const visibleOptions = hairPaging
+    const optionPaging =
+      appearanceCategory === 'hair' || appearanceCategory === 'hairColor'
+    const optionsPerPage =
+      appearanceCategory === 'hair' ? HAIR_OPTIONS_PER_PAGE : HAIR_COLOR_OPTIONS_PER_PAGE
+    const optionPage = appearanceCategory === 'hair' ? hairPage : hairColorPage
+    const optionPageCount = optionPaging
+      ? Math.ceil(activeOptions.length / optionsPerPage)
+      : 1
+    const safeOptionPage = Math.min(optionPage, Math.max(0, optionPageCount - 1))
+    const setOptionPage = appearanceCategory === 'hair' ? setHairPage : setHairColorPage
+    const visibleOptions = optionPaging
       ? activeOptions.slice(
-        safeHairPage * HAIR_OPTIONS_PER_PAGE,
-        (safeHairPage + 1) * HAIR_OPTIONS_PER_PAGE,
+        safeOptionPage * optionsPerPage,
+        (safeOptionPage + 1) * optionsPerPage,
       )
       : activeOptions
 
@@ -273,7 +301,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
             </nav>
 
             <section
-              className={`career-look-options-d434c ${hairPaging ? 'hair-paged' : ''}`}
+              className={`career-look-options-d434c ${optionPaging ? 'hair-paged' : ''}`}
               onTouchStart={startOptionSwipe}
               onTouchEnd={finishOptionSwipe}
             >
@@ -311,29 +339,29 @@ function CareerSetupScreen({ profile = null, onBack }) {
                 })}
               </div>
 
-              {hairPaging && (
-                <div className="career-look-pager-d434c" aria-label="Hair pages">
+              {optionPaging && (
+                <div className="career-look-pager-d434c" aria-label={`${activeCategoryLabel} pages`}>
                   <button
                     type="button"
-                    onClick={() => setHairPage((current) => Math.max(0, current - 1))}
-                    disabled={safeHairPage === 0}
-                    aria-label="Previous hair page"
+                    onClick={() => setOptionPage((current) => Math.max(0, current - 1))}
+                    disabled={safeOptionPage === 0}
+                    aria-label={`Previous ${activeCategoryLabel.toLowerCase()} page`}
                   >
                     <b aria-hidden="true">‹</b>
                     <span>PREVIOUS</span>
                   </button>
 
                   <div aria-live="polite">
-                    <span>{safeHairPage + 1}</span>
+                    <span>{safeOptionPage + 1}</span>
                     <i aria-hidden="true">/</i>
-                    <span>{hairPageCount}</span>
+                    <span>{optionPageCount}</span>
                   </div>
 
                   <button
                     type="button"
-                    onClick={() => setHairPage((current) => Math.min(hairPageCount - 1, current + 1))}
-                    disabled={safeHairPage === hairPageCount - 1}
-                    aria-label="Next hair page"
+                    onClick={() => setOptionPage((current) => Math.min(optionPageCount - 1, current + 1))}
+                    disabled={safeOptionPage === optionPageCount - 1}
+                    aria-label={`Next ${activeCategoryLabel.toLowerCase()} page`}
                   >
                     <span>NEXT</span>
                     <b aria-hidden="true">›</b>
