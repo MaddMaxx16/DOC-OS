@@ -28,13 +28,11 @@ export const APPEARANCE_OPTIONS = {
     { value: 'avaCaesar', label: 'Ava · Caesar' },
     { value: 'avaCaesarSide', label: 'Ava · Caesar + Side Part' },
     { value: 'avaDreadsShort', label: 'Ava · Short Dreads' },
-    { value: 'avaSides', label: 'Ava · Sides' },
     { value: 'avaBun', label: 'Ava · Bun' },
 
     { value: 'avaBob', label: 'Ava · Bob' },
     { value: 'avaCurly', label: 'Ava · Curly' },
     { value: 'avaFro', label: 'Ava · Fro' },
-    { value: 'avaLongNotTooLong', label: 'Ava · Medium Long' },
     { value: 'avaMiaWallace', label: 'Ava · Straight Bob' },
     { value: 'avaShaggyMullet', label: 'Ava · Shaggy Mullet' },
 
@@ -306,7 +304,6 @@ const AVATAAARS_REAR_BACKFILL = new Set([
 
 const AVATAAARS_FRONT_SEAM_CLEANUP = new Set([
   'bob',
-  'longButNotTooLong',
   'miaWallace',
 ])
 
