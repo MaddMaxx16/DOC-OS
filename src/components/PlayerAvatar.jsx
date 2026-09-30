@@ -154,7 +154,7 @@ export const DEFAULT_APPEARANCE = {
   brows: 'neutral',
   eyes: 'docRound',
   eyeColor: 'brown',
-  mouth: 'lab-avataaars-default',
+  mouth: 'lab-avataaars-smile',
   facialHair: 'none',
   glasses: 'none',
   accessories: 'none',
@@ -540,19 +540,34 @@ function MouthLabElement({ node, keyPath }) {
   return null
 }
 
+const MOUTH_LAB_TUNING = {
+  // The first audition normalized each donor's full component box. These
+  // finalists need visible-art normalization instead: some source drawings use
+  // only a small or off-center portion of their native box.
+  'avataaars-smile': { viewBox: '18 -2 56 36' },
+  'avataaars-serious': { viewBox: '20 -2 52 34' },
+  'personas-lips': { viewBox: '-2 -1 14 10' },
+  'adventurer-variant03': { viewBox: '42 76 96 66' },
+  'adventurer-variant06': { viewBox: '16 6 130 72' },
+  'adventurer-variant09': { viewBox: '-10 20 135 45' },
+}
+
 function MouthLabPart({ candidate }) {
   if (!candidate) return null
 
-  // Normalize every donor component into the same Toon Head mouth zone.
-  // preserveAspectRatio keeps each source's native proportions intact so this
-  // audition judges the artwork rather than a stretched approximation.
+  const candidateKey = `${candidate.style}-${candidate.variant}`
+  const tuning = MOUTH_LAB_TUNING[candidateKey] || {}
+  const viewBox = tuning.viewBox || `0 0 ${candidate.width} ${candidate.height}`
+
+  // Keep the mouth zone itself fixed on Toon Head. Candidate-specific viewBoxes
+  // scale/center the visible donor artwork without stretching its proportions.
   return (
     <svg
       x="306"
       y="466"
       width="156"
       height="98"
-      viewBox={`0 0 ${candidate.width} ${candidate.height}`}
+      viewBox={viewBox}
       preserveAspectRatio="xMidYMid meet"
       overflow="visible"
     >
