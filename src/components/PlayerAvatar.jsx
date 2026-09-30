@@ -627,15 +627,27 @@ const FACIAL_HAIR_LAB_ZONES = {
   notionists: { x: 250, y: 410, width: 268, height: 205 },
 }
 
+const FACIAL_HAIR_LAB_TUNING = {
+  // Notionists is drawn for a three-quarter face. These two finalists share
+  // the same slanted beard silhouette, so straighten it for Toon Head's
+  // front-facing portrait before we judge final size/placement.
+  'notionists-variant11': { rotate: 3.5 },
+  'notionists-variant12': { rotate: 3.5 },
+}
+
 function FacialHairLabPart({ candidate, color }) {
   if (!candidate) return null
 
+  const candidateKey = `${candidate.style}-${candidate.variant}`
+  const tuning = FACIAL_HAIR_LAB_TUNING[candidateKey] || {}
   const zone = FACIAL_HAIR_LAB_ZONES[candidate.style] || {
     x: 255,
     y: 410,
     width: 258,
     height: 215,
   }
+  const centerX = candidate.width / 2
+  const centerY = candidate.height / 2
 
   return (
     <svg
@@ -647,14 +659,22 @@ function FacialHairLabPart({ candidate, color }) {
       preserveAspectRatio="xMidYMid meet"
       overflow="visible"
     >
-      {candidate.elements.map((node, index) => (
-        <FacialHairLabElement
-          key={`${candidate.style}-${candidate.variant}-${index}`}
-          keyPath={`${candidate.style}-${candidate.variant}-${index}`}
-          node={node}
-          color={color}
-        />
-      ))}
+      <g
+        transform={
+          tuning.rotate
+            ? `rotate(${tuning.rotate} ${centerX} ${centerY})`
+            : undefined
+        }
+      >
+        {candidate.elements.map((node, index) => (
+          <FacialHairLabElement
+            key={`${candidate.style}-${candidate.variant}-${index}`}
+            keyPath={`${candidate.style}-${candidate.variant}-${index}`}
+            node={node}
+            color={color}
+          />
+        ))}
+      </g>
     </svg>
   )
 }
