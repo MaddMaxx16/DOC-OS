@@ -5,98 +5,19 @@
 // Donor color tokens are replaced at render time with the selected DOC OS hair color.
 
 export const FACIAL_HAIR_LAB_OPTIONS = [
-  {
-    "value": "none",
-    "label": "Clean Shaven"
-  },
-  {
-    "value": "chin",
-    "label": "Toon · Chin Beard"
-  },
-  {
-    "value": "chinMoustache",
-    "label": "Toon · Goatee + Mustache"
-  },
-  {
-    "value": "moustacheTwirl",
-    "label": "Toon · Mustache"
-  },
-  {
-    "value": "fullBeard",
-    "label": "Toon · Full Beard"
-  },
-  {
-    "value": "longBeard",
-    "label": "Toon · Long Beard"
-  },
-  {
-    "value": "faciallab-avataaars-beardLight",
-    "label": "Ava · Beard Light"
-  },
-  {
-    "value": "faciallab-avataaars-beardMajestic",
-    "label": "Ava · Beard Majestic"
-  },
-  {
-    "value": "faciallab-avataaars-beardMedium",
-    "label": "Ava · Beard Medium"
-  },
-  {
-    "value": "faciallab-avataaars-moustacheFancy",
-    "label": "Ava · Moustache Fancy"
-  },
-  {
-    "value": "faciallab-avataaars-moustacheMagnum",
-    "label": "Ava · Moustache Magnum"
-  },
-  {
-    "value": "faciallab-notionists-variant01",
-    "label": "Notion · 01"
-  },
-  {
-    "value": "faciallab-notionists-variant02",
-    "label": "Notion · 02"
-  },
-  {
-    "value": "faciallab-notionists-variant03",
-    "label": "Notion · 03"
-  },
-  {
-    "value": "faciallab-notionists-variant04",
-    "label": "Notion · 04"
-  },
-  {
-    "value": "faciallab-notionists-variant05",
-    "label": "Notion · 05"
-  },
-  {
-    "value": "faciallab-notionists-variant06",
-    "label": "Notion · 06"
-  },
-  {
-    "value": "faciallab-notionists-variant07",
-    "label": "Notion · 07"
-  },
-  {
-    "value": "faciallab-notionists-variant08",
-    "label": "Notion · 08"
-  },
-  {
-    "value": "faciallab-notionists-variant09",
-    "label": "Notion · 09"
-  },
-  {
-    "value": "faciallab-notionists-variant10",
-    "label": "Notion · 10"
-  },
-  {
-    "value": "faciallab-notionists-variant11",
-    "label": "Notion · 11"
-  },
-  {
-    "value": "faciallab-notionists-variant12",
-    "label": "Notion · 12"
-  }
+  { value: 'none', label: 'Clean Shaven' },
+  { value: 'chin', label: 'Toon · Chin Beard' },
+  { value: 'chinMoustache', label: 'Toon · Goatee + Mustache' },
+  { value: 'moustacheTwirl', label: 'Toon · Mustache' },
+  { value: 'fullBeard', label: 'Toon · Full Beard' },
+  { value: 'longBeard', label: 'Toon · Long Beard' },
+  { value: 'faciallab-avataaars-beardLight', label: 'Ava · Beard Light' },
+  { value: 'faciallab-avataaars-beardMajestic', label: 'Ava · Beard Majestic' },
+  { value: 'faciallab-avataaars-beardMedium', label: 'Ava · Beard Medium' },
+  { value: 'faciallab-avataaars-moustacheFancy', label: 'Ava · Mustache Fancy' },
+  { value: 'faciallab-avataaars-moustacheMagnum', label: 'Ava · Mustache Magnum' },
+  { value: 'faciallab-notionists-variant11', label: 'Notion · 11' },
+  { value: 'faciallab-notionists-variant12', label: 'Notion · 12' },
 ]
 
 export const FACIAL_HAIR_LAB_CANDIDATES = {
