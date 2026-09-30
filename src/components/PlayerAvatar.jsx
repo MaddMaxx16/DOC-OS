@@ -1482,11 +1482,12 @@ function OutfitLabPart({ variant }) {
 
   return (
     <svg
-      // P2.4.4.3B.13.2 — tighten the Avataaars donor silhouette again
-      // while preserving the approved neckline height and centered fit.
-      x="139"
+      // P2.4.4.3B.13.3 — reduce donor width another ~10% so the
+      // shoulders and sides sit close to the Toon Head torso. Keep the
+      // approved neckline height and vertical scale unchanged.
+      x="164"
       y="587"
-      width="490"
+      width="440"
       height="181"
       viewBox="0 0 200 95.31"
       preserveAspectRatio="none"
