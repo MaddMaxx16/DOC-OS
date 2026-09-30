@@ -680,10 +680,35 @@ function DocOsAccessoryPiece({ variant }) {
 
     case 'docAccessoryMediumHoop':
       return (
-        <>
-          <circle cx="0" cy="18" r="24" fill="none" stroke={ink} strokeWidth="12" />
-          <circle cx="0" cy="18" r="24" fill="none" stroke={gold} strokeWidth="7" />
-        </>
+        <g transform="translate(0 7)">
+          {/* Built from the locked Small Hoop language: same piercing point,
+              tight opening and side-profile wrap, with a larger hanging arc. */}
+          <path
+            d="M 1 -2 C -16 -6 -28 5 -29 21 C -30 38 -20 50 -7 50 C 5 50 12 38 11 24"
+            fill="none"
+            stroke={ink}
+            strokeWidth="12"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M 1 -2 C -16 -6 -28 5 -29 21 C -30 38 -20 50 -7 50 C 5 50 12 38 11 24"
+            fill="none"
+            stroke={gold}
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="1" cy="-2" r="4.5" fill={ink} />
+          <circle cx="1" cy="-2" r="2.25" fill={gold} />
+          <path
+            d="M -13 1 C -21 6 -24 13 -24 21"
+            fill="none"
+            stroke={shine}
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </g>
       )
 
     case 'docAccessoryHuggie':
