@@ -632,9 +632,9 @@ const FACIAL_HAIR_LAB_TUNING = {
   // Keep each style's intended silhouette (long stays long, light stays light),
   // while bringing its overall visual weight and mouth/jaw placement into the
   // same family as the native Toon facial hair.
-  'avataaars-beardLight': { scale: 0.95, dy: -2 },
-  'avataaars-beardMajestic': { scale: 0.93, dy: -2 },
-  'avataaars-beardMedium': { scale: 0.92, dy: 2 },
+  'avataaars-beardLight': { scaleX: 1.32, scaleY: 0.95, dy: -2 },
+  'avataaars-beardMajestic': { scaleX: 1.28, scaleY: 0.93, dy: -2 },
+  'avataaars-beardMedium': { scaleX: 1.3, scaleY: 0.92, dy: 2 },
   'avataaars-moustacheFancy': { scaleX: 1.06 },
   'avataaars-moustacheMagnum': { scaleX: 1.18 },
   // Notion 11/12 are authored for a three-quarter face. They remain rebuilt
@@ -645,12 +645,14 @@ const FACIAL_HAIR_LAB_TUNING = {
     centerOffsetX: -68.5,
     scale: 1.1,
     dy: -4,
+    seamOverlap: 2.5,
   },
   'notionists-variant12': {
     symmetryCenter: 293,
     centerOffsetX: -68.5,
     scale: 1.15,
     dy: -4,
+    seamOverlap: 2.5,
   },
 }
 
@@ -668,6 +670,7 @@ function FacialHairLabPart({ candidate, color }) {
   }
   const symmetryCenter = tuning.symmetryCenter || null
   const symmetryClipId = `facial-hair-symmetry-${clipSeed}`
+  const seamOverlap = tuning.seamOverlap || 0
   const centerX = candidate.width / 2
   const centerY = candidate.height / 2
   const scaleX = tuning.scaleX || tuning.scale || 1
@@ -695,7 +698,7 @@ function FacialHairLabPart({ candidate, color }) {
           <rect
             x="0"
             y="0"
-            width={symmetryCenter}
+            width={symmetryCenter + seamOverlap}
             height={candidate.height}
           />
         </clipPath>
