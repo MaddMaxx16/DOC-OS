@@ -605,8 +605,10 @@ const DOC_OS_ACCESSORY_HIGHLIGHT = '#f6e7bd'
 // head's own inner-ear geometry through that same coordinate space puts the
 // earlobe anchors here. All native accessories share these anchors.
 const DOC_OS_EAR_ANCHORS = {
-  left: { x: 216, y: 469 },
-  right: { x: 552, y: 469 },
+  // iPhone QA 12.5: lift the piercing point and tuck it slightly inward so
+  // studs sit in the lobe and hoops hang from the ear instead of outside it.
+  left: { x: 221, y: 456 },
+  right: { x: 547, y: 456 },
 }
 
 function DocOsAccessoryPiece({ variant }) {
@@ -635,9 +637,10 @@ function DocOsAccessoryPiece({ variant }) {
 
     case 'docAccessoryBar':
       return (
-        <g transform="rotate(-18)">
-          <rect x="-6" y="-16" width="12" height="32" rx="6" fill={ink} />
-          <rect x="-3.5" y="-13" width="7" height="26" rx="3.5" fill={gold} />
+        <g transform="rotate(-34)">
+          <rect x="-8" y="-20" width="16" height="40" rx="8" fill={ink} />
+          <rect x="-4.5" y="-16" width="9" height="32" rx="4.5" fill={gold} />
+          <path d="M -2 -13 L -2 7" stroke={shine} strokeWidth="2.5" strokeLinecap="round" />
         </g>
       )
 
@@ -662,17 +665,17 @@ function DocOsAccessoryPiece({ variant }) {
       return (
         <>
           <path
-            d="M -10 -4 C -18 4 -17 22 0 26 C 17 22 18 4 10 -4"
+            d="M -12 -2 A 15 15 0 1 0 12 -2"
             fill="none"
             stroke={ink}
-            strokeWidth="12"
+            strokeWidth="11"
             strokeLinecap="round"
           />
           <path
-            d="M -10 -4 C -18 4 -17 22 0 26 C 17 22 18 4 10 -4"
+            d="M -12 -2 A 15 15 0 1 0 12 -2"
             fill="none"
             stroke={gold}
-            strokeWidth="7"
+            strokeWidth="6"
             strokeLinecap="round"
           />
         </>
@@ -681,94 +684,96 @@ function DocOsAccessoryPiece({ variant }) {
     case 'docAccessoryDoubleHoop':
       return (
         <>
-          <circle cx="-4" cy="10" r="14" fill="none" stroke={ink} strokeWidth="9" />
-          <circle cx="-4" cy="10" r="14" fill="none" stroke={gold} strokeWidth="5" />
-          <circle cx="7" cy="17" r="18" fill="none" stroke={ink} strokeWidth="9" />
-          <circle cx="7" cy="17" r="18" fill="none" stroke={gold} strokeWidth="5" />
+          <circle cx="-6" cy="7" r="13" fill="none" stroke={ink} strokeWidth="9" />
+          <circle cx="-6" cy="7" r="13" fill="none" stroke={gold} strokeWidth="5" />
+          <circle cx="8" cy="25" r="20" fill="none" stroke={ink} strokeWidth="10" />
+          <circle cx="8" cy="25" r="20" fill="none" stroke={gold} strokeWidth="5.5" />
         </>
       )
 
     case 'docAccessoryDrop':
       return (
         <>
-          <circle cx="0" cy="-1" r="8" fill={ink} />
-          <circle cx="0" cy="-1" r="5" fill={gold} />
-          <path d="M 0 6 L 0 27" stroke={ink} strokeWidth="7" strokeLinecap="round" />
-          <path d="M 0 6 L 0 27" stroke={gold} strokeWidth="3.5" strokeLinecap="round" />
-          <circle cx="0" cy="36" r="11" fill={ink} />
-          <circle cx="0" cy="36" r="7" fill={gold} />
+          <circle cx="0" cy="-1" r="9" fill={ink} />
+          <circle cx="0" cy="-1" r="6" fill={gold} />
+          <path d="M 0 7 L 0 31" stroke={ink} strokeWidth="8" strokeLinecap="round" />
+          <path d="M 0 7 L 0 31" stroke={gold} strokeWidth="4" strokeLinecap="round" />
+          <circle cx="0" cy="43" r="15" fill={ink} />
+          <circle cx="0" cy="43" r="10" fill={gold} />
+          <circle cx="-3" cy="39" r="2.5" fill={shine} />
         </>
       )
 
     case 'docAccessoryChain':
       return (
         <>
-          <circle cx="0" cy="-2" r="7" fill={ink} />
-          <circle cx="0" cy="-2" r="4.5" fill={gold} />
+          <circle cx="0" cy="-2" r="9" fill={ink} />
+          <circle cx="0" cy="-2" r="5.5" fill={gold} />
           <path
-            d="M 0 5 L -3 15 L 3 25 L -2 35 L 2 45"
+            d="M 0 7 L -4 18 L 4 29 L -3 40 L 3 51"
             fill="none"
             stroke={ink}
-            strokeWidth="6"
+            strokeWidth="8"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
           <path
-            d="M 0 5 L -3 15 L 3 25 L -2 35 L 2 45"
+            d="M 0 7 L -4 18 L 4 29 L -3 40 L 3 51"
             fill="none"
             stroke={gold}
-            strokeWidth="3"
+            strokeWidth="4"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <path d="M 2 45 L 11 56 L 2 67 L -7 56 Z" fill={ink} />
-          <path d="M 2 49 L 7 56 L 2 63 L -3 56 Z" fill={gold} />
+          <path d="M 3 49 L 16 64 L 3 79 L -10 64 Z" fill={ink} />
+          <path d="M 3 55 L 10 64 L 3 73 L -4 64 Z" fill={gold} />
+          <path d="M 0 58 L 4 62" stroke={shine} strokeWidth="2.5" strokeLinecap="round" />
         </>
       )
 
     case 'docAccessoryCuff':
       return (
-        <>
+        <g transform="translate(0 -24)">
           <path
-            d="M -13 -23 C -27 -17 -29 -1 -18 8"
+            d="M -8 -18 C -27 -15 -30 8 -13 17"
             fill="none"
             stroke={ink}
-            strokeWidth="12"
+            strokeWidth="14"
             strokeLinecap="round"
           />
           <path
-            d="M -13 -23 C -27 -17 -29 -1 -18 8"
+            d="M -8 -18 C -27 -15 -30 8 -13 17"
             fill="none"
             stroke={gold}
-            strokeWidth="7"
+            strokeWidth="8"
             strokeLinecap="round"
           />
           <path
-            d="M -8 -13 C -17 -9 -19 0 -13 6"
+            d="M -10 -12 C -19 -8 -21 3 -15 8"
             fill="none"
             stroke={shine}
             strokeWidth="2.5"
             strokeLinecap="round"
           />
-        </>
+        </g>
       )
 
     case 'docAccessoryTeardrop':
       return (
         <>
-          <circle cx="0" cy="-2" r="7" fill={ink} />
-          <circle cx="0" cy="-2" r="4.5" fill={gold} />
-          <path d="M 0 6 L 0 19" stroke={ink} strokeWidth="6" strokeLinecap="round" />
-          <path d="M 0 6 L 0 19" stroke={gold} strokeWidth="3" strokeLinecap="round" />
+          <circle cx="0" cy="-2" r="9" fill={ink} />
+          <circle cx="0" cy="-2" r="5.5" fill={gold} />
+          <path d="M 0 7 L 0 22" stroke={ink} strokeWidth="8" strokeLinecap="round" />
+          <path d="M 0 7 L 0 22" stroke={gold} strokeWidth="4" strokeLinecap="round" />
           <path
-            d="M 0 20 C -17 39 -14 55 0 59 C 14 55 17 39 0 20 Z"
+            d="M 0 20 C -22 42 -19 63 0 68 C 19 63 22 42 0 20 Z"
             fill={ink}
           />
           <path
-            d="M 0 27 C -10 40 -8 50 0 52 C 8 50 10 40 0 27 Z"
+            d="M 0 29 C -14 44 -12 57 0 60 C 12 57 14 44 0 29 Z"
             fill={gold}
           />
-          <path d="M -2 32 C -5 38 -5 42 -2 44" fill="none" stroke={shine} strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M -3 35 C -7 42 -7 48 -3 51" fill="none" stroke={shine} strokeWidth="3" strokeLinecap="round" />
         </>
       )
 
