@@ -1,6 +1,10 @@
 import { useEffect, useId, useState } from 'react'
 import { AVATAAARS_HAIR_VARIANTS, AVATAAARS_LAYERED_HAIR } from '../data/avataaarsHair'
 import { MOUTH_LAB_CANDIDATES, MOUTH_LAB_OPTIONS } from '../data/mouthStyleAudition'
+import {
+  FACIAL_HAIR_LAB_CANDIDATES,
+  FACIAL_HAIR_LAB_OPTIONS,
+} from '../data/facialHairStyleAudition'
 
 // P2.4.4.3B.6.6G — final targeted Avataaars seam cleanup
 // Clean the six approved audition candidates without reopening the whole hair
@@ -100,14 +104,7 @@ export const APPEARANCE_OPTIONS = {
     { value: 'gray', label: 'Gray', color: '#7d898d' },
   ],
   mouth: MOUTH_LAB_OPTIONS,
-  facialHair: [
-    { value: 'none', label: 'Clean Shaven' },
-    { value: 'chin', label: 'Chin Beard' },
-    { value: 'chinMoustache', label: 'Goatee + Mustache' },
-    { value: 'moustacheTwirl', label: 'Mustache' },
-    { value: 'fullBeard', label: 'Full Beard' },
-    { value: 'longBeard', label: 'Long Beard' },
-  ],
+  facialHair: FACIAL_HAIR_LAB_OPTIONS,
   glasses: [
     { value: 'none', label: 'None' },
     { value: 'notionGlasses1', label: 'Notion · 02' },
@@ -593,6 +590,75 @@ function MouthLabPart({ candidate }) {
   )
 }
 
+function normalizeFacialHairAttributes(attributes = {}, color) {
+  const normalized = {}
+
+  Object.entries(attributes).forEach(([key, rawValue]) => {
+    if (key === 'style') return
+
+    const mappedKey = {
+      'fill-opacity': 'fillOpacity',
+      'fill-rule': 'fillRule',
+      'clip-rule': 'clipRule',
+      'stroke-width': 'strokeWidth',
+      'stroke-linecap': 'strokeLinecap',
+      'stroke-linejoin': 'strokeLinejoin',
+    }[key] || key
+
+    normalized[mappedKey] = rawValue === '__HAIR_COLOR__' ? color : rawValue
+  })
+
+  return normalized
+}
+
+function FacialHairLabElement({ node, color, keyPath }) {
+  const attributes = normalizeFacialHairAttributes(node.attributes, color)
+
+  if (node.name === 'path') return <path key={keyPath} {...attributes} />
+  if (node.name === 'circle') return <circle key={keyPath} {...attributes} />
+  if (node.name === 'ellipse') return <ellipse key={keyPath} {...attributes} />
+  if (node.name === 'rect') return <rect key={keyPath} {...attributes} />
+
+  return null
+}
+
+const FACIAL_HAIR_LAB_ZONES = {
+  avataaars: { x: 270, y: 406, width: 228, height: 226 },
+  notionists: { x: 250, y: 410, width: 268, height: 205 },
+}
+
+function FacialHairLabPart({ candidate, color }) {
+  if (!candidate) return null
+
+  const zone = FACIAL_HAIR_LAB_ZONES[candidate.style] || {
+    x: 255,
+    y: 410,
+    width: 258,
+    height: 215,
+  }
+
+  return (
+    <svg
+      x={zone.x}
+      y={zone.y}
+      width={zone.width}
+      height={zone.height}
+      viewBox={`0 0 ${candidate.width} ${candidate.height}`}
+      preserveAspectRatio="xMidYMid meet"
+      overflow="visible"
+    >
+      {candidate.elements.map((node, index) => (
+        <FacialHairLabElement
+          key={`${candidate.style}-${candidate.variant}-${index}`}
+          keyPath={`${candidate.style}-${candidate.variant}-${index}`}
+          node={node}
+          color={color}
+        />
+      ))}
+    </svg>
+  )
+}
+
 function DocOsEyePair({ variant, color }) {
   const clipSeed = useId().replace(/:/g, '')
   const iris = color || '#6f4b32'
@@ -830,7 +896,10 @@ function buildToonHeadPortrait(appearance) {
   const hair = HAIR_CONFIG[hairChoice] || HAIR_CONFIG[DEFAULT_APPEARANCE.hair]
   const hairColor = optionColor('hairColor', hairColorChoice, '#35251f')
   const skinColor = optionColor('skinTone', skinTone, '#c98962')
-  const hasFacialHair = facialHair !== 'none'
+  const facialHairLab = facialHair.startsWith('faciallab-')
+    ? FACIAL_HAIR_LAB_CANDIDATES[facialHair.slice('faciallab-'.length)] || null
+    : null
+  const hasNativeFacialHair = facialHair !== 'none' && !facialHairLab
   const notionBrows = NOTION_BROWS[brows] || null
   const notionEyes = NOTION_EYES[eyes] || null
   const docOsEyes = eyes?.startsWith('doc') ? eyes : 'docRound'
@@ -847,7 +916,7 @@ function buildToonHeadPortrait(appearance) {
     mouthVariant: 'smile',
     mouthProbability: mouthLab ? '0' : '100',
     clothesVariant: outfit,
-    beardProbability: hasFacialHair ? '100' : '0',
+    beardProbability: hasNativeFacialHair ? '100' : '0',
     eyebrowsProbability: notionBrows ? '0' : '100',
     eyesProbability: notionEyes || docOsEyes ? '0' : '100',
     hairProbability: hair.avataaars ? '0' : (hair.front ? '100' : '0'),
@@ -858,7 +927,7 @@ function buildToonHeadPortrait(appearance) {
   if (!notionEyes && !docOsEyes) params.set('eyesVariant', eyes)
   if (!hair.avataaars && hair.front) params.set('hairVariant', hair.front)
   if (!hair.avataaars && hair.rear) params.set('rearHairVariant', hair.rear)
-  if (hasFacialHair) params.set('beardVariant', facialHair)
+  if (hasNativeFacialHair) params.set('beardVariant', facialHair)
 
   return {
     src: `${DICEBEAR_TOON_HEAD}?${params.toString()}`,
@@ -869,6 +938,7 @@ function buildToonHeadPortrait(appearance) {
     docOsEyes,
     eyeColor: `#${eyeColor}`,
     mouthLab,
+    facialHairLab,
     notionGlasses: NOTION_GLASSES[glasses] || null,
     notionAccessories: NOTION_ACCESSORIES[accessories] || null,
     hairColor: `#${hairColor}`,
@@ -883,6 +953,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
     portrait.notionEyes ||
     portrait.docOsEyes ||
     portrait.mouthLab ||
+    portrait.facialHairLab ||
     portrait.notionGlasses ||
     portrait.notionAccessories,
   )
@@ -994,6 +1065,12 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             <DocOsEyePair variant={portrait.docOsEyes} color={portrait.eyeColor} />
           )}
           {portrait.mouthLab && <MouthLabPart candidate={portrait.mouthLab} />}
+          {portrait.facialHairLab && (
+            <FacialHairLabPart
+              candidate={portrait.facialHairLab}
+              color={portrait.hairColor}
+            />
+          )}
           {portrait.notionGlasses && (
             <NotionPart
               assetKey="glasses"
