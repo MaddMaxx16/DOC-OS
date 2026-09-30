@@ -628,14 +628,15 @@ const FACIAL_HAIR_LAB_ZONES = {
 }
 
 const FACIAL_HAIR_LAB_TUNING = {
-  // Notionists is drawn for a three-quarter face. These two finalists share
-  // the same slanted beard silhouette, so straighten it for Toon Head's
-  // front-facing portrait before we judge final size/placement.
-  'notionists-variant11': { rotate: 3.5 },
-  'notionists-variant12': { rotate: 3.5 },
+  // Notion 11/12 are authored for a three-quarter face. An affine rotation
+  // cannot remove that perspective because the silhouette itself is asymmetric.
+  // Build a front-facing version from the stronger left half instead.
+  'notionists-variant11': { symmetryCenter: 293, centerOffsetX: -68.5 },
+  'notionists-variant12': { symmetryCenter: 293, centerOffsetX: -68.5 },
 }
 
 function FacialHairLabPart({ candidate, color }) {
+  const clipSeed = useId().replace(/:/g, '')
   if (!candidate) return null
 
   const candidateKey = `${candidate.style}-${candidate.variant}`
@@ -646,8 +647,17 @@ function FacialHairLabPart({ candidate, color }) {
     width: 258,
     height: 215,
   }
-  const centerX = candidate.width / 2
-  const centerY = candidate.height / 2
+  const symmetryCenter = tuning.symmetryCenter || null
+  const symmetryClipId = `facial-hair-symmetry-${clipSeed}`
+
+  const renderElements = (side) => candidate.elements.map((node, index) => (
+    <FacialHairLabElement
+      key={`${candidate.style}-${candidate.variant}-${side}-${index}`}
+      keyPath={`${candidate.style}-${candidate.variant}-${side}-${index}`}
+      node={node}
+      color={color}
+    />
+  ))
 
   return (
     <svg
@@ -659,25 +669,37 @@ function FacialHairLabPart({ candidate, color }) {
       preserveAspectRatio="xMidYMid meet"
       overflow="visible"
     >
-      <g
-        transform={
-          tuning.rotate
-            ? `rotate(${tuning.rotate} ${centerX} ${centerY})`
-            : undefined
-        }
-      >
-        {candidate.elements.map((node, index) => (
-          <FacialHairLabElement
-            key={`${candidate.style}-${candidate.variant}-${index}`}
-            keyPath={`${candidate.style}-${candidate.variant}-${index}`}
-            node={node}
-            color={color}
-          />
-        ))}
-      </g>
+      {symmetryCenter ? (
+        <>
+          <defs>
+            <clipPath id={symmetryClipId}>
+              <rect
+                x="0"
+                y="0"
+                width={symmetryCenter}
+                height={candidate.height}
+              />
+            </clipPath>
+          </defs>
+          <g transform={`translate(${tuning.centerOffsetX || 0} 0)`}>
+            <g clipPath={`url(#${symmetryClipId})`}>
+              {renderElements('left')}
+            </g>
+            <g
+              transform={`translate(${symmetryCenter * 2} 0) scale(-1 1)`}
+              clipPath={`url(#${symmetryClipId})`}
+            >
+              {renderElements('right')}
+            </g>
+          </g>
+        </>
+      ) : (
+        renderElements('native')
+      )}
     </svg>
   )
 }
+
 
 function DocOsEyePair({ variant, color }) {
   const clipSeed = useId().replace(/:/g, '')
