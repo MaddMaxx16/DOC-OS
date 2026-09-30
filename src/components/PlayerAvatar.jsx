@@ -747,10 +747,48 @@ function DocOsAccessoryPiece({ variant }) {
     case 'docAccessoryDoubleHoop':
       return (
         <>
-          <circle cx="-6" cy="7" r="13" fill="none" stroke={ink} strokeWidth="9" />
-          <circle cx="-6" cy="7" r="13" fill="none" stroke={gold} strokeWidth="5" />
-          <circle cx="8" cy="25" r="20" fill="none" stroke={ink} strokeWidth="10" />
-          <circle cx="8" cy="25" r="20" fill="none" stroke={gold} strokeWidth="5.5" />
+          {/* Two distinct piercings: a locked-language huggie at the main lobe
+              plus a smaller side-profile hoop slightly higher on the ear. */}
+          <g transform="translate(0 7)">
+            <path
+              d="M 1 -2 C -9 -4 -16 3 -17 12 C -18 22 -12 29 -4 29 C 3 29 7 23 7 15"
+              fill="none"
+              stroke={ink}
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M 1 -2 C -9 -4 -16 3 -17 12 C -18 22 -12 29 -4 29 C 3 29 7 23 7 15"
+              fill="none"
+              stroke={gold}
+              strokeWidth="5.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <circle cx="1" cy="-2" r="4.25" fill={ink} />
+            <circle cx="1" cy="-2" r="2.1" fill={gold} />
+          </g>
+          <g transform="translate(-8 -13) scale(.78)">
+            <path
+              d="M 1 -2 C -9 -4 -16 3 -17 12 C -18 22 -12 29 -4 29 C 3 29 7 23 7 15"
+              fill="none"
+              stroke={ink}
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M 1 -2 C -9 -4 -16 3 -17 12 C -18 22 -12 29 -4 29 C 3 29 7 23 7 15"
+              fill="none"
+              stroke={gold}
+              strokeWidth="5.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <circle cx="1" cy="-2" r="4.25" fill={ink} />
+            <circle cx="1" cy="-2" r="2.1" fill={gold} />
+          </g>
         </>
       )
 
