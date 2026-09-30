@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { AVATAAARS_HAIR_VARIANTS, AVATAAARS_LAYERED_HAIR } from '../data/avataaarsHair'
 
 // P2.4.4.3B.6.6G — final targeted Avataaars seam cleanup
@@ -495,76 +495,105 @@ function AvataaarsHair({ variant, color, layer = 'front' }) {
 const EYE_INK = '#4b2422'
 
 function DocOsEyePair({ variant, color }) {
+  const clipSeed = useId().replace(/:/g, '')
   const iris = color || '#6f4b32'
   const pupil = '#241b19'
   const lid = EYE_INK
+  const sclera = '#f6f1e4'
 
   const Eye = ({ side = 'left' }) => {
     const cx = side === 'left' ? 61 : 200
     const mirror = side === 'left' ? 1 : -1
     const local = (x) => cx + (x * mirror)
+    const clipId = `doc-os-eye-${clipSeed}-${side}`
 
-    const irisNode = (radius = 14, y = 41) => (
-      <>
-        <circle cx={cx} cy={y} r={radius} fill={iris} stroke={lid} strokeWidth="2.5" />
-        <circle cx={cx} cy={y + 1} r="5.5" fill={pupil} />
-      </>
-    )
+    let upperControl = 24
+    let lowerControl = 61
+    let leftY = 42
+    let rightY = 42
+    let irisY = 42
+    let irisRadius = 17
+    let pupilRadius = 7.5
+    let halfWidth = 36
 
     if (variant === 'docSoft') {
-      return (
-        <g>
-          {irisNode(15, 41)}
-          <path d={`M ${local(-31)} 40 Q ${cx} 19 ${local(31)} 40`} fill="none" stroke={lid} strokeWidth="6" strokeLinecap="round" />
-          <path d={`M ${local(-28)} 45 Q ${cx} 58 ${local(28)} 45`} fill="none" stroke={lid} strokeWidth="3" strokeLinecap="round" opacity=".72" />
-        </g>
-      )
+      upperControl = 22
+      lowerControl = 60
+      irisY = 42
+      irisRadius = 17.5
+    } else if (variant === 'docAlmond') {
+      upperControl = 20
+      lowerControl = 59
+      halfWidth = 38
+      irisRadius = 16.5
+    } else if (variant === 'docUpturned') {
+      upperControl = 21
+      lowerControl = 59
+      leftY = 45
+      rightY = 37
+      irisY = 41
+      halfWidth = 37
+    } else if (variant === 'docRelaxed') {
+      upperControl = 29
+      lowerControl = 58
+      leftY = 41
+      rightY = 41
+      irisY = 43
+      irisRadius = 16
+      pupilRadius = 7
+    } else if (variant === 'docFocused') {
+      upperControl = 27
+      lowerControl = 57
+      leftY = 42
+      rightY = 38
+      irisY = 42
+      irisRadius = 16
+      pupilRadius = 7.5
     }
 
-    if (variant === 'docAlmond') {
-      return (
-        <g>
-          {irisNode(14, 41)}
-          <path d={`M ${local(-34)} 42 Q ${cx} 18 ${local(34)} 42 Q ${cx} 59 ${local(-34)} 42`} fill="none" stroke={lid} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-        </g>
-      )
-    }
-
-    if (variant === 'docUpturned') {
-      return (
-        <g>
-          {irisNode(14, 41)}
-          <path d={`M ${local(-32)} 45 Q ${cx} 20 ${local(34)} 35`} fill="none" stroke={lid} strokeWidth="6" strokeLinecap="round" />
-          <path d={`M ${local(-27)} 47 Q ${cx} 56 ${local(27)} 43`} fill="none" stroke={lid} strokeWidth="3" strokeLinecap="round" opacity=".68" />
-        </g>
-      )
-    }
-
-    if (variant === 'docRelaxed') {
-      return (
-        <g>
-          {irisNode(13, 44)}
-          <path d={`M ${local(-32)} 39 Q ${cx} 27 ${local(32)} 39`} fill="none" stroke={lid} strokeWidth="7" strokeLinecap="round" />
-          <path d={`M ${local(-25)} 49 Q ${cx} 55 ${local(25)} 49`} fill="none" stroke={lid} strokeWidth="3" strokeLinecap="round" opacity=".62" />
-        </g>
-      )
-    }
-
-    if (variant === 'docFocused') {
-      return (
-        <g>
-          {irisNode(12, 42)}
-          <path d={`M ${local(-32)} 40 Q ${cx} 24 ${local(32)} 36`} fill="none" stroke={lid} strokeWidth="7" strokeLinecap="round" />
-          <path d={`M ${local(-26)} 47 Q ${cx} 53 ${local(26)} 46`} fill="none" stroke={lid} strokeWidth="3" strokeLinecap="round" opacity=".65" />
-        </g>
-      )
-    }
+    const x1 = local(-halfWidth)
+    const x2 = local(halfWidth)
+    const aperture = `M ${x1} ${leftY} Q ${cx} ${upperControl} ${x2} ${rightY} Q ${cx} ${lowerControl} ${x1} ${leftY} Z`
+    const upperLid = `M ${x1} ${leftY} Q ${cx} ${upperControl} ${x2} ${rightY}`
+    const lowerLid = `M ${x1 + (7 * mirror)} ${leftY + 4} Q ${cx} ${lowerControl - 2} ${x2 - (7 * mirror)} ${rightY + 4}`
 
     return (
       <g>
-        {irisNode(14, 41)}
-        <path d={`M ${local(-32)} 41 Q ${cx} 21 ${local(32)} 41`} fill="none" stroke={lid} strokeWidth="6" strokeLinecap="round" />
-        <path d={`M ${local(-27)} 46 Q ${cx} 56 ${local(27)} 46`} fill="none" stroke={lid} strokeWidth="3" strokeLinecap="round" opacity=".68" />
+        <defs>
+          <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+            <path d={aperture} />
+          </clipPath>
+        </defs>
+
+        <path d={aperture} fill={sclera} />
+
+        <g clipPath={`url(#${clipId})`}>
+          <circle
+            cx={cx}
+            cy={irisY}
+            r={irisRadius}
+            fill={iris}
+            stroke={lid}
+            strokeWidth="2.5"
+          />
+          <circle cx={cx} cy={irisY + 1} r={pupilRadius} fill={pupil} />
+        </g>
+
+        <path
+          d={upperLid}
+          fill="none"
+          stroke={lid}
+          strokeWidth="8"
+          strokeLinecap="round"
+        />
+        <path
+          d={lowerLid}
+          fill="none"
+          stroke={lid}
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          opacity=".7"
+        />
       </g>
     )
   }
