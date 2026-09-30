@@ -1482,12 +1482,11 @@ function OutfitLabPart({ variant }) {
 
   return (
     <svg
-      // P2.4.4.3B.13.1 — Avataaars outfits were authored for a wider torso.
-      // Match the Toon Head body's 521px footprint while keeping the neckline
-      // anchored at the same height so the donor silhouettes hug the body.
-      x="124"
+      // P2.4.4.3B.13.2 — tighten the Avataaars donor silhouette again
+      // while preserving the approved neckline height and centered fit.
+      x="139"
       y="587"
-      width="520"
+      width="490"
       height="181"
       viewBox="0 0 200 95.31"
       preserveAspectRatio="none"
