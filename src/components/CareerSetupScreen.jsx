@@ -15,6 +15,7 @@ const EYE_OPTIONS_PER_PAGE = 8
 const MOUTH_OPTIONS_PER_PAGE = 8
 const FACIAL_HAIR_OPTIONS_PER_PAGE = 8
 const GLASSES_OPTIONS_PER_PAGE = 8
+const ACCESSORY_OPTIONS_PER_PAGE = 8
 
 // P2.4.4.3A/B — Create Player
 // Step 01 owns player-facing identity. Step 02 owns appearance.
@@ -36,6 +37,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
   const [mouthPage, setMouthPage] = useState(0)
   const [facialHairPage, setFacialHairPage] = useState(0)
   const [glassesPage, setGlassesPage] = useState(0)
+  const [accessoryPage, setAccessoryPage] = useState(0)
 
   const screenRef = useRef(null)
   const nameRef = useRef(null)
@@ -139,6 +141,10 @@ function CareerSetupScreen({ profile = null, onBack }) {
     optionPageForValue('glasses', value, GLASSES_OPTIONS_PER_PAGE)
   )
 
+  const accessoryPageForValue = (value) => (
+    optionPageForValue('accessories', value, ACCESSORY_OPTIONS_PER_PAGE)
+  )
+
   const setAppearanceValue = (key, value) => {
     setAppearance((current) => ({ ...current, [key]: value }))
     if (key === 'hair') setHairPage(hairPageForValue(value))
@@ -148,6 +154,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
     if (key === 'mouth') setMouthPage(mouthPageForValue(value))
     if (key === 'facialHair') setFacialHairPage(facialHairPageForValue(value))
     if (key === 'glasses') setGlassesPage(glassesPageForValue(value))
+    if (key === 'accessories') setAccessoryPage(accessoryPageForValue(value))
   }
 
   const selectAppearanceCategory = (key) => {
@@ -161,6 +168,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
       setFacialHairPage(facialHairPageForValue(appearance.facialHair))
     }
     if (key === 'glasses') setGlassesPage(glassesPageForValue(appearance.glasses))
+    if (key === 'accessories') setAccessoryPage(accessoryPageForValue(appearance.accessories))
   }
 
   const randomizeAppearance = () => {
@@ -183,6 +191,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
       setFacialHairPage(facialHairPageForValue(next.facialHair))
     }
     if (appearanceCategory === 'glasses') setGlassesPage(glassesPageForValue(next.glasses))
+    if (appearanceCategory === 'accessories') setAccessoryPage(accessoryPageForValue(next.accessories))
   }
 
   const resetAppearance = () => {
@@ -195,6 +204,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
     setMouthPage(mouthPageForValue(DEFAULT_APPEARANCE.mouth))
     setFacialHairPage(facialHairPageForValue(DEFAULT_APPEARANCE.facialHair))
     setGlassesPage(glassesPageForValue(DEFAULT_APPEARANCE.glasses))
+    setAccessoryPage(accessoryPageForValue(DEFAULT_APPEARANCE.accessories))
   }
 
   const startOptionSwipe = (event) => {
@@ -205,7 +215,8 @@ function CareerSetupScreen({ profile = null, onBack }) {
       appearanceCategory !== 'eyes' &&
       appearanceCategory !== 'mouth' &&
       appearanceCategory !== 'facialHair' &&
-      appearanceCategory !== 'glasses'
+      appearanceCategory !== 'glasses' &&
+      appearanceCategory !== 'accessories'
     ) return
     const touch = event.touches?.[0]
     if (!touch) return
@@ -220,7 +231,8 @@ function CareerSetupScreen({ profile = null, onBack }) {
       appearanceCategory === 'eyes' ||
       appearanceCategory === 'mouth' ||
       appearanceCategory === 'facialHair' ||
-      appearanceCategory === 'glasses'
+      appearanceCategory === 'glasses' ||
+      appearanceCategory === 'accessories'
     if (!pagedCategory || !optionSwipeRef.current) return
     const touch = event.changedTouches?.[0]
     const start = optionSwipeRef.current
@@ -244,7 +256,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
                 ? MOUTH_OPTIONS_PER_PAGE
                 : appearanceCategory === 'facialHair'
                   ? FACIAL_HAIR_OPTIONS_PER_PAGE
-                  : GLASSES_OPTIONS_PER_PAGE
+                  : appearanceCategory === 'glasses'
+                    ? GLASSES_OPTIONS_PER_PAGE
+                    : ACCESSORY_OPTIONS_PER_PAGE
     const pageCount = Math.ceil(APPEARANCE_OPTIONS[appearanceCategory].length / perPage)
     const setPage =
       appearanceCategory === 'hair'
@@ -259,7 +273,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
                 ? setMouthPage
                 : appearanceCategory === 'facialHair'
                   ? setFacialHairPage
-                  : setGlassesPage
+                  : appearanceCategory === 'glasses'
+                    ? setGlassesPage
+                    : setAccessoryPage
     setPage((current) => (
       dx < 0
         ? Math.min(pageCount - 1, current + 1)
@@ -315,7 +331,8 @@ function CareerSetupScreen({ profile = null, onBack }) {
       appearanceCategory === 'eyes' ||
       appearanceCategory === 'mouth' ||
       appearanceCategory === 'facialHair' ||
-      appearanceCategory === 'glasses'
+      appearanceCategory === 'glasses' ||
+      appearanceCategory === 'accessories'
     const optionsPerPage =
       appearanceCategory === 'hair'
         ? HAIR_OPTIONS_PER_PAGE
@@ -329,7 +346,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
                 ? MOUTH_OPTIONS_PER_PAGE
                 : appearanceCategory === 'facialHair'
                   ? FACIAL_HAIR_OPTIONS_PER_PAGE
-                  : GLASSES_OPTIONS_PER_PAGE
+                  : appearanceCategory === 'glasses'
+                    ? GLASSES_OPTIONS_PER_PAGE
+                    : ACCESSORY_OPTIONS_PER_PAGE
     const optionPage =
       appearanceCategory === 'hair'
         ? hairPage
@@ -343,7 +362,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
                 ? mouthPage
                 : appearanceCategory === 'facialHair'
                   ? facialHairPage
-                  : glassesPage
+                  : appearanceCategory === 'glasses'
+                    ? glassesPage
+                    : accessoryPage
     const optionPageCount = optionPaging
       ? Math.ceil(activeOptions.length / optionsPerPage)
       : 1
@@ -361,7 +382,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
                 ? setMouthPage
                 : appearanceCategory === 'facialHair'
                   ? setFacialHairPage
-                  : setGlassesPage
+                  : appearanceCategory === 'glasses'
+                    ? setGlassesPage
+                    : setAccessoryPage
     const visibleOptions = optionPaging
       ? activeOptions.slice(
         safeOptionPage * optionsPerPage,
