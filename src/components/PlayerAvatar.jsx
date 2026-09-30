@@ -81,9 +81,11 @@ export const APPEARANCE_OPTIONS = {
   ],
   eyes: [
     { value: 'docNatural', label: 'Natural' },
-    { value: 'docSoft', label: 'Soft' },
+    { value: 'docFriendly', label: 'Friendly' },
+    { value: 'docWide', label: 'Wide' },
     { value: 'docAlmond', label: 'Almond' },
     { value: 'docUpturned', label: 'Upturned' },
+    { value: 'docDownturned', label: 'Downturned' },
     { value: 'docRelaxed', label: 'Relaxed' },
     { value: 'docFocused', label: 'Focused' },
   ],
@@ -507,55 +509,106 @@ function DocOsEyePair({ variant, color }) {
     const local = (x) => cx + (x * mirror)
     const clipId = `doc-os-eye-${clipSeed}-${side}`
 
-    let upperControl = 24
-    let lowerControl = 61
-    let leftY = 42
-    let rightY = 42
-    let irisY = 42
-    let irisRadius = 17
-    let pupilRadius = 7.5
-    let halfWidth = 36
-
-    if (variant === 'docSoft') {
-      upperControl = 22
-      lowerControl = 60
-      irisY = 42
-      irisRadius = 17.5
-    } else if (variant === 'docAlmond') {
-      upperControl = 20
-      lowerControl = 59
-      halfWidth = 38
-      irisRadius = 16.5
-    } else if (variant === 'docUpturned') {
-      upperControl = 21
-      lowerControl = 59
-      leftY = 45
-      rightY = 37
-      irisY = 41
-      halfWidth = 37
-    } else if (variant === 'docRelaxed') {
-      upperControl = 29
-      lowerControl = 58
-      leftY = 41
-      rightY = 41
-      irisY = 43
-      irisRadius = 16
-      pupilRadius = 7
-    } else if (variant === 'docFocused') {
-      upperControl = 27
-      lowerControl = 57
-      leftY = 42
-      rightY = 38
-      irisY = 42
-      irisRadius = 16
-      pupilRadius = 7.5
+    // Natural is the reference size. Every expression deliberately changes
+    // aperture height, corner angle, or width enough to read as a different
+    // eye silhouette at phone size.
+    const shape = {
+      docNatural: {
+        halfWidth: 40,
+        outerY: 43,
+        innerY: 43,
+        upperY: 19,
+        lowerY: 65,
+        irisY: 43,
+        irisRadius: 19,
+        pupilRadius: 8,
+      },
+      docFriendly: {
+        halfWidth: 40,
+        outerY: 44,
+        innerY: 44,
+        upperY: 26,
+        lowerY: 61,
+        irisY: 45,
+        irisRadius: 19,
+        pupilRadius: 8,
+      },
+      docWide: {
+        halfWidth: 39,
+        outerY: 43,
+        innerY: 43,
+        upperY: 12,
+        lowerY: 70,
+        irisY: 43,
+        irisRadius: 20,
+        pupilRadius: 8.5,
+      },
+      docAlmond: {
+        halfWidth: 44,
+        outerY: 43,
+        innerY: 43,
+        upperY: 25,
+        lowerY: 59,
+        irisY: 43,
+        irisRadius: 18,
+        pupilRadius: 7.5,
+      },
+      docUpturned: {
+        halfWidth: 42,
+        outerY: 37,
+        innerY: 45,
+        upperY: 20,
+        lowerY: 63,
+        irisY: 42,
+        irisRadius: 18.5,
+        pupilRadius: 8,
+      },
+      docDownturned: {
+        halfWidth: 42,
+        outerY: 48,
+        innerY: 40,
+        upperY: 23,
+        lowerY: 65,
+        irisY: 44,
+        irisRadius: 18.5,
+        pupilRadius: 8,
+      },
+      docRelaxed: {
+        halfWidth: 41,
+        outerY: 42,
+        innerY: 42,
+        upperY: 31,
+        lowerY: 58,
+        irisY: 45,
+        irisRadius: 18,
+        pupilRadius: 7.5,
+      },
+      docFocused: {
+        halfWidth: 41,
+        outerY: 38,
+        innerY: 46,
+        upperY: 28,
+        lowerY: 59,
+        irisY: 44,
+        irisRadius: 18,
+        pupilRadius: 8,
+      },
+    }[variant] || {
+      halfWidth: 40,
+      outerY: 43,
+      innerY: 43,
+      upperY: 19,
+      lowerY: 65,
+      irisY: 43,
+      irisRadius: 19,
+      pupilRadius: 8,
     }
 
-    const x1 = local(-halfWidth)
-    const x2 = local(halfWidth)
-    const aperture = `M ${x1} ${leftY} Q ${cx} ${upperControl} ${x2} ${rightY} Q ${cx} ${lowerControl} ${x1} ${leftY} Z`
-    const upperLid = `M ${x1} ${leftY} Q ${cx} ${upperControl} ${x2} ${rightY}`
-    const lowerLid = `M ${x1 + (7 * mirror)} ${leftY + 4} Q ${cx} ${lowerControl - 2} ${x2 - (7 * mirror)} ${rightY + 4}`
+    const xOuter = local(-shape.halfWidth)
+    const xInner = local(shape.halfWidth)
+    const aperture = `M ${xOuter} ${shape.outerY} Q ${cx} ${shape.upperY} ${xInner} ${shape.innerY} Q ${cx} ${shape.lowerY} ${xOuter} ${shape.outerY} Z`
+    const upperLid = `M ${xOuter} ${shape.outerY} Q ${cx} ${shape.upperY} ${xInner} ${shape.innerY}`
+    const lowerLid = `M ${xOuter + (7 * mirror)} ${shape.outerY + 4} Q ${cx} ${shape.lowerY - 2} ${xInner - (7 * mirror)} ${shape.innerY + 4}`
 
     return (
       <g>
@@ -570,20 +623,25 @@ function DocOsEyePair({ variant, color }) {
         <g clipPath={`url(#${clipId})`}>
           <circle
             cx={cx}
-            cy={irisY}
-            r={irisRadius}
+            cy={shape.irisY}
+            r={shape.irisRadius}
             fill={iris}
             stroke={lid}
             strokeWidth="2.5"
           />
-          <circle cx={cx} cy={irisY + 1} r={pupilRadius} fill={pupil} />
+          <circle
+            cx={cx}
+            cy={shape.irisY + 1}
+            r={shape.pupilRadius}
+            fill={pupil}
+          />
         </g>
 
         <path
           d={upperLid}
           fill="none"
           stroke={lid}
-          strokeWidth="8"
+          strokeWidth="9"
           strokeLinecap="round"
         />
         <path
