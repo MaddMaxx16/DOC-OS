@@ -626,7 +626,7 @@ function GlassesLabElement({ node, keyPath }) {
 }
 
 const GLASSES_LAB_ZONES = {
-  avataaars: { x: 250, y: 350, width: 268, height: 191 },
+  avataaars: { x: 250, y: 326, width: 268, height: 191 },
   lorelei: { x: 240, y: 365, width: 288, height: 132 },
   adventurer: { x: 240, y: 365, width: 288, height: 131 },
 }
