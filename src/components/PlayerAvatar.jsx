@@ -100,10 +100,13 @@ export const APPEARANCE_OPTIONS = {
   ],
   mouth: [
     { value: 'smile', label: 'Soft Smile' },
-    { value: 'laugh', label: 'Laugh' },
+    { value: 'line', label: 'Neutral' },
+    { value: 'smirk', label: 'Smirk' },
+    { value: 'shy', label: 'Small Smile' },
+    { value: 'pleased', label: 'Side Smile' },
+    { value: 'laugh', label: 'Big Smile' },
     { value: 'agape', label: 'Open' },
     { value: 'sad', label: 'Downturned' },
-    { value: 'angry', label: 'Firm' },
   ],
   facialHair: [
     { value: 'none', label: 'Clean Shaven' },
@@ -496,6 +499,39 @@ function AvataaarsHair({ variant, color, layer = 'front' }) {
 
 const EYE_INK = '#4b2422'
 
+const DOC_OS_LINE_MOUTHS = {
+  line: 'M8 10 L36 8',
+  smirk: 'M9 10 Q23 14 35 6',
+  shy: 'M15 9.5 Q23 13.5 31 8.5',
+  pleased: 'M4 9 Q20 16 34 8 L41 3',
+}
+
+function DocOsLineMouth({ variant }) {
+  const path = DOC_OS_LINE_MOUTHS[variant]
+  if (!path) return null
+
+  return (
+    <svg
+      x="327"
+      y="482"
+      width="114"
+      height="47"
+      viewBox="0 0 44 18"
+      preserveAspectRatio="xMidYMid meet"
+      overflow="visible"
+    >
+      <path
+        d={path}
+        fill="none"
+        stroke={EYE_INK}
+        strokeWidth="4.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 function DocOsEyePair({ variant, color }) {
   const clipSeed = useId().replace(/:/g, '')
   const iris = color || '#6f4b32'
@@ -738,13 +774,15 @@ function buildToonHeadPortrait(appearance) {
   const notionEyes = NOTION_EYES[eyes] || null
   const docOsEyes = eyes?.startsWith('doc') ? eyes : 'docRound'
   const eyeColor = optionColor('eyeColor', appearance.eyeColor, '#6f4b32')
+  const docOsMouth = DOC_OS_LINE_MOUTHS[mouth] ? mouth : null
 
   const params = new URLSearchParams({
     seed: 'doc-os-metroline-player',
     skinColor,
     hairColor,
     clothesColor: METROLINE_OUTFIT_COLOR,
-    mouthVariant: mouth,
+    mouthVariant: docOsMouth ? 'smile' : mouth,
+    mouthProbability: docOsMouth ? '0' : '100',
     clothesVariant: outfit,
     beardProbability: hasFacialHair ? '100' : '0',
     eyebrowsProbability: notionBrows ? '0' : '100',
@@ -767,6 +805,7 @@ function buildToonHeadPortrait(appearance) {
     notionEyes,
     docOsEyes,
     eyeColor: `#${eyeColor}`,
+    docOsMouth,
     notionGlasses: NOTION_GLASSES[glasses] || null,
     notionAccessories: NOTION_ACCESSORIES[accessories] || null,
     hairColor: `#${hairColor}`,
@@ -780,6 +819,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
     portrait.notionBrows ||
     portrait.notionEyes ||
     portrait.docOsEyes ||
+    portrait.docOsMouth ||
     portrait.notionGlasses ||
     portrait.notionAccessories,
   )
@@ -890,6 +930,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
           {portrait.docOsEyes && (
             <DocOsEyePair variant={portrait.docOsEyes} color={portrait.eyeColor} />
           )}
+          {portrait.docOsMouth && <DocOsLineMouth variant={portrait.docOsMouth} />}
           {portrait.notionGlasses && (
             <NotionPart
               assetKey="glasses"
