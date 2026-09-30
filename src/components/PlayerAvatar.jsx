@@ -834,7 +834,7 @@ function DocOsAccessoryPiece({ variant }) {
 
     case 'docAccessoryCuff':
       return (
-        <g transform="translate(-23 -48) rotate(22)">
+        <g transform="translate(-21 -48) rotate(22) scale(.9)">
           {/* A cuff clamps around the lower lobe rather than hanging from a
               piercing. Keep the C tight to the ear edge with its opening
               facing inward toward the face. */}
