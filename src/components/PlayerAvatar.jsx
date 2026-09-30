@@ -835,24 +835,30 @@ function DocOsAccessoryPiece({ variant }) {
     case 'docAccessoryCuff':
       return (
         <g transform="translate(-21 -48) rotate(22) scale(.9)">
-          {/* Front lip only. The complete C is rendered beneath Toon Head so
-              its lower return disappears naturally behind the ear. */}
+          {/* Use the exact approved 12.27 C geometry on the front layer.
+              Only the final return is withheld so it can disappear behind
+              the Toon Head ear; this preserves the original size/silhouette
+              and overlaps the ear edge cleanly instead of creating a seam. */}
           <path
-            d="M -5 -14 C -14 -14 -20 -9 -22 -2"
+            d="M -5 -14 C -19 -13 -23 -3 -22 6 C -21 15 -15 20 -7 17"
+            pathLength="100"
+            strokeDasharray="82 100"
             fill="none"
             stroke={ink}
             strokeWidth="14"
             strokeLinecap="round"
           />
           <path
-            d="M -5 -14 C -14 -14 -20 -9 -22 -2"
+            d="M -5 -14 C -19 -13 -23 -3 -22 6 C -21 15 -15 20 -7 17"
+            pathLength="100"
+            strokeDasharray="82 100"
             fill="none"
             stroke={gold}
             strokeWidth="8"
             strokeLinecap="round"
           />
           <path
-            d="M -8 -10 C -13 -9 -17 -6 -18 -3"
+            d="M -8 -10 C -15 -8 -17 -2 -17 4"
             fill="none"
             stroke={shine}
             strokeWidth="2.5"
