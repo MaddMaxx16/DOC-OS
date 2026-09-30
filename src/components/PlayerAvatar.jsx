@@ -546,10 +546,13 @@ const MOUTH_LAB_TUNING = {
   // only a small or off-center portion of their native box.
   'avataaars-smile': { viewBox: '18 -2 56 36' },
   'avataaars-serious': { viewBox: '20 -2 52 34' },
-  'personas-lips': { viewBox: '-2 -1 14 10' },
-  'adventurer-variant03': { viewBox: '42 76 96 66' },
-  'adventurer-variant06': { viewBox: '16 6 130 72' },
-  'adventurer-variant09': { viewBox: '-10 20 135 45' },
+  // 9.7 finalist tuning from iPhone QA:
+  // Persona Lips needs more horizontal presence without getting taller.
+  // ADV 03/06 need less overall visual mass; ADV 09 only needs less width.
+  'personas-lips': { viewBox: '-2 -1 14 10', scaleX: 1.16 },
+  'adventurer-variant03': { viewBox: '42 76 96 66', scale: 0.88 },
+  'adventurer-variant06': { viewBox: '16 6 130 72', scale: 0.88 },
+  'adventurer-variant09': { viewBox: '-10 20 135 45', scaleX: 0.86 },
 }
 
 function MouthLabPart({ candidate }) {
@@ -571,13 +574,21 @@ function MouthLabPart({ candidate }) {
       preserveAspectRatio="xMidYMid meet"
       overflow="visible"
     >
-      {candidate.elements.map((node, index) => (
-        <MouthLabElement
-          key={`${candidate.style}-${candidate.variant}-${index}`}
-          keyPath={`${candidate.style}-${candidate.variant}-${index}`}
-          node={node}
-        />
-      ))}
+      <g
+        transform={
+          tuning.scale || tuning.scaleX
+            ? `translate(${candidate.width / 2} ${candidate.height / 2}) scale(${tuning.scaleX || tuning.scale || 1} ${tuning.scale || 1}) translate(${-candidate.width / 2} ${-candidate.height / 2})`
+            : undefined
+        }
+      >
+        {candidate.elements.map((node, index) => (
+          <MouthLabElement
+            key={`${candidate.style}-${candidate.variant}-${index}`}
+            keyPath={`${candidate.style}-${candidate.variant}-${index}`}
+            node={node}
+          />
+        ))}
+      </g>
     </svg>
   )
 }
