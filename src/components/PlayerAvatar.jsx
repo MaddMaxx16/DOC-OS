@@ -647,9 +647,23 @@ function DocOsAccessoryPiece({ variant }) {
     case 'docAccessorySmallHoop':
       return (
         <>
-          <circle cx="0" cy="12" r="17" fill="none" stroke={ink} strokeWidth="11" />
-          <circle cx="0" cy="12" r="17" fill="none" stroke={gold} strokeWidth="7" />
-          <rect x="-8" y="-9" width="16" height="13" fill="#000" opacity=".01" />
+          {/* Open the hoop at the piercing point so the lobe visually passes
+              through the ring instead of the ring reading as pasted on top. */}
+          <path
+            d="M -5 0 C -13 4 -17 12 -17 21 C -17 31 -10 38 0 38 C 10 38 17 31 17 21 C 17 12 13 4 5 0"
+            fill="none"
+            stroke={ink}
+            strokeWidth="11"
+            strokeLinecap="round"
+          />
+          <path
+            d="M -5 0 C -13 4 -17 12 -17 21 C -17 31 -10 38 0 38 C 10 38 17 31 17 21 C 17 12 13 4 5 0"
+            fill="none"
+            stroke={gold}
+            strokeWidth="7"
+            strokeLinecap="round"
+          />
+          <path d="M -4 1 C -9 5 -11 9 -12 14" fill="none" stroke={shine} strokeWidth="2" strokeLinecap="round" />
         </>
       )
 
