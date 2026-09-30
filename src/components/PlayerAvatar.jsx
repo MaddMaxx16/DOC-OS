@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { createElement, useEffect, useState } from 'react'
 import { AVATAAARS_HAIR_VARIANTS, AVATAAARS_LAYERED_HAIR } from '../data/avataaarsHair'
+import { EYE_STYLE_AUDITION } from '../data/eyeStyleAudition'
 
 // P2.4.4.3B.6.6G — final targeted Avataaars seam cleanup
 // Clean the six approved audition candidates without reopening the whole hair
@@ -81,17 +82,8 @@ export const APPEARANCE_OPTIONS = {
   ],
   eyes: [
     { value: 'humble', label: 'Toon · Natural' },
-    { value: 'happy', label: 'Toon · Friendly' },
     { value: 'wide', label: 'Toon · Wide' },
-    { value: 'bow', label: 'Toon · Bow' },
-    { value: 'wink', label: 'Toon · Wink' },
-    { value: 'avaEyeDefault', label: 'Ava · Natural' },
-    { value: 'avaEyeHappy', label: 'Ava · Happy' },
-    { value: 'avaEyeSurprised', label: 'Ava · Surprised' },
-    { value: 'avaEyeSquint', label: 'Ava · Squint' },
-    { value: 'adventureEyeRound', label: 'Adventure · Round' },
-    { value: 'adventureEyeSoft', label: 'Adventure · Soft' },
-    { value: 'adventureEyeFocused', label: 'Adventure · Focused' },
+    ...EYE_STYLE_AUDITION.map(({ value, label }) => ({ value, label })),
   ],
   mouth: [
     { value: 'smile', label: 'Soft Smile' },
@@ -221,15 +213,9 @@ const NOTION_BROWS = {
 
 const NOTION_EYES = {}
 
-const DONOR_EYES = {
-  avaEyeDefault: { family: 'avataaars', variant: 'default' },
-  avaEyeHappy: { family: 'avataaars', variant: 'happy' },
-  avaEyeSurprised: { family: 'avataaars', variant: 'surprised' },
-  avaEyeSquint: { family: 'avataaars', variant: 'squint' },
-  adventureEyeRound: { family: 'adventurer', variant: 'round' },
-  adventureEyeSoft: { family: 'adventurer', variant: 'soft' },
-  adventureEyeFocused: { family: 'adventurer', variant: 'focused' },
-}
+const EYE_STYLE_AUDITION_BY_VALUE = Object.fromEntries(
+  EYE_STYLE_AUDITION.map((candidate) => [candidate.value, candidate]),
+)
 
 const NOTION_GLASSES = {
   notionGlasses1: '1',
@@ -499,106 +485,109 @@ function AvataaarsHair({ variant, color, layer = 'front' }) {
 
 const EYE_INK = '#4b2422'
 
-function AvataaarsEyes({ variant }) {
-  const transform = 'translate(271 377) scale(2.67)'
-
-  if (variant === 'default') {
-    return (
-      <g transform={transform} fill={EYE_INK}>
-        <circle cx="16" cy="14" r="6" />
-        <circle cx="68" cy="14" r="6" />
-      </g>
-    )
-  }
-
-  if (variant === 'happy') {
-    return (
-      <g transform={transform}>
-        <path
-          d="M2.16 14.45C4.01 10.65 8.16 8 13 8c4.81 0 8.96 2.63 10.82 6.4.55 1.13-.24 2.05-1.03 1.37A15 15 0 0 0 13 12.34c-3.73 0-7.12 1.24-9.55 3.23-.9.73-1.82-.01-1.28-1.12m57.99 0C62.01 10.65 66.16 8 71 8c4.81 0 8.96 2.63 10.82 6.4.55 1.13-.24 2.05-1.03 1.37A15 15 0 0 0 71 12.34c-3.73 0-7.12 1.24-9.55 3.23-.9.73-1.82-.01-1.28-1.12"
-          fill={EYE_INK}
-        />
-      </g>
-    )
-  }
-
-  if (variant === 'surprised') {
-    return (
-      <g transform={transform}>
-        <circle cx="16" cy="14" r="14" fill="#ffffff" />
-        <circle cx="68" cy="14" r="14" fill="#ffffff" />
-        <circle cx="16" cy="14" r="6" fill={EYE_INK} />
-        <circle cx="68" cy="14" r="6" fill={EYE_INK} />
-      </g>
-    )
-  }
-
-  if (variant === 'squint') {
-    return (
-      <g transform={transform}>
-        <ellipse cx="16" cy="12.72" rx="14" ry="7.72" fill="#ffffff" />
-        <ellipse cx="68" cy="12.72" rx="14" ry="7.72" fill="#ffffff" />
-        <path
-          d="M18.82 20.3a25 25 0 0 1-5.64 0 6 6 0 1 1 5.64 0m52 0a25 25 0 0 1-5.64 0 6 6 0 1 1 5.64 0"
-          fill={EYE_INK}
-        />
-      </g>
-    )
-  }
-
-  return null
+const DONOR_EYE_ATTRIBUTE_MAP = {
+  'clip-rule': 'clipRule',
+  'fill-opacity': 'fillOpacity',
+  'fill-rule': 'fillRule',
+  'stroke-linecap': 'strokeLinecap',
+  'stroke-linejoin': 'strokeLinejoin',
+  'stroke-miterlimit': 'strokeMiterlimit',
+  'stroke-opacity': 'strokeOpacity',
+  'stroke-width': 'strokeWidth',
 }
 
-function AdventurerEyes({ variant }) {
-  const transform = 'translate(256 350) scale(.818)'
-  const ink = EYE_INK
-
-  if (variant === 'round') {
-    return (
-      <g transform={transform}>
-        <path d="M274.3 9.8c11.8 7 21 17.6 26.7 30 5.9-3.1 11.6-6.7 17.6-9.6 1.8-1 4.4.5 4 2.6.2 1.5-2 2.5-3 3.2l-16.4 9a65.7 65.7 0 0 1-39.4 82.3 66 66 0 0 1-78.5-27.5 64 64 0 0 1-9.3-33A65 65 0 0 1 229.3 2c15.2-3 31.6 0 45 7.8" fill={ink} />
-        <circle cx="241.1" cy="66.2" r="59.6" fill="#ffffff" />
-        <path d="M74.3 23.7a55 55 0 1 1-55.7 38.7L7.3 58c-2-.8-4-1.4-5.4-3q-.5-4 3.2-3.7c5.2 1.3 10 4.2 15.2 5.6 1.4-1.7 2.2-3.8 3.3-5.7a55 55 0 0 1 50.7-27.4" fill={ink} />
-        <circle cx="71.2" cy="78.7" r="49.3" fill="#ffffff" />
-        <path d="M262.6 42.2a25 25 0 0 1 27.9 24.6c-.3 4.8-1.8 9.7-4.6 13.6A25 25 0 0 1 267.3 91a24.5 24.5 0 0 1-21.8-38 25 25 0 0 1 17-10.8M92.7 55.3a23 23 0 0 1 19.7 7.5q6 6.8 5.7 16c0 12-10.7 22.8-22.8 22.3a23 23 0 0 1-22.9-22.3 23 23 0 0 1 20.3-23.5" fill={ink} />
-      </g>
-    )
+function donorEyeColor(value) {
+  if (value && typeof value === 'object' && value.type === 'color') {
+    return value.name === 'sclera' ? '#ffffff' : EYE_INK
   }
 
-  if (variant === 'soft') {
-    return (
-      <g transform={transform}>
-        <path d="M239.3.9a65 65 0 0 1 63.5 43.4c2.1 5.6 2.6 11.1 3.6 17-1.3 1.4-1.7 3.3-4 3-7-.4-14-2.1-21-2.3-8.8 0-17.4-.4-26.1 1-9.9 1.6-19.6 2.6-29.1 5.7A175 175 0 0 0 193.7 81c-3.4 1.7-6.5 3.8-9.9 5.3-2 .7-4.4.3-5.3-2a66 66 0 0 1 17.2-65.2A65 65 0 0 1 239.3 1" fill={ink} />
-        <path d="M241.3 6.6a59 59 0 0 1 59 52.5q-22.4-4.4-45-2.5-9 1.2-17.9 2.9c-13.4 3-31.4 11-48.6 17.1l-5.8 3A60 60 0 0 1 203.5 20a59 59 0 0 1 37.8-13.4" fill="#ffffff" />
-        <path d="M203.5 39.1a26 26 0 0 1 30.3 11.1c1.9 3 2.7 6 3.6 9.3-13.4 3-31.4 11-48.6 17.1-3.5-7-4.3-15.2-1.3-22.6 2.9-7 8.8-12.6 16-14.9" fill={ink} />
-        <path d="M95.7 29.4a55 55 0 0 1 29.4 61.2l-2.9 1.5q-14.7-4.1-29.9-5.4a348 348 0 0 0-54 0c-7 .2-13.5 2-20.5 1.6-.8-2.4-1.7-4.8-1.7-7.5a55 55 0 0 1 79.6-51.5" fill={ink} />
-        <path d="M81.5 30.4a49.6 49.6 0 0 1 38.6 55.3 83 83 0 0 0-12.3-3q-18.7-2.9-37.7-2.4c-15.1.9-31.1 2.2-46 3-1.8-1.2-2-1.3-2-3.4a49.4 49.4 0 0 1 59.5-49.4" fill="#ffffff" />
-        <path d="M26 68.5a23.1 23.1 0 0 1 42.7.8c1.5 3.6 1.4 7.1 1.4 11l-5.7.3c-13.4 1-27.3 2-40.4 2.8.2-5.2-.3-10 2-14.9" fill={ink} />
-      </g>
-    )
+  if (typeof value !== 'string') return value
+
+  const normalized = value.toLowerCase()
+  if (normalized === 'none' || normalized === 'transparent') return value
+  if (normalized === '#fff' || normalized === '#ffffff' || normalized === 'white') {
+    return '#ffffff'
   }
 
-  if (variant === 'focused') {
-    return (
-      <g transform={transform}>
-        <path d="M258.8 3.3a66 66 0 0 1 34 22.7c7.5-5.1 14.7-10.7 22.4-15.7l3 1.3c-.3 2.1-.2 3.6-2.2 4.9l-20 14.2a65 65 0 0 1 9.8 44c-.5 2.7-3 3.4-5.5 3.6q-29.6 1.7-59 5.4c-11 1.4-22.2 2-33.2 3.6L194.5 89c-5 .7-9.5 1.7-14.5.3a65.2 65.2 0 0 1 78.8-86.1" fill={ink} />
-        <path d="M249.8 7.2a60 60 0 0 1 50.7 65.2q-7 .8-14.2 1.2c-18 1.2-36 3.3-53.8 5.4Q212 82 192 84.5l-7.3.8a59.3 59.3 0 0 1 35.4-74.9 61 61 0 0 1 29.7-3.2" fill="#ffffff" />
-        <path d="M205.2 43.7c6-1 12.2-.5 17.5 2.7A25 25 0 0 1 235 69.8c-.3 3.2-1.5 6.3-2.5 9.2l-5.1.7q-18 2.6-35.4 4.8l-.6-.8a24 24 0 0 1-5.7-14.9c-.8-11.8 8-23 19.5-25.1" fill={ink} />
-        <path d="M100.8 32.2A55 55 0 0 1 124.1 94c-5.3 1-10.4.5-15.8.5-24-.2-48-.1-72 1.5-5.9-.2-12.6 1.6-17.8-1.3-1-4.5-2.1-9.1-2.3-13.8-.3-10 2.2-20 6.8-29q-9.2-5.6-18.2-11.6C3 38.8 3.1 37.5 4 35.5c2.8-1 4.5.5 6.8 1.8L26 47a55.3 55.3 0 0 1 74.8-14.9" fill={ink} />
-        <path d="M85.1 31.3a49.4 49.4 0 0 1 34.3 57.9l-5.6.1-38.4-.3q-20 0-40 1.6c-3.8.2-8 .7-11.6-.3-1.6-3-1.6-7.1-1.8-10.5a49 49 0 0 1 63.1-48.5" fill="#ffffff" />
-        <path d="M89.3 56q6-1.5 11.8.1c8.3 2.6 14.7 10 15.6 18.7a26 26 0 0 1-2.9 14.5L75.4 89l-.3-.8a25 25 0 0 1-2.4-12.4 22 22 0 0 1 16.6-19.9" fill={ink} />
-      </g>
-    )
+  // The sampler is about silhouette/style, not each donor library's palette.
+  // Normalize donor ink to the same DOC OS facial-feature color.
+  if (
+    normalized === '#000' ||
+    normalized === '#000000' ||
+    normalized === 'black' ||
+    normalized === '#161616' ||
+    normalized === '#1b0640' ||
+    normalized === '#2a1200' ||
+    normalized === '#403e3e' ||
+    normalized === '#71472d' ||
+    normalized === '#757575'
+  ) {
+    return EYE_INK
   }
 
-  return null
+  return value
+}
+
+function DonorEyeNode({ node, keyPath }) {
+  const supported = new Set(['g', 'path', 'circle', 'ellipse', 'rect', 'line', 'polyline', 'polygon'])
+  if (!supported.has(node.name)) return null
+
+  const attributes = {}
+  for (const [key, value] of Object.entries(node.attributes || {})) {
+    const reactKey = DONOR_EYE_ATTRIBUTE_MAP[key] || key
+    attributes[reactKey] =
+      key === 'fill' || key === 'stroke' ? donorEyeColor(value) : value
+  }
+
+  const children = (node.children || []).map((child, index) => (
+    <DonorEyeNode
+      key={`${keyPath}-${index}`}
+      keyPath={`${keyPath}-${index}`}
+      node={child}
+    />
+  ))
+
+  return createElement(node.name, { key: keyPath, ...attributes }, children)
 }
 
 function DonorEyes({ donor }) {
   if (!donor) return null
-  if (donor.family === 'avataaars') return <AvataaarsEyes variant={donor.variant} />
-  if (donor.family === 'adventurer') return <AdventurerEyes variant={donor.variant} />
-  return null
+
+  const content = donor.elements.map((node, index) => (
+    <DonorEyeNode
+      key={`${donor.value}-${index}`}
+      keyPath={`${donor.value}-${index}`}
+      node={node}
+    />
+  ))
+
+  if (donor.singleEye) {
+    // Initial Face defines one eye and mirrors it at the face level.
+    return (
+      <>
+        <svg x="318" y="374" width="46" height="46" viewBox={`0 0 ${donor.width} ${donor.height}`}>
+          {content}
+        </svg>
+        <svg x="404" y="374" width="46" height="46" viewBox={`0 0 ${donor.width} ${donor.height}`}>
+          <g transform={`translate(${donor.width} 0) scale(-1 1)`}>{content}</g>
+        </svg>
+      </>
+    )
+  }
+
+  return (
+    <svg
+      x={donor.box.x}
+      y={donor.box.y}
+      width={donor.box.width}
+      height={donor.box.height}
+      viewBox={`0 0 ${donor.width} ${donor.height}`}
+      preserveAspectRatio="xMidYMid meet"
+      overflow="visible"
+    >
+      {content}
+    </svg>
+  )
 }
 
 function loadNotionAsset(assetKey, index) {
@@ -725,7 +714,7 @@ function buildToonHeadPortrait(appearance) {
   const hasFacialHair = facialHair !== 'none'
   const notionBrows = NOTION_BROWS[brows] || null
   const notionEyes = NOTION_EYES[eyes] || null
-  const donorEyes = DONOR_EYES[eyes] || null
+  const donorEyes = EYE_STYLE_AUDITION_BY_VALUE[eyes] || null
 
   const params = new URLSearchParams({
     seed: 'doc-os-metroline-player',
