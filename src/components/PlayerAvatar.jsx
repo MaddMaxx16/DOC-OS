@@ -9,6 +9,10 @@ import {
   GLASSES_LAB_CANDIDATES,
   GLASSES_LAB_OPTIONS,
 } from '../data/glassesStyleAudition'
+import {
+  ACCESSORY_LAB_CANDIDATES,
+  ACCESSORY_LAB_OPTIONS,
+} from '../data/accessoryStyleAudition'
 
 // P2.4.4.3B.6.6G — final targeted Avataaars seam cleanup
 // Clean the six approved audition candidates without reopening the whole hair
@@ -110,23 +114,7 @@ export const APPEARANCE_OPTIONS = {
   mouth: MOUTH_LAB_OPTIONS,
   facialHair: FACIAL_HAIR_LAB_OPTIONS,
   glasses: GLASSES_LAB_OPTIONS,
-  accessories: [
-    { value: 'none', label: 'None' },
-    { value: 'notionAccessory1', label: 'Notion · 02' },
-    { value: 'notionAccessory2', label: 'Notion · 03' },
-    { value: 'notionAccessory3', label: 'Notion · 04' },
-    { value: 'notionAccessory4', label: 'Notion · 05' },
-    { value: 'notionAccessory5', label: 'Notion · 06' },
-    { value: 'notionAccessory6', label: 'Notion · 07' },
-    { value: 'notionAccessory7', label: 'Notion · 08' },
-    { value: 'notionAccessory8', label: 'Notion · 09' },
-    { value: 'notionAccessory9', label: 'Notion · 10' },
-    { value: 'notionAccessory10', label: 'Notion · 11' },
-    { value: 'notionAccessory11', label: 'Notion · 12' },
-    { value: 'notionAccessory12', label: 'Notion · 13' },
-    { value: 'notionAccessory13', label: 'Notion · 14' },
-    { value: 'notionAccessory14', label: 'Notion · 15' },
-  ],
+  accessories: ACCESSORY_LAB_OPTIONS,
   outfit: [
     { value: 'shirt', label: 'Work Shirt' },
     { value: 'openJacket', label: 'Open Jacket' },
@@ -608,6 +596,82 @@ function MouthLabPart({ candidate }) {
           />
         ))}
       </g>
+    </svg>
+  )
+}
+
+function normalizeAccessoryAttributes(attributes = {}) {
+  const normalized = {}
+
+  Object.entries(attributes).forEach(([key, rawValue]) => {
+    if (key === 'style') return
+
+    const mappedKey = {
+      'fill-opacity': 'fillOpacity',
+      'fill-rule': 'fillRule',
+      'clip-rule': 'clipRule',
+      'stroke-width': 'strokeWidth',
+      'stroke-linecap': 'strokeLinecap',
+      'stroke-linejoin': 'strokeLinejoin',
+    }[key] || key
+
+    if (rawValue === '__ACCESSORY_COLOR__') {
+      normalized[mappedKey] = '#d0ad62'
+    } else {
+      normalized[mappedKey] = rawValue
+    }
+  })
+
+  return normalized
+}
+
+function AccessoryLabElement({ node, keyPath }) {
+  const attributes = normalizeAccessoryAttributes(node.attributes)
+
+  if (node.name === 'path') return <path key={keyPath} {...attributes} />
+  if (node.name === 'circle') return <circle key={keyPath} {...attributes} />
+  if (node.name === 'ellipse') return <ellipse key={keyPath} {...attributes} />
+  if (node.name === 'rect') return <rect key={keyPath} {...attributes} />
+
+  return null
+}
+
+const ACCESSORY_LAB_ZONES = {
+  micah: { x: 188, y: 390, width: 390, height: 108 },
+  adventurer: { x: 184, y: 380, width: 400, height: 150 },
+  lorelei: { x: 184, y: 378, width: 400, height: 154 },
+}
+
+function AccessoryLabPart({ candidate }) {
+  if (!candidate) return null
+
+  const isHairAccessory = candidate.component === 'hairAccessories'
+  const zone = isHairAccessory
+    ? { x: 178, y: 198, width: 410, height: 220 }
+    : ACCESSORY_LAB_ZONES[candidate.style] || {
+      x: 184,
+      y: 382,
+      width: 400,
+      height: 150,
+    }
+
+  return (
+    <svg
+      x={zone.x}
+      y={zone.y}
+      width={zone.width}
+      height={zone.height}
+      viewBox={`0 0 ${candidate.width} ${candidate.height}`}
+      preserveAspectRatio="xMidYMid meet"
+      overflow="visible"
+    >
+      {candidate.elements.map((node, index) => (
+        <AccessoryLabElement
+          key={`${candidate.style}-${candidate.component}-${candidate.variant}-${index}`}
+          keyPath={`${candidate.style}-${candidate.component}-${candidate.variant}-${index}`}
+          node={node}
+        />
+      ))}
     </svg>
   )
 }
@@ -1100,6 +1164,9 @@ function buildToonHeadPortrait(appearance) {
     : null
   const glassesLab = glasses.startsWith('glasseslab-')
     ? GLASSES_LAB_CANDIDATES[glasses.slice('glasseslab-'.length)] || null
+    : null
+  const accessoryLab = accessories.startsWith('accessorylab-')
+    ? ACCESSORY_LAB_CANDIDATES[accessories.slice('accessorylab-'.length)] || null
     : null
   const hasNativeFacialHair = facialHair !== 'none' && !facialHairLab
   const notionBrows = NOTION_BROWS[brows] || null
