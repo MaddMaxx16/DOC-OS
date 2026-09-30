@@ -1476,25 +1476,18 @@ function OutfitLabElement({ node, keyPath }) {
   return null
 }
 
-function OutfitLabPart({
-  variant,
-  x = 149,
-  y = 600,
-  width = 470,
-  height = 181,
-}) {
+function OutfitLabPart({ variant }) {
   const candidate = AVATAAARS_OUTFIT_VARIANTS[variant]
   if (!candidate) return null
 
   return (
     <svg
-      // P2.4.4.3B.13.6 — 13.5 remains the approved visible fit. Placement
-      // props also let a clipped rear copy bridge the neck/body seam without
-      // moving or resizing the visible collar, lapels, or shoulders.
-      x={x}
-      y={y}
-      width={width}
-      height={height}
+      // P2.4.4.3B.13.8 — lock the approved shared donor fit from 13.5.
+      // Variant-specific neckline cleanup now lives with the donor geometry.
+      x="149"
+      y="600"
+      width="470"
+      height="181"
       viewBox="0 0 200 95.31"
       preserveAspectRatio="none"
       overflow="visible"
@@ -1675,38 +1668,6 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
           }}
         >
           <DocOsAccessoryCuffRearPair side={portrait.accessorySide} />
-        </svg>
-      )}
-
-      {portrait.outfitLab && (
-        <svg
-          viewBox="0 0 768 768"
-          preserveAspectRatio="xMidYMid slice"
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            display: 'block',
-            pointerEvents: 'none',
-            zIndex: 0,
-          }}
-        >
-          <defs>
-            <clipPath id="doc-os-outfit-neck-seam">
-              {/* Keep the rear donor patch directly under the neck only.
-                  The previous shoulder-wide clip exposed thin donor edges
-                  beside the neck on blazer/sweater silhouettes. */}
-              <rect x="286" y="582" width="196" height="40" />
-            </clipPath>
-          </defs>
-          <g clipPath="url(#doc-os-outfit-neck-seam)">
-            <OutfitLabPart
-              variant={portrait.outfitLab}
-              y={590}
-            />
-          </g>
         </svg>
       )}
 
