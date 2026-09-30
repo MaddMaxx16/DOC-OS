@@ -835,25 +835,24 @@ function DocOsAccessoryPiece({ variant }) {
     case 'docAccessoryCuff':
       return (
         <g transform="translate(-21 -48) rotate(22) scale(.9)">
-          {/* A cuff clamps around the lower lobe rather than hanging from a
-              piercing. Keep the C tight to the ear edge with its opening
-              facing inward toward the face. */}
+          {/* Front lip only. The complete C is rendered beneath Toon Head so
+              its lower return disappears naturally behind the ear. */}
           <path
-            d="M -5 -14 C -19 -13 -23 -3 -22 6 C -21 15 -15 20 -7 17"
+            d="M -5 -14 C -14 -14 -20 -9 -22 -2"
             fill="none"
             stroke={ink}
             strokeWidth="14"
             strokeLinecap="round"
           />
           <path
-            d="M -5 -14 C -19 -13 -23 -3 -22 6 C -21 15 -15 20 -7 17"
+            d="M -5 -14 C -14 -14 -20 -9 -22 -2"
             fill="none"
             stroke={gold}
             strokeWidth="8"
             strokeLinecap="round"
           />
           <path
-            d="M -8 -10 C -15 -8 -17 -2 -17 4"
+            d="M -8 -10 C -13 -9 -17 -6 -18 -3"
             fill="none"
             stroke={shine}
             strokeWidth="2.5"
@@ -884,6 +883,43 @@ function DocOsAccessoryPiece({ variant }) {
     default:
       return null
   }
+}
+
+function DocOsAccessoryCuffRearPiece() {
+  const gold = DOC_OS_ACCESSORY_COLOR
+  const ink = DOC_OS_ACCESSORY_INK
+
+  return (
+    <g transform="translate(-21 -48) rotate(22) scale(.9)">
+      <path
+        d="M -5 -14 C -19 -13 -23 -3 -22 6 C -21 15 -15 20 -7 17"
+        fill="none"
+        stroke={ink}
+        strokeWidth="14"
+        strokeLinecap="round"
+      />
+      <path
+        d="M -5 -14 C -19 -13 -23 -3 -22 6 C -21 15 -15 20 -7 17"
+        fill="none"
+        stroke={gold}
+        strokeWidth="8"
+        strokeLinecap="round"
+      />
+    </g>
+  )
+}
+
+function DocOsAccessoryCuffRearPair() {
+  return (
+    <>
+      <g transform={`translate(${DOC_OS_EAR_ANCHORS.left.x} ${DOC_OS_EAR_ANCHORS.left.y})`}>
+        <DocOsAccessoryCuffRearPiece />
+      </g>
+      <g transform={`translate(${DOC_OS_EAR_ANCHORS.right.x} ${DOC_OS_EAR_ANCHORS.right.y}) scale(-1 1)`}>
+        <DocOsAccessoryCuffRearPiece />
+      </g>
+    </>
+  )
 }
 
 function DocOsAccessoryPair({ variant }) {
@@ -1495,6 +1531,25 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             variant={portrait.avataaarsHair}
             color={portrait.hairColor}
           />
+        </svg>
+      )}
+
+      {portrait.docOsAccessory === 'docAccessoryCuff' && (
+        <svg
+          viewBox="0 0 768 768"
+          preserveAspectRatio="xMidYMid slice"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            display: 'block',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        >
+          <DocOsAccessoryCuffRearPair />
         </svg>
       )}
 
