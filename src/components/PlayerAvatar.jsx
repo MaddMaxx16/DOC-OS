@@ -646,11 +646,10 @@ function DocOsAccessoryPiece({ variant }) {
 
     case 'docAccessorySmallHoop':
       return (
-        <>
-          {/* Side-profile hoop: the open C wraps around the lobe instead of
-              presenting as a full front-facing ring. The upper end is the
-              visible piercing/hinge point; the lower end reads as the segment
-              returning from behind the ear. */}
+        <g transform="translate(0 7)">
+          {/* 12.10: keep the approved side-profile C, but put its entry point
+              lower on the fleshy lobe. The tiny cap suggests the hoop entering
+              the piercing instead of reading as a separate stud/hinge. */}
           <path
             d="M 1 -2 C -12 -5 -21 4 -22 16 C -23 29 -15 38 -5 38 C 2 38 7 33 8 26"
             fill="none"
@@ -667,8 +666,8 @@ function DocOsAccessoryPiece({ variant }) {
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <circle cx="1" cy="-2" r="6.5" fill={ink} />
-          <circle cx="1" cy="-2" r="3.5" fill={gold} />
+          <circle cx="1" cy="-2" r="4.5" fill={ink} />
+          <circle cx="1" cy="-2" r="2.25" fill={gold} />
           <path
             d="M -10 1 C -16 5 -18 11 -18 17"
             fill="none"
@@ -676,7 +675,7 @@ function DocOsAccessoryPiece({ variant }) {
             strokeWidth="2"
             strokeLinecap="round"
           />
-        </>
+        </g>
       )
 
     case 'docAccessoryMediumHoop':
