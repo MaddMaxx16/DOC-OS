@@ -9,10 +9,7 @@ import {
   GLASSES_LAB_CANDIDATES,
   GLASSES_LAB_OPTIONS,
 } from '../data/glassesStyleAudition'
-import {
-  ACCESSORY_LAB_CANDIDATES,
-  ACCESSORY_LAB_OPTIONS,
-} from '../data/accessoryStyleAudition'
+import { DOC_OS_ACCESSORY_OPTIONS } from '../data/accessoryStyleAudition'
 
 // P2.4.4.3B.6.6G — final targeted Avataaars seam cleanup
 // Clean the six approved audition candidates without reopening the whole hair
@@ -114,7 +111,7 @@ export const APPEARANCE_OPTIONS = {
   mouth: MOUTH_LAB_OPTIONS,
   facialHair: FACIAL_HAIR_LAB_OPTIONS,
   glasses: GLASSES_LAB_OPTIONS,
-  accessories: ACCESSORY_LAB_OPTIONS,
+  accessories: DOC_OS_ACCESSORY_OPTIONS,
   outfit: [
     { value: 'shirt', label: 'Work Shirt' },
     { value: 'openJacket', label: 'Open Jacket' },
@@ -600,198 +597,197 @@ function MouthLabPart({ candidate }) {
   )
 }
 
-function normalizeAccessoryAttributes(attributes = {}) {
-  const normalized = {}
+const DOC_OS_ACCESSORY_COLOR = '#d0ad62'
+const DOC_OS_ACCESSORY_INK = '#4b2422'
+const DOC_OS_ACCESSORY_HIGHLIGHT = '#f6e7bd'
 
-  Object.entries(attributes).forEach(([key, rawValue]) => {
-    if (key === 'style') return
-
-    const mappedKey = {
-      'fill-opacity': 'fillOpacity',
-      'fill-rule': 'fillRule',
-      'clip-rule': 'clipRule',
-      'stroke-width': 'strokeWidth',
-      'stroke-linecap': 'strokeLinecap',
-      'stroke-linejoin': 'strokeLinejoin',
-    }[key] || key
-
-    if (rawValue === '__ACCESSORY_COLOR__') {
-      normalized[mappedKey] = '#d0ad62'
-    } else {
-      normalized[mappedKey] = rawValue
-    }
-  })
-
-  return normalized
+// Toon Head's eyes already map 1:1 into this 768×768 overlay. Reading the
+// head's own inner-ear geometry through that same coordinate space puts the
+// earlobe anchors here. All native accessories share these anchors.
+const DOC_OS_EAR_ANCHORS = {
+  left: { x: 216, y: 469 },
+  right: { x: 552, y: 469 },
 }
 
-function AccessoryLabElement({ node, keyPath }) {
-  const attributes = normalizeAccessoryAttributes(node.attributes)
+function DocOsAccessoryPiece({ variant }) {
+  const gold = DOC_OS_ACCESSORY_COLOR
+  const ink = DOC_OS_ACCESSORY_INK
+  const shine = DOC_OS_ACCESSORY_HIGHLIGHT
 
-  if (node.name === 'path') return <path key={keyPath} {...attributes} />
-  if (node.name === 'circle') return <circle key={keyPath} {...attributes} />
-  if (node.name === 'ellipse') return <ellipse key={keyPath} {...attributes} />
-  if (node.name === 'rect') return <rect key={keyPath} {...attributes} />
+  switch (variant) {
+    case 'docAccessoryStud':
+      return (
+        <>
+          <circle cx="0" cy="0" r="10" fill={ink} />
+          <circle cx="0" cy="0" r="7" fill={gold} />
+          <circle cx="-2.5" cy="-2.5" r="2" fill={shine} />
+        </>
+      )
 
-  return null
-}
+    case 'docAccessoryDiamond':
+      return (
+        <>
+          <path d="M 0 -12 L 12 0 L 0 12 L -12 0 Z" fill={ink} />
+          <path d="M 0 -8 L 8 0 L 0 8 L -8 0 Z" fill={gold} />
+          <path d="M -2 -5 L 3 -1 L -1 2 Z" fill={shine} />
+        </>
+      )
 
-const ACCESSORY_LAB_TUNING = {
-  // Crop each donor down to the visible jewelry, then place it directly on the
-  // front-facing Toon Head ears. These are audition proportions, not final lock.
-  'micah-earrings-hoop': {
-    viewBox: '-1 -1 54 54',
-    width: 66,
-    height: 66,
-    y: 404,
-  },
-  'micah-earrings-stud': {
-    viewBox: '20 -2 16 16',
-    width: 30,
-    height: 30,
-    y: 412,
-  },
-  'adventurer-earrings-variant01': {
-    viewBox: '2 101 24 39',
-    width: 44,
-    height: 70,
-    y: 402,
-  },
-  'adventurer-earrings-variant02': {
-    viewBox: '-1 92 45 45',
-    width: 60,
-    height: 60,
-    y: 405,
-  },
-  'adventurer-earrings-variant03': {
-    viewBox: '49 32 24 38',
-    width: 40,
-    height: 62,
-    y: 403,
-  },
-  'adventurer-earrings-variant04': {
-    viewBox: '43 -2 37 43',
-    width: 44,
-    height: 64,
-    y: 402,
-  },
-  'adventurer-earrings-variant05': {
-    viewBox: '43 -2 37 40',
-    width: 44,
-    height: 62,
-    y: 403,
-  },
-  'adventurer-earrings-variant06': {
-    viewBox: '3 95 22 22',
-    width: 30,
-    height: 30,
-    y: 411,
-  },
-  'lorelei-earrings-variant01': {
-    viewBox: '0 -2 43 47',
-    width: 46,
-    height: 50,
-    y: 405,
-  },
-  'lorelei-earrings-variant02': {
-    viewBox: '90 69 22 23',
-    width: 31,
-    height: 32,
-    y: 410,
-  },
-  'lorelei-earrings-variant03': {
-    viewBox: '79 86 31 55',
-    width: 42,
-    height: 72,
-    y: 401,
-  },
-  'lorelei-hairAccessories-flowers': {
-    viewBox: '0 0 205 161',
-    x: 450,
-    y: 205,
-    width: 138,
-    height: 108,
-    paired: false,
-  },
-}
+    case 'docAccessoryBar':
+      return (
+        <g transform="rotate(-18)">
+          <rect x="-6" y="-16" width="12" height="32" rx="6" fill={ink} />
+          <rect x="-3.5" y="-13" width="7" height="26" rx="3.5" fill={gold} />
+        </g>
+      )
 
-function AccessoryLabPart({ candidate }) {
-  if (!candidate) return null
+    case 'docAccessorySmallHoop':
+      return (
+        <>
+          <circle cx="0" cy="12" r="17" fill="none" stroke={ink} strokeWidth="11" />
+          <circle cx="0" cy="12" r="17" fill="none" stroke={gold} strokeWidth="7" />
+          <rect x="-8" y="-9" width="16" height="13" fill="#000" opacity=".01" />
+        </>
+      )
 
-  const candidateKey = `${candidate.style}-${candidate.component}-${candidate.variant}`
-  const tuning = ACCESSORY_LAB_TUNING[candidateKey] || {}
-  const isHairAccessory = candidate.component === 'hairAccessories'
-  const paired = tuning.paired ?? !isHairAccessory
-  const viewBox = tuning.viewBox || `0 0 ${candidate.width} ${candidate.height}`
-  const [viewX, viewY, viewWidth, viewHeight] = viewBox.split(' ').map(Number)
-  const width = tuning.width || 44
-  const height = tuning.height || 58
-  const y = tuning.y ?? 404
-  const leftCenter = 244
-  const rightCenter = 524
+    case 'docAccessoryMediumHoop':
+      return (
+        <>
+          <circle cx="0" cy="18" r="24" fill="none" stroke={ink} strokeWidth="12" />
+          <circle cx="0" cy="18" r="24" fill="none" stroke={gold} strokeWidth="7" />
+        </>
+      )
 
-  const renderNodes = (mirror = false) => {
-    const nodes = candidate.elements.map((node, index) => (
-      <AccessoryLabElement
-        key={`${candidateKey}-${mirror ? 'r' : 'l'}-${index}`}
-        keyPath={`${candidateKey}-${mirror ? 'r' : 'l'}-${index}`}
-        node={node}
-      />
-    ))
+    case 'docAccessoryHuggie':
+      return (
+        <>
+          <path
+            d="M -10 -4 C -18 4 -17 22 0 26 C 17 22 18 4 10 -4"
+            fill="none"
+            stroke={ink}
+            strokeWidth="12"
+            strokeLinecap="round"
+          />
+          <path
+            d="M -10 -4 C -18 4 -17 22 0 26 C 17 22 18 4 10 -4"
+            fill="none"
+            stroke={gold}
+            strokeWidth="7"
+            strokeLinecap="round"
+          />
+        </>
+      )
 
-    if (!mirror) return nodes
+    case 'docAccessoryDoubleHoop':
+      return (
+        <>
+          <circle cx="-4" cy="10" r="14" fill="none" stroke={ink} strokeWidth="9" />
+          <circle cx="-4" cy="10" r="14" fill="none" stroke={gold} strokeWidth="5" />
+          <circle cx="7" cy="17" r="18" fill="none" stroke={ink} strokeWidth="9" />
+          <circle cx="7" cy="17" r="18" fill="none" stroke={gold} strokeWidth="5" />
+        </>
+      )
 
-    const centerX = viewX + viewWidth / 2
-    return (
-      <g transform={`translate(${centerX * 2} 0) scale(-1 1)`}>
-        {nodes}
-      </g>
-    )
+    case 'docAccessoryDrop':
+      return (
+        <>
+          <circle cx="0" cy="-1" r="8" fill={ink} />
+          <circle cx="0" cy="-1" r="5" fill={gold} />
+          <path d="M 0 6 L 0 27" stroke={ink} strokeWidth="7" strokeLinecap="round" />
+          <path d="M 0 6 L 0 27" stroke={gold} strokeWidth="3.5" strokeLinecap="round" />
+          <circle cx="0" cy="36" r="11" fill={ink} />
+          <circle cx="0" cy="36" r="7" fill={gold} />
+        </>
+      )
+
+    case 'docAccessoryChain':
+      return (
+        <>
+          <circle cx="0" cy="-2" r="7" fill={ink} />
+          <circle cx="0" cy="-2" r="4.5" fill={gold} />
+          <path
+            d="M 0 5 L -3 15 L 3 25 L -2 35 L 2 45"
+            fill="none"
+            stroke={ink}
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M 0 5 L -3 15 L 3 25 L -2 35 L 2 45"
+            fill="none"
+            stroke={gold}
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path d="M 2 45 L 11 56 L 2 67 L -7 56 Z" fill={ink} />
+          <path d="M 2 49 L 7 56 L 2 63 L -3 56 Z" fill={gold} />
+        </>
+      )
+
+    case 'docAccessoryCuff':
+      return (
+        <>
+          <path
+            d="M -13 -23 C -27 -17 -29 -1 -18 8"
+            fill="none"
+            stroke={ink}
+            strokeWidth="12"
+            strokeLinecap="round"
+          />
+          <path
+            d="M -13 -23 C -27 -17 -29 -1 -18 8"
+            fill="none"
+            stroke={gold}
+            strokeWidth="7"
+            strokeLinecap="round"
+          />
+          <path
+            d="M -8 -13 C -17 -9 -19 0 -13 6"
+            fill="none"
+            stroke={shine}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+        </>
+      )
+
+    case 'docAccessoryTeardrop':
+      return (
+        <>
+          <circle cx="0" cy="-2" r="7" fill={ink} />
+          <circle cx="0" cy="-2" r="4.5" fill={gold} />
+          <path d="M 0 6 L 0 19" stroke={ink} strokeWidth="6" strokeLinecap="round" />
+          <path d="M 0 6 L 0 19" stroke={gold} strokeWidth="3" strokeLinecap="round" />
+          <path
+            d="M 0 20 C -17 39 -14 55 0 59 C 14 55 17 39 0 20 Z"
+            fill={ink}
+          />
+          <path
+            d="M 0 27 C -10 40 -8 50 0 52 C 8 50 10 40 0 27 Z"
+            fill={gold}
+          />
+          <path d="M -2 32 C -5 38 -5 42 -2 44" fill="none" stroke={shine} strokeWidth="2.5" strokeLinecap="round" />
+        </>
+      )
+
+    default:
+      return null
   }
+}
 
-  if (!paired) {
-    return (
-      <svg
-        x={tuning.x ?? 450}
-        y={y}
-        width={width}
-        height={height}
-        viewBox={viewBox}
-        preserveAspectRatio="xMidYMid meet"
-        overflow="visible"
-      >
-        {renderNodes(false)}
-      </svg>
-    )
-  }
-
-  const leftX = leftCenter - width / 2
-  const rightX = rightCenter - width / 2
+function DocOsAccessoryPair({ variant }) {
+  if (!variant || variant === 'none') return null
 
   return (
     <>
-      <svg
-        x={leftX}
-        y={y}
-        width={width}
-        height={height}
-        viewBox={viewBox}
-        preserveAspectRatio="xMidYMid meet"
-        overflow="visible"
-      >
-        {renderNodes(false)}
-      </svg>
-      <svg
-        x={rightX}
-        y={y}
-        width={width}
-        height={height}
-        viewBox={viewBox}
-        preserveAspectRatio="xMidYMid meet"
-        overflow="visible"
-      >
-        {renderNodes(true)}
-      </svg>
+      <g transform={`translate(${DOC_OS_EAR_ANCHORS.left.x} ${DOC_OS_EAR_ANCHORS.left.y})`}>
+        <DocOsAccessoryPiece variant={variant} />
+      </g>
+      <g transform={`translate(${DOC_OS_EAR_ANCHORS.right.x} ${DOC_OS_EAR_ANCHORS.right.y}) scale(-1 1)`}>
+        <DocOsAccessoryPiece variant={variant} />
+      </g>
     </>
   )
 }
@@ -1285,8 +1281,8 @@ function buildToonHeadPortrait(appearance) {
   const glassesLab = glasses.startsWith('glasseslab-')
     ? GLASSES_LAB_CANDIDATES[glasses.slice('glasseslab-'.length)] || null
     : null
-  const accessoryLab = accessories.startsWith('accessorylab-')
-    ? ACCESSORY_LAB_CANDIDATES[accessories.slice('accessorylab-'.length)] || null
+  const docOsAccessory = accessories.startsWith('docAccessory')
+    ? accessories
     : null
   const hasNativeFacialHair = facialHair !== 'none' && !facialHairLab
   const notionBrows = NOTION_BROWS[brows] || null
@@ -1329,9 +1325,9 @@ function buildToonHeadPortrait(appearance) {
     mouthLab,
     facialHairLab,
     glassesLab,
-    accessoryLab,
+    docOsAccessory,
     notionGlasses: glassesLab ? null : NOTION_GLASSES[glasses] || null,
-    notionAccessories: accessoryLab ? null : NOTION_ACCESSORIES[accessories] || null,
+    notionAccessories: docOsAccessory ? null : NOTION_ACCESSORIES[accessories] || null,
     hairColor: `#${hairColor}`,
   }
 }
@@ -1346,7 +1342,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
     portrait.mouthLab ||
     portrait.facialHairLab ||
     portrait.glassesLab ||
-    portrait.accessoryLab ||
+    portrait.docOsAccessory ||
     portrait.notionGlasses ||
     portrait.notionAccessories,
   )
@@ -1491,8 +1487,8 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
 
             return transform ? <g transform={transform}>{part}</g> : part
           })()}
-          {portrait.accessoryLab && (
-            <AccessoryLabPart candidate={portrait.accessoryLab} />
+          {portrait.docOsAccessory && (
+            <DocOsAccessoryPair variant={portrait.docOsAccessory} />
           )}
           {portrait.notionAccessories && (
             <NotionPart
