@@ -100,12 +100,12 @@ export const APPEARANCE_OPTIONS = {
   ],
   mouth: [
     { value: 'docNeutral', label: 'Neutral' },
-    { value: 'docLightSmile', label: 'Light Smile' },
-    { value: 'docSmile', label: 'Smile' },
+    { value: 'docLightSmile', label: 'Soft Smile' },
     { value: 'docSmirk', label: 'Side Smirk' },
-    { value: 'docWideSmile', label: 'Wide Smile' },
+    { value: 'docSmile', label: 'Full Smile' },
     { value: 'docOpenSmile', label: 'Open Smile' },
-    { value: 'docSmallOpen', label: 'Small Open' },
+    { value: 'docPout', label: 'Pout' },
+    { value: 'docConcerned', label: 'Concerned' },
     { value: 'docDownturned', label: 'Downturned' },
   ],
   facialHair: [
@@ -502,11 +502,11 @@ const EYE_INK = '#4b2422'
 const DOC_OS_MOUTHS = new Set([
   'docNeutral',
   'docLightSmile',
-  'docSmile',
   'docSmirk',
-  'docWideSmile',
+  'docSmile',
   'docOpenSmile',
-  'docSmallOpen',
+  'docPout',
+  'docConcerned',
   'docDownturned',
 ])
 
@@ -515,6 +515,7 @@ function DocOsMouth({ variant }) {
   const interior = '#5a2028'
   const tongue = '#d96b68'
   const teeth = '#f6f1e4'
+  const lip = '#7a343d'
 
   const common = {
     fill: 'none',
@@ -529,79 +530,89 @@ function DocOsMouth({ variant }) {
   if (variant === 'docNeutral') {
     art = (
       <>
-        <path d="M18 30 C30 27 50 27 62 30" {...common} />
-        <path d="M31 35 C38 37 44 37 50 34" {...common} strokeWidth="2.2" opacity=".55" />
+        <path
+          d="M15 31 C25 27 33 28 40 30 C47 28 56 27 66 31 C56 36 49 38 40 38 C31 38 23 36 15 31 Z"
+          fill={lip}
+          fillOpacity=".5"
+          stroke={ink}
+          strokeWidth="2.8"
+          strokeLinejoin="round"
+        />
+        <path d="M20 32 C31 34 50 34 61 32" {...common} strokeWidth="2.2" />
       </>
     )
   } else if (variant === 'docLightSmile') {
     art = (
       <>
-        <path d="M16 27 C28 39 52 40 65 25" {...common} />
-        <path d="M30 38 C39 42 48 40 53 36" {...common} strokeWidth="2.1" opacity=".55" />
+        <path d="M14 27 C27 39 53 40 67 25" {...common} />
+        <path d="M28 38 C37 43 48 42 55 36" {...common} strokeWidth="2.2" opacity=".6" />
+      </>
+    )
+  } else if (variant === 'docSmirk') {
+    art = (
+      <>
+        <path
+          d="M14 32 C29 35 49 32 67 20 C59 34 49 40 36 40 C27 40 20 37 14 32 Z"
+          fill={interior}
+          stroke={ink}
+          strokeWidth="3.2"
+        />
+        <path d="M22 31 C37 33 51 28 63 22 C54 31 35 35 22 31 Z" fill={teeth} />
+        <path d="M56 18 C61 17 65 15 69 12" {...common} strokeWidth="2.4" />
       </>
     )
   } else if (variant === 'docSmile') {
     art = (
       <>
         <path
-          d="M12 25 C26 31 52 31 69 22 C64 40 53 48 40 48 C27 48 17 40 12 25 Z"
+          d="M10 24 C25 31 54 31 71 21 C66 42 54 51 40 51 C26 51 15 41 10 24 Z"
           fill={interior}
           stroke={ink}
           strokeWidth="3.2"
           strokeLinejoin="round"
         />
-        <path d="M16 27 C30 31 53 30 65 24 C58 31 24 34 16 27 Z" fill={teeth} />
-        <path d="M28 43 C36 38 47 38 55 43 C49 47 34 48 28 43 Z" fill={tongue} />
-      </>
-    )
-  } else if (variant === 'docSmirk') {
-    art = (
-      <>
-        <path d="M16 31 C30 34 49 32 65 21 C58 34 48 39 36 39 C28 39 21 36 16 31 Z" fill={interior} stroke={ink} strokeWidth="3.2" />
-        <path d="M23 31 C37 32 50 28 61 23 C52 30 35 34 23 31 Z" fill={teeth} />
-        <path d="M54 19 C59 18 63 16 67 13" {...common} strokeWidth="2.4" />
-      </>
-    )
-  } else if (variant === 'docWideSmile') {
-    art = (
-      <>
-        <path
-          d="M8 21 C25 29 56 29 73 20 C69 43 56 53 40 53 C24 53 12 42 8 21 Z"
-          fill={interior}
-          stroke={ink}
-          strokeWidth="3.2"
-          strokeLinejoin="round"
-        />
-        <path d="M12 23 C29 28 54 27 69 22 C62 32 21 34 12 23 Z" fill={teeth} />
-        <path d="M24 47 C33 40 49 40 58 47 C50 52 32 53 24 47 Z" fill={tongue} />
+        <path d="M14 26 C29 31 55 30 68 23 C61 32 22 34 14 26 Z" fill={teeth} />
+        <path d="M27 46 C35 40 48 40 57 46 C50 51 34 52 27 46 Z" fill={tongue} />
       </>
     )
   } else if (variant === 'docOpenSmile') {
     art = (
       <>
         <path
-          d="M17 18 C28 24 52 24 63 18 C67 29 64 49 54 57 C46 64 34 64 26 57 C16 49 13 29 17 18 Z"
+          d="M16 17 C28 23 53 23 65 17 C69 29 66 50 55 59 C47 66 34 66 25 59 C14 50 12 29 16 17 Z"
           fill={interior}
           stroke={ink}
           strokeWidth="3.2"
         />
-        <path d="M19 21 C31 25 49 25 61 21 C56 30 25 31 19 21 Z" fill={teeth} />
-        <path d="M27 53 C34 45 47 45 54 53 C48 59 33 60 27 53 Z" fill={tongue} />
+        <path d="M18 20 C31 25 50 25 63 20 C57 30 24 31 18 20 Z" fill={teeth} />
+        <path d="M26 54 C34 46 48 46 56 54 C49 61 33 61 26 54 Z" fill={tongue} />
       </>
     )
-  } else if (variant === 'docSmallOpen') {
+  } else if (variant === 'docPout') {
     art = (
       <>
-        <ellipse cx="40" cy="34" rx="14" ry="17" fill={interior} stroke={ink} strokeWidth="3.2" />
-        <path d="M30 24 C36 21 44 21 50 24 C46 28 34 28 30 24 Z" fill={teeth} />
-        <path d="M31 43 C36 38 44 38 49 43 C45 48 35 49 31 43 Z" fill={tongue} />
+        <path
+          d="M17 31 C25 25 33 24 40 29 C47 24 56 25 64 31 C57 40 49 44 40 44 C31 44 23 40 17 31 Z"
+          fill={lip}
+          stroke={ink}
+          strokeWidth="3"
+          strokeLinejoin="round"
+        />
+        <path d="M20 32 C29 35 51 35 61 32" {...common} strokeWidth="2.2" opacity=".8" />
+      </>
+    )
+  } else if (variant === 'docConcerned') {
+    art = (
+      <>
+        <path d="M13 32 C22 26 29 37 39 31 C49 25 57 35 68 29" {...common} />
+        <path d="M25 39 C34 35 47 36 56 40" {...common} strokeWidth="2.1" opacity=".55" />
       </>
     )
   } else if (variant === 'docDownturned') {
     art = (
       <>
-        <path d="M14 37 C27 21 53 20 67 37" {...common} />
-        <path d="M29 31 C36 27 45 27 52 31" {...common} strokeWidth="2.1" opacity=".5" />
+        <path d="M12 39 C27 20 54 19 69 39" {...common} />
+        <path d="M27 32 C36 27 46 27 55 32" {...common} strokeWidth="2.2" opacity=".55" />
       </>
     )
   }
@@ -610,10 +621,10 @@ function DocOsMouth({ variant }) {
 
   return (
     <svg
-      x="318"
-      y="474"
-      width="132"
-      height="82"
+      x="312"
+      y="471"
+      width="144"
+      height="88"
       viewBox="0 0 80 66"
       preserveAspectRatio="xMidYMid meet"
       overflow="visible"
