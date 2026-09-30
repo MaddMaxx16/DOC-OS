@@ -16,6 +16,11 @@ const MOUTH_OPTIONS_PER_PAGE = 8
 const FACIAL_HAIR_OPTIONS_PER_PAGE = 8
 const GLASSES_OPTIONS_PER_PAGE = 8
 const ACCESSORY_OPTIONS_PER_PAGE = 8
+const ACCESSORY_SIDE_OPTIONS = [
+  { value: 'left', label: 'LEFT' },
+  { value: 'both', label: 'BOTH' },
+  { value: 'right', label: 'RIGHT' },
+]
 
 // P2.4.4.3A/B — Create Player
 // Step 01 owns player-facing identity. Step 02 owns appearance.
@@ -178,6 +183,10 @@ function CareerSetupScreen({ profile = null, onBack }) {
       const options = APPEARANCE_OPTIONS[key]
       next[key] = options[Math.floor(Math.random() * options.length)].value
     })
+
+    next.accessorySide = next.accessories === 'none'
+      ? 'both'
+      : ACCESSORY_SIDE_OPTIONS[Math.floor(Math.random() * ACCESSORY_SIDE_OPTIONS.length)].value
 
     setAppearance(next)
     if (appearanceCategory === 'hair') setHairPage(hairPageForValue(next.hair))
@@ -498,6 +507,29 @@ function CareerSetupScreen({ profile = null, onBack }) {
                   )
                 })}
               </div>
+
+              {appearanceCategory === 'accessories' && appearance.accessories !== 'none' && (
+                <div className="career-accessory-side-d434c">
+                  <span>WEAR ON</span>
+                  <div role="group" aria-label="Choose which ear wears this accessory">
+                    {ACCESSORY_SIDE_OPTIONS.map((side) => {
+                      const selected = appearance.accessorySide === side.value
+
+                      return (
+                        <button
+                          key={side.value}
+                          type="button"
+                          className={selected ? 'selected' : ''}
+                          onClick={() => setAppearanceValue('accessorySide', side.value)}
+                          aria-pressed={selected}
+                        >
+                          {side.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {optionPaging && (
                 <div className="career-look-pager-d434c" aria-label={`${activeCategoryLabel} pages`}>
