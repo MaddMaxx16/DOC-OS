@@ -24,10 +24,6 @@ export const GLASSES_LAB_OPTIONS = [
     "label": "Notion · 09"
   },
   {
-    "value": "notionGlasses12",
-    "label": "Notion · 13"
-  },
-  {
     "value": "glasseslab-avataaars-kurt",
     "label": "Ava · Kurt"
   },
@@ -42,46 +38,6 @@ export const GLASSES_LAB_OPTIONS = [
   {
     "value": "glasseslab-avataaars-round",
     "label": "Ava · Round"
-  },
-  {
-    "value": "glasseslab-lorelei-variant01",
-    "label": "Lore · 01"
-  },
-  {
-    "value": "glasseslab-lorelei-variant02",
-    "label": "Lore · 02"
-  },
-  {
-    "value": "glasseslab-lorelei-variant03",
-    "label": "Lore · 03"
-  },
-  {
-    "value": "glasseslab-lorelei-variant04",
-    "label": "Lore · 04"
-  },
-  {
-    "value": "glasseslab-lorelei-variant05",
-    "label": "Lore · 05"
-  },
-  {
-    "value": "glasseslab-adventurer-variant01",
-    "label": "Adv · 01"
-  },
-  {
-    "value": "glasseslab-adventurer-variant02",
-    "label": "Adv · 02"
-  },
-  {
-    "value": "glasseslab-adventurer-variant03",
-    "label": "Adv · 03"
-  },
-  {
-    "value": "glasseslab-adventurer-variant04",
-    "label": "Adv · 04"
-  },
-  {
-    "value": "glasseslab-adventurer-variant05",
-    "label": "Adv · 05"
   }
 ]
 
