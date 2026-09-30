@@ -651,7 +651,7 @@ function DocOsAccessoryPiece({ variant }) {
               lower on the fleshy lobe. The tiny cap suggests the hoop entering
               the piercing instead of reading as a separate stud/hinge. */}
           <path
-            d="M 1 -2 C -12 -5 -21 4 -22 16 C -23 29 -15 38 -5 38 C 2 38 7 33 8 26"
+            d="M 1 -2 C -12 -5 -21 4 -22 16 C -23 29 -15 38 -5 38 C 3 38 9 29 8 18"
             fill="none"
             stroke={ink}
             strokeWidth="11"
@@ -659,7 +659,7 @@ function DocOsAccessoryPiece({ variant }) {
             strokeLinejoin="round"
           />
           <path
-            d="M 1 -2 C -12 -5 -21 4 -22 16 C -23 29 -15 38 -5 38 C 2 38 7 33 8 26"
+            d="M 1 -2 C -12 -5 -21 4 -22 16 C -23 29 -15 38 -5 38 C 3 38 9 29 8 18"
             fill="none"
             stroke={gold}
             strokeWidth="6"
