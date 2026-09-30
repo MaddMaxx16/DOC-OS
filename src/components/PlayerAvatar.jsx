@@ -1695,7 +1695,10 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
         >
           <defs>
             <clipPath id="doc-os-outfit-neck-seam">
-              <rect x="132" y="582" width="504" height="40" />
+              {/* Keep the rear donor patch directly under the neck only.
+                  The previous shoulder-wide clip exposed thin donor edges
+                  beside the neck on blazer/sweater silhouettes. */}
+              <rect x="286" y="582" width="196" height="40" />
             </clipPath>
           </defs>
           <g clipPath="url(#doc-os-outfit-neck-seam)">
