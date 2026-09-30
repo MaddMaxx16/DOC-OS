@@ -297,7 +297,8 @@ function CareerSetupScreen({ profile = null, onBack }) {
       appearanceCategory === 'hairColor' ||
       appearanceCategory === 'brows' ||
       appearanceCategory === 'eyes' ||
-      appearanceCategory === 'mouth'
+      appearanceCategory === 'mouth' ||
+      appearanceCategory === 'facialHair'
     const optionsPerPage =
       appearanceCategory === 'hair'
         ? HAIR_OPTIONS_PER_PAGE
