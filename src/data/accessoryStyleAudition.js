@@ -71,7 +71,8 @@ export const ACCESSORY_LAB_CANDIDATES = {
         "attributes": {
           "d": "M26 2A24 24 0 1 1 2 26c0-6.4 3.5-11.5 6.57-16.5L9.5 8",
           "stroke": "__ACCESSORY_COLOR__",
-          "stroke-width": "4"
+          "stroke-width": "4",
+          "fill": "none"
         }
       }
     ]
