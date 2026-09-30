@@ -1482,12 +1482,12 @@ function OutfitLabPart({ variant }) {
 
   return (
     <svg
-      // P2.4.4.3B.13.3 — reduce donor width another ~10% so the
-      // shoulders and sides sit close to the Toon Head torso. Keep the
-      // approved neckline height and vertical scale unchanged.
-      x="164"
-      y="587"
-      width="440"
+      // P2.4.4.3B.13.4 — settle between the 13.2 and 13.3 widths
+      // and lower the donor silhouette slightly so the collar sits at the
+      // base of the Toon Head neck instead of riding high.
+      x="154"
+      y="595"
+      width="460"
       height="181"
       viewBox="0 0 200 95.31"
       preserveAspectRatio="none"
