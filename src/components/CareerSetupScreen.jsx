@@ -13,6 +13,7 @@ const HAIR_COLOR_OPTIONS_PER_PAGE = 6
 const BROW_OPTIONS_PER_PAGE = 8
 const EYE_OPTIONS_PER_PAGE = 8
 const MOUTH_OPTIONS_PER_PAGE = 8
+const FACIAL_HAIR_OPTIONS_PER_PAGE = 8
 
 // P2.4.4.3A/B — Create Player
 // Step 01 owns player-facing identity. Step 02 owns appearance.
@@ -32,6 +33,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
   const [browPage, setBrowPage] = useState(0)
   const [eyePage, setEyePage] = useState(0)
   const [mouthPage, setMouthPage] = useState(0)
+  const [facialHairPage, setFacialHairPage] = useState(0)
 
   const screenRef = useRef(null)
   const nameRef = useRef(null)
@@ -127,6 +129,10 @@ function CareerSetupScreen({ profile = null, onBack }) {
     optionPageForValue('mouth', value, MOUTH_OPTIONS_PER_PAGE)
   )
 
+  const facialHairPageForValue = (value) => (
+    optionPageForValue('facialHair', value, FACIAL_HAIR_OPTIONS_PER_PAGE)
+  )
+
   const setAppearanceValue = (key, value) => {
     setAppearance((current) => ({ ...current, [key]: value }))
     if (key === 'hair') setHairPage(hairPageForValue(value))
@@ -134,6 +140,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
     if (key === 'brows') setBrowPage(browPageForValue(value))
     if (key === 'eyes') setEyePage(eyePageForValue(value))
     if (key === 'mouth') setMouthPage(mouthPageForValue(value))
+    if (key === 'facialHair') setFacialHairPage(facialHairPageForValue(value))
   }
 
   const selectAppearanceCategory = (key) => {
@@ -143,6 +150,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
     if (key === 'brows') setBrowPage(browPageForValue(appearance.brows))
     if (key === 'eyes') setEyePage(eyePageForValue(appearance.eyes))
     if (key === 'mouth') setMouthPage(mouthPageForValue(appearance.mouth))
+    if (key === 'facialHair') {
+      setFacialHairPage(facialHairPageForValue(appearance.facialHair))
+    }
   }
 
   const randomizeAppearance = () => {
@@ -161,6 +171,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
     if (appearanceCategory === 'brows') setBrowPage(browPageForValue(next.brows))
     if (appearanceCategory === 'eyes') setEyePage(eyePageForValue(next.eyes))
     if (appearanceCategory === 'mouth') setMouthPage(mouthPageForValue(next.mouth))
+    if (appearanceCategory === 'facialHair') {
+      setFacialHairPage(facialHairPageForValue(next.facialHair))
+    }
   }
 
   const resetAppearance = () => {
@@ -171,6 +184,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
     setBrowPage(browPageForValue(DEFAULT_APPEARANCE.brows))
     setEyePage(eyePageForValue(DEFAULT_APPEARANCE.eyes))
     setMouthPage(mouthPageForValue(DEFAULT_APPEARANCE.mouth))
+    setFacialHairPage(facialHairPageForValue(DEFAULT_APPEARANCE.facialHair))
   }
 
   const startOptionSwipe = (event) => {
@@ -179,7 +193,8 @@ function CareerSetupScreen({ profile = null, onBack }) {
       appearanceCategory !== 'hairColor' &&
       appearanceCategory !== 'brows' &&
       appearanceCategory !== 'eyes' &&
-      appearanceCategory !== 'mouth'
+      appearanceCategory !== 'mouth' &&
+      appearanceCategory !== 'facialHair'
     ) return
     const touch = event.touches?.[0]
     if (!touch) return
@@ -192,7 +207,8 @@ function CareerSetupScreen({ profile = null, onBack }) {
       appearanceCategory === 'hairColor' ||
       appearanceCategory === 'brows' ||
       appearanceCategory === 'eyes' ||
-      appearanceCategory === 'mouth'
+      appearanceCategory === 'mouth' ||
+      appearanceCategory === 'facialHair'
     if (!pagedCategory || !optionSwipeRef.current) return
     const touch = event.changedTouches?.[0]
     const start = optionSwipeRef.current
@@ -212,7 +228,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
             ? BROW_OPTIONS_PER_PAGE
             : appearanceCategory === 'eyes'
               ? EYE_OPTIONS_PER_PAGE
-              : MOUTH_OPTIONS_PER_PAGE
+              : appearanceCategory === 'mouth'
+                ? MOUTH_OPTIONS_PER_PAGE
+                : FACIAL_HAIR_OPTIONS_PER_PAGE
     const pageCount = Math.ceil(APPEARANCE_OPTIONS[appearanceCategory].length / perPage)
     const setPage =
       appearanceCategory === 'hair'
@@ -223,7 +241,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
             ? setBrowPage
             : appearanceCategory === 'eyes'
               ? setEyePage
-              : setMouthPage
+              : appearanceCategory === 'mouth'
+                ? setMouthPage
+                : setFacialHairPage
     setPage((current) => (
       dx < 0
         ? Math.min(pageCount - 1, current + 1)
@@ -287,7 +307,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
             ? BROW_OPTIONS_PER_PAGE
             : appearanceCategory === 'eyes'
               ? EYE_OPTIONS_PER_PAGE
-              : MOUTH_OPTIONS_PER_PAGE
+              : appearanceCategory === 'mouth'
+                ? MOUTH_OPTIONS_PER_PAGE
+                : FACIAL_HAIR_OPTIONS_PER_PAGE
     const optionPage =
       appearanceCategory === 'hair'
         ? hairPage
@@ -297,7 +319,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
             ? browPage
             : appearanceCategory === 'eyes'
               ? eyePage
-              : mouthPage
+              : appearanceCategory === 'mouth'
+                ? mouthPage
+                : facialHairPage
     const optionPageCount = optionPaging
       ? Math.ceil(activeOptions.length / optionsPerPage)
       : 1
@@ -311,7 +335,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
             ? setBrowPage
             : appearanceCategory === 'eyes'
               ? setEyePage
-              : setMouthPage
+              : appearanceCategory === 'mouth'
+                ? setMouthPage
+                : setFacialHairPage
     const visibleOptions = optionPaging
       ? activeOptions.slice(
         safeOptionPage * optionsPerPage,
