@@ -771,7 +771,7 @@ function DocOsAccessoryPiece({ variant }) {
             <circle cx="1" cy="-2" r="4.25" fill={ink} />
             <circle cx="1" cy="-2" r="2.1" fill={gold} />
           </g>
-          <g transform="translate(-28 5) scale(.9)">
+          <g transform="translate(-23 5) scale(.9)">
             <path
               d="M 1 -2 C -9 -4 -16 3 -17 12 C -18 22 -12 29 -4 29 C 3 29 7 23 7 15"
               fill="none"
