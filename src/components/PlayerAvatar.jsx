@@ -647,23 +647,35 @@ function DocOsAccessoryPiece({ variant }) {
     case 'docAccessorySmallHoop':
       return (
         <>
-          {/* Open the hoop at the piercing point so the lobe visually passes
-              through the ring instead of the ring reading as pasted on top. */}
+          {/* Side-profile hoop: the open C wraps around the lobe instead of
+              presenting as a full front-facing ring. The upper end is the
+              visible piercing/hinge point; the lower end reads as the segment
+              returning from behind the ear. */}
           <path
-            d="M -5 0 C -13 4 -17 12 -17 21 C -17 31 -10 38 0 38 C 10 38 17 31 17 21 C 17 12 13 4 5 0"
+            d="M 1 -2 C -12 -5 -21 4 -22 16 C -23 29 -15 38 -5 38 C 2 38 7 33 8 26"
             fill="none"
             stroke={ink}
             strokeWidth="11"
             strokeLinecap="round"
+            strokeLinejoin="round"
           />
           <path
-            d="M -5 0 C -13 4 -17 12 -17 21 C -17 31 -10 38 0 38 C 10 38 17 31 17 21 C 17 12 13 4 5 0"
+            d="M 1 -2 C -12 -5 -21 4 -22 16 C -23 29 -15 38 -5 38 C 2 38 7 33 8 26"
             fill="none"
             stroke={gold}
-            strokeWidth="7"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="1" cy="-2" r="6.5" fill={ink} />
+          <circle cx="1" cy="-2" r="3.5" fill={gold} />
+          <path
+            d="M -10 1 C -16 5 -18 11 -18 17"
+            fill="none"
+            stroke={shine}
+            strokeWidth="2"
             strokeLinecap="round"
           />
-          <path d="M -4 1 C -9 5 -11 9 -12 14" fill="none" stroke={shine} strokeWidth="2" strokeLinecap="round" />
         </>
       )
 
