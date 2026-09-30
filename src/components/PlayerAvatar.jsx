@@ -80,14 +80,14 @@ export const APPEARANCE_OPTIONS = {
     { value: 'notionBrow15', label: 'Relaxed' },
   ],
   eyes: [
-    { value: 'docNatural', label: 'Natural' },
-    { value: 'docFriendly', label: 'Friendly' },
-    { value: 'docWide', label: 'Wide' },
-    { value: 'docAlmond', label: 'Almond' },
-    { value: 'docUpturned', label: 'Upturned' },
-    { value: 'docDownturned', label: 'Downturned' },
-    { value: 'docRelaxed', label: 'Relaxed' },
-    { value: 'docFocused', label: 'Focused' },
+    { value: 'docRound', label: 'Round' },
+    { value: 'docHooded', label: 'Hooded' },
+    { value: 'docSharp', label: 'Sharp' },
+    { value: 'docHeavy', label: 'Heavy Lid' },
+    { value: 'docAngular', label: 'Angular' },
+    { value: 'docNarrow', label: 'Narrow' },
+    { value: 'docArched', label: 'Arched' },
+    { value: 'docLash', label: 'Lash' },
   ],
   eyeColor: [
     { value: 'darkBrown', label: 'Dark Brown', color: '#3b281f' },
@@ -157,7 +157,7 @@ export const DEFAULT_APPEARANCE = {
   hair: 'sidepart',
   hairColor: 'espresso',
   brows: 'neutral',
-  eyes: 'docNatural',
+  eyes: 'docRound',
   eyeColor: 'brown',
   mouth: 'smile',
   facialHair: 'none',
@@ -506,152 +506,98 @@ function DocOsEyePair({ variant, color }) {
   const Eye = ({ side = 'left' }) => {
     const cx = side === 'left' ? 61 : 200
     const mirror = side === 'left' ? 1 : -1
-    const local = (x) => cx + (x * mirror)
+    const x = (offset) => cx + (offset * mirror)
     const clipId = `doc-os-eye-${clipSeed}-${side}`
 
-    // Natural is the reference size. Every expression deliberately changes
-    // aperture height, corner angle, or width enough to read as a different
-    // eye silhouette at phone size.
-    const shape = {
-      docNatural: {
-        halfWidth: 40,
-        outerY: 43,
-        innerY: 43,
-        upperY: 19,
-        lowerY: 65,
-        irisY: 43,
-        irisRadius: 19,
-        pupilRadius: 8,
+    // These are separate eye anatomies, not expressions of one shared template.
+    const geometry = {
+      docRound: {
+        aperture: `M ${x(-34)} 43 C ${x(-31)} 15 ${x(-15)} 8 ${cx} 8 C ${x(18)} 8 ${x(33)} 19 ${x(34)} 43 C ${x(31)} 69 ${x(16)} 76 ${cx} 76 C ${x(-18)} 76 ${x(-33)} 65 ${x(-34)} 43 Z`,
+        upper: `M ${x(-34)} 43 C ${x(-31)} 15 ${x(-15)} 8 ${cx} 8 C ${x(18)} 8 ${x(33)} 19 ${x(34)} 43`,
+        lower: `M ${x(-30)} 49 C ${x(-22)} 70 ${x(20)} 72 ${x(30)} 49`,
+        irisY: 43, irisRadius: 22, pupilRadius: 9,
       },
-      docFriendly: {
-        halfWidth: 40,
-        outerY: 44,
-        innerY: 44,
-        upperY: 26,
-        lowerY: 61,
-        irisY: 45,
-        irisRadius: 19,
-        pupilRadius: 8,
+      docHooded: {
+        aperture: `M ${x(-43)} 39 Q ${x(-5)} 22 ${x(43)} 34 L ${x(39)} 55 Q ${cx} 67 ${x(-39)} 55 Z`,
+        upper: `M ${x(-43)} 39 Q ${x(-5)} 22 ${x(43)} 34`,
+        lower: `M ${x(-36)} 53 Q ${cx} 66 ${x(36)} 53`,
+        crease: `M ${x(-39)} 25 Q ${x(1)} 13 ${x(40)} 24`,
+        irisY: 42, irisRadius: 20, pupilRadius: 8.5,
       },
-      docWide: {
-        halfWidth: 39,
-        outerY: 43,
-        innerY: 43,
-        upperY: 12,
-        lowerY: 70,
-        irisY: 43,
-        irisRadius: 20,
-        pupilRadius: 8.5,
+      docSharp: {
+        aperture: `M ${x(-45)} 34 Q ${x(-5)} 18 ${x(43)} 48 Q ${x(3)} 67 ${x(-45)} 34 Z`,
+        upper: `M ${x(-45)} 34 Q ${x(-5)} 18 ${x(43)} 48`,
+        lower: `M ${x(-38)} 38 Q ${x(3)} 65 ${x(43)} 48`,
+        irisY: 43, irisRadius: 20, pupilRadius: 8.5,
       },
-      docAlmond: {
-        halfWidth: 44,
-        outerY: 43,
-        innerY: 43,
-        upperY: 25,
-        lowerY: 59,
-        irisY: 43,
-        irisRadius: 18,
-        pupilRadius: 7.5,
+      docHeavy: {
+        aperture: `M ${x(-43)} 38 Q ${cx} 17 ${x(43)} 38 Q ${x(31)} 64 ${cx} 67 Q ${x(-31)} 64 ${x(-43)} 38 Z`,
+        upper: `M ${x(-43)} 38 Q ${cx} 17 ${x(43)} 38`,
+        lower: `M ${x(-38)} 44 Q ${x(-29)} 65 ${cx} 67 Q ${x(29)} 65 ${x(38)} 44`,
+        crease: `M ${x(-38)} 25 Q ${cx} 10 ${x(38)} 25`,
+        irisY: 44, irisRadius: 21, pupilRadius: 9,
       },
-      docUpturned: {
-        halfWidth: 42,
-        outerY: 37,
-        innerY: 45,
-        upperY: 20,
-        lowerY: 63,
-        irisY: 42,
-        irisRadius: 18.5,
-        pupilRadius: 8,
+      docAngular: {
+        aperture: `M ${x(-42)} 39 L ${x(-13)} 12 L ${x(34)} 31 L ${x(42)} 52 L ${x(5)} 69 L ${x(-36)} 58 Z`,
+        upper: `M ${x(-42)} 39 L ${x(-13)} 12 L ${x(34)} 31`,
+        lower: `M ${x(-36)} 58 L ${x(5)} 69 L ${x(42)} 52`,
+        irisY: 42, irisRadius: 20, pupilRadius: 8.5,
       },
-      docDownturned: {
-        halfWidth: 42,
-        outerY: 48,
-        innerY: 40,
-        upperY: 23,
-        lowerY: 65,
-        irisY: 44,
-        irisRadius: 18.5,
-        pupilRadius: 8,
+      docNarrow: {
+        aperture: `M ${x(-47)} 42 L ${x(-9)} 25 L ${x(45)} 39 L ${x(12)} 58 L ${x(-42)} 54 Z`,
+        upper: `M ${x(-47)} 42 L ${x(-9)} 25 L ${x(45)} 39`,
+        lower: `M ${x(-42)} 54 L ${x(12)} 58 L ${x(45)} 39`,
+        irisY: 42, irisRadius: 18, pupilRadius: 8,
       },
-      docRelaxed: {
-        halfWidth: 41,
-        outerY: 42,
-        innerY: 42,
-        upperY: 31,
-        lowerY: 58,
-        irisY: 45,
-        irisRadius: 18,
-        pupilRadius: 7.5,
+      docArched: {
+        aperture: `M ${x(-42)} 47 C ${x(-34)} 7 ${x(25)} 4 ${x(43)} 43 Q ${cx} 72 ${x(-42)} 47 Z`,
+        upper: `M ${x(-42)} 47 C ${x(-34)} 7 ${x(25)} 4 ${x(43)} 43`,
+        lower: `M ${x(-35)} 52 Q ${cx} 73 ${x(36)} 49`,
+        irisY: 43, irisRadius: 21, pupilRadius: 9,
       },
-      docFocused: {
-        halfWidth: 41,
-        outerY: 38,
-        innerY: 46,
-        upperY: 28,
-        lowerY: 59,
-        irisY: 44,
-        irisRadius: 18,
-        pupilRadius: 8,
+      docLash: {
+        aperture: `M ${x(-43)} 46 C ${x(-30)} 10 ${x(25)} 8 ${x(44)} 43 Q ${cx} 72 ${x(-43)} 46 Z`,
+        upper: `M ${x(-43)} 46 C ${x(-30)} 10 ${x(25)} 8 ${x(44)} 43`,
+        lower: `M ${x(-36)} 52 Q ${cx} 72 ${x(37)} 49`,
+        lashes: true,
+        irisY: 43, irisRadius: 21, pupilRadius: 9,
       },
     }[variant] || {
-      halfWidth: 40,
-      outerY: 43,
-      innerY: 43,
-      upperY: 19,
-      lowerY: 65,
-      irisY: 43,
-      irisRadius: 19,
-      pupilRadius: 8,
+      aperture: `M ${x(-34)} 43 C ${x(-31)} 15 ${x(-15)} 8 ${cx} 8 C ${x(18)} 8 ${x(33)} 19 ${x(34)} 43 C ${x(31)} 69 ${x(16)} 76 ${cx} 76 C ${x(-18)} 76 ${x(-33)} 65 ${x(-34)} 43 Z`,
+      upper: `M ${x(-34)} 43 C ${x(-31)} 15 ${x(-15)} 8 ${cx} 8 C ${x(18)} 8 ${x(33)} 19 ${x(34)} 43`,
+      lower: `M ${x(-30)} 49 C ${x(-22)} 70 ${x(20)} 72 ${x(30)} 49`,
+      irisY: 43, irisRadius: 22, pupilRadius: 9,
     }
-
-    const xOuter = local(-shape.halfWidth)
-    const xInner = local(shape.halfWidth)
-    const aperture = `M ${xOuter} ${shape.outerY} Q ${cx} ${shape.upperY} ${xInner} ${shape.innerY} Q ${cx} ${shape.lowerY} ${xOuter} ${shape.outerY} Z`
-    const upperLid = `M ${xOuter} ${shape.outerY} Q ${cx} ${shape.upperY} ${xInner} ${shape.innerY}`
-    const lowerLid = `M ${xOuter + (7 * mirror)} ${shape.outerY + 4} Q ${cx} ${shape.lowerY - 2} ${xInner - (7 * mirror)} ${shape.innerY + 4}`
 
     return (
       <g>
         <defs>
           <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
-            <path d={aperture} />
+            <path d={geometry.aperture} />
           </clipPath>
         </defs>
 
-        <path d={aperture} fill={sclera} />
+        <path d={geometry.aperture} fill={sclera} />
 
         <g clipPath={`url(#${clipId})`}>
-          <circle
-            cx={cx}
-            cy={shape.irisY}
-            r={shape.irisRadius}
-            fill={iris}
-            stroke={lid}
-            strokeWidth="2.5"
-          />
-          <circle
-            cx={cx}
-            cy={shape.irisY + 1}
-            r={shape.pupilRadius}
-            fill={pupil}
-          />
+          <circle cx={cx} cy={geometry.irisY} r={geometry.irisRadius} fill={iris} stroke={lid} strokeWidth="2.5" />
+          <circle cx={cx} cy={geometry.irisY + 1} r={geometry.pupilRadius} fill={pupil} />
         </g>
 
-        <path
-          d={upperLid}
-          fill="none"
-          stroke={lid}
-          strokeWidth="9"
-          strokeLinecap="round"
-        />
-        <path
-          d={lowerLid}
-          fill="none"
-          stroke={lid}
-          strokeWidth="3.5"
-          strokeLinecap="round"
-          opacity=".7"
-        />
+        <path d={geometry.upper} fill="none" stroke={lid} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={geometry.lower} fill="none" stroke={lid} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" opacity=".72" />
+
+        {geometry.crease && (
+          <path d={geometry.crease} fill="none" stroke={lid} strokeWidth="3" strokeLinecap="round" opacity=".55" />
+        )}
+
+        {geometry.lashes && (
+          <g stroke={lid} strokeWidth="4" strokeLinecap="round">
+            <path d={`M ${x(-35)} 24 L ${x(-45)} 13`} />
+            <path d={`M ${x(-24)} 16 L ${x(-30)} 3`} />
+            <path d={`M ${x(33)} 24 L ${x(44)} 13`} />
+          </g>
+        )}
       </g>
     )
   }
@@ -788,7 +734,7 @@ function buildToonHeadPortrait(appearance) {
   const hasFacialHair = facialHair !== 'none'
   const notionBrows = NOTION_BROWS[brows] || null
   const notionEyes = NOTION_EYES[eyes] || null
-  const docOsEyes = eyes?.startsWith('doc') ? eyes : 'docNatural'
+  const docOsEyes = eyes?.startsWith('doc') ? eyes : 'docRound'
   const eyeColor = optionColor('eyeColor', appearance.eyeColor, '#6f4b32')
 
   const params = new URLSearchParams({
