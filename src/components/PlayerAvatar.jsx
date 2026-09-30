@@ -1209,8 +1209,9 @@ function buildToonHeadPortrait(appearance) {
     mouthLab,
     facialHairLab,
     glassesLab,
+    accessoryLab,
     notionGlasses: glassesLab ? null : NOTION_GLASSES[glasses] || null,
-    notionAccessories: NOTION_ACCESSORIES[accessories] || null,
+    notionAccessories: accessoryLab ? null : NOTION_ACCESSORIES[accessories] || null,
     hairColor: `#${hairColor}`,
   }
 }
@@ -1225,6 +1226,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
     portrait.mouthLab ||
     portrait.facialHairLab ||
     portrait.glassesLab ||
+    portrait.accessoryLab ||
     portrait.notionGlasses ||
     portrait.notionAccessories,
   )
@@ -1369,6 +1371,9 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
 
             return transform ? <g transform={transform}>{part}</g> : part
           })()}
+          {portrait.accessoryLab && (
+            <AccessoryLabPart candidate={portrait.accessoryLab} />
+          )}
           {portrait.notionAccessories && (
             <NotionPart
               assetKey="accessories"
