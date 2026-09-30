@@ -626,7 +626,7 @@ function GlassesLabElement({ node, keyPath }) {
 }
 
 const GLASSES_LAB_ZONES = {
-  avataaars: { x: 250, y: 326, width: 268, height: 191 },
+  avataaars: { x: 250, y: 270, width: 268, height: 191 },
   lorelei: { x: 240, y: 365, width: 288, height: 132 },
   adventurer: { x: 240, y: 365, width: 288, height: 131 },
 }
@@ -949,6 +949,14 @@ function stripOuterSvg(svg) {
 
 function recolorNotionSvg(svg, kind, color) {
   let next = stripOuterSvg(svg)
+
+  if (kind === 'glasses') {
+    next = next
+      // Notion 02/04/09: long one-sided temple arm.
+      .replace(/<line\b[^>]*rotate\(1\.361411\)[^>]*><\/line>/gi, '')
+      // Notion 06: the same 3/4 temple arm is authored as a filled polygon.
+      .replace(/<polygon\b[^>]*points="199 9 4 41 0 50 199 30"[^>]*><\/polygon>/gi, '')
+  }
 
   if (kind === 'hair') {
     next = next
