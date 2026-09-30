@@ -636,43 +636,163 @@ function AccessoryLabElement({ node, keyPath }) {
   return null
 }
 
-const ACCESSORY_LAB_ZONES = {
-  micah: { x: 188, y: 390, width: 390, height: 108 },
-  adventurer: { x: 184, y: 380, width: 400, height: 150 },
-  lorelei: { x: 184, y: 378, width: 400, height: 154 },
+const ACCESSORY_LAB_TUNING = {
+  // Crop each donor down to the visible jewelry, then place it directly on the
+  // front-facing Toon Head ears. These are audition proportions, not final lock.
+  'micah-earrings-hoop': {
+    viewBox: '-1 -1 54 54',
+    width: 66,
+    height: 66,
+    y: 404,
+  },
+  'micah-earrings-stud': {
+    viewBox: '20 -2 16 16',
+    width: 30,
+    height: 30,
+    y: 412,
+  },
+  'adventurer-earrings-variant01': {
+    viewBox: '2 101 24 39',
+    width: 44,
+    height: 70,
+    y: 402,
+  },
+  'adventurer-earrings-variant02': {
+    viewBox: '-1 92 45 45',
+    width: 60,
+    height: 60,
+    y: 405,
+  },
+  'adventurer-earrings-variant03': {
+    viewBox: '49 32 24 38',
+    width: 40,
+    height: 62,
+    y: 403,
+  },
+  'adventurer-earrings-variant04': {
+    viewBox: '43 -2 37 43',
+    width: 44,
+    height: 64,
+    y: 402,
+  },
+  'adventurer-earrings-variant05': {
+    viewBox: '43 -2 37 40',
+    width: 44,
+    height: 62,
+    y: 403,
+  },
+  'adventurer-earrings-variant06': {
+    viewBox: '3 95 22 22',
+    width: 30,
+    height: 30,
+    y: 411,
+  },
+  'lorelei-earrings-variant01': {
+    viewBox: '0 -2 43 47',
+    width: 46,
+    height: 50,
+    y: 405,
+  },
+  'lorelei-earrings-variant02': {
+    viewBox: '90 69 22 23',
+    width: 31,
+    height: 32,
+    y: 410,
+  },
+  'lorelei-earrings-variant03': {
+    viewBox: '79 86 31 55',
+    width: 42,
+    height: 72,
+    y: 401,
+  },
+  'lorelei-hairAccessories-flowers': {
+    viewBox: '0 0 205 161',
+    x: 450,
+    y: 205,
+    width: 138,
+    height: 108,
+    paired: false,
+  },
 }
 
 function AccessoryLabPart({ candidate }) {
   if (!candidate) return null
 
+  const candidateKey = `${candidate.style}-${candidate.component}-${candidate.variant}`
+  const tuning = ACCESSORY_LAB_TUNING[candidateKey] || {}
   const isHairAccessory = candidate.component === 'hairAccessories'
-  const zone = isHairAccessory
-    ? { x: 178, y: 198, width: 410, height: 220 }
-    : ACCESSORY_LAB_ZONES[candidate.style] || {
-      x: 184,
-      y: 382,
-      width: 400,
-      height: 150,
-    }
+  const paired = tuning.paired ?? !isHairAccessory
+  const viewBox = tuning.viewBox || `0 0 ${candidate.width} ${candidate.height}`
+  const [viewX, viewY, viewWidth, viewHeight] = viewBox.split(' ').map(Number)
+  const width = tuning.width || 44
+  const height = tuning.height || 58
+  const y = tuning.y ?? 404
+  const leftCenter = 244
+  const rightCenter = 524
+
+  const renderNodes = (mirror = false) => {
+    const nodes = candidate.elements.map((node, index) => (
+      <AccessoryLabElement
+        key={`${candidateKey}-${mirror ? 'r' : 'l'}-${index}`}
+        keyPath={`${candidateKey}-${mirror ? 'r' : 'l'}-${index}`}
+        node={node}
+      />
+    ))
+
+    if (!mirror) return nodes
+
+    const centerX = viewX + viewWidth / 2
+    return (
+      <g transform={`translate(${centerX * 2} 0) scale(-1 1)`}>
+        {nodes}
+      </g>
+    )
+  }
+
+  if (!paired) {
+    return (
+      <svg
+        x={tuning.x ?? 450}
+        y={y}
+        width={width}
+        height={height}
+        viewBox={viewBox}
+        preserveAspectRatio="xMidYMid meet"
+        overflow="visible"
+      >
+        {renderNodes(false)}
+      </svg>
+    )
+  }
+
+  const leftX = leftCenter - width / 2
+  const rightX = rightCenter - width / 2
 
   return (
-    <svg
-      x={zone.x}
-      y={zone.y}
-      width={zone.width}
-      height={zone.height}
-      viewBox={`0 0 ${candidate.width} ${candidate.height}`}
-      preserveAspectRatio="xMidYMid meet"
-      overflow="visible"
-    >
-      {candidate.elements.map((node, index) => (
-        <AccessoryLabElement
-          key={`${candidate.style}-${candidate.component}-${candidate.variant}-${index}`}
-          keyPath={`${candidate.style}-${candidate.component}-${candidate.variant}-${index}`}
-          node={node}
-        />
-      ))}
-    </svg>
+    <>
+      <svg
+        x={leftX}
+        y={y}
+        width={width}
+        height={height}
+        viewBox={viewBox}
+        preserveAspectRatio="xMidYMid meet"
+        overflow="visible"
+      >
+        {renderNodes(false)}
+      </svg>
+      <svg
+        x={rightX}
+        y={y}
+        width={width}
+        height={height}
+        viewBox={viewBox}
+        preserveAspectRatio="xMidYMid meet"
+        overflow="visible"
+      >
+        {renderNodes(true)}
+      </svg>
+    </>
   )
 }
 
