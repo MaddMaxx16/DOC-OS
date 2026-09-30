@@ -512,10 +512,12 @@ function DocOsEyePair({ variant, color }) {
     // These are separate eye anatomies, not expressions of one shared template.
     const geometry = {
       docRound: {
-        aperture: `M ${x(-34)} 43 C ${x(-31)} 15 ${x(-15)} 8 ${cx} 8 C ${x(18)} 8 ${x(33)} 19 ${x(34)} 43 C ${x(31)} 69 ${x(16)} 76 ${cx} 76 C ${x(-18)} 76 ${x(-33)} 65 ${x(-34)} 43 Z`,
-        upper: `M ${x(-34)} 43 C ${x(-31)} 15 ${x(-15)} 8 ${cx} 8 C ${x(18)} 8 ${x(33)} 19 ${x(34)} 43`,
-        lower: `M ${x(-30)} 49 C ${x(-22)} 70 ${x(20)} 72 ${x(30)} 49`,
-        irisY: 43, irisRadius: 22, pupilRadius: 9,
+        // Rounded/open rather than circular: keep this anatomy distinct without
+        // making the character look permanently surprised.
+        aperture: `M ${x(-39)} 43 C ${x(-35)} 22 ${x(-16)} 16 ${cx} 16 C ${x(19)} 16 ${x(36)} 25 ${x(39)} 43 C ${x(34)} 61 ${x(16)} 66 ${cx} 66 C ${x(-18)} 66 ${x(-35)} 59 ${x(-39)} 43 Z`,
+        upper: `M ${x(-39)} 43 C ${x(-35)} 22 ${x(-16)} 16 ${cx} 16 C ${x(19)} 16 ${x(36)} 25 ${x(39)} 43`,
+        lower: `M ${x(-34)} 49 C ${x(-24)} 62 ${x(22)} 64 ${x(34)} 49`,
+        irisY: 43, irisRadius: 21, pupilRadius: 9,
       },
       docHooded: {
         aperture: `M ${x(-43)} 39 Q ${x(-5)} 22 ${x(43)} 34 L ${x(39)} 55 Q ${cx} 67 ${x(-39)} 55 Z`,
@@ -563,10 +565,10 @@ function DocOsEyePair({ variant, color }) {
         irisY: 43, irisRadius: 21, pupilRadius: 9,
       },
     }[variant] || {
-      aperture: `M ${x(-34)} 43 C ${x(-31)} 15 ${x(-15)} 8 ${cx} 8 C ${x(18)} 8 ${x(33)} 19 ${x(34)} 43 C ${x(31)} 69 ${x(16)} 76 ${cx} 76 C ${x(-18)} 76 ${x(-33)} 65 ${x(-34)} 43 Z`,
-      upper: `M ${x(-34)} 43 C ${x(-31)} 15 ${x(-15)} 8 ${cx} 8 C ${x(18)} 8 ${x(33)} 19 ${x(34)} 43`,
-      lower: `M ${x(-30)} 49 C ${x(-22)} 70 ${x(20)} 72 ${x(30)} 49`,
-      irisY: 43, irisRadius: 22, pupilRadius: 9,
+      aperture: `M ${x(-39)} 43 C ${x(-35)} 22 ${x(-16)} 16 ${cx} 16 C ${x(19)} 16 ${x(36)} 25 ${x(39)} 43 C ${x(34)} 61 ${x(16)} 66 ${cx} 66 C ${x(-18)} 66 ${x(-35)} 59 ${x(-39)} 43 Z`,
+      upper: `M ${x(-39)} 43 C ${x(-35)} 22 ${x(-16)} 16 ${cx} 16 C ${x(19)} 16 ${x(36)} 25 ${x(39)} 43`,
+      lower: `M ${x(-34)} 49 C ${x(-24)} 62 ${x(22)} 64 ${x(34)} 49`,
+      irisY: 43, irisRadius: 21, pupilRadius: 9,
     }
 
     return (
