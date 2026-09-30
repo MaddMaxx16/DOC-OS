@@ -749,7 +749,7 @@ function DocOsAccessoryPiece({ variant }) {
         <>
           {/* 12.18: the secondary piercing sits slightly higher and is drawn
               first, so the lower/main hoop overlaps it and reads in front. */}
-          <g transform="translate(-23 -6) scale(.9)">
+          <g transform="translate(-20 -10) scale(.9)">
             <path
               d="M 1 -2 C -9 -4 -16 3 -17 12 C -18 22 -12 29 -4 29 C 3 29 7 23 7 15"
               fill="none"
