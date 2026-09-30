@@ -516,7 +516,7 @@ function DocOsEyePair({ variant, color }) {
         // making the character look permanently surprised.
         aperture: `M ${x(-39)} 43 C ${x(-35)} 22 ${x(-16)} 16 ${cx} 16 C ${x(19)} 16 ${x(36)} 25 ${x(39)} 43 C ${x(34)} 61 ${x(16)} 66 ${cx} 66 C ${x(-18)} 66 ${x(-35)} 59 ${x(-39)} 43 Z`,
         upper: `M ${x(-39)} 43 C ${x(-35)} 22 ${x(-16)} 16 ${cx} 16 C ${x(19)} 16 ${x(36)} 25 ${x(39)} 43`,
-        lower: `M ${x(-34)} 49 C ${x(-24)} 62 ${x(22)} 64 ${x(34)} 49`,
+        lower: `M ${x(-39)} 43 C ${x(-35)} 59 ${x(-18)} 66 ${cx} 66 C ${x(18)} 66 ${x(35)} 59 ${x(39)} 43`,
         irisY: 43, irisRadius: 21, pupilRadius: 9,
       },
       docHooded: {
@@ -567,7 +567,7 @@ function DocOsEyePair({ variant, color }) {
     }[variant] || {
       aperture: `M ${x(-39)} 43 C ${x(-35)} 22 ${x(-16)} 16 ${cx} 16 C ${x(19)} 16 ${x(36)} 25 ${x(39)} 43 C ${x(34)} 61 ${x(16)} 66 ${cx} 66 C ${x(-18)} 66 ${x(-35)} 59 ${x(-39)} 43 Z`,
       upper: `M ${x(-39)} 43 C ${x(-35)} 22 ${x(-16)} 16 ${cx} 16 C ${x(19)} 16 ${x(36)} 25 ${x(39)} 43`,
-      lower: `M ${x(-34)} 49 C ${x(-24)} 62 ${x(22)} 64 ${x(34)} 49`,
+      lower: `M ${x(-39)} 43 C ${x(-35)} 59 ${x(-18)} 66 ${cx} 66 C ${x(18)} 66 ${x(35)} 59 ${x(39)} 43`,
       irisY: 43, irisRadius: 21, pupilRadius: 9,
     }
 
