@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { AVATAAARS_HAIR_VARIANTS, AVATAAARS_LAYERED_HAIR } from '../data/avataaarsHair'
+import { MOUTH_LAB_CANDIDATES, MOUTH_LAB_OPTIONS } from '../data/mouthStyleAudition'
 
 // P2.4.4.3B.6.6G — final targeted Avataaars seam cleanup
 // Clean the six approved audition candidates without reopening the whole hair
@@ -98,16 +99,7 @@ export const APPEARANCE_OPTIONS = {
     { value: 'blue', label: 'Blue', color: '#557f9c' },
     { value: 'gray', label: 'Gray', color: '#7d898d' },
   ],
-  mouth: [
-    { value: 'docNeutral', label: 'Neutral' },
-    { value: 'docLightSmile', label: 'Soft Smile' },
-    { value: 'docSmirk', label: 'Sly' },
-    { value: 'docSmile', label: 'Full Smile' },
-    { value: 'docPout', label: 'Pout' },
-    { value: 'docDetermined', label: 'Determined' },
-    { value: 'docConcerned', label: 'Concerned' },
-    { value: 'docOpen', label: 'Open' },
-  ],
+  mouth: MOUTH_LAB_OPTIONS,
   facialHair: [
     { value: 'none', label: 'Clean Shaven' },
     { value: 'chin', label: 'Chin Beard' },
@@ -162,7 +154,7 @@ export const DEFAULT_APPEARANCE = {
   brows: 'neutral',
   eyes: 'docRound',
   eyeColor: 'brown',
-  mouth: 'docLightSmile',
+  mouth: 'lab-avataaars-default',
   facialHair: 'none',
   glasses: 'none',
   accessories: 'none',
@@ -499,162 +491,78 @@ function AvataaarsHair({ variant, color, layer = 'front' }) {
 
 const EYE_INK = '#4b2422'
 
-const DOC_OS_MOUTHS = new Set([
-  'docNeutral',
-  'docLightSmile',
-  'docSmirk',
-  'docSmile',
-  'docPout',
-  'docDetermined',
-  'docConcerned',
-  'docOpen',
-])
+function normalizeMouthAttributes(attributes = {}) {
+  const normalized = {}
 
-function DocOsMouth({ variant }) {
-  const ink = '#4b2422'
-  const interior = '#5a2028'
-  const tongue = '#d96b68'
-  const teeth = '#f6f1e4'
-  const lip = '#a65d5f'
-  const lipShadow = '#7a3f47'
+  Object.entries(attributes).forEach(([key, rawValue]) => {
+    if (key === 'style') return
 
-  const common = {
-    fill: 'none',
-    stroke: ink,
-    strokeWidth: 3,
-    strokeLinecap: 'round',
-    strokeLinejoin: 'round',
-  }
+    const mappedKey = {
+      'fill-opacity': 'fillOpacity',
+      'fill-rule': 'fillRule',
+      'clip-rule': 'clipRule',
+      'stroke-width': 'strokeWidth',
+      'stroke-linecap': 'strokeLinecap',
+      'stroke-linejoin': 'strokeLinejoin',
+    }[key] || key
 
-  let art = null
+    let value = rawValue
+    if (typeof value === 'string') {
+      const lower = value.toLowerCase()
+      if (
+        ['#000', '#000000', 'black'].includes(lower) &&
+        (mappedKey === 'fill' || mappedKey === 'stroke')
+      ) {
+        value = EYE_INK
+      }
+      if (
+        ['#fff', '#ffffff', 'white'].includes(lower) &&
+        mappedKey === 'fill'
+      ) {
+        value = '#f6f1e4'
+      }
+    }
 
-  if (variant === 'docNeutral') {
-    art = (
-      <>
-        <path
-          d="M14 31 C23 27 31 27 40 30 C49 27 58 27 67 31 C59 36 50 39 40 39 C30 39 22 36 14 31 Z"
-          fill={lip}
-          fillOpacity=".72"
-          stroke={ink}
-          strokeWidth="2.7"
-          strokeLinejoin="round"
-        />
-        <path d="M18 32 C29 34 51 34 63 32" {...common} strokeWidth="2" />
-        <path d="M27 39 C35 42 46 42 54 38" fill="none" stroke={lipShadow} strokeWidth="1.8" strokeLinecap="round" opacity=".55" />
-      </>
-    )
-  } else if (variant === 'docLightSmile') {
-    art = (
-      <>
-        <path
-          d="M13 29 C23 26 32 27 40 30 C49 26 58 25 68 28 C59 39 50 43 40 43 C29 43 20 39 13 29 Z"
-          fill={lip}
-          fillOpacity=".68"
-          stroke={ink}
-          strokeWidth="2.7"
-        />
-        <path d="M17 30 C28 35 52 35 64 29" {...common} strokeWidth="2.2" />
-        <path d="M28 42 C36 46 47 45 55 40" fill="none" stroke={lipShadow} strokeWidth="1.8" strokeLinecap="round" opacity=".5" />
-      </>
-    )
-  } else if (variant === 'docSmirk') {
-    art = (
-      <>
-        <path
-          d="M13 33 C25 29 33 31 40 32 C50 30 60 24 69 18 C63 33 53 41 40 42 C29 42 20 39 13 33 Z"
-          fill={lip}
-          fillOpacity=".74"
-          stroke={ink}
-          strokeWidth="2.8"
-        />
-        <path d="M18 33 C31 36 50 32 65 22" {...common} strokeWidth="2.2" />
-        <path d="M59 20 C64 19 68 16 71 13" {...common} strokeWidth="2.2" />
-      </>
-    )
-  } else if (variant === 'docSmile') {
-    art = (
-      <>
-        <path
-          d="M9 23 C25 30 55 30 72 21 C68 43 55 53 40 53 C25 53 13 43 9 23 Z"
-          fill={interior}
-          stroke={ink}
-          strokeWidth="3"
-          strokeLinejoin="round"
-        />
-        <path d="M13 25 C29 30 55 29 68 23 C62 32 21 34 13 25 Z" fill={teeth} />
-        <path d="M25 48 C34 41 49 41 58 48 C50 53 33 54 25 48 Z" fill={tongue} />
-      </>
-    )
-  } else if (variant === 'docPout') {
-    art = (
-      <>
-        <path
-          d="M17 30 C24 23 33 23 40 28 C48 22 57 24 64 30 C58 39 50 44 40 44 C30 44 22 40 17 30 Z"
-          fill={lip}
-          stroke={ink}
-          strokeWidth="2.8"
-          strokeLinejoin="round"
-        />
-        <path d="M20 31 C30 34 51 34 61 31" {...common} strokeWidth="2.1" />
-        <path d="M28 43 C35 47 46 47 53 42" fill="none" stroke={lipShadow} strokeWidth="2" strokeLinecap="round" opacity=".65" />
-      </>
-    )
-  } else if (variant === 'docDetermined') {
-    art = (
-      <>
-        <path
-          d="M12 32 C22 28 31 29 40 31 C49 29 59 28 69 32 L64 37 C53 35 28 35 17 37 Z"
-          fill={lip}
-          fillOpacity=".58"
-          stroke={ink}
-          strokeWidth="2.7"
-          strokeLinejoin="round"
-        />
-        <path d="M15 33 C28 31 53 31 66 33" {...common} strokeWidth="2.5" />
-        <path d="M12 30 L8 27 M69 30 L73 27" {...common} strokeWidth="2.2" />
-      </>
-    )
-  } else if (variant === 'docConcerned') {
-    art = (
-      <>
-        <path
-          d="M12 34 C20 25 29 39 39 31 C49 23 58 37 69 28 C63 39 53 43 41 42 C29 43 20 40 12 34 Z"
-          fill={lip}
-          fillOpacity=".58"
-          stroke={ink}
-          strokeWidth="2.7"
-        />
-        <path d="M15 34 C24 28 31 38 40 32 C49 26 57 36 66 29" {...common} strokeWidth="2.2" />
-      </>
-    )
-  } else if (variant === 'docOpen') {
-    art = (
-      <>
-        <path
-          d="M25 19 C32 14 48 14 55 19 C61 26 61 44 54 53 C47 61 33 61 26 53 C19 44 19 27 25 19 Z"
-          fill={interior}
-          stroke={ink}
-          strokeWidth="3"
-        />
-        <path d="M27 21 C34 18 46 18 53 21 C49 27 31 27 27 21 Z" fill={teeth} />
-        <path d="M29 49 C35 43 46 43 52 49 C47 55 34 56 29 49 Z" fill={tongue} />
-      </>
-    )
-  }
+    normalized[mappedKey] = value
+  })
 
-  if (!art) return null
+  return normalized
+}
 
+function MouthLabElement({ node, keyPath }) {
+  const attributes = normalizeMouthAttributes(node.attributes)
+
+  if (node.name === 'path') return <path key={keyPath} {...attributes} />
+  if (node.name === 'circle') return <circle key={keyPath} {...attributes} />
+  if (node.name === 'ellipse') return <ellipse key={keyPath} {...attributes} />
+  if (node.name === 'rect') return <rect key={keyPath} {...attributes} />
+
+  return null
+}
+
+function MouthLabPart({ candidate }) {
+  if (!candidate) return null
+
+  // Normalize every donor component into the same Toon Head mouth zone.
+  // preserveAspectRatio keeps each source's native proportions intact so this
+  // audition judges the artwork rather than a stretched approximation.
   return (
     <svg
-      x="310"
-      y="470"
-      width="148"
-      height="90"
-      viewBox="0 0 80 66"
+      x="306"
+      y="466"
+      width="156"
+      height="98"
+      viewBox={`0 0 ${candidate.width} ${candidate.height}`}
       preserveAspectRatio="xMidYMid meet"
       overflow="visible"
     >
-      {art}
+      {candidate.elements.map((node, index) => (
+        <MouthLabElement
+          key={`${candidate.style}-${candidate.variant}-${index}`}
+          keyPath={`${candidate.style}-${candidate.variant}-${index}`}
+          node={node}
+        />
+      ))}
     </svg>
   )
 }
@@ -901,15 +809,17 @@ function buildToonHeadPortrait(appearance) {
   const notionEyes = NOTION_EYES[eyes] || null
   const docOsEyes = eyes?.startsWith('doc') ? eyes : 'docRound'
   const eyeColor = optionColor('eyeColor', appearance.eyeColor, '#6f4b32')
-  const docOsMouth = DOC_OS_MOUTHS.has(mouth) ? mouth : null
+  const mouthLab = mouth.startsWith('lab-')
+    ? MOUTH_LAB_CANDIDATES[mouth.slice(4)] || null
+    : null
 
   const params = new URLSearchParams({
     seed: 'doc-os-metroline-player',
     skinColor,
     hairColor,
     clothesColor: METROLINE_OUTFIT_COLOR,
-    mouthVariant: docOsMouth ? 'smile' : mouth,
-    mouthProbability: docOsMouth ? '0' : '100',
+    mouthVariant: 'smile',
+    mouthProbability: mouthLab ? '0' : '100',
     clothesVariant: outfit,
     beardProbability: hasFacialHair ? '100' : '0',
     eyebrowsProbability: notionBrows ? '0' : '100',
@@ -932,7 +842,7 @@ function buildToonHeadPortrait(appearance) {
     notionEyes,
     docOsEyes,
     eyeColor: `#${eyeColor}`,
-    docOsMouth,
+    mouthLab,
     notionGlasses: NOTION_GLASSES[glasses] || null,
     notionAccessories: NOTION_ACCESSORIES[accessories] || null,
     hairColor: `#${hairColor}`,
@@ -946,7 +856,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
     portrait.notionBrows ||
     portrait.notionEyes ||
     portrait.docOsEyes ||
-    portrait.docOsMouth ||
+    portrait.mouthLab ||
     portrait.notionGlasses ||
     portrait.notionAccessories,
   )
@@ -1057,7 +967,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
           {portrait.docOsEyes && (
             <DocOsEyePair variant={portrait.docOsEyes} color={portrait.eyeColor} />
           )}
-          {portrait.docOsMouth && <DocOsMouth variant={portrait.docOsMouth} />}
+          {portrait.mouthLab && <MouthLabPart candidate={portrait.mouthLab} />}
           {portrait.notionGlasses && (
             <NotionPart
               assetKey="glasses"
