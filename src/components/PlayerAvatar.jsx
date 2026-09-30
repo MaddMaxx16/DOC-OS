@@ -113,10 +113,19 @@ export const APPEARANCE_OPTIONS = {
   accessories: [
     { value: 'none', label: 'None' },
     { value: 'notionAccessory1', label: 'Notion · 02' },
+    { value: 'notionAccessory2', label: 'Notion · 03' },
     { value: 'notionAccessory3', label: 'Notion · 04' },
+    { value: 'notionAccessory4', label: 'Notion · 05' },
     { value: 'notionAccessory5', label: 'Notion · 06' },
+    { value: 'notionAccessory6', label: 'Notion · 07' },
+    { value: 'notionAccessory7', label: 'Notion · 08' },
     { value: 'notionAccessory8', label: 'Notion · 09' },
+    { value: 'notionAccessory9', label: 'Notion · 10' },
     { value: 'notionAccessory10', label: 'Notion · 11' },
+    { value: 'notionAccessory11', label: 'Notion · 12' },
+    { value: 'notionAccessory12', label: 'Notion · 13' },
+    { value: 'notionAccessory13', label: 'Notion · 14' },
+    { value: 'notionAccessory14', label: 'Notion · 15' },
   ],
   outfit: [
     { value: 'shirt', label: 'Work Shirt' },
@@ -234,10 +243,19 @@ const NOTION_GLASSES_TUNING = {
 
 const NOTION_ACCESSORIES = {
   notionAccessory1: '1',
+  notionAccessory2: '2',
   notionAccessory3: '3',
+  notionAccessory4: '4',
   notionAccessory5: '5',
+  notionAccessory6: '6',
+  notionAccessory7: '7',
   notionAccessory8: '8',
+  notionAccessory9: '9',
   notionAccessory10: '10',
+  notionAccessory11: '11',
+  notionAccessory12: '12',
+  notionAccessory13: '13',
+  notionAccessory14: '14',
 }
 
 const NOTION_TRANSFORMS = {
