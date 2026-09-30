@@ -747,11 +747,9 @@ function DocOsAccessoryPiece({ variant }) {
     case 'docAccessoryDoubleHoop':
       return (
         <>
-          {/* Two lower-lobe piercings, like a classic double-hoop stack:
-              both hoops hang from the bottom edge of the lobe. The second
-              piercing steps outward across the lobe instead of climbing up
-              into the cartilage. */}
-          <g transform="translate(0 7)">
+          {/* 12.18: the secondary piercing sits slightly higher and is drawn
+              first, so the lower/main hoop overlaps it and reads in front. */}
+          <g transform="translate(-23 0) scale(.9)">
             <path
               d="M 1 -2 C -9 -4 -16 3 -17 12 C -18 22 -12 29 -4 29 C 3 29 7 23 7 15"
               fill="none"
@@ -771,7 +769,7 @@ function DocOsAccessoryPiece({ variant }) {
             <circle cx="1" cy="-2" r="4.25" fill={ink} />
             <circle cx="1" cy="-2" r="2.1" fill={gold} />
           </g>
-          <g transform="translate(-23 5) scale(.9)">
+          <g transform="translate(0 7)">
             <path
               d="M 1 -2 C -9 -4 -16 3 -17 12 C -18 22 -12 29 -4 29 C 3 29 7 23 7 15"
               fill="none"
