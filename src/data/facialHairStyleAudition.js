@@ -1,0 +1,375 @@
+// P2.4.4.3B.10.0 — temporary facial-hair audition data.
+// Sources: DiceBear official style definitions.
+// Avataaars: Pablo Stanley, free for personal/commercial use.
+// Notionists: Zoish, CC0 1.0.
+// Donor color tokens are replaced at render time with the selected DOC OS hair color.
+
+export const FACIAL_HAIR_LAB_OPTIONS = [
+  {
+    "value": "none",
+    "label": "Clean Shaven"
+  },
+  {
+    "value": "chin",
+    "label": "Toon · Chin Beard"
+  },
+  {
+    "value": "chinMoustache",
+    "label": "Toon · Goatee + Mustache"
+  },
+  {
+    "value": "moustacheTwirl",
+    "label": "Toon · Mustache"
+  },
+  {
+    "value": "fullBeard",
+    "label": "Toon · Full Beard"
+  },
+  {
+    "value": "longBeard",
+    "label": "Toon · Long Beard"
+  },
+  {
+    "value": "faciallab-avataaars-beardLight",
+    "label": "Ava · Beard Light"
+  },
+  {
+    "value": "faciallab-avataaars-beardMajestic",
+    "label": "Ava · Beard Majestic"
+  },
+  {
+    "value": "faciallab-avataaars-beardMedium",
+    "label": "Ava · Beard Medium"
+  },
+  {
+    "value": "faciallab-avataaars-moustacheFancy",
+    "label": "Ava · Moustache Fancy"
+  },
+  {
+    "value": "faciallab-avataaars-moustacheMagnum",
+    "label": "Ava · Moustache Magnum"
+  },
+  {
+    "value": "faciallab-notionists-variant01",
+    "label": "Notion · 01"
+  },
+  {
+    "value": "faciallab-notionists-variant02",
+    "label": "Notion · 02"
+  },
+  {
+    "value": "faciallab-notionists-variant03",
+    "label": "Notion · 03"
+  },
+  {
+    "value": "faciallab-notionists-variant04",
+    "label": "Notion · 04"
+  },
+  {
+    "value": "faciallab-notionists-variant05",
+    "label": "Notion · 05"
+  },
+  {
+    "value": "faciallab-notionists-variant06",
+    "label": "Notion · 06"
+  },
+  {
+    "value": "faciallab-notionists-variant07",
+    "label": "Notion · 07"
+  },
+  {
+    "value": "faciallab-notionists-variant08",
+    "label": "Notion · 08"
+  },
+  {
+    "value": "faciallab-notionists-variant09",
+    "label": "Notion · 09"
+  },
+  {
+    "value": "faciallab-notionists-variant10",
+    "label": "Notion · 10"
+  },
+  {
+    "value": "faciallab-notionists-variant11",
+    "label": "Notion · 11"
+  },
+  {
+    "value": "faciallab-notionists-variant12",
+    "label": "Notion · 12"
+  }
+]
+
+export const FACIAL_HAIR_LAB_CANDIDATES = {
+  "avataaars-beardLight": {
+    "style": "avataaars",
+    "variant": "beardLight",
+    "width": 121,
+    "height": 120,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M77.43 72.17c-2.52 2.3-5.2 3.32-8.58 2.6-.58-.12-2.95-4.54-8.85-4.54s-8.27 4.42-8.85 4.54c-3.39.72-6.07-.3-8.58-2.6-4.72-4.31-8.65-10.26-6.3-16.75 1.24-3.38 3.24-7.1 6.88-8.17 3.89-1.15 9.35 0 13.26-.8A8.6 8.6 0 0 0 60 45a8.6 8.6 0 0 0 3.58 1.46c3.92.78 9.38-.36 13.27.79 3.64 1.07 5.64 4.79 6.87 8.17 2.36 6.49-1.57 12.44-6.3 16.75M116.08 0c-3.4 8.4-2.1 18.86-2.72 27.68-.52 7.16-2.02 17.9-8.39 22.53-3.25 2.37-9.18 6.35-13.43 5.24-2.93-.76-3.24-9.16-7.08-12.3a22.4 22.4 0 0 0-15.31-4.9c-2.37.11-7.17.09-9.15 1.91-1.98-1.82-6.78-1.8-9.15-1.9a22.4 22.4 0 0 0-15.3 4.89c-3.85 3.14-4.16 11.54-7.1 12.3-4.24 1.11-10.17-2.87-13.42-5.24-6.37-4.62-7.87-15.37-8.39-22.53C6.01 18.86 7.33 8.4 3.92 0c-1.66 0-.57 16.13-.57 16.13v20.36c.04 15.28 9.59 38.17 30.76 46.9C39.29 85.53 51 89 60 89c8.98 0 20.71-3.14 25.9-5.28 21.15-8.72 30.7-31.95 30.74-47.22V16.13S117.74 0 116.08 0",
+          "fill": "__HAIR_COLOR__",
+          "fill-rule": "evenodd",
+          "clip-rule": "evenodd"
+        }
+      }
+    ]
+  },
+  "avataaars-beardMajestic": {
+    "style": "avataaars",
+    "variant": "beardMajestic",
+    "width": 121,
+    "height": 120,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M41.18 51.74c2.18-1.64 15.23-2.26 17.58-3.65q1.09-.65 1.74-1.31.65.67 1.74 1.3c2.35 1.4 15.4 2.02 17.58 3.66 2.21 1.65 3.82 5.44 3.65 8.41-.22 3.56-4.1 12.05-13.8 13.03a12.3 12.3 0 0 0-9.17-3.87 12.3 12.3 0 0 0-9.17 3.87c-9.7-.98-13.58-9.47-13.8-13.03-.17-2.97 1.44-6.76 3.65-8.41M120.86 30c-.39-5.96-1.58-11.84-2.63-17.7-.28-1.58-1.8-12.29-2.5-12.29-.23 9.1-1.03 18.08-2.06 27.14-.3 2.7-.63 5.42-.84 8.13-.18 2.2.13 4.85-.4 6.98-.68 2.7-4.08 5.23-6.73 6.16-6.6 2.33-12.1-7.3-17.74-10.12-7.32-3.66-19.9-4.53-27.38.24-7.64-4.77-20.22-3.9-27.54-.24C27.4 41.11 21.9 50.74 15.3 48.41c-2.65-.93-6.05-3.46-6.73-6.16-.53-2.13-.22-4.78-.4-6.98-.2-2.71-.53-5.42-.84-8.13A308 308 0 0 1 5.27 0c-.7 0-2.22 10.7-2.5 12.29C1.72 18.15.53 24.03.14 29.99q-.58 9.18 1.33 18.17.91 4.3 2.05 8.54c.83 3.15-.32 9.27.05 12.5.7 6.1 3.58 18 6.81 23.25 1.56 2.54 3.4 4.12 5.44 6.17 1.96 1.97 2.78 5.02 4.9 7.12 3.96 3.9 9.73 6.23 15.65 6.8 5.3 4.51 14.14 7.46 24.13 7.46 10 0 18.82-2.95 24.13-7.46 5.92-.57 11.69-2.9 15.64-6.8 2.13-2.1 2.95-5.15 4.91-7.12 2.05-2.05 3.88-3.63 5.44-6.17 3.23-5.25 6.1-17.15 6.8-23.26.38-3.22-.77-9.34.06-12.49q1.14-4.23 2.05-8.54c1.25-6 1.73-12.06 1.33-18.17",
+          "fill": "__HAIR_COLOR__",
+          "fill-rule": "evenodd",
+          "clip-rule": "evenodd"
+        }
+      }
+    ]
+  },
+  "avataaars-beardMedium": {
+    "style": "avataaars",
+    "variant": "beardMedium",
+    "width": 121,
+    "height": 120,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M60.5 67.84c-11.5.38-16.64 5.88-20.5.29-2.91-4.2-1.7-11.26 1.01-15.23 3.86-5.65 9.1-2.92 14.95-3.56 1.6-.18 3.2-.62 4.54-1.34 1.36.72 2.95 1.16 4.55 1.34 5.85.64 11.08-2.09 14.94 3.56 2.72 3.97 3.93 11.03 1.03 15.23-3.87 5.6-9-.67-20.52-.29M116.4 0c-3.43 14.07-5 28.43-7.49 42.67q-.78 4.46-1.69 8.88c-.12.62-.25 2.92-.86 3.21-1.85.89-5.62-3.81-6.63-4.87-2.53-2.67-5.05-5.36-8.13-7.45a43.7 43.7 0 0 0-21.13-7.32C67.29 34.87 63 35.3 60 37.1c-3-1.8-7.3-2.24-10.47-2-7.6.6-14.9 3.1-21.13 7.33-3.09 2.09-5.6 4.78-8.13 7.45-1 1.06-4.78 5.76-6.63 4.87-.61-.29-.74-2.59-.86-3.21q-.9-4.43-1.69-8.88C8.61 28.43 7.03 14.07 3.61 0c-1 0-1.87 18.75-1.98 20.5-.46 7.09-.98 14.03-.3 21.13 1.16 12.24 2.37 27.6 11.7 36.96 8.44 8.45 20.68 10.22 31.24 15.55 1.36.69 3.16 1.54 5.11 2.23 2.05 1.56 6.11 2.63 10.8 2.63 4.9 0 9.14-1.17 11.07-2.86 1.7-.65 3.27-1.39 4.48-2 10.56-5.33 22.8-7.1 31.24-15.55 9.33-9.36 10.54-24.72 11.7-36.96.68-7.1.16-14.04-.3-21.14-.1-1.74-.98-20.49-1.98-20.49",
+          "fill": "__HAIR_COLOR__",
+          "fill-rule": "evenodd",
+          "clip-rule": "evenodd"
+        }
+      }
+    ]
+  },
+  "avataaars-moustacheFancy": {
+    "style": "avataaars",
+    "variant": "moustacheFancy",
+    "width": 121,
+    "height": 120,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M33.55 43.68a32 32 0 0 1 4.84-2.55C43.58 39.15 53.2 39.71 60 43.3c6.8-3.59 16.42-4.15 21.61-2.17 1.64.63 3.22 1.57 4.84 2.55 4.13 2.47 8.55 5.12 14.91 3.15.37-.12.73.21.62.58-1.37 4.5-9 7.6-11.6 7.7-6.2.24-11.75-2.26-17.13-4.69-4.44-2-8.77-3.96-13.25-4.26-4.48.3-8.8 2.26-13.25 4.26-5.38 2.43-10.92 4.93-17.13 4.69-2.6-.1-10.23-3.2-11.6-7.7-.11-.37.25-.7.62-.58 6.36 1.97 10.78-.68 14.9-3.15",
+          "fill": "__HAIR_COLOR__"
+        }
+      }
+    ]
+  },
+  "avataaars-moustacheMagnum": {
+    "style": "avataaars",
+    "variant": "moustacheMagnum",
+    "width": 121,
+    "height": 120,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M60 40.94c-2.5-3.34-12.27-4.75-19.28-3.48-9.65 1.76-13.74 12.3-12.5 14.22.77 1.19 2.48.8 4.26.38.8-.2 1.64-.38 2.4-.43 1.48-.09 3.34.22 5.44.57 4.98.82 11.37 1.88 17.63-1.51A6 6 0 0 0 60 48.84a6 6 0 0 0 2.05 1.85c6.25 3.39 12.64 2.33 17.62 1.5 2.11-.34 3.96-.65 5.45-.56a15 15 0 0 1 2.4.43c1.78.41 3.49.81 4.26-.38 1.24-1.91-2.85-12.46-12.5-14.22-7.01-1.27-16.78.14-19.28 3.48",
+          "fill": "__HAIR_COLOR__"
+        }
+      }
+    ]
+  },
+  "notionists-variant01": {
+    "style": "notionists",
+    "variant": "variant01",
+    "width": 449,
+    "height": 312,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M254 88c-21-5-49-6-64 1-60 24-62 101-44 134 11 22 35 42 59 61h1c18 16 36 20 59 25l4 1q14 3 27 1h14c17 0 32-12 44-22 19-17 33-38 30-65q-1-21 9-40 16-30 10-65-7-30-37-34c-23-1-76 14-76 14zm63 130-27 4c-21 21-60 25-74 11-21-21-16-30-11-38q3-4 2-8 9 5 14 11 10 10 22 15c4-6 0-9-3-12q-10-11-18-25l-2-2c-10-16-1-33 18-36q21-2 29-6c7-3 12-7 23-17 13 13 30 16 48 18q17 4 15 23-3 15-12 26l-8 13-1 2q-2 2 0 5 9-1 14-9c5-6 10-13 22-7-13 59-51 32-51 32",
+          "fill": "__HAIR_COLOR__",
+          "fill-rule": "evenodd",
+          "clip-rule": "evenodd"
+        }
+      }
+    ]
+  },
+  "notionists-variant02": {
+    "style": "notionists",
+    "variant": "variant02",
+    "width": 449,
+    "height": 312,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "m388 121 50-64s14 50 11 79l-1 19c-1 26-1 27-79 119-33 39-95 41-117 36-73-14-160-130-180-180C54 83 0 0 0 0l31 5s39 23 56 67c9 23 60 88 134 53 18-9 35-17 56-15q11 0 16 9c31-25 47-5 62 13l10 11q13-6 19-16zm-131 50c8 9 72 6 74-8 2-12-4-16-12-20l-8-4c-18-13-78 4-54 32",
+          "fill": "__HAIR_COLOR__",
+          "fill-rule": "evenodd",
+          "clip-rule": "evenodd"
+        }
+      }
+    ]
+  },
+  "notionists-variant03": {
+    "style": "notionists",
+    "variant": "variant03",
+    "width": 449,
+    "height": 312,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M248 145c-12 12-26 12-40 10-13-1-21-20-17-33 6-19 34-36 55-34 27 3 54 6 81 1 25-5 49 9 54 30q9 32-24 28-17-1-31-12c-25-19-56-9-78 10",
+          "fill": "__HAIR_COLOR__"
+        }
+      }
+    ]
+  },
+  "notionists-variant04": {
+    "style": "notionists",
+    "variant": "variant04",
+    "width": 449,
+    "height": 312,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M273 105q-10 15-26 14c-8 1-13-6-11-13q4-18 22-25c5-2 10-5 15 0q7 6 4 16zm70 17q-19-6-28-24c-5-10 4-13 10-16 8-4 21 5 26 16 3 9 6 19-8 24",
+          "fill": "__HAIR_COLOR__"
+        }
+      }
+    ]
+  },
+  "notionists-variant05": {
+    "style": "notionists",
+    "variant": "variant05",
+    "width": 449,
+    "height": 312,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M228 118c-21 3-40-3-61 3q-7 2-11-2c-2-4 3-6 6-8 17-14 34-28 59-26l31 3h10c6 1 15-1 14 6q-2 10-15 13zm124-2c21 3 40-3 61 3q7 2 11-2c2-4-3-6-6-8-17-14-34-28-59-26l-31 3h-10c-6 1-15-1-14 6q2 10 15 13z",
+          "fill": "__HAIR_COLOR__"
+        }
+      }
+    ]
+  },
+  "notionists-variant06": {
+    "style": "notionists",
+    "variant": "variant06",
+    "width": 449,
+    "height": 312,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M217 82c17 0 33-2 49 2q17 1 12 22c-3 12-32 5-54 5-8-1-31 2-37 7q-6 6-14 5c-1-14 21-34 44-41m124 33c-9 1-39 2-39-16q0-11 6-14c16-8 33 0 52 5 10 2 13 8 19 15q6 10-5 10z",
+          "fill": "__HAIR_COLOR__"
+        }
+      }
+    ]
+  },
+  "notionists-variant07": {
+    "style": "notionists",
+    "variant": "variant07",
+    "width": 449,
+    "height": 312,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M233 77c14-10 26-6 38 1q10 5 10 16-3 7-11 10c-18 9-37 10-55 17q-13 6-25 15-6 5-12 2-6-4-4-12v-11c-2-21-1-22 17-24q3 0 5-3c9-18 22-16 37-11m177 34q3 15-8 13c-25-2-50-4-73-14-6-3-15-5-14-13q3-15 16-21 7-2 13-6c12-7 19-6 29 6q2 5 7 4 18-2 25 19z",
+          "fill": "__HAIR_COLOR__"
+        }
+      }
+    ]
+  },
+  "notionists-variant08": {
+    "style": "notionists",
+    "variant": "variant08",
+    "width": 449,
+    "height": 312,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M303 282c-80 2-172-72-170-85 3-11 51 3 57 7q21 16 43 22 16 2 28-9c6-4 10-14 3-28q-5-7-2-15t10-5q22 14 42 0c7-6 13 6 13 21-1 20 2 23 13 21 11-3 23-25 32-35 108-127-4 54-5 56-11 27-45 45-64 50",
+          "fill": "__HAIR_COLOR__"
+        }
+      },
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M329 102c15-20 23-20 41-2q9 7 17 19 4 4 3 12-1 9-9 8l-15-5-28-12q-16-5-9-20m-62 0c-15-20-23-20-41-2q-9 7-17 19-4 4-4 12 3 9 10 8l15-5 28-12q15-5 9-20",
+          "fill": "__HAIR_COLOR__"
+        }
+      }
+    ]
+  },
+  "notionists-variant09": {
+    "style": "notionists",
+    "variant": "variant09",
+    "width": 449,
+    "height": 312,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M407 115q-5 11-18 5a194 194 0 0 0-64-14c-26 0-26 0-28-16l-1 4c-5 12-5 12-27 12q-24 0-46 6l-30 5q-8 1-14-2-5-5 1-9c9-7 14-15 23-22 17-12 30-13 47-9 15 3 31 3 44 8q4 2 9 1 19-4 39-6c32-3 40 4 58 16 8 6 7 13 7 21",
+          "fill": "__HAIR_COLOR__"
+        }
+      }
+    ]
+  },
+  "notionists-variant10": {
+    "style": "notionists",
+    "variant": "variant10",
+    "width": 449,
+    "height": 312,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M219 135q-23 0-27-19c-3-13 5-27 17-34 13-7 27-5 40-3 15 3 30 2 44 7q6 2 12 0 9-4 18-3h42q21-1 27 22c2 10-4 23-14 28q-17 9-34 0-10-8-21-3-10 4-20-2-6-6-13-1l-4 1c-15-7-30-3-45-2-8 1-13 8-22 9",
+          "fill": "__HAIR_COLOR__"
+        }
+      }
+    ]
+  },
+  "notionists-variant11": {
+    "style": "notionists",
+    "variant": "variant11",
+    "width": 449,
+    "height": 312,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M139 200c0-10 62 41 126 25 25-6 17-37 17-37l22-2s-3 28 6 32c36 14 81-49 84-33 6 25-19 60-28 74-12 19-35 40-51 43-82 15-176-72-176-102m80-65q-23 0-27-19c-3-13 5-27 17-34 13-7 27-5 40-3 15 3 30 2 44 7q6 2 12 0 9-4 18-3h42q21-1 27 22c2 10-4 23-14 28q-17 9-34 0-10-8-21-3-10 4-20-2-6-6-13-1l-4 1c-15-7-30-3-45-2-8 1-13 8-22 9",
+          "fill": "__HAIR_COLOR__"
+        }
+      }
+    ]
+  },
+  "notionists-variant12": {
+    "style": "notionists",
+    "variant": "variant12",
+    "width": 449,
+    "height": 312,
+    "elements": [
+      {
+        "name": "path",
+        "attributes": {
+          "d": "M139 200c0-10 62 41 126 25 25-6 17-37 17-37l22-2s-3 28 6 32c36 14 81-49 84-33 6 25-19 60-28 74-12 19-35 40-51 43-82 15-176-72-176-102",
+          "fill": "__HAIR_COLOR__"
+        }
+      }
+    ]
+  }
+}
