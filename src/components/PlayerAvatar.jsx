@@ -225,6 +225,10 @@ const NOTION_GLASSES = {
   notionGlasses12: '12',
 }
 
+const NOTION_GLASSES_TUNING = {
+  '1': { scale: 0.9 },
+}
+
 const NOTION_ACCESSORIES = {
   notionAccessory1: '1',
   notionAccessory3: '3',
@@ -631,14 +635,30 @@ const GLASSES_LAB_ZONES = {
   adventurer: { x: 240, y: 365, width: 288, height: 131 },
 }
 
+const GLASSES_LAB_TUNING = {
+  // Physical-iPhone QA: keep the shared Ava center locked and tune only the
+  // frames whose visible artwork differs materially inside the donor box.
+  'avataaars-kurt': { scale: 0.84 },
+  'avataaars-prescription01': { scale: 1.08 },
+}
+
 function GlassesLabPart({ candidate }) {
   if (!candidate) return null
 
-  const zone = GLASSES_LAB_ZONES[candidate.style] || {
+  const candidateKey = `${candidate.style}-${candidate.variant}`
+  const tuning = GLASSES_LAB_TUNING[candidateKey] || {}
+  const baseZone = GLASSES_LAB_ZONES[candidate.style] || {
     x: 240,
     y: 360,
     width: 288,
     height: 140,
+  }
+  const scale = tuning.scale || 1
+  const zone = {
+    x: baseZone.x + (baseZone.width * (1 - scale)) / 2,
+    y: baseZone.y + (baseZone.height * (1 - scale)) / 2,
+    width: baseZone.width * scale,
+    height: baseZone.height * scale,
   }
 
   return (
@@ -1237,14 +1257,25 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
           {portrait.glassesLab && (
             <GlassesLabPart candidate={portrait.glassesLab} />
           )}
-          {portrait.notionGlasses && (
-            <NotionPart
-              assetKey="glasses"
-              index={portrait.notionGlasses}
-              kind="glasses"
-              transform={NOTION_TRANSFORMS.glasses}
-            />
-          )}
+          {portrait.notionGlasses && (() => {
+            const tuning = NOTION_GLASSES_TUNING[portrait.notionGlasses]
+            const part = (
+              <NotionPart
+                assetKey="glasses"
+                index={portrait.notionGlasses}
+                kind="glasses"
+                transform={NOTION_TRANSFORMS.glasses}
+              />
+            )
+
+            return tuning?.scale ? (
+              <g
+                transform={`translate(384 420) scale(${tuning.scale}) translate(-384 -420)`}
+              >
+                {part}
+              </g>
+            ) : part
+          })()}
           {portrait.notionAccessories && (
             <NotionPart
               assetKey="accessories"
