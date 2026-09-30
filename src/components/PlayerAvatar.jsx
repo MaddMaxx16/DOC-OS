@@ -226,7 +226,10 @@ const NOTION_GLASSES = {
 }
 
 const NOTION_GLASSES_TUNING = {
-  '1': { scale: 0.9 },
+  // 02 returns to the base Notion size.
+  // 06 only needs a slight lift; 09 needs less overall visual mass.
+  '5': { dy: -8 },
+  '8': { scale: 0.9 },
 }
 
 const NOTION_ACCESSORIES = {
@@ -636,10 +639,10 @@ const GLASSES_LAB_ZONES = {
 }
 
 const GLASSES_LAB_TUNING = {
-  // Physical-iPhone QA: keep the shared Ava center locked and tune only the
-  // frames whose visible artwork differs materially inside the donor box.
-  'avataaars-kurt': { scale: 0.84 },
-  'avataaars-prescription01': { scale: 1.08 },
+  // Physical-iPhone QA: shared Ava placement is locked. Only individual scale
+  // differences live here; Kurt returns to the shared/base size.
+  'avataaars-prescription01': { scale: 1.14 },
+  'avataaars-prescription02': { scale: 1.08 },
 }
 
 function GlassesLabPart({ candidate }) {
@@ -1268,13 +1271,18 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
               />
             )
 
-            return tuning?.scale ? (
-              <g
-                transform={`translate(384 420) scale(${tuning.scale}) translate(-384 -420)`}
-              >
-                {part}
-              </g>
-            ) : part
+            if (!tuning) return part
+
+            const scale = tuning.scale || 1
+            const dy = tuning.dy || 0
+            const transform = [
+              dy ? `translate(0 ${dy})` : '',
+              scale !== 1
+                ? `translate(384 420) scale(${scale}) translate(-384 -420)`
+                : '',
+            ].filter(Boolean).join(' ')
+
+            return transform ? <g transform={transform}>{part}</g> : part
           })()}
           {portrait.notionAccessories && (
             <NotionPart
