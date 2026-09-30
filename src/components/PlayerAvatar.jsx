@@ -628,11 +628,30 @@ const FACIAL_HAIR_LAB_ZONES = {
 }
 
 const FACIAL_HAIR_LAB_TUNING = {
-  // Notion 11/12 are authored for a three-quarter face. An affine rotation
-  // cannot remove that perspective because the silhouette itself is asymmetric.
-  // Build a front-facing version from the stronger left half instead.
-  'notionists-variant11': { symmetryCenter: 293, centerOffsetX: -68.5 },
-  'notionists-variant12': { symmetryCenter: 293, centerOffsetX: -68.5 },
+  // P2.4.4.3B.10.3 — normalize donor artwork to Toon Head's face scale.
+  // Keep each style's intended silhouette (long stays long, light stays light),
+  // while bringing its overall visual weight and mouth/jaw placement into the
+  // same family as the native Toon facial hair.
+  'avataaars-beardLight': { scale: 0.95, dy: -2 },
+  'avataaars-beardMajestic': { scale: 0.93, dy: -2 },
+  'avataaars-beardMedium': { scale: 0.92, dy: 2 },
+  'avataaars-moustacheFancy': { scaleX: 1.06 },
+  'avataaars-moustacheMagnum': { scaleX: 1.18 },
+  // Notion 11/12 are authored for a three-quarter face. They remain rebuilt
+  // from a mirrored half for frontal symmetry, then receive a small size lift
+  // so they do not read undersized beside the Toon/Ava options.
+  'notionists-variant11': {
+    symmetryCenter: 293,
+    centerOffsetX: -68.5,
+    scale: 1.1,
+    dy: -4,
+  },
+  'notionists-variant12': {
+    symmetryCenter: 293,
+    centerOffsetX: -68.5,
+    scale: 1.15,
+    dy: -4,
+  },
 }
 
 function FacialHairLabPart({ candidate, color }) {
@@ -649,6 +668,16 @@ function FacialHairLabPart({ candidate, color }) {
   }
   const symmetryCenter = tuning.symmetryCenter || null
   const symmetryClipId = `facial-hair-symmetry-${clipSeed}`
+  const centerX = candidate.width / 2
+  const centerY = candidate.height / 2
+  const scaleX = tuning.scaleX || tuning.scale || 1
+  const scaleY = tuning.scaleY || tuning.scale || 1
+  const dx = tuning.dx || 0
+  const dy = tuning.dy || 0
+  const contentTransform =
+    dx || dy || scaleX !== 1 || scaleY !== 1
+      ? `translate(${dx} ${dy}) translate(${centerX} ${centerY}) scale(${scaleX} ${scaleY}) translate(${-centerX} ${-centerY})`
+      : undefined
 
   const renderElements = (side) => candidate.elements.map((node, index) => (
     <FacialHairLabElement
@@ -658,6 +687,34 @@ function FacialHairLabPart({ candidate, color }) {
       color={color}
     />
   ))
+
+  const renderedCandidate = symmetryCenter ? (
+    <>
+      <defs>
+        <clipPath id={symmetryClipId}>
+          <rect
+            x="0"
+            y="0"
+            width={symmetryCenter}
+            height={candidate.height}
+          />
+        </clipPath>
+      </defs>
+      <g transform={`translate(${tuning.centerOffsetX || 0} 0)`}>
+        <g clipPath={`url(#${symmetryClipId})`}>
+          {renderElements('left')}
+        </g>
+        <g
+          transform={`translate(${symmetryCenter * 2} 0) scale(-1 1)`}
+          clipPath={`url(#${symmetryClipId})`}
+        >
+          {renderElements('right')}
+        </g>
+      </g>
+    </>
+  ) : (
+    renderElements('native')
+  )
 
   return (
     <svg
@@ -669,33 +726,9 @@ function FacialHairLabPart({ candidate, color }) {
       preserveAspectRatio="xMidYMid meet"
       overflow="visible"
     >
-      {symmetryCenter ? (
-        <>
-          <defs>
-            <clipPath id={symmetryClipId}>
-              <rect
-                x="0"
-                y="0"
-                width={symmetryCenter}
-                height={candidate.height}
-              />
-            </clipPath>
-          </defs>
-          <g transform={`translate(${tuning.centerOffsetX || 0} 0)`}>
-            <g clipPath={`url(#${symmetryClipId})`}>
-              {renderElements('left')}
-            </g>
-            <g
-              transform={`translate(${symmetryCenter * 2} 0) scale(-1 1)`}
-              clipPath={`url(#${symmetryClipId})`}
-            >
-              {renderElements('right')}
-            </g>
-          </g>
-        </>
-      ) : (
-        renderElements('native')
-      )}
+      <g transform={contentTransform}>
+        {renderedCandidate}
+      </g>
     </svg>
   )
 }
