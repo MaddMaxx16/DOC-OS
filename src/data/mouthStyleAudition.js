@@ -2,139 +2,21 @@
 // Sources: DiceBear official style definitions.
 // Avataaars: Pablo Stanley, free for personal/commercial use.
 // Micah: Micah Lanier, CC BY 4.0.
-// Personas: Draftbit, CC0 1.0.
+// Personas: Draftbit, CC BY 4.0.
 // Adventurer: Lisa Wischofsky, CC BY 4.0.
 // Keep source attribution/license notes if any candidates survive the audition.
 
 export const MOUTH_LAB_OPTIONS = [
-  {
-    "value": "lab-avataaars-default",
-    "label": "Ava · Default"
-  },
-  {
-    "value": "lab-avataaars-smile",
-    "label": "Ava · Smile"
-  },
-  {
-    "value": "lab-avataaars-serious",
-    "label": "Ava · Serious"
-  },
-  {
-    "value": "lab-avataaars-concerned",
-    "label": "Ava · Concerned"
-  },
-  {
-    "value": "lab-avataaars-disbelief",
-    "label": "Ava · Disbelief"
-  },
-  {
-    "value": "lab-avataaars-grimace",
-    "label": "Ava · Grimace"
-  },
-  {
-    "value": "lab-avataaars-twinkle",
-    "label": "Ava · Twinkle"
-  },
-  {
-    "value": "lab-avataaars-screamOpen",
-    "label": "Ava · Scream Open"
-  },
-  {
-    "value": "lab-micah-frown",
-    "label": "Micah · Frown"
-  },
-  {
-    "value": "lab-micah-laughing",
-    "label": "Micah · Laughing"
-  },
-  {
-    "value": "lab-micah-nervous",
-    "label": "Micah · Nervous"
-  },
-  {
-    "value": "lab-micah-pucker",
-    "label": "Micah · Pucker"
-  },
-  {
-    "value": "lab-micah-sad",
-    "label": "Micah · Sad"
-  },
-  {
-    "value": "lab-micah-smile",
-    "label": "Micah · Smile"
-  },
-  {
-    "value": "lab-micah-smirk",
-    "label": "Micah · Smirk"
-  },
-  {
-    "value": "lab-micah-surprised",
-    "label": "Micah · Surprised"
-  },
-  {
-    "value": "lab-personas-bigSmile",
-    "label": "Persona · Big Smile"
-  },
-  {
-    "value": "lab-personas-frown",
-    "label": "Persona · Frown"
-  },
-  {
-    "value": "lab-personas-lips",
-    "label": "Persona · Lips"
-  },
-  {
-    "value": "lab-personas-smile",
-    "label": "Persona · Smile"
-  },
-  {
-    "value": "lab-personas-smirk",
-    "label": "Persona · Smirk"
-  },
-  {
-    "value": "lab-personas-surprise",
-    "label": "Persona · Surprise"
-  },
-  {
-    "value": "lab-adventurer-variant01",
-    "label": "Adv · 01"
-  },
-  {
-    "value": "lab-adventurer-variant03",
-    "label": "Adv · 03"
-  },
-  {
-    "value": "lab-adventurer-variant06",
-    "label": "Adv · 06"
-  },
-  {
-    "value": "lab-adventurer-variant09",
-    "label": "Adv · 09"
-  },
-  {
-    "value": "lab-adventurer-variant12",
-    "label": "Adv · 12"
-  },
-  {
-    "value": "lab-adventurer-variant16",
-    "label": "Adv · 16"
-  },
-  {
-    "value": "lab-adventurer-variant20",
-    "label": "Adv · 20"
-  },
-  {
-    "value": "lab-adventurer-variant24",
-    "label": "Adv · 24"
-  },
-  {
-    "value": "lab-adventurer-variant27",
-    "label": "Adv · 27"
-  },
-  {
-    "value": "lab-adventurer-variant30",
-    "label": "Adv · 30"
-  }
+  { value: 'lab-avataaars-smile', label: 'Ava · Smile' },
+  { value: 'lab-avataaars-serious', label: 'Ava · Serious' },
+  { value: 'lab-avataaars-concerned', label: 'Ava · Concerned' },
+  { value: 'lab-avataaars-grimace', label: 'Ava · Grimace' },
+  { value: 'lab-micah-nervous', label: 'Micah · Nervous' },
+  { value: 'lab-personas-bigSmile', label: 'Persona · Big Smile' },
+  { value: 'lab-personas-lips', label: 'Persona · Lips' },
+  { value: 'lab-adventurer-variant03', label: 'Adv · 03' },
+  { value: 'lab-adventurer-variant06', label: 'Adv · 06' },
+  { value: 'lab-adventurer-variant09', label: 'Adv · 09' },
 ]
 
 export const MOUTH_LAB_CANDIDATES = {
@@ -530,14 +412,14 @@ export const MOUTH_LAB_CANDIDATES = {
         "name": "path",
         "attributes": {
           "d": "M1 3.54h8s-1 2.5-4 2.5-4-2.5-4-2.5",
-          "fill": "#dc5c7a"
+          "fill": "#7a3f47"
         }
       },
       {
         "name": "path",
         "attributes": {
           "d": "M1.39 2.76A2.1 2.1 0 0 1 5 2.54a2.1 2.1 0 0 1 3.61.22l.4.78H1z",
-          "fill": "#f57b98"
+          "fill": "#a65d5f"
         }
       }
     ]
