@@ -632,9 +632,9 @@ const FACIAL_HAIR_LAB_TUNING = {
   // Keep each style's intended silhouette (long stays long, light stays light),
   // while bringing its overall visual weight and mouth/jaw placement into the
   // same family as the native Toon facial hair.
-  'avataaars-beardLight': { scaleX: 1.32, scaleY: 0.95, dy: -2 },
-  'avataaars-beardMajestic': { scaleX: 1.28, scaleY: 0.93, dy: -2 },
-  'avataaars-beardMedium': { scaleX: 1.3, scaleY: 0.92, dy: 2 },
+  'avataaars-beardLight': { scaleX: 1.74, scaleY: 0.95, dy: -2 },
+  'avataaars-beardMajestic': { scaleX: 1.7, scaleY: 0.93, dy: -2 },
+  'avataaars-beardMedium': { scaleX: 1.74, scaleY: 0.92, dy: 2 },
   'avataaars-moustacheFancy': { scaleX: 1.06 },
   'avataaars-moustacheMagnum': { scaleX: 1.18 },
   // Notion 11/12 are authored for a three-quarter face. They remain rebuilt
