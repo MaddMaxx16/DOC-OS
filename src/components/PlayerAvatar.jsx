@@ -565,10 +565,10 @@ function DonorEyes({ donor }) {
     // Initial Face defines one eye and mirrors it at the face level.
     return (
       <>
-        <svg x="318" y="374" width="46" height="46" viewBox={`0 0 ${donor.width} ${donor.height}`}>
+        <svg x="300" y="374" width="46" height="46" viewBox={`0 0 ${donor.width} ${donor.height}`}>
           {content}
         </svg>
-        <svg x="404" y="374" width="46" height="46" viewBox={`0 0 ${donor.width} ${donor.height}`}>
+        <svg x="422" y="374" width="46" height="46" viewBox={`0 0 ${donor.width} ${donor.height}`}>
           <g transform={`translate(${donor.width} 0) scale(-1 1)`}>{content}</g>
         </svg>
       </>
