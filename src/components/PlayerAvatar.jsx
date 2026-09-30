@@ -146,6 +146,7 @@ export const DEFAULT_APPEARANCE = {
   facialHair: 'none',
   glasses: 'none',
   accessories: 'none',
+  accessorySide: 'both',
   outfit: 'shirt',
 }
 
@@ -915,30 +916,44 @@ function DocOsAccessoryCuffRearPiece() {
   )
 }
 
-function DocOsAccessoryCuffRearPair() {
+function DocOsAccessoryCuffRearPair({ side = 'both' }) {
+  const showLeft = side === 'left' || side === 'both'
+  const showRight = side === 'right' || side === 'both'
+
   return (
     <>
-      <g transform={`translate(${DOC_OS_EAR_ANCHORS.left.x} ${DOC_OS_EAR_ANCHORS.left.y})`}>
-        <DocOsAccessoryCuffRearPiece />
-      </g>
-      <g transform={`translate(${DOC_OS_EAR_ANCHORS.right.x} ${DOC_OS_EAR_ANCHORS.right.y}) scale(-1 1)`}>
-        <DocOsAccessoryCuffRearPiece />
-      </g>
+      {showLeft && (
+        <g transform={`translate(${DOC_OS_EAR_ANCHORS.left.x} ${DOC_OS_EAR_ANCHORS.left.y})`}>
+          <DocOsAccessoryCuffRearPiece />
+        </g>
+      )}
+      {showRight && (
+        <g transform={`translate(${DOC_OS_EAR_ANCHORS.right.x} ${DOC_OS_EAR_ANCHORS.right.y}) scale(-1 1)`}>
+          <DocOsAccessoryCuffRearPiece />
+        </g>
+      )}
     </>
   )
 }
 
-function DocOsAccessoryPair({ variant }) {
+function DocOsAccessoryPair({ variant, side = 'both' }) {
   if (!variant || variant === 'none') return null
+
+  const showLeft = side === 'left' || side === 'both'
+  const showRight = side === 'right' || side === 'both'
 
   return (
     <>
-      <g transform={`translate(${DOC_OS_EAR_ANCHORS.left.x} ${DOC_OS_EAR_ANCHORS.left.y})`}>
-        <DocOsAccessoryPiece variant={variant} />
-      </g>
-      <g transform={`translate(${DOC_OS_EAR_ANCHORS.right.x} ${DOC_OS_EAR_ANCHORS.right.y}) scale(-1 1)`}>
-        <DocOsAccessoryPiece variant={variant} />
-      </g>
+      {showLeft && (
+        <g transform={`translate(${DOC_OS_EAR_ANCHORS.left.x} ${DOC_OS_EAR_ANCHORS.left.y})`}>
+          <DocOsAccessoryPiece variant={variant} />
+        </g>
+      )}
+      {showRight && (
+        <g transform={`translate(${DOC_OS_EAR_ANCHORS.right.x} ${DOC_OS_EAR_ANCHORS.right.y}) scale(-1 1)`}>
+          <DocOsAccessoryPiece variant={variant} />
+        </g>
+      )}
     </>
   )
 }
@@ -1421,6 +1436,9 @@ function buildToonHeadPortrait(appearance) {
   const facialHair = validOption('facialHair', appearance.facialHair, DEFAULT_APPEARANCE.facialHair)
   const glasses = validOption('glasses', appearance.glasses, DEFAULT_APPEARANCE.glasses)
   const accessories = validOption('accessories', appearance.accessories, DEFAULT_APPEARANCE.accessories)
+  const accessorySide = ['left', 'both', 'right'].includes(appearance.accessorySide)
+    ? appearance.accessorySide
+    : DEFAULT_APPEARANCE.accessorySide
   const outfit = validOption('outfit', appearance.outfit, DEFAULT_APPEARANCE.outfit)
 
   const hair = HAIR_CONFIG[hairChoice] || HAIR_CONFIG[DEFAULT_APPEARANCE.hair]
@@ -1477,6 +1495,7 @@ function buildToonHeadPortrait(appearance) {
     facialHairLab,
     glassesLab,
     docOsAccessory,
+    accessorySide,
     notionGlasses: glassesLab ? null : NOTION_GLASSES[glasses] || null,
     notionAccessories: docOsAccessory ? null : NOTION_ACCESSORIES[accessories] || null,
     hairColor: `#${hairColor}`,
@@ -1555,7 +1574,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             zIndex: 0,
           }}
         >
-          <DocOsAccessoryCuffRearPair />
+          <DocOsAccessoryCuffRearPair side={portrait.accessorySide} />
         </svg>
       )}
 
@@ -1658,7 +1677,10 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             return transform ? <g transform={transform}>{part}</g> : part
           })()}
           {portrait.docOsAccessory && (
-            <DocOsAccessoryPair variant={portrait.docOsAccessory} />
+            <DocOsAccessoryPair
+              variant={portrait.docOsAccessory}
+              side={portrait.accessorySide}
+            />
           )}
           {portrait.notionAccessories && (
             <NotionPart
