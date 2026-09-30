@@ -605,10 +605,10 @@ const DOC_OS_ACCESSORY_HIGHLIGHT = '#f6e7bd'
 // head's own inner-ear geometry through that same coordinate space puts the
 // earlobe anchors here. All native accessories share these anchors.
 const DOC_OS_EAR_ANCHORS = {
-  // iPhone QA 12.5: lift the piercing point and tuck it slightly inward so
-  // studs sit in the lobe and hoops hang from the ear instead of outside it.
-  left: { x: 221, y: 456 },
-  right: { x: 547, y: 456 },
+  // iPhone QA 12.6: anchor to the fleshy lower/outside earlobe rather than
+  // the inner-ear bowl. All native earrings share this piercing point.
+  left: { x: 207, y: 469 },
+  right: { x: 561, y: 469 },
 }
 
 function DocOsAccessoryPiece({ variant }) {
