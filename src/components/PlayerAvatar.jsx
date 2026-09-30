@@ -1,6 +1,5 @@
-import { createElement, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AVATAAARS_HAIR_VARIANTS, AVATAAARS_LAYERED_HAIR } from '../data/avataaarsHair'
-import { EYE_STYLE_AUDITION } from '../data/eyeStyleAudition'
 
 // P2.4.4.3B.6.6G — final targeted Avataaars seam cleanup
 // Clean the six approved audition candidates without reopening the whole hair
@@ -81,9 +80,21 @@ export const APPEARANCE_OPTIONS = {
     { value: 'notionBrow15', label: 'Relaxed' },
   ],
   eyes: [
-    { value: 'humble', label: 'Toon · Natural' },
-    { value: 'wide', label: 'Toon · Wide' },
-    ...EYE_STYLE_AUDITION.map(({ value, label }) => ({ value, label })),
+    { value: 'docNatural', label: 'Natural' },
+    { value: 'docSoft', label: 'Soft' },
+    { value: 'docAlmond', label: 'Almond' },
+    { value: 'docUpturned', label: 'Upturned' },
+    { value: 'docRelaxed', label: 'Relaxed' },
+    { value: 'docFocused', label: 'Focused' },
+  ],
+  eyeColor: [
+    { value: 'darkBrown', label: 'Dark Brown', color: '#3b281f' },
+    { value: 'brown', label: 'Brown', color: '#6f4b32' },
+    { value: 'hazel', label: 'Hazel', color: '#8b713f' },
+    { value: 'amber', label: 'Amber', color: '#b57932' },
+    { value: 'green', label: 'Green', color: '#5f7d63' },
+    { value: 'blue', label: 'Blue', color: '#557f9c' },
+    { value: 'gray', label: 'Gray', color: '#7d898d' },
   ],
   mouth: [
     { value: 'smile', label: 'Soft Smile' },
@@ -131,6 +142,7 @@ export const APPEARANCE_CATEGORIES = [
   { key: 'hairColor', label: 'Hair Color' },
   { key: 'brows', label: 'Brows' },
   { key: 'eyes', label: 'Eyes' },
+  { key: 'eyeColor', label: 'Eye Color' },
   { key: 'mouth', label: 'Mouth' },
   { key: 'facialHair', label: 'Facial Hair' },
   { key: 'glasses', label: 'Glasses' },
@@ -143,7 +155,8 @@ export const DEFAULT_APPEARANCE = {
   hair: 'sidepart',
   hairColor: 'espresso',
   brows: 'neutral',
-  eyes: 'humble',
+  eyes: 'docNatural',
+  eyeColor: 'brown',
   mouth: 'smile',
   facialHair: 'none',
   glasses: 'none',
@@ -212,10 +225,6 @@ const NOTION_BROWS = {
 }
 
 const NOTION_EYES = {}
-
-const EYE_STYLE_AUDITION_BY_VALUE = Object.fromEntries(
-  EYE_STYLE_AUDITION.map((candidate) => [candidate.value, candidate]),
-)
 
 const NOTION_GLASSES = {
   notionGlasses1: '1',
@@ -485,108 +494,86 @@ function AvataaarsHair({ variant, color, layer = 'front' }) {
 
 const EYE_INK = '#4b2422'
 
-const DONOR_EYE_ATTRIBUTE_MAP = {
-  'clip-rule': 'clipRule',
-  'fill-opacity': 'fillOpacity',
-  'fill-rule': 'fillRule',
-  'stroke-linecap': 'strokeLinecap',
-  'stroke-linejoin': 'strokeLinejoin',
-  'stroke-miterlimit': 'strokeMiterlimit',
-  'stroke-opacity': 'strokeOpacity',
-  'stroke-width': 'strokeWidth',
-}
+function DocOsEyePair({ variant, color }) {
+  const iris = color || '#6f4b32'
+  const pupil = '#241b19'
+  const lid = EYE_INK
 
-function donorEyeColor(value) {
-  if (value && typeof value === 'object' && value.type === 'color') {
-    return value.name === 'sclera' ? '#ffffff' : EYE_INK
-  }
+  const Eye = ({ side = 'left' }) => {
+    const cx = side === 'left' ? 61 : 200
+    const mirror = side === 'left' ? 1 : -1
+    const local = (x) => cx + (x * mirror)
 
-  if (typeof value !== 'string') return value
-
-  const normalized = value.toLowerCase()
-  if (normalized === 'none' || normalized === 'transparent') return value
-  if (normalized === '#fff' || normalized === '#ffffff' || normalized === 'white') {
-    return '#ffffff'
-  }
-
-  // The sampler is about silhouette/style, not each donor library's palette.
-  // Normalize donor ink to the same DOC OS facial-feature color.
-  if (
-    normalized === '#000' ||
-    normalized === '#000000' ||
-    normalized === 'black' ||
-    normalized === '#161616' ||
-    normalized === '#1b0640' ||
-    normalized === '#2a1200' ||
-    normalized === '#403e3e' ||
-    normalized === '#71472d' ||
-    normalized === '#757575'
-  ) {
-    return EYE_INK
-  }
-
-  return value
-}
-
-function DonorEyeNode({ node, keyPath }) {
-  const supported = new Set(['g', 'path', 'circle', 'ellipse', 'rect', 'line', 'polyline', 'polygon'])
-  if (!supported.has(node.name)) return null
-
-  const attributes = {}
-  for (const [key, value] of Object.entries(node.attributes || {})) {
-    const reactKey = DONOR_EYE_ATTRIBUTE_MAP[key] || key
-    attributes[reactKey] =
-      key === 'fill' || key === 'stroke' ? donorEyeColor(value) : value
-  }
-
-  const children = (node.children || []).map((child, index) => (
-    <DonorEyeNode
-      key={`${keyPath}-${index}`}
-      keyPath={`${keyPath}-${index}`}
-      node={child}
-    />
-  ))
-
-  return createElement(node.name, { key: keyPath, ...attributes }, children)
-}
-
-function DonorEyes({ donor }) {
-  if (!donor) return null
-
-  const content = donor.elements.map((node, index) => (
-    <DonorEyeNode
-      key={`${donor.value}-${index}`}
-      keyPath={`${donor.value}-${index}`}
-      node={node}
-    />
-  ))
-
-  if (donor.singleEye) {
-    // Initial Face defines one eye and mirrors it at the face level.
-    return (
+    const irisNode = (radius = 14, y = 41) => (
       <>
-        <svg x="300" y="374" width="46" height="46" viewBox={`0 0 ${donor.width} ${donor.height}`}>
-          {content}
-        </svg>
-        <svg x="422" y="374" width="46" height="46" viewBox={`0 0 ${donor.width} ${donor.height}`}>
-          <g transform={`translate(${donor.width} 0) scale(-1 1)`}>{content}</g>
-        </svg>
+        <circle cx={cx} cy={y} r={radius} fill={iris} stroke={lid} strokeWidth="2.5" />
+        <circle cx={cx} cy={y + 1} r="5.5" fill={pupil} />
       </>
+    )
+
+    if (variant === 'docSoft') {
+      return (
+        <g>
+          {irisNode(15, 41)}
+          <path d={`M ${local(-31)} 40 Q ${cx} 19 ${local(31)} 40`} fill="none" stroke={lid} strokeWidth="6" strokeLinecap="round" />
+          <path d={`M ${local(-28)} 45 Q ${cx} 58 ${local(28)} 45`} fill="none" stroke={lid} strokeWidth="3" strokeLinecap="round" opacity=".72" />
+        </g>
+      )
+    }
+
+    if (variant === 'docAlmond') {
+      return (
+        <g>
+          {irisNode(14, 41)}
+          <path d={`M ${local(-34)} 42 Q ${cx} 18 ${local(34)} 42 Q ${cx} 59 ${local(-34)} 42`} fill="none" stroke={lid} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+        </g>
+      )
+    }
+
+    if (variant === 'docUpturned') {
+      return (
+        <g>
+          {irisNode(14, 41)}
+          <path d={`M ${local(-32)} 45 Q ${cx} 20 ${local(34)} 35`} fill="none" stroke={lid} strokeWidth="6" strokeLinecap="round" />
+          <path d={`M ${local(-27)} 47 Q ${cx} 56 ${local(27)} 43`} fill="none" stroke={lid} strokeWidth="3" strokeLinecap="round" opacity=".68" />
+        </g>
+      )
+    }
+
+    if (variant === 'docRelaxed') {
+      return (
+        <g>
+          {irisNode(13, 44)}
+          <path d={`M ${local(-32)} 39 Q ${cx} 27 ${local(32)} 39`} fill="none" stroke={lid} strokeWidth="7" strokeLinecap="round" />
+          <path d={`M ${local(-25)} 49 Q ${cx} 55 ${local(25)} 49`} fill="none" stroke={lid} strokeWidth="3" strokeLinecap="round" opacity=".62" />
+        </g>
+      )
+    }
+
+    if (variant === 'docFocused') {
+      return (
+        <g>
+          {irisNode(12, 42)}
+          <path d={`M ${local(-32)} 40 Q ${cx} 24 ${local(32)} 36`} fill="none" stroke={lid} strokeWidth="7" strokeLinecap="round" />
+          <path d={`M ${local(-26)} 47 Q ${cx} 53 ${local(26)} 46`} fill="none" stroke={lid} strokeWidth="3" strokeLinecap="round" opacity=".65" />
+        </g>
+      )
+    }
+
+    return (
+      <g>
+        {irisNode(14, 41)}
+        <path d={`M ${local(-32)} 41 Q ${cx} 21 ${local(32)} 41`} fill="none" stroke={lid} strokeWidth="6" strokeLinecap="round" />
+        <path d={`M ${local(-27)} 46 Q ${cx} 56 ${local(27)} 46`} fill="none" stroke={lid} strokeWidth="3" strokeLinecap="round" opacity=".68" />
+      </g>
     )
   }
 
   return (
-    <svg
-      x={donor.box.x}
-      y={donor.box.y}
-      width={donor.box.width}
-      height={donor.box.height}
-      viewBox={`0 0 ${donor.width} ${donor.height}`}
-      preserveAspectRatio="xMidYMid meet"
-      overflow="visible"
-    >
-      {content}
-    </svg>
+    <g transform="translate(253 367)">
+      <Eye side="left" />
+      <Eye side="right" />
+    </g>
   )
 }
 
@@ -714,7 +701,8 @@ function buildToonHeadPortrait(appearance) {
   const hasFacialHair = facialHair !== 'none'
   const notionBrows = NOTION_BROWS[brows] || null
   const notionEyes = NOTION_EYES[eyes] || null
-  const donorEyes = EYE_STYLE_AUDITION_BY_VALUE[eyes] || null
+  const docOsEyes = eyes?.startsWith('doc') ? eyes : 'docNatural'
+  const eyeColor = optionColor('eyeColor', appearance.eyeColor, '#6f4b32')
 
   const params = new URLSearchParams({
     seed: 'doc-os-metroline-player',
@@ -725,13 +713,13 @@ function buildToonHeadPortrait(appearance) {
     clothesVariant: outfit,
     beardProbability: hasFacialHair ? '100' : '0',
     eyebrowsProbability: notionBrows ? '0' : '100',
-    eyesProbability: notionEyes || donorEyes ? '0' : '100',
+    eyesProbability: notionEyes || docOsEyes ? '0' : '100',
     hairProbability: hair.avataaars ? '0' : (hair.front ? '100' : '0'),
     rearHairProbability: hair.avataaars ? '0' : (hair.rear ? '100' : '0'),
   })
 
   if (!notionBrows) params.set('eyebrowsVariant', brows)
-  if (!notionEyes && !donorEyes) params.set('eyesVariant', eyes)
+  if (!notionEyes && !docOsEyes) params.set('eyesVariant', eyes)
   if (!hair.avataaars && hair.front) params.set('hairVariant', hair.front)
   if (!hair.avataaars && hair.rear) params.set('rearHairVariant', hair.rear)
   if (hasFacialHair) params.set('beardVariant', facialHair)
@@ -742,7 +730,8 @@ function buildToonHeadPortrait(appearance) {
     avataaarsHair: hair.avataaars || null,
     notionBrows,
     notionEyes,
-    donorEyes,
+    docOsEyes,
+    eyeColor: `#${eyeColor}`,
     notionGlasses: NOTION_GLASSES[glasses] || null,
     notionAccessories: NOTION_ACCESSORIES[accessories] || null,
     hairColor: `#${hairColor}`,
@@ -755,7 +744,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
     portrait.avataaarsHair ||
     portrait.notionBrows ||
     portrait.notionEyes ||
-    portrait.donorEyes ||
+    portrait.docOsEyes ||
     portrait.notionGlasses ||
     portrait.notionAccessories,
   )
@@ -863,7 +852,9 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
               transform={NOTION_TRANSFORMS.eyes}
             />
           )}
-          {portrait.donorEyes && <DonorEyes donor={portrait.donorEyes} />}
+          {portrait.docOsEyes && (
+            <DocOsEyePair variant={portrait.docOsEyes} color={portrait.eyeColor} />
+          )}
           {portrait.notionGlasses && (
             <NotionPart
               assetKey="glasses"
