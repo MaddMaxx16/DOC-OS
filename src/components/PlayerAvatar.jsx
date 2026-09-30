@@ -834,23 +834,26 @@ function DocOsAccessoryPiece({ variant }) {
 
     case 'docAccessoryCuff':
       return (
-        <g transform="translate(0 -24)">
+        <g transform="translate(10 -10)">
+          {/* A cuff clamps around the lower lobe rather than hanging from a
+              piercing. Keep the C tight to the ear edge with its opening
+              facing inward toward the face. */}
           <path
-            d="M -8 -18 C -27 -15 -30 8 -13 17"
+            d="M -5 -14 C -19 -13 -23 -3 -22 6 C -21 15 -15 20 -7 17"
             fill="none"
             stroke={ink}
             strokeWidth="14"
             strokeLinecap="round"
           />
           <path
-            d="M -8 -18 C -27 -15 -30 8 -13 17"
+            d="M -5 -14 C -19 -13 -23 -3 -22 6 C -21 15 -15 20 -7 17"
             fill="none"
             stroke={gold}
             strokeWidth="8"
             strokeLinecap="round"
           />
           <path
-            d="M -10 -12 C -19 -8 -21 3 -15 8"
+            d="M -8 -10 C -15 -8 -17 -2 -17 4"
             fill="none"
             stroke={shine}
             strokeWidth="2.5"
