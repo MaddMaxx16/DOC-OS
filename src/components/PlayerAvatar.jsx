@@ -713,22 +713,35 @@ function DocOsAccessoryPiece({ variant }) {
 
     case 'docAccessoryHuggie':
       return (
-        <>
+        <g transform="translate(0 7)">
+          {/* Huggie uses the locked side-profile piercing language, but keeps
+              the arc compact and snug against the underside of the earlobe. */}
           <path
-            d="M -12 -2 A 15 15 0 1 0 12 -2"
+            d="M 1 -2 C -9 -4 -16 3 -17 12 C -18 22 -12 29 -4 29 C 3 29 7 23 7 15"
             fill="none"
             stroke={ink}
-            strokeWidth="11"
+            strokeWidth="10"
             strokeLinecap="round"
+            strokeLinejoin="round"
           />
           <path
-            d="M -12 -2 A 15 15 0 1 0 12 -2"
+            d="M 1 -2 C -9 -4 -16 3 -17 12 C -18 22 -12 29 -4 29 C 3 29 7 23 7 15"
             fill="none"
             stroke={gold}
-            strokeWidth="6"
+            strokeWidth="5.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="1" cy="-2" r="4.25" fill={ink} />
+          <circle cx="1" cy="-2" r="2.1" fill={gold} />
+          <path
+            d="M -8 1 C -13 5 -14 9 -14 13"
+            fill="none"
+            stroke={shine}
+            strokeWidth="1.8"
             strokeLinecap="round"
           />
-        </>
+        </g>
       )
 
     case 'docAccessoryDoubleHoop':
