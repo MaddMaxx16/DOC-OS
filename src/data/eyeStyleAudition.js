@@ -1,142 +1,41 @@
-// P2.4.4.3B.8.4 — cross-library eye style sampler.
-// Source geometry is copied from the corresponding DiceBear style definitions.
-// Brow-only donor geometry is intentionally stripped so the locked DOC OS brow
-// choice remains visible while we judge eye art direction.
+// P2.4.4.3B.8.5 — focused eye-family audition.
+// Big Ears, Big Smile, Croodles, Notion, Avataaars, and Adventurer are out.
+// This round expands only Line Face, Personas, and Initial Face.
+// Personas eyewear variants are intentionally excluded; glasses are a separate category.
 export const EYE_STYLE_AUDITION = [
   {
-    "value": "sampleBigEarsOpen",
-    "label": "Big Ears · Open",
-    "family": "big-ears-neutral",
-    "variant": "variant18",
-    "width": 189.8,
-    "height": 95.4,
+    "value": "lineClosed",
+    "label": "Line Face · Closed",
+    "family": "line-face",
+    "variant": "closed",
+    "width": 62,
+    "height": 12,
     "elements": [
       {
         "name": "path",
         "type": "element",
         "attributes": {
-          "d": "M71.9 66.5S47.6 78.2 36.2 78.2 5 66.5 5 66.5s22-11.7 33.5-11.7 33.4 11.7 33.4 11.7m114.4 0S162 78.2 150.6 78.2s-31.2-11.7-31.2-11.7 22-11.7 33.5-11.7 33.4 11.7 33.4 11.7",
-          "fill": "#ffffff"
-        }
-      },
-      {
-        "name": "circle",
-        "type": "element",
-        "attributes": {
-          "cx": "40.1",
-          "cy": "66.5",
-          "r": "11.7",
-          "fill": "#000000"
-        }
-      },
-      {
-        "name": "circle",
-        "type": "element",
-        "attributes": {
-          "cx": "151.2",
-          "cy": "66.5",
-          "r": "11.7",
-          "fill": "#000000"
+          "d": "M6 5q6 5 13 0m24 0q7 5 13 0",
+          "stroke": {
+            "type": "color",
+            "name": "ink"
+          },
+          "stroke-width": "4.2",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
         }
       }
     ],
     "box": {
-      "x": 258,
-      "y": 350,
-      "width": 252,
-      "height": 112
+      "x": 268,
+      "y": 380,
+      "width": 232,
+      "height": 52
     },
     "singleEye": false
   },
   {
-    "value": "sampleBigEarsClosed",
-    "label": "Big Ears · Closed",
-    "family": "big-ears-neutral",
-    "variant": "variant31",
-    "width": 189.8,
-    "height": 95.4,
-    "elements": [
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M173 55c-4.2 3.4-10.8 10.1-23.7 10.1a30 30 0 0 1-21.8-10",
-          "stroke": "#000000",
-          "stroke-width": "4.1",
-          "stroke-linecap": "round"
-        }
-      },
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M61.6 55c-4.3 3.4-11 10.1-23.8 10.1a30 30 0 0 1-21.8-10",
-          "stroke": "#000000",
-          "stroke-width": "4.1",
-          "stroke-linecap": "round"
-        }
-      }
-    ],
-    "box": {
-      "x": 258,
-      "y": 350,
-      "width": 252,
-      "height": 112
-    },
-    "singleEye": false
-  },
-  {
-    "value": "sampleBigSmileNatural",
-    "label": "Big Smile · Natural",
-    "family": "big-smile",
-    "variant": "normal",
-    "width": 149.1,
-    "height": 105.8,
-    "elements": [
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M47.3 80.9c0 11.9-6.2 21.5-19 19.5C19 98 12.7 91.4 12.7 79c0-13 7.6-21.5 15.5-21.5 10.6 0 19 11.6 19 23.5m88-.3c0 8-3.6 16.5-12.9 15.5-7.7-.8-9.7-11-9.7-16 0-8.7 4.4-17 10.8-17 7 0 11.8 9.5 11.8 17.5",
-          "fill": "#2a1200"
-        }
-      }
-    ],
-    "box": {
-      "x": 264,
-      "y": 360,
-      "width": 240,
-      "height": 116
-    },
-    "singleEye": false
-  },
-  {
-    "value": "sampleBigSmileCheery",
-    "label": "Big Smile · Cheery",
-    "family": "big-smile",
-    "variant": "cheery",
-    "width": 149.1,
-    "height": 105.8,
-    "elements": [
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M16.5 89.6c8.9-.2 17.7 3 25.5 7.7a24 24 0 0 0 5.2-21.5c-2.5-12-11.8-20-20.9-18S12 71.3 14.3 83.3q.8 3.4 2.2 6.3M132.3 91q2-4.4 2-10.2c-.2-9.5-5.3-17.2-11.4-17.2s-11 7.8-10.8 17.4c.1 5.2 1.7 9.9 4.2 13q7.6-3 16-3",
-          "fill": "#2a1200"
-        }
-      }
-    ],
-    "box": {
-      "x": 264,
-      "y": 360,
-      "width": 240,
-      "height": 116
-    },
-    "singleEye": false
-  },
-  {
-    "value": "sampleLineDots",
+    "value": "lineDots",
     "label": "Line Face · Dots",
     "family": "line-face",
     "variant": "dots",
@@ -167,7 +66,7 @@ export const EYE_STYLE_AUDITION = [
     "singleEye": false
   },
   {
-    "value": "sampleLineHappy",
+    "value": "lineHappy",
     "label": "Line Face · Happy",
     "family": "line-face",
     "variant": "happy",
@@ -198,34 +97,190 @@ export const EYE_STYLE_AUDITION = [
     "singleEye": false
   },
   {
-    "value": "samplePersonasOpen",
-    "label": "Personas · Open",
-    "family": "personas",
-    "variant": "open",
-    "width": 24,
-    "height": 10,
+    "value": "lineMismatch",
+    "label": "Line Face · Mismatch",
+    "family": "line-face",
+    "variant": "mismatch",
+    "width": 62,
+    "height": 12,
     "elements": [
       {
         "name": "path",
         "type": "element",
         "attributes": {
-          "d": "M4 4.5a1.5 1.5 0 0 0 3 0 1.5 1.5 0 0 0-3 0m13 0a1.5 1.5 0 0 0 3 0 1.5 1.5 0 0 0-3 0",
-          "fill": "#1b0640",
-          "fill-rule": "evenodd",
-          "clip-rule": "evenodd"
+          "d": "M6 5q6 5 13 0m24 1q7 1.5 13 0",
+          "stroke": {
+            "type": "color",
+            "name": "ink"
+          },
+          "stroke-width": "4.2",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
         }
       }
     ],
     "box": {
-      "x": 278,
-      "y": 374,
-      "width": 212,
-      "height": 88
+      "x": 268,
+      "y": 380,
+      "width": 232,
+      "height": 52
     },
     "singleEye": false
   },
   {
-    "value": "samplePersonasHappy",
+    "value": "lineSleepy",
+    "label": "Line Face · Sleepy",
+    "family": "line-face",
+    "variant": "sleepy",
+    "width": 62,
+    "height": 12,
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M6 6q7 1.5 13 0m24 0q7 1.5 13 0",
+          "stroke": {
+            "type": "color",
+            "name": "ink"
+          },
+          "stroke-width": "4.2",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }
+      }
+    ],
+    "box": {
+      "x": 268,
+      "y": 380,
+      "width": 232,
+      "height": 52
+    },
+    "singleEye": false
+  },
+  {
+    "value": "lineUnevenDots",
+    "label": "Line Face · Uneven",
+    "family": "line-face",
+    "variant": "unevenDots",
+    "width": 62,
+    "height": 12,
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M12 4.5zm38 3z",
+          "stroke": {
+            "type": "color",
+            "name": "ink"
+          },
+          "stroke-width": "7",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }
+      }
+    ],
+    "box": {
+      "x": 268,
+      "y": 380,
+      "width": 232,
+      "height": 52
+    },
+    "singleEye": false
+  },
+  {
+    "value": "lineWink",
+    "label": "Line Face · Wink",
+    "family": "line-face",
+    "variant": "wink",
+    "width": 62,
+    "height": 12,
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M6 5q6 5 13 0",
+          "stroke": {
+            "type": "color",
+            "name": "ink"
+          },
+          "stroke-width": "4.2",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M50 6z",
+          "stroke": {
+            "type": "color",
+            "name": "ink"
+          },
+          "stroke-width": "7",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }
+      }
+    ],
+    "box": {
+      "x": 268,
+      "y": 380,
+      "width": 232,
+      "height": 52
+    },
+    "singleEye": false
+  },
+  {
+    "value": "lineWinkRight",
+    "label": "Line Face · Wink Right",
+    "family": "line-face",
+    "variant": "winkRight",
+    "width": 62,
+    "height": 12,
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M12 6z",
+          "stroke": {
+            "type": "color",
+            "name": "ink"
+          },
+          "stroke-width": "7",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M43 5q7 5 13 0",
+          "stroke": {
+            "type": "color",
+            "name": "ink"
+          },
+          "stroke-width": "4.2",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }
+      }
+    ],
+    "box": {
+      "x": 268,
+      "y": 380,
+      "width": 232,
+      "height": 52
+    },
+    "singleEye": false
+  },
+  {
+    "value": "personasHappy",
     "label": "Personas · Happy",
     "family": "personas",
     "variant": "happy",
@@ -252,69 +307,89 @@ export const EYE_STYLE_AUDITION = [
     "singleEye": false
   },
   {
-    "value": "sampleCroodlesAngular",
-    "label": "Croodles · Angular",
-    "family": "croodles-neutral",
-    "variant": "variant05",
-    "width": 109,
-    "height": 56.7,
+    "value": "personasOpen",
+    "label": "Personas · Open",
+    "family": "personas",
+    "variant": "open",
+    "width": 24,
+    "height": 10,
     "elements": [
       {
         "name": "path",
         "type": "element",
         "attributes": {
-          "d": "M27.7 22c2.6 2 7.7 6 8.2 8 .4 1.8-8.8 5.2-13.4 6.7m64.4-16.2c-3.6 1.3-10.5 4.3-9.7 6 1 2.1 6.9 3.7 9.7 5.8",
-          "stroke": {
-            "type": "color",
-            "name": "ink"
-          },
-          "stroke-width": "3",
-          "stroke-linecap": "round",
-          "stroke-linejoin": "round"
-        }
-      }
-    ],
-    "box": {
-      "x": 266,
-      "y": 358,
-      "width": 236,
-      "height": 104
-    },
-    "singleEye": false
-  },
-  {
-    "value": "sampleCroodlesRound",
-    "label": "Croodles · Round",
-    "family": "croodles-neutral",
-    "variant": "variant11",
-    "width": 109,
-    "height": 56.7,
-    "elements": [
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M34.3 27.5v-.2q-.2-1.4-1.5-1.4a13 13 0 0 0-5.3 1.4 8 8 0 0 0-4.3 5.4q-.6 4.5 1 6.9c1 1.5 2.4 2.3 3.1 2.7q.8.3 2.2.5t3.3.1q1.8 0 3.5-1.1 1.8-1.2 2.3-3.6a12 12 0 0 0-.7-7 7 7 0 0 0-3-3.6zm-7.3 4a4 4 0 0 0-.9 2.2l.4-1zm1.3 4.4-.1.3.2.2zm3-2.1v.5zm-1.8-2.9q1.2-.4 2 .8l-.8.3.7-.3.3.8.2.9-.2 1.2q-1 1.4-2 1.3c-.8 0-2-.2-2.4-1.4a2 2 0 0 1 0-1.5 2 2 0 0 1 1-1l.3-.2q.1-.6.9-1m54-5.2v-.2Q83.4 24 82 24c-1.3 0-3.4.4-5.2 1.4a8 8 0 0 0-4.3 5.4q-.7 4.5 1 6.8c1.7 2.3 2.4 2.4 3.1 2.8q.8.3 2.2.5t3.3.1q1.8 0 3.5-1.2t2.3-3.6a12 12 0 0 0-.7-6.9 7 7 0 0 0-3-3.6zm-7.4 4a4 4 0 0 0-.8 2.1l.4-1q0-.6.4-1m1.4 4.4-.2.3.3.2zm3-2.1-.1.2v.2zm.9 3.9q.2-1.3 1.5-1.5a1.5 1.5 0 0 1 0 3q-1.3 0-1.5-1.5M78.7 29q1.2-.5 2 .7l-.8.4.7-.4.3 1 .2.8-.3 1.2q-.8 1.4-2 1.3c-.7 0-1.8-.3-2.3-1.4a2 2 0 0 1 0-1.5 2 2 0 0 1 1-1l.3-.2q.2-.6.9-1m-.6 2.7",
-          "fill": {
-            "type": "color",
-            "name": "ink"
-          },
+          "d": "M4 4.5a1.5 1.5 0 0 0 3 0 1.5 1.5 0 0 0-3 0m13 0a1.5 1.5 0 0 0 3 0 1.5 1.5 0 0 0-3 0",
+          "fill": "#1b0640",
           "fill-rule": "evenodd",
           "clip-rule": "evenodd"
         }
       }
     ],
     "box": {
-      "x": 266,
-      "y": 358,
-      "width": 236,
-      "height": 104
+      "x": 278,
+      "y": 374,
+      "width": 212,
+      "height": 88
     },
     "singleEye": false
   },
   {
-    "value": "sampleInitialHeart",
-    "label": "Initial · Heart",
+    "value": "personasSleep",
+    "label": "Personas · Sleep",
+    "family": "personas",
+    "variant": "sleep",
+    "width": 24,
+    "height": 10,
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M3.63 4A1 1 0 0 0 4 5.37 4.5 4.5 0 0 0 6.25 6a4.5 4.5 0 0 0 2.25-.63 1 1 0 1 0-1-1.74Q6.85 4 6.25 4T5 3.63A1 1 0 0 0 3.63 4m12 0A1 1 0 0 0 16 5.37a4.5 4.5 0 0 0 2.25.63 4.5 4.5 0 0 0 2.25-.63 1 1 0 0 0-1-1.74 2.5 2.5 0 0 1-1.25.37q-.6 0-1.25-.37a1 1 0 0 0-1.37.37",
+          "fill": "#1b0640",
+          "fill-rule": "evenodd",
+          "clip-rule": "evenodd"
+        }
+      }
+    ],
+    "box": {
+      "x": 278,
+      "y": 374,
+      "width": 212,
+      "height": 88
+    },
+    "singleEye": false
+  },
+  {
+    "value": "personasWink",
+    "label": "Personas · Wink",
+    "family": "personas",
+    "variant": "wink",
+    "width": 24,
+    "height": 10,
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M4 4.5a1.5 1.5 0 0 0 3 0 1.5 1.5 0 0 0-3 0m17.24-.6a.75.75 0 0 0-.83-.64l-4 .5a.75.75 0 0 0 .18 1.48l4-.5c.41-.05.7-.42.65-.83",
+          "fill": "#1b0640",
+          "fill-rule": "evenodd",
+          "clip-rule": "evenodd"
+        }
+      }
+    ],
+    "box": {
+      "x": 278,
+      "y": 374,
+      "width": 212,
+      "height": 88
+    },
+    "singleEye": false
+  },
+  {
+    "value": "initial01",
+    "label": "Initial · 01",
     "family": "initial-face",
     "variant": "variant01",
     "width": 16,
@@ -341,8 +416,120 @@ export const EYE_STYLE_AUDITION = [
     "singleEye": true
   },
   {
-    "value": "sampleInitialOval",
-    "label": "Initial · Oval",
+    "value": "initial02",
+    "label": "Initial · 02",
+    "family": "initial-face",
+    "variant": "variant02",
+    "width": 16,
+    "height": 16,
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M9.5 10c-3.88 0-7.11-4.23-6.4-4.85s2.63 1.3 6.4 1.3 5.69-2 6.4-1.3S13.38 10 9.5 10",
+          "fill": {
+            "type": "color",
+            "name": "eyes"
+          }
+        }
+      }
+    ],
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "singleEye": true
+  },
+  {
+    "value": "initial03",
+    "label": "Initial · 03",
+    "family": "initial-face",
+    "variant": "variant03",
+    "width": 16,
+    "height": 16,
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M11.86 7.5c0-1.42-4.14-2.85-4.82-4.98C6.34.4 16 5.37 16 7.5s-9.65 7.11-8.96 4.98 4.82-3.56 4.82-4.98",
+          "fill": {
+            "type": "color",
+            "name": "eyes"
+          }
+        }
+      }
+    ],
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "singleEye": true
+  },
+  {
+    "value": "initial04",
+    "label": "Initial · 04",
+    "family": "initial-face",
+    "variant": "variant04",
+    "width": 16,
+    "height": 16,
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M8 8.36S8 4 12 4s4 4.36 4 4.36v2.91s0 .73-.67.73c-.66 0-.66-2.9-3.33-2.9S9.33 12 8.67 12 8 11.27 8 11.27z",
+          "fill": {
+            "type": "color",
+            "name": "eyes"
+          }
+        }
+      }
+    ],
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "singleEye": true
+  },
+  {
+    "value": "initial05",
+    "label": "Initial · 05",
+    "family": "initial-face",
+    "variant": "variant05",
+    "width": 16,
+    "height": 16,
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M16 8c0 2.2-1.34 4-3 4s-3-1.8-3-4 1.34-4 3-4 3 1.8 3 4",
+          "fill": {
+            "type": "color",
+            "name": "eyes"
+          }
+        }
+      }
+    ],
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "singleEye": true
+  },
+  {
+    "value": "initial06",
+    "label": "Initial · 06",
     "family": "initial-face",
     "variant": "variant06",
     "width": 16,
@@ -353,6 +540,62 @@ export const EYE_STYLE_AUDITION = [
         "type": "element",
         "attributes": {
           "d": "M16 8c0 3.31-1.34 6-3 6s-3-2.69-3-6 1.34-6 3-6 3 2.69 3 6",
+          "fill": {
+            "type": "color",
+            "name": "eyes"
+          }
+        }
+      }
+    ],
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "singleEye": true
+  },
+  {
+    "value": "initial07",
+    "label": "Initial · 07",
+    "family": "initial-face",
+    "variant": "variant07",
+    "width": 16,
+    "height": 16,
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M11.5 6C8.29 6 7 7.36 7 8.04c0 3.4 1.29 1.35 4.5 1.35S16 11.43 16 8.04C16 7.36 14.71 6 11.5 6",
+          "fill": {
+            "type": "color",
+            "name": "eyes"
+          }
+        }
+      }
+    ],
+    "box": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "singleEye": true
+  },
+  {
+    "value": "initial08",
+    "label": "Initial · 08",
+    "family": "initial-face",
+    "variant": "variant08",
+    "width": 16,
+    "height": 16,
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M16 8c0 1.66-1.12 3-2.5 3S11 9.66 11 8s1.12-3 2.5-3S16 6.34 16 8",
           "fill": {
             "type": "color",
             "name": "eyes"
