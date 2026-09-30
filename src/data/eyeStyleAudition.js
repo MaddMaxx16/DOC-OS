@@ -1,6 +1,7 @@
 // P2.4.4.3B.8.4 — cross-library eye style sampler.
 // Source geometry is copied from the corresponding DiceBear style definitions.
-// This file is intentionally audition-only; keep only the winning families later.
+// Brow-only donor geometry is intentionally stripped so the locked DOC OS brow
+// choice remains visible while we judge eye art direction.
 export const EYE_STYLE_AUDITION = [
   {
     "value": "sampleBigEarsOpen",
@@ -37,21 +38,13 @@ export const EYE_STYLE_AUDITION = [
           "r": "11.7",
           "fill": "#000000"
         }
-      },
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "fill": "#403e3e",
-          "d": "M0 18h76.9v20.1H0zm112.4 0h76.9v20.1h-76.9z"
-        }
       }
     ],
     "box": {
       "x": 258,
-      "y": 345,
+      "y": 350,
       "width": 252,
-      "height": 126
+      "height": 112
     },
     "singleEye": false
   },
@@ -67,29 +60,9 @@ export const EYE_STYLE_AUDITION = [
         "name": "path",
         "type": "element",
         "attributes": {
-          "d": "M173 15c-4.2 3.4-10.8 10.1-23.7 10.1a30 30 0 0 1-21.8-10",
-          "stroke": "#000000",
-          "stroke-width": "8.3",
-          "stroke-linecap": "round"
-        }
-      },
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
           "d": "M173 55c-4.2 3.4-10.8 10.1-23.7 10.1a30 30 0 0 1-21.8-10",
           "stroke": "#000000",
           "stroke-width": "4.1",
-          "stroke-linecap": "round"
-        }
-      },
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M61.6 15c-4.3 3.4-11 10.1-23.8 10.1a30 30 0 0 1-21.8-10",
-          "stroke": "#000000",
-          "stroke-width": "8.3",
           "stroke-linecap": "round"
         }
       },
@@ -106,9 +79,9 @@ export const EYE_STYLE_AUDITION = [
     ],
     "box": {
       "x": 258,
-      "y": 345,
+      "y": 350,
       "width": 252,
-      "height": 126
+      "height": 112
     },
     "singleEye": false
   },
@@ -127,21 +100,13 @@ export const EYE_STYLE_AUDITION = [
           "d": "M47.3 80.9c0 11.9-6.2 21.5-19 19.5C19 98 12.7 91.4 12.7 79c0-13 7.6-21.5 15.5-21.5 10.6 0 19 11.6 19 23.5m88-.3c0 8-3.6 16.5-12.9 15.5-7.7-.8-9.7-11-9.7-16 0-8.7 4.4-17 10.8-17 7 0 11.8 9.5 11.8 17.5",
           "fill": "#2a1200"
         }
-      },
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M53.1 24.6A44 44 0 0 0 12.7 26c-4 2.3-6.6 7.7-4.5 12.3 1.9 4.2 6.9 6.9 11.2 4.5l4-2c.4-.2 1.4-.4 1.9-.7l.6-.2a38 38 0 0 1 6.5-1.1h1.9a35 35 0 0 1 5.8.6l.5.2 2 .6q2 .7 3.9 1.6c4 2 9.7-.8 11.2-5.3 1.7-5-.3-9.8-4.6-12m86.6 4.5c-7.4-4.1-16-5-23.6-2.8-2 .6-4 2.4-4.9 4.4-.8 2-1 4.8-.2 7a10 10 0 0 0 4.6 5.3 9 9 0 0 0 6.7.7l1.1-.3h3.5q2.1.2 4.2 1l1.5.6c2 1.1 4.6 1.4 6.6.7s4-2.3 4.9-4.4c.8-2 1-4.6.2-6.9q-1.4-3.5-4.6-5.4",
-          "fill": "#71472d"
-        }
       }
     ],
     "box": {
       "x": 264,
-      "y": 330,
+      "y": 360,
       "width": 240,
-      "height": 170
+      "height": 116
     },
     "singleEye": false
   },
@@ -160,21 +125,13 @@ export const EYE_STYLE_AUDITION = [
           "d": "M16.5 89.6c8.9-.2 17.7 3 25.5 7.7a24 24 0 0 0 5.2-21.5c-2.5-12-11.8-20-20.9-18S12 71.3 14.3 83.3q.8 3.4 2.2 6.3M132.3 91q2-4.4 2-10.2c-.2-9.5-5.3-17.2-11.4-17.2s-11 7.8-10.8 17.4c.1 5.2 1.7 9.9 4.2 13q7.6-3 16-3",
           "fill": "#2a1200"
         }
-      },
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M49.7 19a44 44 0 0 0-38.2 13.3c-3.2 3.4-4 9.3-.8 13 3 3.6 8.7 4.6 12 1l3.3-3c.3-.3 1.3-.8 1.6-1.2l.5-.4a38 38 0 0 1 6-3l1.7-.5a35 35 0 0 1 5.8-1.1H44q2.2 0 4.3.4c4.4.7 9-3.6 9.1-8.4.2-5.3-3-9.3-7.8-10m91.9 15.7a31 31 0 0 0-20.1-12.6c-2.1-.4-4.6.4-6.3 1.8a10 10 0 0 0-3.1 6.2c-.2 2.4.3 5 1.8 6.8a9 9 0 0 0 5.7 3.5q.6 0 1.1.3 1.7.5 3.3 1.4 1.7 1.2 3.3 2.7l1 1.3a9 9 0 0 0 5.7 3.5c2.1.2 4.7-.4 6.3-2 1.7-1.5 3-3.6 3.1-6q.4-3.9-1.8-7",
-          "fill": "#71472d"
-        }
       }
     ],
     "box": {
       "x": 264,
-      "y": 330,
+      "y": 360,
       "width": 240,
-      "height": 170
+      "height": 116
     },
     "singleEye": false
   },
@@ -295,10 +252,10 @@ export const EYE_STYLE_AUDITION = [
     "singleEye": false
   },
   {
-    "value": "sampleCroodlesLash",
-    "label": "Croodles · Lash",
+    "value": "sampleCroodlesAngular",
+    "label": "Croodles · Angular",
     "family": "croodles-neutral",
-    "variant": "variant03",
+    "variant": "variant05",
     "width": 109,
     "height": 56.7,
     "elements": [
@@ -306,7 +263,7 @@ export const EYE_STYLE_AUDITION = [
         "name": "path",
         "type": "element",
         "attributes": {
-          "d": "M18.5 40.4c.6-1 2.2-3 4-3.2m.8 6.5 2.8-5m3.9 1.6c0 1.1-1.2 5.4-1.2 5.4m-10-15.1c1.2 2.8 5 8.4 10.3 9.2s9.2-1.1 10.4-2.1m38.8 1.1v3.8M82 38l1.4 3.5m1.9-4.6c.7.7 2.6 2 2.6 3m-17.6-6.4c1.2 1.5 4.2 4.3 6.5 4.3 3 0 8.2-.8 12-4.3M18.7 20.4c1-1.5 4.5-4.8 11-5.2s9 1.2 9.6 2m31.9 2c1.5-2 5.9-6.2 11.5-6.2 2.3.4 7.1 2.1 8.8 6.6",
+          "d": "M27.7 22c2.6 2 7.7 6 8.2 8 .4 1.8-8.8 5.2-13.4 6.7m64.4-16.2c-3.6 1.3-10.5 4.3-9.7 6 1 2.1 6.9 3.7 9.7 5.8",
           "stroke": {
             "type": "color",
             "name": "ink"
@@ -319,9 +276,9 @@ export const EYE_STYLE_AUDITION = [
     ],
     "box": {
       "x": 266,
-      "y": 350,
+      "y": 358,
       "width": 236,
-      "height": 122
+      "height": 104
     },
     "singleEye": false
   },
@@ -345,27 +302,13 @@ export const EYE_STYLE_AUDITION = [
           "fill-rule": "evenodd",
           "clip-rule": "evenodd"
         }
-      },
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M25 20.3c1-1.3 3.8-3.4 6-2m44.4-1.8c1.1-1.3 4.3-1.4 4.8 0",
-          "stroke": {
-            "type": "color",
-            "name": "ink"
-          },
-          "stroke-width": "3",
-          "stroke-linecap": "round",
-          "stroke-linejoin": "round"
-        }
       }
     ],
     "box": {
       "x": 266,
-      "y": 350,
+      "y": 358,
       "width": 236,
-      "height": 122
+      "height": 104
     },
     "singleEye": false
   },
