@@ -3,6 +3,7 @@ import { anchorMovementRoute, getLunchMovementFrame } from '../utils/runtimeMove
 import { beginPickupLoading, completePickupLoading, getPickupLoadingChallengeRequest } from '../utils/loadLifecycle.js'
 import { beginDeliveryUnloading, completeDeliveryUnload, getDeliveryHandoffContext, getDeliveryUnloadingChallengeRequest } from '../utils/deliveryLifecycle.js'
 import { useEffect, useRef, useState } from 'react'
+import '../App.css'
 import GameMap from './GameMap.jsx'
 import LoadingChallenge from './LoadingChallenge.jsx'
 import UnloadSequencingChallenge from './UnloadSequencingChallenge.jsx'
