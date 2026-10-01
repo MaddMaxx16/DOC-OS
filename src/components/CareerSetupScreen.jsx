@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import PlayerAvatar, {
+import {
   APPEARANCE_CATEGORIES,
   APPEARANCE_OPTIONS,
   DEFAULT_APPEARANCE,
@@ -521,7 +521,25 @@ function CareerSetupScreen({ profile = null, onBack }) {
             <section className="career-photo-card-d434c" aria-label={`${playerName} employee photo`}>
               <div className="career-photo-stage-d434c">
                 <div className="career-photo-frame-d434c">
-                  <PlayerAvatar appearance={appearance} />
+                  {/* PERF DIAGNOSTIC A/B: intentionally do not mount PlayerAvatar.
+                      Keep all creator state/controls active so this isolates the
+                      avatar render/compositing cost from the rest of the screen. */}
+                  <div
+                    aria-label="Avatar preview disabled for performance diagnostic"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'grid',
+                      placeItems: 'center',
+                      color: '#73808c',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      letterSpacing: '.08em',
+                      textAlign: 'center',
+                    }}
+                  >
+                    PERFORMANCE TEST
+                  </div>
                 </div>
                 <div className="career-photo-status-d434c">
                   <span>EMPLOYEE PHOTO</span>
