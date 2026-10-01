@@ -78,6 +78,20 @@ export const APPEARANCE_OPTIONS = {
     { value: 'deepBlue', label: 'Deep Blue', color: '#283653' },
     { value: 'plum', label: 'Plum', color: '#5a3a5f' },
   ],
+  clothingColor: [
+    { value: 'black', label: 'Black', color: '#17191d' },
+    { value: 'charcoal', label: 'Charcoal', color: '#343941' },
+    { value: 'navy', label: 'Navy', color: '#18324a' },
+    { value: 'blue', label: 'Blue', color: '#315f86' },
+    { value: 'brown', label: 'Brown', color: '#654536' },
+    { value: 'tan', label: 'Tan', color: '#a77d54' },
+    { value: 'olive', label: 'Olive', color: '#68704a' },
+    { value: 'forest', label: 'Forest', color: '#315744' },
+    { value: 'burgundy', label: 'Burgundy', color: '#6b3443' },
+    { value: 'red', label: 'Red', color: '#9a3f3f' },
+    { value: 'cream', label: 'Cream', color: '#d9d1bd' },
+    { value: 'white', label: 'White', color: '#e8e9e6' },
+  ],
   brows: [
     { value: 'neutral', label: 'Natural' },
     { value: 'happy', label: 'Soft Arch' },
@@ -138,6 +152,7 @@ export const APPEARANCE_CATEGORIES = [
   { key: 'glasses', label: 'Glasses' },
   { key: 'accessories', label: 'Accessories' },
   { key: 'outfit', label: 'Outfit' },
+  { key: 'clothingColor', label: 'Clothing Color' },
 ]
 
 export const DEFAULT_APPEARANCE = {
@@ -153,6 +168,7 @@ export const DEFAULT_APPEARANCE = {
   accessories: 'none',
   accessorySide: 'both',
   outfit: 'shirt',
+  clothingColor: 'navy',
 }
 
 const DICEBEAR_TOON_HEAD = 'https://api.dicebear.com/10.x/toon-head/svg'
@@ -160,7 +176,6 @@ const NOTION_ASSET_BASE =
   'https://raw.githubusercontent.com/Mayandev/notion-avatar/main/public/avatar/preview'
 const NOTION_ASSET_CACHE = new Map()
 const METROLINE_PORTRAIT_BACKGROUND = '0b2a45'
-const METROLINE_OUTFIT_COLOR = '101f31'
 
 const HAIR_CONFIG = {
   sidepart: { front: 'sideComed', rear: null },
@@ -1048,6 +1063,7 @@ function GlassesLabPart({ candidate }) {
           key={`${candidate.style}-${candidate.variant}-${index}`}
           keyPath={`${candidate.style}-${candidate.variant}-${index}`}
           node={node}
+          clothingColor={clothingColor}
         />
       ))}
     </svg>
@@ -1422,7 +1438,7 @@ function NotionPart({ assetKey, index, kind, transform, color = '#4b2422', clipB
   )
 }
 
-function normalizeOutfitLabAttributes(attributes = {}) {
+function normalizeOutfitLabAttributes(attributes = {}, clothingColor) {
   const normalized = {}
 
   Object.entries(attributes).forEach(([key, rawValue]) => {
@@ -1443,7 +1459,7 @@ function normalizeOutfitLabAttributes(attributes = {}) {
       rawValue.type === 'color' &&
       rawValue.name === 'clothes'
     ) {
-      normalized[mappedKey] = `#${METROLINE_OUTFIT_COLOR}`
+      normalized[mappedKey] = clothingColor
     } else {
       normalized[mappedKey] = rawValue
     }
@@ -1452,8 +1468,8 @@ function normalizeOutfitLabAttributes(attributes = {}) {
   return normalized
 }
 
-function OutfitLabElement({ node, keyPath }) {
-  const attributes = normalizeOutfitLabAttributes(node.attributes)
+function OutfitLabElement({ node, keyPath, clothingColor }) {
+  const attributes = normalizeOutfitLabAttributes(node.attributes, clothingColor)
 
   if (node.name === 'path') return <path key={keyPath} {...attributes} />
   if (node.name === 'circle') return <circle key={keyPath} {...attributes} />
@@ -1467,6 +1483,7 @@ function OutfitLabElement({ node, keyPath }) {
             key={`${keyPath}-${index}`}
             keyPath={`${keyPath}-${index}`}
             node={child}
+            clothingColor={clothingColor}
           />
         ))}
       </g>
@@ -1476,7 +1493,7 @@ function OutfitLabElement({ node, keyPath }) {
   return null
 }
 
-function OutfitLabPart({ variant }) {
+function OutfitLabPart({ variant, clothingColor }) {
   const candidate = AVATAAARS_OUTFIT_VARIANTS[variant]
   if (!candidate) return null
 
@@ -1526,6 +1543,12 @@ function buildToonHeadPortrait(appearance) {
     ? appearance.accessorySide
     : DEFAULT_APPEARANCE.accessorySide
   const outfit = validOption('outfit', appearance.outfit, DEFAULT_APPEARANCE.outfit)
+  const clothingColorChoice = validOption(
+    'clothingColor',
+    appearance.clothingColor,
+    DEFAULT_APPEARANCE.clothingColor,
+  )
+  const clothingColor = optionColor('clothingColor', clothingColorChoice, '#18324a')
   const outfitLab = outfit.startsWith('outfitlab-avataaars-')
     ? outfit.slice('outfitlab-avataaars-'.length)
     : null
@@ -1556,7 +1579,7 @@ function buildToonHeadPortrait(appearance) {
     seed: 'doc-os-metroline-player',
     skinColor,
     hairColor,
-    clothesColor: METROLINE_OUTFIT_COLOR,
+    clothesColor: clothingColor,
     mouthVariant: 'smile',
     mouthProbability: mouthLab ? '0' : '100',
     clothesVariant: nativeOutfit,
@@ -1588,6 +1611,7 @@ function buildToonHeadPortrait(appearance) {
     docOsAccessory,
     accessorySide,
     outfitLab,
+    clothingColor: `#${clothingColor}`,
     notionGlasses: glassesLab ? null : NOTION_GLASSES[glasses] || null,
     notionAccessories: docOsAccessory ? null : NOTION_ACCESSORIES[accessories] || null,
     hairColor: `#${hairColor}`,
@@ -1702,7 +1726,12 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             zIndex: 2,
           }}
         >
-          {portrait.outfitLab && <OutfitLabPart variant={portrait.outfitLab} />}
+          {portrait.outfitLab && (
+            <OutfitLabPart
+              variant={portrait.outfitLab}
+              clothingColor={portrait.clothingColor}
+            />
+          )}
           {portrait.avataaarsHair && (
             <AvataaarsFrontSeamCleanup
               variant={portrait.avataaarsHair}
