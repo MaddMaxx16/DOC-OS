@@ -10,6 +10,7 @@ import {
   GLASSES_LAB_OPTIONS,
 } from '../data/glassesStyleAudition'
 import { DOC_OS_ACCESSORY_OPTIONS } from '../data/accessoryStyleAudition'
+import { HEADWEAR_LAB_OPTIONS, HEADWEAR_LAB_VARIANTS } from '../data/headwearStyleAudition'
 import {
   AVATAAARS_OUTFIT_OPTIONS,
   AVATAAARS_OUTFIT_VARIANTS,
@@ -130,6 +131,7 @@ export const APPEARANCE_OPTIONS = {
   facialHair: FACIAL_HAIR_LAB_OPTIONS,
   glasses: GLASSES_LAB_OPTIONS,
   accessories: DOC_OS_ACCESSORY_OPTIONS,
+  headwear: HEADWEAR_LAB_OPTIONS,
   outfit: [
     { value: 'shirt', label: 'Work Shirt' },
     { value: 'openJacket', label: 'Open Jacket' },
@@ -151,6 +153,7 @@ export const APPEARANCE_CATEGORIES = [
   { key: 'facialHair', label: 'Facial Hair' },
   { key: 'glasses', label: 'Glasses' },
   { key: 'accessories', label: 'Accessories' },
+  { key: 'headwear', label: 'Headwear' },
   { key: 'outfit', label: 'Outfit' },
   { key: 'clothingColor', label: 'Outfit Color' },
 ]
@@ -167,6 +170,7 @@ export const DEFAULT_APPEARANCE = {
   glasses: 'none',
   accessories: 'none',
   accessorySide: 'both',
+  headwear: 'none',
   outfit: 'shirt',
   clothingColor: 'navy',
 }
@@ -1438,6 +1442,65 @@ function NotionPart({ assetKey, index, kind, transform, color = '#4b2422', clipB
   )
 }
 
+function HeadwearLabElement({ node, keyPath }) {
+  const attributes = { ...(node.attributes || {}) }
+
+  Object.entries(attributes).forEach(([key, rawValue]) => {
+    if (rawValue && typeof rawValue === 'object' && rawValue.type === 'color' && rawValue.name === 'hat') {
+      attributes[key] = '#315f86'
+    }
+  })
+
+  const normalized = {}
+  Object.entries(attributes).forEach(([key, value]) => {
+    const mappedKey = {
+      'fill-opacity': 'fillOpacity',
+      'fill-rule': 'fillRule',
+      'clip-rule': 'clipRule',
+      'stroke-width': 'strokeWidth',
+      'stroke-linecap': 'strokeLinecap',
+      'stroke-linejoin': 'strokeLinejoin',
+    }[key] || key
+    normalized[mappedKey] = value
+  })
+
+  if (node.name === 'path') return <path key={keyPath} {...normalized} />
+  if (node.name === 'circle') return <circle key={keyPath} {...normalized} />
+  if (node.name === 'ellipse') return <ellipse key={keyPath} {...normalized} />
+  if (node.name === 'rect') return <rect key={keyPath} {...normalized} />
+  if (node.name === 'g') {
+    return (
+      <g key={keyPath} {...normalized}>
+        {(node.children || []).map((child, index) => (
+          <HeadwearLabElement
+            key={`${keyPath}-${index}`}
+            keyPath={`${keyPath}-${index}`}
+            node={child}
+          />
+        ))}
+      </g>
+    )
+  }
+  return null
+}
+
+function HeadwearLabPart({ variant }) {
+  const candidate = HEADWEAR_LAB_VARIANTS[variant]
+  if (!candidate) return null
+
+  return (
+    <g transform={AVATAAARS_HAIR_TRANSFORM}>
+      {candidate.elements.map((node, index) => (
+        <HeadwearLabElement
+          key={`headwear-${variant}-${index}`}
+          keyPath={`headwear-${variant}-${index}`}
+          node={node}
+        />
+      ))}
+    </g>
+  )
+}
+
 function normalizeOutfitLabAttributes(attributes = {}, clothingColor) {
   const normalized = {}
 
@@ -1543,6 +1606,7 @@ function buildToonHeadPortrait(appearance) {
   const accessorySide = ['left', 'both', 'right'].includes(appearance.accessorySide)
     ? appearance.accessorySide
     : DEFAULT_APPEARANCE.accessorySide
+  const headwear = validOption('headwear', appearance.headwear, DEFAULT_APPEARANCE.headwear)
   const outfit = validOption('outfit', appearance.outfit, DEFAULT_APPEARANCE.outfit)
   const clothingColorChoice = validOption(
     'clothingColor',
@@ -1611,6 +1675,7 @@ function buildToonHeadPortrait(appearance) {
     glassesLab,
     docOsAccessory,
     accessorySide,
+    headwearLab: headwear.startsWith('headwearlab-') ? headwear.slice('headwearlab-'.length) : null,
     outfitLab,
     clothingColor: `#${clothingColor}`,
     notionGlasses: glassesLab ? null : NOTION_GLASSES[glasses] || null,
@@ -1630,6 +1695,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
     portrait.facialHairLab ||
     portrait.glassesLab ||
     portrait.outfitLab ||
+    portrait.headwearLab ||
     portrait.docOsAccessory ||
     portrait.notionGlasses ||
     portrait.notionAccessories,
@@ -1727,6 +1793,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             zIndex: 2,
           }}
         >
+          {portrait.headwearLab && <HeadwearLabPart variant={portrait.headwearLab} />}
           {portrait.outfitLab && (
             <OutfitLabPart
               variant={portrait.outfitLab}
