@@ -1,14 +1,11 @@
 import deskBackdrop from '../assets/docos-title-cubicle-p2403.png'
-import legacyBackdrop from '../assets/docos-title-office.png'
 
-function StartOfficeBackdrop({ variant = 'desk' }) {
-  const officeBackdrop = variant === 'legacy' ? legacyBackdrop : deskBackdrop
-
+function StartOfficeBackdrop() {
   return (
     <div className="start-office-backdrop" aria-hidden="true">
       <img
         className="start-office-backdrop-image"
-        src={officeBackdrop}
+        src={deskBackdrop}
         alt=""
       />
       <div className="start-office-backdrop-tone" />
