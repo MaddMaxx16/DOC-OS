@@ -1033,7 +1033,7 @@ const GLASSES_LAB_TUNING = {
   'avataaars-prescription02': { scale: 1.08 },
 }
 
-function GlassesLabPart({ candidate }) {
+function GlassesLabPart({ candidate, clothingColor }) {
   if (!candidate) return null
 
   const candidateKey = `${candidate.style}-${candidate.variant}`
@@ -1857,7 +1857,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             />
           )}
           {portrait.glassesLab && (
-            <GlassesLabPart candidate={portrait.glassesLab} />
+            <GlassesLabPart candidate={portrait.glassesLab} clothingColor={portrait.clothingColor} />
           )}
           {portrait.notionGlasses && (() => {
             const tuning = NOTION_GLASSES_TUNING[portrait.notionGlasses]
