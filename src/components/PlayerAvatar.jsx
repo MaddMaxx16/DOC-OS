@@ -10,6 +10,7 @@ import {
   GLASSES_LAB_OPTIONS,
 } from '../data/glassesStyleAudition'
 import { DOC_OS_ACCESSORY_OPTIONS } from '../data/accessoryStyleAudition'
+import docLeatherJacket from '../assets/Doc-leather-jacket.PNG'
 import {
   AVATAAARS_OUTFIT_OPTIONS,
   AVATAAARS_OUTFIT_VARIANTS,
@@ -1493,6 +1494,19 @@ function OutfitLabElement({ node, keyPath, clothingColor }) {
   return null
 }
 
+function DocLeatherJacketAsset() {
+  return (
+    <image
+      href={docLeatherJacket}
+      x="118"
+      y="568"
+      width="532"
+      height="240"
+      preserveAspectRatio="xMidYMid meet"
+    />
+  )
+}
+
 function OutfitLabPart({ variant, clothingColor }) {
   const candidate = AVATAAARS_OUTFIT_VARIANTS[variant]
   if (!candidate) return null
@@ -1726,7 +1740,8 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             zIndex: 2,
           }}
         >
-          {portrait.outfitLab && (
+          {portrait.outfitLab === 'docLeatherJacket' && <DocLeatherJacketAsset />}
+          {portrait.outfitLab && portrait.outfitLab !== 'docLeatherJacket' && (
             <OutfitLabPart
               variant={portrait.outfitLab}
               clothingColor={portrait.clothingColor}
