@@ -1514,6 +1514,7 @@ function OutfitLabPart({ variant, clothingColor }) {
           key={`outfitlab-${variant}-${index}`}
           keyPath={`outfitlab-${variant}-${index}`}
           node={node}
+          clothingColor={clothingColor}
         />
       ))}
     </svg>
