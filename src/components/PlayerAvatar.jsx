@@ -1614,6 +1614,61 @@ function OutfitLabPart({ variant, clothingColor }) {
   )
 }
 
+// P2.4.4.3B.16.5 — Toon Head's five native beard variants, rendered as
+// an independent layer so AVA outfits can cover the torso without covering
+// facial hair. Geometry/placement match DiceBear Toon Head (Johan Melin,
+// CC BY 4.0), which is already the base portrait artwork used by DOC OS.
+const TOON_HEAD_NATIVE_FACIAL_HAIR = {
+  chin: [
+    {
+      d: 'M160 171.4c-6.1 0-28.1-3.8-31.5 0-7.7 8.9 19.8 19 31.5 19s39.2-10.1 31.5-19c-3.3-3.8-25.3 0-31.5 0Z',
+    },
+  ],
+  chinMoustache: [
+    {
+      d: 'M160.5 98s-28.5 13.4-55.5 7.4c-37.3-8.3 36.1-37 55.5-37s92.9 28.7 55.5 37c-27 6-55.5-7.5-55.5-7.5Zm-.5 73.4c-6.1 0-28.1-3.8-31.5 0-7.7 8.9 19.8 19 31.5 19s39.2-10.1 31.5-19c-3.3-3.8-25.3 0-31.5 0Z',
+    },
+  ],
+  fullBeard: [
+    {
+      d: 'M319.5 1h-1 1v1.2a329 329 0 0 1-1.6 16.5c-1.1 10.8-3 25.6-6 41.1s-7.1 32.1-12.6 46.5-12.4 26.7-21.1 33.9c-34.4 30-77.6 50.2-118.2 50.2s-83.7-20.1-118-50.2l-.8-.7a83 83 0 0 1-20.4-33.2A284 284 0 0 1 8.2 59.8 519 519 0 0 1 .5 1.1V1h1-1l2-.4c6.7 18.8 14.4 47.6 26.8 72 12.4 24 29.2 43 53.8 43.8 1.7-16 11.7-27.9 25.7-35.9a106 106 0 0 1 51.2-12c18.5 0 37 4 51.2 12 14 8 24 20 25.7 35.9 24.7-.7 41.5-19.8 53.8-43.9 12.5-24.3 20.2-53.1 26.9-72zM160 85c-34.6 0-51.5 22.9-54.2 43-1.3 10.1.8 19.6 6.2 25.2q4.2 4.3 10.5 4.8t14.5-3.7q2.7-1.6 4.9-4.5l4.6-5.8c3.4-3.8 7.4-7 13.5-7 6.2 0 10.2 3.2 13.5 7l4.7 5.8q2.2 2.9 4.8 4.5 8.2 4.3 14.5 3.7 6.5-.5 10.5-4.8c5.4-5.6 7.5-15.1 6.2-25.1-2.7-20.2-19.5-43.2-54.2-43.2Z',
+    },
+  ],
+  longBeard: [
+    {
+      d: 'M319.5 1h-1 1v.5l-.1 1.5-2.3 25.8c-1.6 17-4.1 39.8-7.5 63.8-3.3 24-7.6 49-12.7 70.1a244 244 0 0 1-8.5 28.4q-4.7 12.2-10.1 19a399 399 0 0 1-51.5 50.9 200 200 0 0 1-33.5 22.5 74 74 0 0 1-32.8 9.4 75 75 0 0 1-32.9-9.4c-11.4-5.8-23-13.8-33.8-22.5a391 391 0 0 1-52-51q-5.5-6.7-10.1-19-4.7-12.2-8.5-28.3a738 738 0 0 1-12.8-70.1A1523 1523 0 0 1 .7 3L.6 1.5V1h1-1L2.4.6c6.7 18.8 14.4 47.6 26.8 72 12.4 24 29.2 43 53.8 43.8 1.7-16 11.7-27.9 25.7-35.9a106 106 0 0 1 51.2-12c18.5 0 37 4 51.2 12 14 8 24 20 25.7 35.9 24.7-.7 41.5-19.8 53.8-43.9 12.5-24.3 20.2-53.1 26.9-72zM160 85c-34.6 0-51.5 22.9-54.2 43-1.3 10.1.8 19.6 6.2 25.2q4.2 4.3 10.5 4.8t14.5-3.7q2.7-1.6 4.9-4.5l4.6-5.8c3.4-3.8 7.4-7 13.5-7 6.2 0 10.2 3.2 13.5 7l4.7 5.8q2.2 2.9 4.8 4.5 8.2 4.3 14.5 3.7 6.5-.5 10.5-4.8c5.4-5.6 7.5-15.1 6.2-25.1-2.7-20.2-19.5-43.2-54.2-43.2Z',
+    },
+    {
+      d: 'M160.5 292c-40.3 0-96.7-57.1-118-82.6 0 0 71.6 59 117.5 59s117.5-59 117.5-59c-21.3 25.5-76.7 82.5-117 82.5',
+      shadow: true,
+    },
+  ],
+  moustacheTwirl: [
+    {
+      d: 'M105 105.4c-38.9-8.6-3-33-3-33s-16 11.5-2.5 18c14 6.8 32-22.1 50.5-22 8 0 10.5 5.5 10.5 5.5s2.6-5.4 10.5-5.5c18.4-.1 36.4 28.8 50.5 22 13.5-6.5-2.5-18-2.5-18s36 24.4-3 33c-27 6-55.5-17.5-55.5-17.5S132 111.4 105 105.4Z',
+    },
+  ],
+}
+
+function ToonHeadNativeFacialHair({ variant, color }) {
+  const paths = TOON_HEAD_NATIVE_FACIAL_HAIR[variant]
+  if (!paths) return null
+
+  return (
+    <g transform="translate(223.5 402)">
+      {paths.map((path, index) => (
+        <path
+          key={`toon-head-native-beard-${variant}-${index}`}
+          d={path.d}
+          fill={path.shadow ? '#000000' : color}
+          fillOpacity={path.shadow ? 0.2 : 1}
+          stroke={path.shadow ? 'none' : '#000000'}
+        />
+      ))}
+    </g>
+  )
+}
+
 function optionColor(group, value, fallback) {
   return (APPEARANCE_OPTIONS[group].find((option) => option.value === value)?.color || fallback)
     .replace('#', '')
@@ -1693,7 +1748,7 @@ function buildToonHeadPortrait(appearance) {
     mouthProbability: mouthLab ? '0' : '100',
     clothesVariant: nativeOutfit,
     clothesProbability: outfitLab ? '0' : '100',
-    beardProbability: hasNativeFacialHair ? '100' : '0',
+    beardProbability: '0',
     eyebrowsProbability: notionBrows ? '0' : '100',
     eyesProbability: notionEyes || docOsEyes ? '0' : '100',
     hairProbability: suppressScalpHair ? '0' : (hair.avataaars ? '0' : (hair.front ? '100' : '0')),
@@ -1704,8 +1759,6 @@ function buildToonHeadPortrait(appearance) {
   if (!notionEyes && !docOsEyes) params.set('eyesVariant', eyes)
   if (!suppressScalpHair && !hair.avataaars && hair.front) params.set('hairVariant', hair.front)
   if (!suppressScalpHair && !hair.avataaars && hair.rear) params.set('rearHairVariant', hair.rear)
-  if (hasNativeFacialHair) params.set('beardVariant', facialHair)
-
   return {
     src: `${DICEBEAR_TOON_HEAD}?${params.toString()}`,
     skinTone,
@@ -1716,6 +1769,7 @@ function buildToonHeadPortrait(appearance) {
     eyeColor: `#${eyeColor}`,
     mouthLab,
     facialHairLab,
+    nativeFacialHair: hasNativeFacialHair ? facialHair : null,
     glassesLab,
     glassesColor: `#${glassesColor}`,
     docOsAccessory,
@@ -1738,7 +1792,9 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
     portrait.docOsEyes ||
     portrait.mouthLab ||
     portrait.facialHairLab ||
+    portrait.nativeFacialHair ||
     portrait.glassesLab ||
+    portrait.outfitLab ||
     portrait.headwearLab ||
     portrait.docOsAccessory ||
     portrait.notionGlasses ||
@@ -1806,32 +1862,6 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
         </svg>
       )}
 
-      {portrait.outfitLab && (
-        <svg
-          viewBox="0 0 768 768"
-          preserveAspectRatio="xMidYMid slice"
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            display: 'block',
-            pointerEvents: 'none',
-            zIndex: 0,
-          }}
-        >
-          {/* P2.4.4.3B.16.4 — AVA clothing renders behind the base portrait.
-              Toon Head native clothing is already disabled for outfitLab, so
-              native facial hair stays above the shirt/hoodie instead of being
-              clipped by it. Donor facial hair still renders on the front layer. */}
-          <OutfitLabPart
-            variant={portrait.outfitLab}
-            clothingColor={portrait.clothingColor}
-          />
-        </svg>
-      )}
-
       <img
         src={portrait.src}
         width="260"
@@ -1863,6 +1893,12 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             zIndex: 2,
           }}
         >
+          {portrait.outfitLab && (
+            <OutfitLabPart
+              variant={portrait.outfitLab}
+              clothingColor={portrait.clothingColor}
+            />
+          )}
           {portrait.avataaarsHair && (
             <AvataaarsFrontSeamCleanup
               variant={portrait.avataaarsHair}
@@ -1897,6 +1933,12 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             <DocOsEyePair variant={portrait.docOsEyes} color={portrait.eyeColor} />
           )}
           {portrait.mouthLab && <MouthLabPart candidate={portrait.mouthLab} />}
+          {portrait.nativeFacialHair && (
+            <ToonHeadNativeFacialHair
+              variant={portrait.nativeFacialHair}
+              color={portrait.hairColor}
+            />
+          )}
           {portrait.facialHairLab && (
             <FacialHairLabPart
               candidate={portrait.facialHairLab}
