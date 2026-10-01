@@ -43,6 +43,11 @@ function FreightLinkMarketMap({ loadViews, allLoads = [], drivers = [], runtimeP
       center: [-73.99, 40.73],
       zoom: 9.5,
       attributionControl: false,
+      pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+      renderWorldCopies: false,
+      fadeDuration: 0,
+      maxTileCacheZoomLevels: 2,
+      validateStyle: false,
     })
     mapRef.current = map
     map.on('load', () => setMapReady(true))
