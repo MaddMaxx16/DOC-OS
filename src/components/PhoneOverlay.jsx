@@ -1,54 +1,54 @@
-import { useRef, useState } from 'react'
+import { lazy, useRef, useState } from 'react'
 import HomeScreen from './HomeScreen.jsx'
-import LoadDetailsScreen from './LoadDetailsScreen.jsx'
-import LoadBoardScreen from './LoadBoardScreen.jsx'
-import BrowserScreen from './BrowserScreen.jsx'
-import DriverFitScreen from './DriverFitScreen.jsx'
-import TripPlanScreen from './TripPlanScreen.jsx'
-import FleetSchedulerScreen from './FleetSchedulerScreen.jsx'
+const LoadDetailsScreen = lazy(() => import('./LoadDetailsScreen.jsx'))
+const LoadBoardScreen = lazy(() => import('./LoadBoardScreen.jsx'))
+const BrowserScreen = lazy(() => import('./BrowserScreen.jsx'))
+const DriverFitScreen = lazy(() => import('./DriverFitScreen.jsx'))
+const TripPlanScreen = lazy(() => import('./TripPlanScreen.jsx'))
+const FleetSchedulerScreen = lazy(() => import('./FleetSchedulerScreen.jsx'))
+const DriverSchedulerScreen = lazy(() => import('./DriverSchedulerScreen.jsx'))
+const DocumentsScreen = lazy(() => import('./DocumentsScreen.jsx'))
+const PodDetailScreen = lazy(() => import('./PodDetailScreen.jsx'))
+const CarrierSourceScreen = lazy(() => import('./CarrierSourceScreen.jsx'))
+const CarrierSourceFirstVisitGuide = lazy(() => import('./CarrierSourceFirstVisitGuide.jsx'))
+const CarrierActivationScreen = lazy(() => import('./CarrierActivationScreen.jsx'))
+const CarrierOpportunityScreen = lazy(() => import('./CarrierOpportunityScreen.jsx'))
+const DispatcherProfileScreen = lazy(() => import('./DispatcherProfileScreen.jsx'))
+const LedgerDeskScreen = lazy(() => import('./LedgerDeskScreen.jsx'))
+const LedgerReceivableScreen = lazy(() => import('./LedgerReceivableScreen.jsx'))
+const EmailScreen = lazy(() => import('./EmailScreen.jsx'))
+const EmailDetailScreen = lazy(() => import('./EmailDetailScreen.jsx'))
+const EmailComposeScreen = lazy(() => import('./EmailComposeScreen.jsx'))
+const PaperworkWorkspace = lazy(() => import('./PaperworkWorkspace.jsx'))
+const MessagesScreen = lazy(() => import('./MessagesScreen.jsx'))
+const DriverMessageThreadScreen = lazy(() => import('./DriverMessageThreadScreen.jsx'))
+const BusinessDocumentDetailScreen = lazy(() => import('./BusinessDocumentDetailScreen.jsx'))
+const OperationalDocumentViewer = lazy(() => import('./OperationalDocumentViewer.jsx'))
+const RateConfirmationWorkspace = lazy(() => import('./RateConfirmationWorkspace.jsx'))
+const PodReviewWorkspace = lazy(() => import('./PodReviewWorkspace.jsx'))
+const InvoiceWorkspace = lazy(() => import('./InvoiceWorkspace.jsx'))
+const LoadPacketWorkspace = lazy(() => import('./LoadPacketWorkspace.jsx'))
+const DocumentFilingCabinetScreen = lazy(() => import('./DocumentFilingCabinetScreen.jsx'))
+const DocumentsFilingDeskScreen = lazy(() => import('./DocumentsFilingDeskScreen.jsx'))
+const ManilaLoadFolderWorkspace = lazy(() => import('./ManilaLoadFolderWorkspace.jsx'))
+const SettingsScreen = lazy(() => import('./SettingsScreen.jsx'))
 // B.5.4D.3.1 — First Workday Agenda Polish
 // B.5.4D.4.1 — Driver Scheduler Foundation
-import DriverSchedulerScreen from './DriverSchedulerScreen.jsx'
 import { applyLunchWindowToOwnedWorkday, resolveDriverWorkdayOwnership } from '../utils/driverWorkdayOwnership.js'
-import DocumentsScreen from './DocumentsScreen.jsx'
-import PodDetailScreen from './PodDetailScreen.jsx'
-import CarrierSourceScreen from './CarrierSourceScreen.jsx'
 // B.5.4D.2 — CarrierSource Player Experience
-import CarrierSourceFirstVisitGuide from './CarrierSourceFirstVisitGuide.jsx'
 // B.5.4D.3 — First Driver Onboarding & Workday Setup
-import CarrierActivationScreen from './CarrierActivationScreen.jsx'
-import CarrierOpportunityScreen from './CarrierOpportunityScreen.jsx'
-import DispatcherProfileScreen from './DispatcherProfileScreen.jsx'
-import LedgerDeskScreen from './LedgerDeskScreen.jsx'
-import LedgerReceivableScreen from './LedgerReceivableScreen.jsx'
-import EmailScreen from './EmailScreen.jsx'
-import EmailDetailScreen from './EmailDetailScreen.jsx'
-import EmailComposeScreen from './EmailComposeScreen.jsx'
-import PaperworkWorkspace from './PaperworkWorkspace.jsx'
-import MessagesScreen from './MessagesScreen.jsx'
-import DriverMessageThreadScreen from './DriverMessageThreadScreen.jsx'
-import BusinessDocumentDetailScreen from './BusinessDocumentDetailScreen.jsx'
-import OperationalDocumentViewer from './OperationalDocumentViewer.jsx'
 // B.5.4C.4.1 — Rate Confirmation Comparison Desk
-import RateConfirmationWorkspace from './RateConfirmationWorkspace.jsx'
-import PodReviewWorkspace from './PodReviewWorkspace.jsx'
 // B.5.4C.6.1 — Invoice & Billing Workspace
-import InvoiceWorkspace from './InvoiceWorkspace.jsx'
 // B.5.4C.7.1 — Physical Load Packet Workspace
-import LoadPacketWorkspace from './LoadPacketWorkspace.jsx'
 // B.5.4C.7.2 — Documents Filing Cabinet
-import DocumentFilingCabinetScreen from './DocumentFilingCabinetScreen.jsx'
 // B.5.4C.7.3.0 — Filing Desk Foundation
-import DocumentsFilingDeskScreen from './DocumentsFilingDeskScreen.jsx'
 // B.5.4C.7.3.1 — Physical Manila Folder Workspace
-import ManilaLoadFolderWorkspace from './ManilaLoadFolderWorkspace.jsx'
 import mapLocations from '../data/mapLocations.js'
 import { getReceivables } from '../utils/ledger.js'
 import { formatTime } from '../utils/gameTime.js'
 import { getFreightRouteName } from '../utils/freightIdentity.js'
 import { getLoadFolderLifecycle } from '../utils/documentFolderLifecycle.js'
 import { isLunchDecisionReady } from '../utils/lunchDecisionEvents.js'
-import SettingsScreen from './SettingsScreen.jsx'
 import { getControlled5pmDeliveryTiming } from '../dev/devScenarioTiming.js'
 import { hasActiveCarrierRoster } from '../utils/carrierOperationalContext.js'
 
