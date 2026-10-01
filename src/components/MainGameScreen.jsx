@@ -2,13 +2,13 @@ import { canAcquireDriverMovement, resolveDriverMovementOwner } from '../utils/d
 import { anchorMovementRoute, getLunchMovementFrame } from '../utils/runtimeMovement.js'
 import { beginPickupLoading, completePickupLoading, getPickupLoadingChallengeRequest } from '../utils/loadLifecycle.js'
 import { beginDeliveryUnloading, completeDeliveryUnload, getDeliveryHandoffContext, getDeliveryUnloadingChallengeRequest } from '../utils/deliveryLifecycle.js'
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import '../App.css'
 import GameMap from './GameMap.jsx'
 import LoadingChallenge from './LoadingChallenge.jsx'
 import UnloadSequencingChallenge from './UnloadSequencingChallenge.jsx'
-import PhoneOverlay from './PhoneOverlay.jsx'
 import { getShiftEndAlert } from '../utils/shiftEndDecision.js'
+const PhoneOverlay = lazy(() => import('./PhoneOverlay.jsx'))
 import StatusBar from './StatusBar.jsx'
 import OperationsBar from './OperationsBar.jsx'
 import EndDaySheet from './EndDaySheet.jsx'
@@ -3075,6 +3075,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           </button>
         )}
         {isPhoneOpen && (
+          <Suspense fallback={null}>
           <PhoneOverlay
             onCarrierSourceOpened={completeDayOneCarrierSourceHandoff}
             loads={loads}
@@ -3165,6 +3166,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
             onOpenLunchDecision={openLunchDecisionForDriver}
             onClose={() => setIsPhoneOpen(false)}
           />
+          </Suspense>
         )}
       </div>
 
