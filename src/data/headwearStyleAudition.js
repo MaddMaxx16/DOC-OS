@@ -350,8 +350,8 @@ export const HEADWEAR_LAB_OPTIONS = [
   { value: 'headwearlab-headband', label: 'Headband' },
   { value: 'headwearlab-hijab', label: 'Headscarf' },
   { value: 'headwearlab-turban', label: 'Turban' },
-  { value: 'headwearlab-winterHat1', label: 'Winter Hat 01' },
-  { value: 'headwearlab-winterHat02', label: 'Winter Hat 02' },
-  { value: 'headwearlab-winterHat03', label: 'Winter Hat 03' },
-  { value: 'headwearlab-winterHat04', label: 'Winter Hat 04' },
+  { value: 'headwearlab-winterHat1', label: 'Earflap Hat' },
+  { value: 'headwearlab-winterHat02', label: 'Pattern Pom Hat' },
+  { value: 'headwearlab-winterHat03', label: 'Pom Beanie' },
+  { value: 'headwearlab-winterHat04', label: 'Cat-Ear Beanie' },
 ]
