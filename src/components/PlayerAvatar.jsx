@@ -1450,8 +1450,6 @@ const HEADWEAR_LAB_TUNING = {
   'winterHat02': { transform: 'translate(8 65) scale(2.85 2.90)' },
   'winterHat03': { transform: 'translate(8 65) scale(2.85 2.90)' },
   'winterHat04': { transform: 'translate(8 65) scale(2.85 2.90)' },
-  'notionists-hat': { transform: 'translate(128 95) scale(.56)' },
-  'open-peeps-hatHip': { transform: 'translate(89 90) scale(.60)' },
 }
 
 function HeadwearLabElement({ node, keyPath }) {
