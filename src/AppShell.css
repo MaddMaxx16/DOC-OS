@@ -1,0 +1,147 @@
+:root {
+  --docos-attention: #9D6BC4;
+  --docos-attention-bright: #CDA8E6;
+  --docos-attention-ink: #F8F4FB;
+}
+
+.app {
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #111;
+}
+
+.phone-shell {
+  position: relative;
+  isolation: isolate;
+  width: min(390px, 100vw, calc(100dvh * 390 / 844));
+  aspect-ratio: 390 / 844;
+  height: auto;
+  max-height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  border-radius: 42px;
+  background: #11161d;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.entry-screen {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 32px;
+  color: white;
+  text-align: center;
+}
+
+.start-office-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #080c12;
+}
+
+.start-office-backdrop-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+  filter: brightness(.82) saturate(.88) contrast(1.03);
+  transform: scale(1.012);
+}
+
+.start-office-backdrop-tone {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(5, 8, 13, .40) 0%, rgba(5, 8, 13, .10) 31%, rgba(5, 8, 13, .08) 52%, rgba(5, 8, 13, .54) 100%),
+    linear-gradient(90deg, rgba(5, 8, 13, .46) 0%, rgba(5, 8, 13, .12) 50%, rgba(5, 8, 13, .16) 100%);
+}
+
+.app-stage-transition {
+  position: absolute;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: all;
+  opacity: 0;
+  transform: translateZ(0);
+  will-change: opacity;
+  background: radial-gradient(circle at 50% 42%, rgba(26, 24, 31, .96) 0%, rgba(8, 11, 16, .99) 58%, rgba(3, 5, 9, 1) 100%);
+}
+
+.app-stage-transition.cover {
+  animation: docos-major-cover .26s cubic-bezier(.22, 1, .36, 1) forwards;
+}
+
+.app-stage-transition.hold {
+  opacity: 1;
+  animation: none;
+}
+
+.app-stage-transition.reveal {
+  opacity: 1;
+  animation: docos-major-reveal .46s cubic-bezier(.22, 1, .36, 1) forwards;
+}
+
+.app-stage-transition.back,
+.app-stage-transition.forward,
+.app-stage-transition.operations {
+  transform: translateZ(0);
+}
+
+@keyframes docos-major-cover {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes docos-major-reveal {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.save-failure-banner {
+  position: absolute;
+  z-index: 10000;
+  left: 12px;
+  right: 12px;
+  top: max(12px, env(safe-area-inset-top));
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 181, 71, 0.5);
+  border-radius: 12px;
+  background: rgba(34, 28, 22, 0.96);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  color: #f5eee4;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.save-failure-banner span { flex: 1; }
+
+.save-failure-banner button {
+  border: 0;
+  padding: 0 2px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-stage-transition.cover { animation-duration: .14s; }
+  .app-stage-transition.reveal { animation-duration: .20s; }
+}
