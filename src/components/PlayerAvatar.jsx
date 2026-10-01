@@ -1443,18 +1443,18 @@ function NotionPart({ assetKey, index, kind, transform, color = '#4b2422', clipB
 }
 
 const HEADWEAR_LAB_TUNING = {
-  // Cross-library donor coordinate systems are normalized here for audition.
-  // Keep these independent so survivor fitting can be surgical in the next pass.
-  'personas-cap': { transform: 'translate(65 88) scale(7.1)' },
-  'personas-beanie': { transform: 'translate(65 88) scale(7.1)' },
-  'notionists-hat': { transform: 'translate(92 70) scale(.62)' },
-  'open-peeps-hatHip': { transform: 'translate(65 72) scale(.66)' },
-  // P2.4.4.3B.15.4 — fit polish from iPhone audition:
-  // wider crowns, less vertical bulk, and lower seating against the hairline.
-  'phosphor-cowboy': { transform: 'translate(183 -12) scale(1.57 1.30)' },
-  'phosphor-curved-cap': { transform: 'translate(173 10) scale(1.65 1.25)' },
-  'phosphor-trucker': { transform: 'translate(173 10) scale(1.65 1.25)' },
-  'hugeicons-snapback': { transform: 'translate(174 38) scale(17.5 10.8)' },
+  // P2.4.4.3B.15.5 — keep the original approved headwear set and only
+  // reduce oversized fits. Position is preserved as closely as possible.
+  'hat': { transform: 'translate(8 65) scale(2.85 2.90)' },
+  'winterHat1': { transform: 'translate(8 65) scale(2.85 2.90)' },
+  'winterHat02': { transform: 'translate(8 65) scale(2.85 2.90)' },
+  'winterHat03': { transform: 'translate(8 65) scale(2.85 2.90)' },
+  'winterHat04': { transform: 'translate(8 65) scale(2.85 2.90)' },
+
+  'personas-cap': { transform: 'translate(79 99) scale(6.5)' },
+  'personas-beanie': { transform: 'translate(79 99) scale(6.5)' },
+  'notionists-hat': { transform: 'translate(128 95) scale(.56)' },
+  'open-peeps-hatHip': { transform: 'translate(89 90) scale(.60)' },
 }
 
 function HeadwearLabElement({ node, keyPath }) {
