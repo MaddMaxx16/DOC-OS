@@ -267,15 +267,57 @@ export const AVATAAARS_OUTFIT_VARIANTS = {
       }
     ]
   }
+,
+  "docLeatherJacket": {
+    "elements": [
+      {"name":"path","type":"element","attributes":{"d":"M0 95.31V86.4C0 51 24 22 61 14l16 25h46l16-25c37 8 61 37 61 72.4v8.91z","fill":"#f1f1ee"}},
+      {"name":"path","type":"element","attributes":{"d":"M0 95.31V86.4C0 51 24 22 61 14l25 25-12 56.31zm200 0V86.4C200 51 176 22 139 14l-25 25 12 56.31z","fill":{"type":"color","name":"clothes"}}},
+      {"name":"path","type":"element","attributes":{"d":"M61 14 86 39 74 55 55 27zm78 0-25 25 12 16 19-28z","fill":"#000000","fill-opacity":".2"}},
+      {"name":"path","type":"element","attributes":{"d":"M100 39v56.31M32 54h31M137 54h31","fill":"none","stroke":"#d8d4cc","stroke-width":"2","stroke-linecap":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M47 64h18v13H47zm88 0h18v13h-18z","fill":"none","stroke":"#000000","stroke-opacity":".3","stroke-width":"2"}}
+    ]
+  },
+  "docLumberjack": {
+    "elements": [
+      {"name":"path","type":"element","attributes":{"d":"M0 95.31V86.4C0 49 25 22 62 14l15 22h46l15-22c37 8 62 35 62 72.4v8.91z","fill":"#eeeae2"}},
+      {"name":"path","type":"element","attributes":{"d":"M0 95.31V86.4C0 49 25 22 62 14l20 25-8 56.31zm200 0V86.4C200 49 175 22 138 14l-20 25 8 56.31z","fill":{"type":"color","name":"clothes"}}},
+      {"name":"path","type":"element","attributes":{"d":"M62 14 82 39 70 49 54 25zm76 0-20 25 12 10 16-24z","fill":"#ffffff","fill-opacity":".28"}},
+      {"name":"path","type":"element","attributes":{"d":"M18 42h52M10 64h64M130 42h52M126 64h64M38 25v70.31M58 18v77.31M142 18v77.31M162 25v70.31","fill":"none","stroke":"#1c2630","stroke-opacity":".55","stroke-width":"2"}},
+      {"name":"path","type":"element","attributes":{"d":"M25 51h40v2H25zm110 0h40v2h-40zM48 20h2v75.31h-2zm102 0h2v75.31h-2z","fill":"#f2d7a0","fill-opacity":".72"}},
+      {"name":"path","type":"element","attributes":{"d":"M30 58h28v17H30zm112 0h28v17h-28z","fill":"none","stroke":"#1c2630","stroke-width":"2"}}
+    ]
+  },
+  "docWorkJacket": {
+    "elements": [
+      {"name":"path","type":"element","attributes":{"d":"M0 95.31V86.4C0 49 25 22 63 14l14 24h46l14-24c38 8 63 35 63 72.4v8.91z","fill":{"type":"color","name":"clothes"}}},
+      {"name":"path","type":"element","attributes":{"d":"M63 14 77 38 91 29 78 11zm74 0-14 24-14-9 13-18z","fill":"#ffffff","fill-opacity":".32"}},
+      {"name":"path","type":"element","attributes":{"d":"M100 35v60.31M20 47h58M122 47h58M26 80h52M122 80h52","fill":"none","stroke":"#dbe3e8","stroke-opacity":".55","stroke-width":"2"}},
+      {"name":"path","type":"element","attributes":{"d":"M31 52h34v22H31zm104 0h34v22h-34z","fill":"#000000","fill-opacity":".08","stroke":"#dbe3e8","stroke-opacity":".55","stroke-width":"2"}},
+      {"name":"circle","type":"element","attributes":{"cx":"100","cy":"48","r":"2","fill":"#d8c39a"}},
+      {"name":"circle","type":"element","attributes":{"cx":"100","cy":"62","r":"2","fill":"#d8c39a"}}
+    ]
+  },
+  "docBomber": {
+    "elements": [
+      {"name":"path","type":"element","attributes":{"d":"M76 9c-42 3-76 31-76 77.4v8.91h200V86.4C200 40 166 12 124 9v14c0 12-10.75 21-24 21S76 35 76 23z","fill":{"type":"color","name":"clothes"}}},
+      {"name":"path","type":"element","attributes":{"d":"M72 10c2 22 12 34 28 34s26-12 28-34l-8-2c-2 17-8 26-20 26S82 25 80 8z","fill":"#000000","fill-opacity":".2"}},
+      {"name":"path","type":"element","attributes":{"d":"M100 44v51.31M7 84h186","fill":"none","stroke":"#d6d9dc","stroke-opacity":".7","stroke-width":"3"}},
+      {"name":"path","type":"element","attributes":{"d":"M28 60h34l8 11H36zm144 0h-34l-8 11h34z","fill":"#000000","fill-opacity":".12"}},
+      {"name":"circle","type":"element","attributes":{"cx":"100","cy":"54","r":"2","fill":"#d6d9dc"}}
+    ]
+  }
 }
 
 export const AVATAAARS_OUTFIT_OPTIONS = [
   { value: 'outfitlab-avataaars-blazerAndShirt', label: 'Ava · Blazer + Shirt' },
-  { value: 'outfitlab-avataaars-blazerAndSweater', label: 'Ava · Blazer + Sweater' },
   { value: 'outfitlab-avataaars-collarAndSweater', label: 'Ava · Collared Sweater' },
   { value: 'outfitlab-avataaars-hoodie', label: 'Ava · Hoodie' },
   { value: 'outfitlab-avataaars-overall', label: 'Ava · Overalls' },
   { value: 'outfitlab-avataaars-shirtCrewNeck', label: 'Ava · Crew Neck' },
   { value: 'outfitlab-avataaars-shirtScoopNeck', label: 'Ava · Scoop Neck' },
   { value: 'outfitlab-avataaars-shirtVNeck', label: 'Ava · V-Neck' },
+  { value: 'outfitlab-avataaars-docLeatherJacket', label: 'DOC · Leather Jacket' },
+  { value: 'outfitlab-avataaars-docLumberjack', label: 'DOC · Lumberjack Jacket' },
+  { value: 'outfitlab-avataaars-docWorkJacket', label: 'DOC · Work Jacket' },
+  { value: 'outfitlab-avataaars-docBomber', label: 'DOC · Bomber Jacket' },
 ]
