@@ -270,48 +270,48 @@ export const AVATAAARS_OUTFIT_VARIANTS = {
 ,
   "docLeatherJacket": {
     "elements": [
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V88C0 51 23 27 61 17L78 31h44l17-14c38 10 61 34 61 71v7.31z","fill":"#eeeae3"}},
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V88C0 51 23 27 61 17L88 43 73 95.31zM200 95.31V88c0-37-23-61-61-71l-27 26 15 52.31z","fill":{"type":"color","name":"clothes"},"stroke":"#18202a","stroke-width":"2.4","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M61 17 88 43 75 53 55 26zM139 17l-27 26 13 10 20-27z","fill":{"type":"color","name":"clothes"},"stroke":"#18202a","stroke-width":"2.4","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M55 26 75 53 66 61M145 26l-20 27 9 8M72 95.31l16-52.31M128 95.31l-16-52.31","fill":"none","stroke":"#18202a","stroke-width":"2.2","stroke-linecap":"round","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M39 59h25l6 16H45zm122 0h-25l-6 16h25z","fill":"#000000","fill-opacity":".13","stroke":"#18202a","stroke-width":"1.8","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M94 45v45","fill":"none","stroke":"#9da4aa","stroke-width":"2","stroke-dasharray":"3 3"}},
-      {"name":"circle","type":"element","attributes":{"cx":"57","cy":"82","r":"2","fill":"#b9bec2"}},
-      {"name":"circle","type":"element","attributes":{"cx":"143","cy":"82","r":"2","fill":"#b9bec2"}}
+      {"name":"path","type":"element","attributes":{"d":"M0 95.31V87C2 53 23 31 57 19L76 29h48l19-10c34 12 55 34 57 68v8.31z","fill":"#ece9e2"}},
+      {"name":"path","type":"element","attributes":{"d":"M0 95.31V87C2 53 23 31 57 19L99 48 78 95.31zM200 95.31V87c-2-34-23-56-57-68l-18 10-18 20 15 46.31z","fill":{"type":"color","name":"clothes"},"stroke":"#111820","stroke-width":"2.8","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M57 19 99 48 76 59 48 31zM143 19l-18 10-18 20 29 12 18-31z","fill":{"type":"color","name":"clothes"},"stroke":"#111820","stroke-width":"2.8","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M48 31 76 59 68 70M154 30l-18 31-12 34.31M98 48 75 95.31","fill":"none","stroke":"#111820","stroke-width":"2.5","stroke-linecap":"round","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M123 43 161 34","fill":"none","stroke":"#c7ccd0","stroke-width":"3","stroke-linecap":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M39 62h29l7 16H46zM137 68h27l-4 16h-30z","fill":"#000000","fill-opacity":".12","stroke":"#111820","stroke-width":"2.1","stroke-linejoin":"round"}},
+      {"name":"circle","type":"element","attributes":{"cx":"62","cy":"32","r":"2.3","fill":"#d4d7d9"}},
+      {"name":"circle","type":"element","attributes":{"cx":"137","cy":"34","r":"2.3","fill":"#d4d7d9"}}
     ]
   },
   "docLumberjack": {
     "elements": [
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V88C0 51 23 27 61 17L78 32h44l17-15c38 10 61 34 61 71v7.31z","fill":"#eeeae3"}},
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V88C0 51 23 27 61 17L87 42 74 95.31zM200 95.31V88c0-37-23-61-61-71l-26 25 13 53.31z","fill":{"type":"color","name":"clothes"},"stroke":"#25303a","stroke-width":"2.5","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M61 17 87 42 73 52 54 27zM139 17l-26 25 14 10 19-25z","fill":{"type":"color","name":"clothes"},"stroke":"#25303a","stroke-width":"2.5","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M74 95.31 87 42M126 95.31l-13-53.31M17 47h58M9 67h61M125 47h58M130 67h61M35 25v70.31M56 19v76.31M144 19v76.31M165 25v70.31","fill":"none","stroke":"#25303a","stroke-opacity":".72","stroke-width":"2"}},
-      {"name":"path","type":"element","attributes":{"d":"M17 56h55M128 56h55M46 20v75.31M154 20v75.31","fill":"none","stroke":"#f0d6a2","stroke-opacity":".82","stroke-width":"2"}},
-      {"name":"path","type":"element","attributes":{"d":"M29 55h31v19H29l4-5h23M140 55h31v19h-31l4-5h23","fill":{"type":"color","name":"clothes"},"stroke":"#25303a","stroke-width":"2","stroke-linejoin":"round"}},
-      {"name":"circle","type":"element","attributes":{"cx":"49","cy":"65","r":"1.8","fill":"#e6d2ad"}},
-      {"name":"circle","type":"element","attributes":{"cx":"151","cy":"65","r":"1.8","fill":"#e6d2ad"}}
+      {"name":"path","type":"element","attributes":{"d":"M0 95.31V87C2 50 26 27 65 17L82 30h36l17-13c39 10 63 33 65 70v8.31z","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2.6","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M65 17 82 30 100 43 118 30l17-13 11 11-27 22H81L54 28z","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2.6","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M100 43v52.31M17 43h166M10 62h180M6 81h188M35 25v70.31M57 19v76.31M79 31v64.31M121 31v64.31M143 19v76.31M165 25v70.31","fill":"none","stroke":"#202a33","stroke-opacity":".7","stroke-width":"2"}},
+      {"name":"path","type":"element","attributes":{"d":"M17 52h166M46 20v75.31M154 20v75.31","fill":"none","stroke":"#e6c58c","stroke-opacity":".8","stroke-width":"2"}},
+      {"name":"path","type":"element","attributes":{"d":"M29 49h37v22H29l5-6h27M134 49h37v22h-37l5-6h27","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2","stroke-linejoin":"round"}},
+      {"name":"circle","type":"element","attributes":{"cx":"100","cy":"55","r":"2","fill":"#e7d4b0"}},
+      {"name":"circle","type":"element","attributes":{"cx":"100","cy":"70","r":"2","fill":"#e7d4b0"}},
+      {"name":"circle","type":"element","attributes":{"cx":"100","cy":"85","r":"2","fill":"#e7d4b0"}}
     ]
   },
   "docWorkJacket": {
     "elements": [
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V88C0 51 23 27 61 17L79 32h42l18-15c38 10 61 34 61 71v7.31z","fill":"#f0ede6"}},
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V88C0 51 23 27 61 17L84 40 75 95.31zM200 95.31V88c0-37-23-61-61-71l-23 23 9 55.31z","fill":{"type":"color","name":"clothes"},"stroke":"#26323c","stroke-width":"2.5","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M61 17 84 40 72 50 55 27zM139 17l-23 23 12 10 17-23z","fill":{"type":"color","name":"clothes"},"stroke":"#26323c","stroke-width":"2.5","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M75 95.31 84 40M125 95.31l-9-55.31M18 43h60M122 43h60M18 81h59M123 81h59","fill":"none","stroke":"#dce5ea","stroke-opacity":".62","stroke-width":"2"}},
-      {"name":"path","type":"element","attributes":{"d":"M29 51h34v23H29zm108 0h34v23h-34z","fill":"#000000","fill-opacity":".08","stroke":"#dce5ea","stroke-opacity":".78","stroke-width":"2"}},
-      {"name":"path","type":"element","attributes":{"d":"M29 57h34M137 57h34","fill":"none","stroke":"#dce5ea","stroke-opacity":".78","stroke-width":"2"}},
-      {"name":"circle","type":"element","attributes":{"cx":"46","cy":"64","r":"2","fill":"#d8c39a"}},
-      {"name":"circle","type":"element","attributes":{"cx":"154","cy":"64","r":"2","fill":"#d8c39a"}}
+      {"name":"path","type":"element","attributes":{"d":"M0 95.31V88C2 52 24 29 61 18L79 30h42l18-12c37 11 59 34 61 70v7.31z","fill":"#ece9e2"}},
+      {"name":"path","type":"element","attributes":{"d":"M0 95.31V88C2 52 24 29 61 18L82 36 75 95.31zM200 95.31V88c-2-36-24-59-61-70l-21 18 7 59.31z","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2.7","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M61 18 82 36 72 50 52 29zM139 18l-21 18 10 14 20-21z","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2.7","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M75 95.31 82 36M125 95.31l-7-59.31M16 43h62M122 43h62M17 83h58M125 83h58","fill":"none","stroke":"#d9e0e4","stroke-opacity":".7","stroke-width":"2"}},
+      {"name":"path","type":"element","attributes":{"d":"M27 49h40v25H27v-19h40M133 49h40v25h-40v-19h40","fill":"#000000","fill-opacity":".07","stroke":"#d9e0e4","stroke-opacity":".9","stroke-width":"2.1","stroke-linejoin":"round"}},
+      {"name":"circle","type":"element","attributes":{"cx":"47","cy":"61","r":"2.1","fill":"#d9c49c"}},
+      {"name":"circle","type":"element","attributes":{"cx":"153","cy":"61","r":"2.1","fill":"#d9c49c"}},
+      {"name":"path","type":"element","attributes":{"d":"M82 36h36","fill":"none","stroke":"#202a33","stroke-width":"2"}}
     ]
   },
   "docBomber": {
     "elements": [
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V87C0 49 24 25 66 16l15 17h38l15-17c42 9 66 33 66 71v8.31z","fill":"#eeeae3"}},
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V87C0 49 24 25 66 16l20 24-9 55.31zM200 95.31V87c0-38-24-62-66-71l-20 24 9 55.31z","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2.5","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M66 16c3 15 10 24 20 24h28c10 0 17-9 20-24l-9-2c-3 11-7 17-14 17H89c-7 0-11-6-14-17z","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2.5","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M77 95.31 86 40M123 95.31l-9-55.31M7 84h70M123 84h70","fill":"none","stroke":"#202a33","stroke-width":"2.3"}},
-      {"name":"path","type":"element","attributes":{"d":"M43 57h25l7 11H48zm114 0h-25l-7 11h27z","fill":"#000000","fill-opacity":".12","stroke":"#202a33","stroke-width":"1.8","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M86 40h28M100 40v55.31","fill":"none","stroke":"#aeb5ba","stroke-width":"2.2","stroke-dasharray":"3 2"}}
+      {"name":"path","type":"element","attributes":{"d":"M0 95.31V84C1 48 25 26 65 17l15 14h40l15-14c40 9 64 31 65 67v11.31z","fill":"#ece9e2"}},
+      {"name":"path","type":"element","attributes":{"d":"M0 95.31V84C1 48 25 26 65 17l20 22-8 47H20L14 95.31zm200 0L186 84h-63l-8-45 20-22c40 9 64 31 65 67z","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2.8","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M65 17c4 14 11 22 20 22h30c9 0 16-8 20-22l-10-2c-3 10-7 15-13 15H88c-6 0-10-5-13-15z","fill":"#000000","fill-opacity":".2","stroke":"#202a33","stroke-width":"2.5","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M20 84h57M123 84h63M18 88h59M123 88h61","fill":"none","stroke":"#202a33","stroke-width":"3.5"}},
+      {"name":"path","type":"element","attributes":{"d":"M77 86 85 39M123 86l-8-47M100 39v56.31","fill":"none","stroke":"#b8bec2","stroke-width":"2.2"}},
+      {"name":"path","type":"element","attributes":{"d":"M36 58h31l8 11H43zm128 0h-31l-8 11h32z","fill":"#000000","fill-opacity":".12","stroke":"#202a33","stroke-width":"2","stroke-linejoin":"round"}}
     ]
   }
 }
