@@ -272,11 +272,11 @@ export const AVATAAARS_OUTFIT_VARIANTS = {
 }
 
 export const AVATAAARS_OUTFIT_OPTIONS = [
-  { value: 'outfitlab-avataaars-blazerAndShirt', label: 'Ava · Blazer + Shirt' },
-  { value: 'outfitlab-avataaars-collarAndSweater', label: 'Ava · Collared Sweater' },
-  { value: 'outfitlab-avataaars-hoodie', label: 'Ava · Hoodie' },
-  { value: 'outfitlab-avataaars-overall', label: 'Ava · Overalls' },
-  { value: 'outfitlab-avataaars-shirtCrewNeck', label: 'Ava · Crew Neck' },
-  { value: 'outfitlab-avataaars-shirtScoopNeck', label: 'Ava · Scoop Neck' },
-  { value: 'outfitlab-avataaars-shirtVNeck', label: 'Ava · V-Neck' },
+  { value: 'outfitlab-avataaars-blazerAndShirt', label: 'Blazer + Shirt' },
+  { value: 'outfitlab-avataaars-collarAndSweater', label: 'Collared Sweater' },
+  { value: 'outfitlab-avataaars-hoodie', label: 'Hoodie' },
+  { value: 'outfitlab-avataaars-overall', label: 'Overalls' },
+  { value: 'outfitlab-avataaars-shirtCrewNeck', label: 'Crew Neck' },
+  { value: 'outfitlab-avataaars-shirtScoopNeck', label: 'Scoop Neck' },
+  { value: 'outfitlab-avataaars-shirtVNeck', label: 'V-Neck' },
 ]
