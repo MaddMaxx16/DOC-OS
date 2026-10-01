@@ -1449,12 +1449,12 @@ const HEADWEAR_LAB_TUNING = {
   'personas-beanie': { transform: 'translate(65 88) scale(7.1)' },
   'notionists-hat': { transform: 'translate(92 70) scale(.62)' },
   'open-peeps-hatHip': { transform: 'translate(65 72) scale(.66)' },
-  // P2.4.4.3B.15.3 — real donor hats are intentionally fitted smaller than
-  // the earlier audition so the crown wraps the Toon Head instead of hiding it.
-  'phosphor-cowboy': { transform: 'translate(198 -45) scale(1.45)' },
-  'phosphor-curved-cap': { transform: 'translate(198 -30) scale(1.45)' },
-  'phosphor-trucker': { transform: 'translate(198 -30) scale(1.45)' },
-  'hugeicons-snapback': { transform: 'translate(222 -20) scale(13.5)' },
+  // P2.4.4.3B.15.4 — fit polish from iPhone audition:
+  // wider crowns, less vertical bulk, and lower seating against the hairline.
+  'phosphor-cowboy': { transform: 'translate(183 -12) scale(1.57 1.30)' },
+  'phosphor-curved-cap': { transform: 'translate(173 10) scale(1.65 1.25)' },
+  'phosphor-trucker': { transform: 'translate(173 10) scale(1.65 1.25)' },
+  'hugeicons-snapback': { transform: 'translate(174 38) scale(17.5 10.8)' },
 }
 
 function HeadwearLabElement({ node, keyPath }) {
