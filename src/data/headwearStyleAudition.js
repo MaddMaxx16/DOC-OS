@@ -1,5 +1,6 @@
-// P2.4.4.3B.15.1 — Headwear audition geometry.
-// Source: DiceBear Avataaars by Pablo Stanley. Local geometry keeps the creator
+// P2.4.4.3B.15.3 — Headwear audition geometry.
+// Sources: DiceBear donor libraries plus Phosphor Icons (MIT, © 2023 Phosphor Icons)
+// and Hugeicons Free (MIT, © 2025 Hugeicons). Local geometry keeps the creator
 // deterministic and lets DOC OS fit donor headwear to the Toon Head portrait.
 export const HEADWEAR_LAB_VARIANTS = {
   "hat": {
@@ -477,7 +478,186 @@ export const HEADWEAR_LAB_VARIANTS = {
       "headwear:hat"
     ]
   }
-
+,
+  "phosphor-cowboy": {
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M216,120a8,8,0,0,0-6.78,3.76A179.9,179.9,0,0,1,195.41,143l-1.63-8.57v0L178.32,53.07a16,16,0,0,0-25.72-9.55l-.13.1L128,64,103.53,43.62l-.13-.1a16,16,0,0,0-25.72,9.53L62.23,134.38v0L60.59,143a179.27,179.27,0,0,1-13.81-19.25A8,8,0,0,0,40,120a40,40,0,0,0,0,80H216a40,40,0,0,0,0-80ZM76.68,144H179.31l2.54,13.35a113.28,113.28,0,0,1-27.35,19C139.1,183.77,128.06,184,128,184c-.33,0-25.49-.4-53.86-26.6Z",
+          "fill": { "type": "color", "name": "hat" }
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M76.68 144H179.31",
+          "fill": "none",
+          "stroke": { "type": "color", "name": "ink" },
+          "stroke-width": "6",
+          "stroke-linecap": "round",
+          "opacity": ".34"
+        }
+      }
+    ],
+    "tags": ["headwear:cowboy", "source:phosphor"]
+  },
+  "phosphor-curved-cap": {
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M32,128a96,96,0,0,1,192,0v56a16,16,0,0,1-25.48,12.88C182.53,185.26,159,176,128,176s-54.53,9.26-70.52,20.88A16,16,0,0,1,32,184Z",
+          "fill": { "type": "color", "name": "hat" },
+          "stroke": { "type": "color", "name": "ink" },
+          "stroke-width": "7",
+          "stroke-linejoin": "round"
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M32,152a160,160,0,0,1,192,0",
+          "fill": "none",
+          "stroke": { "type": "color", "name": "ink" },
+          "stroke-width": "7",
+          "stroke-linecap": "round"
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M88.4,124.94C92.57,67.43,128,32,128,32s35.43,35.43,39.6,92.94",
+          "fill": "none",
+          "stroke": { "type": "color", "name": "ink" },
+          "stroke-width": "6",
+          "stroke-linecap": "round"
+        }
+      }
+    ],
+    "tags": ["headwear:cap", "source:phosphor"]
+  },
+  "phosphor-trucker": {
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M32,128a96,96,0,0,1,192,0v56a16,16,0,0,1-25.48,12.88C182.53,185.26,159,176,128,176s-54.53,9.26-70.52,20.88A16,16,0,0,1,32,184Z",
+          "fill": { "type": "color", "name": "hat" },
+          "stroke": { "type": "color", "name": "ink" },
+          "stroke-width": "7",
+          "stroke-linejoin": "round"
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M88.4,124.94C92.57,67.43,128,32,128,32s35.43,35.43,39.6,92.94C151,121.5,105,121.5,88.4,124.94Z",
+          "fill": "#f4f4f4",
+          "opacity": ".96"
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M32,152a160,160,0,0,1,192,0",
+          "fill": "none",
+          "stroke": { "type": "color", "name": "ink" },
+          "stroke-width": "7",
+          "stroke-linecap": "round"
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M88.4,124.94C92.57,67.43,128,32,128,32s35.43,35.43,39.6,92.94",
+          "fill": "none",
+          "stroke": { "type": "color", "name": "ink" },
+          "stroke-width": "6",
+          "stroke-linecap": "round"
+        }
+      },
+      { "name": "circle", "type": "element", "attributes": { "cx": "60", "cy": "86", "r": "4", "fill": { "type": "color", "name": "ink" }, "opacity": ".25" } },
+      { "name": "circle", "type": "element", "attributes": { "cx": "72", "cy": "72", "r": "4", "fill": { "type": "color", "name": "ink" }, "opacity": ".25" } },
+      { "name": "circle", "type": "element", "attributes": { "cx": "76", "cy": "98", "r": "4", "fill": { "type": "color", "name": "ink" }, "opacity": ".25" } },
+      { "name": "circle", "type": "element", "attributes": { "cx": "66", "cy": "113", "r": "4", "fill": { "type": "color", "name": "ink" }, "opacity": ".25" } },
+      { "name": "circle", "type": "element", "attributes": { "cx": "196", "cy": "86", "r": "4", "fill": { "type": "color", "name": "ink" }, "opacity": ".25" } },
+      { "name": "circle", "type": "element", "attributes": { "cx": "184", "cy": "72", "r": "4", "fill": { "type": "color", "name": "ink" }, "opacity": ".25" } },
+      { "name": "circle", "type": "element", "attributes": { "cx": "180", "cy": "98", "r": "4", "fill": { "type": "color", "name": "ink" }, "opacity": ".25" } },
+      { "name": "circle", "type": "element", "attributes": { "cx": "190", "cy": "113", "r": "4", "fill": { "type": "color", "name": "ink" }, "opacity": ".25" } }
+    ],
+    "tags": ["headwear:trucker", "source:phosphor"]
+  },
+  "hugeicons-snapback": {
+    "elements": [
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M2.5 16.9999L2.05801 14.5261C1.4248 8.63642 6.05622 3.49994 12 3.49994C17.9438 3.49994 22.5752 8.63642 21.942 14.5261L21.5 16.9999",
+          "fill": { "type": "color", "name": "hat" },
+          "stroke": { "type": "color", "name": "ink" },
+          "stroke-width": ".8",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M8.0157 10.4999C7.81291 7.295 9.59813 3.49994 12 3.49994",
+          "fill": "none",
+          "stroke": { "type": "color", "name": "ink" },
+          "stroke-width": ".65",
+          "stroke-linecap": "round"
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M16 10.4999C16.2028 7.295 14.4176 3.49994 12.0157 3.49994",
+          "fill": "none",
+          "stroke": { "type": "color", "name": "ink" },
+          "stroke-width": ".65",
+          "stroke-linecap": "round"
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M12 2.99994V1.99994",
+          "fill": "none",
+          "stroke": { "type": "color", "name": "ink" },
+          "stroke-width": ".65",
+          "stroke-linecap": "round"
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M2.5 17.0093C10.5 14.1427 13.5 14.5243 21.5 17.0093C21.2236 18.1308 21.0732 21.2995 19.851 21.8966C19.265 22.1829 18.4247 21.7988 17.821 21.6546C14.9252 20.9629 13.4773 20.617 12 20.617C10.5227 20.617 9.07482 20.9629 6.17904 21.6546C5.57535 21.7988 4.73502 22.1829 4.14904 21.8966C2.92684 21.2995 2.77642 18.1308 2.5 17.0093Z",
+          "fill": { "type": "color", "name": "hat" },
+          "stroke": { "type": "color", "name": "ink" },
+          "stroke-width": ".8",
+          "stroke-linejoin": "round"
+        }
+      }
+    ],
+    "tags": ["headwear:snapback", "source:hugeicons"]
+  }
 }
 
 export const HEADWEAR_LAB_OPTIONS = [
@@ -493,5 +673,9 @@ export const HEADWEAR_LAB_OPTIONS = [
   { value: 'headwearlab-personas-cap', label: 'Personas · Cap' },
   { value: 'headwearlab-notionists-hat', label: 'Notionists · Hat' },
   { value: 'headwearlab-open-peeps-hatHip', label: 'Open Peeps · Hip Hat' },
-  { value: 'headwearlab-personas-beanie', label: 'Personas · Beanie' },,,,,
+  { value: 'headwearlab-personas-beanie', label: 'Personas · Beanie' },
+  { value: 'headwearlab-phosphor-cowboy', label: 'Donor · Cowboy' },
+  { value: 'headwearlab-phosphor-curved-cap', label: 'Donor · Curved Cap' },
+  { value: 'headwearlab-phosphor-trucker', label: 'Donor · Trucker' },
+  { value: 'headwearlab-hugeicons-snapback', label: 'Donor · Snapback' },
 ]
