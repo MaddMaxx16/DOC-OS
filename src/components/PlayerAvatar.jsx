@@ -15,6 +15,7 @@ import {
   AVATAAARS_OUTFIT_OPTIONS,
   AVATAAARS_OUTFIT_VARIANTS,
 } from '../data/outfitStyleAudition'
+import TOON_HEAD_LOCAL_STYLE from '../data/toonHeadLocalStyle'
 
 // P2.4.4.3B.6.6G — final targeted Avataaars seam cleanup
 // Clean the six approved audition candidates without reopening the whole hair
@@ -183,11 +184,125 @@ export const DEFAULT_APPEARANCE = {
   clothingColor: 'navy',
 }
 
-const DICEBEAR_TOON_HEAD = 'https://api.dicebear.com/10.x/toon-head/svg'
 const NOTION_ASSET_BASE =
   'https://raw.githubusercontent.com/Mayandev/notion-avatar/main/public/avatar/preview'
 const NOTION_ASSET_CACHE = new Map()
 const METROLINE_PORTRAIT_BACKGROUND = '0b2a45'
+
+// PERF 3 — local Toon Head renderer.
+//
+// Character Creator previously used api.dicebear.com as an <img> source. Every
+// appearance change could therefore create a new network SVG, then make iOS
+// parse/rasterize that SVG before DOC OS composited its own SVG layers over it.
+// The exact Toon Head source geometry now ships with DOC OS and renders in the
+// same 768x768 coordinate system as the existing overlay pipeline.
+const TOON_HEAD_LOCAL_LAYER_ORDER = [
+  ['rearHair', 'translate(160.6 339.5)'],
+  ['body', 'translate(124 556)'],
+  ['head', 'translate(186.5 139.5)'],
+  ['clothes', 'translate(107.3 587.5)'],
+  ['mouth', 'translate(326 487)'],
+  ['eyes', 'translate(253 367)'],
+  ['eyebrows', 'translate(265.8 287.4)'],
+  ['hair', 'translate(158.2)'],
+]
+
+const TOON_HEAD_REACT_ATTRIBUTE = {
+  'clip-path': 'clipPath',
+  'fill-opacity': 'fillOpacity',
+  'stroke-width': 'strokeWidth',
+}
+
+function toonHeadLocalAttributeValue(name, value, colors, idPrefix) {
+  if (value && typeof value === 'object' && value.type === 'color') {
+    return colors[value.name] || '#000000'
+  }
+
+  if (typeof value !== 'string') return value
+  if (name === 'id') return `${idPrefix}${value}`
+  if (name === 'href' && value.startsWith('#')) return `#${idPrefix}${value.slice(1)}`
+  if (name === 'clip-path' || name === 'mask') {
+    return value.replace(/url\(#([^)]*)\)/g, (_, id) => `url(#${idPrefix}${id})`)
+  }
+  return value
+}
+
+function ToonHeadLocalElement({ node, colors, idPrefix, keyPath }) {
+  if (!node?.name) return null
+
+  const Tag = node.name
+  const props = {}
+  Object.entries(node.attributes || {}).forEach(([name, value]) => {
+    if (name === 'style') {
+      if (value === 'mask-type:alpha') props.style = { maskType: 'alpha' }
+      return
+    }
+    props[TOON_HEAD_REACT_ATTRIBUTE[name] || name] =
+      toonHeadLocalAttributeValue(name, value, colors, idPrefix)
+  })
+
+  return (
+    <Tag key={keyPath} {...props}>
+      {(node.children || []).map((child, index) => (
+        <ToonHeadLocalElement
+          key={`${keyPath}-${index}`}
+          node={child}
+          colors={colors}
+          idPrefix={idPrefix}
+          keyPath={`${keyPath}-${index}`}
+        />
+      ))}
+    </Tag>
+  )
+}
+
+function ToonHeadLocalBase({ config }) {
+  const rawId = useId()
+  const idPrefix = `docos-toon-${rawId.replace(/[^a-zA-Z0-9_-]/g, '')}-`
+  const colors = {
+    skin: config.skinColor,
+    hair: config.hairColor,
+    clothes: config.clothingColor,
+    stroke: '#000000',
+  }
+
+  return (
+    <svg
+      viewBox="0 0 768 768"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+      focusable="false"
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        display: 'block',
+        zIndex: 1,
+      }}
+    >
+      {TOON_HEAD_LOCAL_LAYER_ORDER.map(([componentName, transform]) => {
+        const variant = config[componentName]
+        if (!variant) return null
+        const definition = TOON_HEAD_LOCAL_STYLE.components?.[componentName]?.variants?.[variant]
+        if (!definition?.elements) return null
+
+        return (
+          <g key={componentName} transform={transform}>
+            {definition.elements.map((node, index) => (
+              <ToonHeadLocalElement
+                key={`${componentName}-${variant}-${index}`}
+                node={node}
+                colors={colors}
+                idPrefix={idPrefix}
+                keyPath={`${componentName}-${variant}-${index}`}
+              />
+            ))}
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
 
 const HAIR_CONFIG = {
   sidepart: { front: 'sideComed', rear: null },
@@ -1739,28 +1854,22 @@ function buildToonHeadPortrait(appearance) {
     ? MOUTH_LAB_CANDIDATES[mouth.slice(4)] || null
     : null
 
-  const params = new URLSearchParams({
-    seed: 'doc-os-metroline-player',
-    skinColor,
-    hairColor,
-    clothesColor: clothingColor,
-    mouthVariant: 'smile',
-    mouthProbability: mouthLab ? '0' : '100',
-    clothesVariant: nativeOutfit,
-    clothesProbability: outfitLab ? '0' : '100',
-    beardProbability: '0',
-    eyebrowsProbability: notionBrows ? '0' : '100',
-    eyesProbability: notionEyes || docOsEyes ? '0' : '100',
-    hairProbability: suppressScalpHair ? '0' : (hair.avataaars ? '0' : (hair.front ? '100' : '0')),
-    rearHairProbability: suppressScalpHair ? '0' : (hair.avataaars ? '0' : (hair.rear ? '100' : '0')),
-  })
+  const nativeBase = {
+    rearHair: !suppressScalpHair && !hair.avataaars ? (hair.rear || null) : null,
+    body: 'body',
+    head: 'head',
+    clothes: outfitLab ? null : nativeOutfit,
+    mouth: mouthLab ? null : 'smile',
+    eyes: !notionEyes && !docOsEyes ? eyes : null,
+    eyebrows: notionBrows ? null : brows,
+    hair: !suppressScalpHair && !hair.avataaars ? (hair.front || null) : null,
+    skinColor: `#${skinColor}`,
+    hairColor: `#${hairColor}`,
+    clothingColor: `#${clothingColor}`,
+  }
 
-  if (!notionBrows) params.set('eyebrowsVariant', brows)
-  if (!notionEyes && !docOsEyes) params.set('eyesVariant', eyes)
-  if (!suppressScalpHair && !hair.avataaars && hair.front) params.set('hairVariant', hair.front)
-  if (!suppressScalpHair && !hair.avataaars && hair.rear) params.set('rearHairVariant', hair.rear)
   return {
-    src: `${DICEBEAR_TOON_HEAD}?${params.toString()}`,
+    nativeBase,
     skinTone,
     avataaarsHair: suppressScalpHair ? null : (hair.avataaars || null),
     notionBrows,
@@ -1862,21 +1971,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
         </svg>
       )}
 
-      <img
-        src={portrait.src}
-        width="260"
-        height="320"
-        alt=""
-        aria-hidden="true"
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: '100%',
-          display: 'block',
-          objectFit: 'cover',
-          zIndex: 1,
-        }}
-      />
+      <ToonHeadLocalBase config={portrait.nativeBase} />
 
       {hasOverlayParts && (
         <svg
