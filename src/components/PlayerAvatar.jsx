@@ -1443,16 +1443,13 @@ function NotionPart({ assetKey, index, kind, transform, color = '#4b2422', clipB
 }
 
 const HEADWEAR_LAB_TUNING = {
-  // P2.4.4.3B.15.5 — keep the original approved headwear set and only
-  // reduce oversized fits. Position is preserved as closely as possible.
-  'hat': { transform: 'translate(8 65) scale(2.85 2.90)' },
+  // P2.4.4.3B.15.6 — final keeper-set fitting.
+  // The fancy Brimmed Hat needs a lower seat than the winter hats.
+  'hat': { transform: 'translate(8 90) scale(2.85 2.90)' },
   'winterHat1': { transform: 'translate(8 65) scale(2.85 2.90)' },
   'winterHat02': { transform: 'translate(8 65) scale(2.85 2.90)' },
   'winterHat03': { transform: 'translate(8 65) scale(2.85 2.90)' },
   'winterHat04': { transform: 'translate(8 65) scale(2.85 2.90)' },
-
-  'personas-cap': { transform: 'translate(79 99) scale(6.5)' },
-  'personas-beanie': { transform: 'translate(79 99) scale(6.5)' },
   'notionists-hat': { transform: 'translate(128 95) scale(.56)' },
   'open-peeps-hatHip': { transform: 'translate(89 90) scale(.60)' },
 }
