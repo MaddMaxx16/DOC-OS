@@ -551,3 +551,83 @@
   .career-photo-card-d434c { min-height: 200px; }
   .career-photo-frame-d434c { min-height: 152px; }
 }
+
+
+/* P2.4.4.3B.16.4 — compact frame-color picker inside Glasses.
+   Keep this subordinate to the main style grid so we do not add another
+   horizontal category tab just for a five-swatch palette. */
+.career-glasses-color-d434c {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(125, 160, 189, .14);
+}
+
+.career-glasses-color-d434c > span {
+  color: #61798d;
+  font-size: 6.5px;
+  font-weight: 850;
+  letter-spacing: .15em;
+  white-space: nowrap;
+}
+
+.career-glasses-color-d434c > div {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.career-glasses-color-d434c button {
+  min-width: 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 6px;
+  border: 1px solid rgba(128, 163, 191, .20);
+  border-radius: 7px;
+  background: rgba(9, 27, 42, .72);
+  color: #7891a5;
+  font: inherit;
+  font-size: 6px;
+  font-weight: 850;
+  letter-spacing: .06em;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.career-glasses-color-d434c button i {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 50%;
+  background: var(--frame-color);
+  box-shadow: 0 0 0 2px rgba(3, 12, 21, .42);
+}
+
+.career-glasses-color-d434c button.selected {
+  border-color: rgba(213, 154, 47, .72);
+  background: rgba(213, 154, 47, .10);
+  color: #e1e8ed;
+  box-shadow: inset 0 0 0 1px rgba(213, 154, 47, .08);
+}
+
+@media (max-width: 560px) {
+  .career-glasses-color-d434c {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .career-glasses-color-d434c button {
+    min-height: 32px;
+    padding: 0 4px;
+  }
+
+  .career-glasses-color-d434c button span {
+    display: none;
+  }
+}
