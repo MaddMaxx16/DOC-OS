@@ -5,7 +5,6 @@ import PlayerAvatar, {
   DEFAULT_APPEARANCE,
 } from './PlayerAvatar'
 import './CareerSetupScreen.css'
-import './CareerSetupScreen.p2443a.css'
 import './CareerLookCreator.css'
 
 const HAIR_OPTIONS_PER_PAGE = 8
