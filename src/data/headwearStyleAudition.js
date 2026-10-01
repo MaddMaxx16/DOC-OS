@@ -1,4 +1,4 @@
-// P2.4.4.3B.15.3 — Headwear audition geometry.
+// P2.4.4.3B.15.4 — Headwear audition geometry.
 // Sources: DiceBear donor libraries plus Phosphor Icons (MIT, © 2023 Phosphor Icons)
 // and Hugeicons Free (MIT, © 2025 Hugeicons). Local geometry keeps the creator
 // deterministic and lets DOC OS fit donor headwear to the Toon Head portrait.
@@ -485,7 +485,7 @@ export const HEADWEAR_LAB_VARIANTS = {
         "name": "path",
         "type": "element",
         "attributes": {
-          "d": "M216,120a8,8,0,0,0-6.78,3.76A179.9,179.9,0,0,1,195.41,143l-1.63-8.57v0L178.32,53.07a16,16,0,0,0-25.72-9.55l-.13.1L128,64,103.53,43.62l-.13-.1a16,16,0,0,0-25.72,9.53L62.23,134.38v0L60.59,143a179.27,179.27,0,0,1-13.81-19.25A8,8,0,0,0,40,120a40,40,0,0,0,0,80H216a40,40,0,0,0,0-80ZM76.68,144H179.31l2.54,13.35a113.28,113.28,0,0,1-27.35,19C139.1,183.77,128.06,184,128,184c-.33,0-25.49-.4-53.86-26.6Z",
+          "d": "M40,128c40,64,88,64,88,64s48,0,88-64a32,32,0,0,1,0,64H40a32,32,0,0,1,0-64Z",
           "fill": { "type": "color", "name": "hat" }
         }
       },
@@ -493,16 +493,37 @@ export const HEADWEAR_LAB_VARIANTS = {
         "name": "path",
         "type": "element",
         "attributes": {
-          "d": "M76.68 144H179.31",
+          "d": "M65.47 160.18 L84 66 C86 55 92 47 101 43 L119 61 C124 66 128 68 128 68 C128 68 132 66 137 61 L155 43 C164 47 170 55 172 66 L190.53 160.18 Z",
+          "fill": { "type": "color", "name": "hat" }
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M72 136 C90 141 108 143 128 143 C148 143 166 141 184 136",
           "fill": "none",
           "stroke": { "type": "color", "name": "ink" },
           "stroke-width": "6",
           "stroke-linecap": "round",
-          "opacity": ".34"
+          "opacity": ".38"
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M101 43 L119 61 C124 66 128 68 128 68 C128 68 132 66 137 61 L155 43",
+          "fill": "none",
+          "stroke": "#ffffff",
+          "stroke-width": "4",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+          "opacity": ".18"
         }
       }
     ],
-    "tags": ["headwear:cowboy", "source:phosphor"]
+    "tags": ["headwear:cowboy", "source:phosphor", "fit:15.4"]
   },
   "phosphor-curved-cap": {
     "elements": [
