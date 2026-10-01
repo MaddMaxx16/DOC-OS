@@ -53,9 +53,20 @@ function CareerSetupScreen({ profile = null, onBack }) {
   const submitLockRef = useRef(false)
   const optionSwipeRef = useRef(null)
 
+  const nativeToonOutfit = !String(appearance.outfit || '').startsWith('outfitlab-')
+  const visibleAppearanceCategories = nativeToonOutfit
+    ? APPEARANCE_CATEGORIES
+    : APPEARANCE_CATEGORIES.filter(({ key }) => key !== 'clothingColor')
+
   const playerName = displayName.trim()
   const ready = playerName.length >= 2
   const keyboardMode = keyboardOpen || nameFocused
+
+  useEffect(() => {
+    if (!nativeToonOutfit && appearanceCategory === 'clothingColor') {
+      setAppearanceCategory('outfit')
+    }
+  }, [nativeToonOutfit, appearanceCategory])
 
   useEffect(() => {
     const viewport = window.visualViewport
@@ -507,7 +518,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
             </section>
 
             <nav className="career-look-tabs-d434c" aria-label="Appearance categories">
-              {APPEARANCE_CATEGORIES.map((category) => (
+              {visibleAppearanceCategories.map((category) => (
                 <button
                   key={category.key}
                   type="button"
