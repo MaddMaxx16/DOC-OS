@@ -270,14 +270,26 @@ export const AVATAAARS_OUTFIT_VARIANTS = {
 ,
   "docLeatherJacket": {
     "elements": [
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V87C2 53 23 31 57 19L76 29h48l19-10c34 12 55 34 57 68v8.31z","fill":"#ece9e2"}},
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V87C2 53 23 31 57 19L99 48 78 95.31zM200 95.31V87c-2-34-23-56-57-68l-18 10-18 20 15 46.31z","fill":{"type":"color","name":"clothes"},"stroke":"#111820","stroke-width":"2.8","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M57 19 99 48 76 59 48 31zM143 19l-18 10-18 20 29 12 18-31z","fill":{"type":"color","name":"clothes"},"stroke":"#111820","stroke-width":"2.8","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M48 31 76 59 68 70M154 30l-18 31-12 34.31M98 48 75 95.31","fill":"none","stroke":"#111820","stroke-width":"2.5","stroke-linecap":"round","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M123 43 161 34","fill":"none","stroke":"#c7ccd0","stroke-width":"3","stroke-linecap":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M39 62h29l7 16H46zM137 68h27l-4 16h-30z","fill":"#000000","fill-opacity":".12","stroke":"#111820","stroke-width":"2.1","stroke-linejoin":"round"}},
-      {"name":"circle","type":"element","attributes":{"cx":"62","cy":"32","r":"2.3","fill":"#d4d7d9"}},
-      {"name":"circle","type":"element","attributes":{"cx":"137","cy":"34","r":"2.3","fill":"#d4d7d9"}}
+      {"name":"path","type":"element","attributes":{"d":"M0 95.31V88C1 58 18 35 50 22L73 14h54l23 8c32 13 49 36 50 66v7.31z","fill":{"type":"color","name":"clothes"},"stroke":"#111820","stroke-width":"2.7","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M73 14 100 40 78 95.31H60L50 22zM127 14 100 40l22 55.31h18l10-73.31z","fill":"#000000","fill-opacity":".13"}},
+      {"name":"path","type":"element","attributes":{"d":"M73 14 100 40 75 58 48 27 61 20z","fill":{"type":"color","name":"clothes"},"stroke":"#111820","stroke-width":"2.7","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M127 14 100 40l30 20 24-33-15-7z","fill":{"type":"color","name":"clothes"},"stroke":"#111820","stroke-width":"2.7","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M100 40 82 95.31h36z","fill":"#f1efea","stroke":"#d9d7d2","stroke-width":"1.2","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M100 40 75 58 64 45M100 40l30 20 12-17","fill":"none","stroke":"#111820","stroke-width":"2.4","stroke-linecap":"round","stroke-linejoin":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M130 60 116 95.31","fill":"none","stroke":"#d5d9dc","stroke-width":"3.2","stroke-linecap":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M129 61 116 95.31","fill":"none","stroke":"#777f85","stroke-width":"1","stroke-dasharray":"2 2"}},
+      {"name":"path","type":"element","attributes":{"d":"M121 42 159 34","fill":"none","stroke":"#d5d9dc","stroke-width":"3","stroke-linecap":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M122 42 158 34","fill":"none","stroke":"#777f85","stroke-width":"1","stroke-dasharray":"2 2"}},
+      {"name":"path","type":"element","attributes":{"d":"M29 57 62 50M35 76l28-7M143 71l27 6","fill":"none","stroke":"#d5d9dc","stroke-width":"2.8","stroke-linecap":"round"}},
+      {"name":"path","type":"element","attributes":{"d":"M29 57 62 50M35 76l28-7M143 71l27 6","fill":"none","stroke":"#777f85","stroke-width":".9","stroke-dasharray":"2 2"}},
+      {"name":"path","type":"element","attributes":{"d":"M18 91h61M121 91h61","fill":"none","stroke":"#0d1319","stroke-width":"3"}},
+      {"name":"path","type":"element","attributes":{"d":"M10 48c8-13 21-21 40-26M190 48c-8-13-21-21-40-26","fill":"none","stroke":"#ffffff","stroke-opacity":".12","stroke-width":"2","stroke-linecap":"round"}},
+      {"name":"circle","type":"element","attributes":{"cx":"60","cy":"27","r":"2.8","fill":"#d7dadd","stroke":"#111820","stroke-width":"1"}},
+      {"name":"circle","type":"element","attributes":{"cx":"140","cy":"27","r":"2.8","fill":"#d7dadd","stroke":"#111820","stroke-width":"1"}},
+      {"name":"circle","type":"element","attributes":{"cx":"73","cy":"59","r":"2.4","fill":"#d7dadd","stroke":"#111820","stroke-width":"1"}},
+      {"name":"circle","type":"element","attributes":{"cx":"137","cy":"61","r":"2.4","fill":"#d7dadd","stroke":"#111820","stroke-width":"1"}},
+      {"name":"path","type":"element","attributes":{"d":"M153 64h22l-4 18h-25z","fill":"#000000","fill-opacity":".12","stroke":"#111820","stroke-width":"1.8","stroke-linejoin":"round"}},
+      {"name":"circle","type":"element","attributes":{"cx":"160","cy":"71","r":"2","fill":"#d7dadd"}}
     ]
   },
   "docLumberjack": {
