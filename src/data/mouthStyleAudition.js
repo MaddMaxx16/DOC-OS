@@ -7,16 +7,14 @@
 // Keep source attribution/license notes if any candidates survive the audition.
 
 export const MOUTH_LAB_OPTIONS = [
-  { value: 'lab-avataaars-smile', label: 'Ava · Smile' },
-  { value: 'lab-avataaars-serious', label: 'Ava · Serious' },
-  { value: 'lab-avataaars-concerned', label: 'Ava · Concerned' },
-  { value: 'lab-avataaars-grimace', label: 'Ava · Grimace' },
-  { value: 'lab-micah-nervous', label: 'Micah · Nervous' },
-  { value: 'lab-personas-bigSmile', label: 'Persona · Big Smile' },
-  { value: 'lab-personas-lips', label: 'Persona · Lips' },
-  { value: 'lab-adventurer-variant03', label: 'Adv · 03' },
-  { value: 'lab-adventurer-variant06', label: 'Adv · 06' },
-  { value: 'lab-adventurer-variant09', label: 'Adv · 09' },
+  { value: 'lab-avataaars-smile', label: 'Smile' },
+  { value: 'lab-avataaars-serious', label: 'Serious' },
+  { value: 'lab-avataaars-concerned', label: 'Concerned' },
+  { value: 'lab-avataaars-grimace', label: 'Grimace' },
+  { value: 'lab-micah-nervous', label: 'Nervous' },
+  { value: 'lab-adventurer-variant03', label: 'Expression 01' },
+  { value: 'lab-adventurer-variant06', label: 'Expression 02' },
+  { value: 'lab-adventurer-variant09', label: 'Expression 03' },
 ]
 
 export const MOUTH_LAB_CANDIDATES = {
