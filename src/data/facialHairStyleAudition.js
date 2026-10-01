@@ -6,15 +6,15 @@
 
 export const FACIAL_HAIR_LAB_OPTIONS = [
   { value: 'none', label: 'Clean Shaven' },
-  { value: 'chin', label: 'Toon · Chin Beard' },
-  { value: 'chinMoustache', label: 'Toon · Goatee + Mustache' },
-  { value: 'moustacheTwirl', label: 'Toon · Mustache' },
-  { value: 'fullBeard', label: 'Toon · Full Beard' },
-  { value: 'longBeard', label: 'Toon · Long Beard' },
-  { value: 'faciallab-avataaars-moustacheFancy', label: 'Ava · Mustache Fancy' },
-  { value: 'faciallab-avataaars-moustacheMagnum', label: 'Ava · Mustache Magnum' },
-  { value: 'faciallab-notionists-variant11', label: 'Notion · 11' },
-  { value: 'faciallab-notionists-variant12', label: 'Notion · 12' },
+  { value: 'chin', label: 'Chin Beard' },
+  { value: 'chinMoustache', label: 'Goatee + Mustache' },
+  { value: 'moustacheTwirl', label: 'Mustache' },
+  { value: 'fullBeard', label: 'Full Beard' },
+  { value: 'longBeard', label: 'Long Beard' },
+  { value: 'faciallab-avataaars-moustacheFancy', label: 'Fancy Mustache' },
+  { value: 'faciallab-avataaars-moustacheMagnum', label: 'Magnum Mustache' },
+  { value: 'faciallab-notionists-variant11', label: 'Beard Style 01' },
+  { value: 'faciallab-notionists-variant12', label: 'Beard Style 02' },
 ]
 
 export const FACIAL_HAIR_LAB_CANDIDATES = {
