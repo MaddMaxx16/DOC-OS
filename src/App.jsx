@@ -10,13 +10,9 @@ import { getDeliveryDockWaitMinutes, getPickupDockWaitMinutes } from './data/pic
 import { advanceDockLifecycle } from './utils/dockLifecycle.js'
 import { logDocOsState } from './utils/debugLogger.js'
 import { getDriverPanelModel } from './utils/driverOperationalState.js'
-import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
-// B.5.4D.1 — Day 1 Entry / Post-Market Handoff
-import DayOneEntryScreen from './components/DayOneEntryScreen.jsx'
 import CareerSetupScreen from './components/CareerSetupScreen.jsx'
 const MainGameScreen = lazy(() => import('./components/MainGameScreen.jsx'))
 import StartScreen from './components/StartScreen.jsx'
-import EntryLiveMap from './components/EntryLiveMap.jsx'
 import StartOfficeBackdrop from './components/StartOfficeBackdrop.jsx'
 import { SAVE_SLOT_IDS, clearActiveSaveSlot, clearSave, getActiveSaveSlot, getSaveSlots, loadGame, saveGame, setActiveSaveSlot } from './utils/saveGame.js'
 import { createSavePersistenceAuthority, invalidatePendingAutosaveForSlot, persistIfAuthorized } from './utils/savePersistenceAuthority.js'
@@ -437,7 +433,7 @@ useEffect(() => {
     setDayLoop(saved.dayLoop ? { ...DEFAULT_DAY_LOOP_STATE, ...saved.dayLoop, history: Array.isArray(saved.dayLoop.history) ? saved.dayLoop.history : [] } : { ...DEFAULT_DAY_LOOP_STATE })
     setPlayerProgression(saved.playerProgression ? { ...DEFAULT_PLAYER_PROGRESSION, ...saved.playerProgression } : { ...DEFAULT_PLAYER_PROGRESSION })
     setCareer(normalizeCareerState(saved.career))
-    setResumeStage(saved.stage && saved.stage !== 'start' ? saved.stage : (saved.selectedMarket ? 'game' : 'market'))
+    setResumeStage(saved.stage && !['start', 'market', 'dayOneIntro'].includes(saved.stage) ? saved.stage : 'game')
   }
 
   const resetOperationState = () => {
@@ -852,7 +848,7 @@ useEffect(() => {
       setActiveSaveSlotId(slotId)
       hydrateSavedOperation(saved)
       setHasExistingOperation(true)
-      setStage(saved.stage && saved.stage !== 'start' ? saved.stage : (saved.selectedMarket ? 'game' : 'market'))
+      setStage(saved.stage && !['start', 'market', 'dayOneIntro'].includes(saved.stage) ? saved.stage : 'game')
     })
   }
 
@@ -1798,8 +1794,6 @@ Open CarrierSource to review your full account history.`
         )}
 
         {stage === 'start' && <StartOfficeBackdrop />}
-        {(stage === 'market' || /* B.5.4D.1.1 — Opening Guidance + CarrierSource Clock Gate */
-        stage === 'dayOneIntro') && <EntryLiveMap stage={stage} selectedMarket={selectedMarket} />}
         {stage === 'start' && (
           <StartScreen
             saveSlots={saveSlots}
@@ -1816,76 +1810,6 @@ Open CarrierSource to review your full account history.`
             onBack={() => runMajorTransition('back', () => {
               setResumeStage('careerSetup')
               setStage('start')
-            })}
-            onContinue={(profile) => runMajorTransition('forward', () => {
-              setDispatcherProfile(profile)
-              setResumeStage('market')
-              setStage('market')
-            })}
-          />
-        )}
-        {stage === 'market' && (
-          <MarketSelectionScreen
-            selectedMarket={selectedMarket}
-            onSelectMarket={() => setSelectedMarket('new-york')}
-            onBack={() => runMajorTransition('back', () => {
-              setSelectedMarket(null)
-              setResumeStage('careerSetup')
-              setStage('careerSetup')
-            })}
-            onConfirm={() => runMajorTransition('forward', () => {
-              setDispatcherProfile((current) => current ? {
-                ...current,
-                homeMarket: 'New York Metro',
-              } : current)
-              setHasExistingOperation(true)
-              setResumeStage('dayOneIntro')
-              setIsGameClockPaused(true)
-              setStage('dayOneIntro')
-            })}
-          />
-        )}
-        {stage === 'dayOneIntro' && (
-          <DayOneEntryScreen
-            dispatcherProfile={dispatcherProfile}
-            marketName="New York Metro"
-            onBack={() => runMajorTransition('back', () => {
-              setResumeStage('market')
-              setStage('market')
-            })}
-            onBegin={() => runMajorTransition('operations', () => {
-              const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-
-              setEmailMessages((current) =>
-                current.some((message) => message.id === 'mentor-day-one-start')
-                  ? current
-                  : [
-                      ...current,
-                      {
-                        id: 'mentor-day-one-start',
-                        type: 'mentor',
-                        direction: 'inbound',
-                        senderOverride: 'Jordan Blake · Dispatch Mentor',
-                        subject: 'A good place to start',
-                        bodyOverride:
-                          `Congratulations on giving your own dispatch operation a real shot. You do not need to know every part of the job on day one. Start by building one solid carrier relationship and learn the operation from there.
-
-To find CarrierSource: return to your Dispatch Console, open Browser, then choose CarrierSource from the Workspace page. Take a look at the carriers available in your market and pay attention to what they expect from a dispatcher before you apply.
-
-Once you have a carrier relationship in place, the rest of DOC OS will start to make a lot more sense.
-
-Thanks,
-Jordan Blake
-Dispatch Mentor`,receivedGameMinute: now,
-                        read: false,
-                      },
-                    ]
-              )
-
-              setGameEntryScreen('email')
-              setResumeStage('game')
-              setIsGameClockPaused(true)
-              setStage('game')
             })}
           />
         )}
