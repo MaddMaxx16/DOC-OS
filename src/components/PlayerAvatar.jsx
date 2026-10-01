@@ -1442,17 +1442,21 @@ function NotionPart({ assetKey, index, kind, transform, color = '#4b2422', clipB
   )
 }
 
+const HEADWEAR_LAB_TUNING = {
+  // Cross-library donor coordinate systems are normalized here for audition.
+  // Keep these independent so survivor fitting can be surgical in the next pass.
+  'personas-cap': { transform: 'translate(65 88) scale(7.1)' },
+  'personas-beanie': { transform: 'translate(65 88) scale(7.1)' },
+  'notionists-hat': { transform: 'translate(92 70) scale(.62)' },
+  'open-peeps-hatHip': { transform: 'translate(65 72) scale(.66)' },
+}
+
 function HeadwearLabElement({ node, keyPath }) {
-  const attributes = { ...(node.attributes || {}) }
-
-  Object.entries(attributes).forEach(([key, rawValue]) => {
-    if (rawValue && typeof rawValue === 'object' && rawValue.type === 'color' && rawValue.name === 'hat') {
-      attributes[key] = '#315f86'
-    }
-  })
-
   const normalized = {}
-  Object.entries(attributes).forEach(([key, value]) => {
+
+  Object.entries(node.attributes || {}).forEach(([key, rawValue]) => {
+    if (key === 'style') return
+
     const mappedKey = {
       'fill-opacity': 'fillOpacity',
       'fill-rule': 'fillRule',
@@ -1461,26 +1465,33 @@ function HeadwearLabElement({ node, keyPath }) {
       'stroke-linecap': 'strokeLinecap',
       'stroke-linejoin': 'strokeLinejoin',
     }[key] || key
-    normalized[mappedKey] = value
+
+    if (rawValue && typeof rawValue === 'object' && rawValue.type === 'color') {
+      normalized[mappedKey] = {
+        hat: '#315f86',
+        clothing: '#315f86',
+        paper: '#315f86',
+        ink: '#241b19',
+        skin: '#dfaa86',
+      }[rawValue.name] || '#315f86'
+    } else {
+      normalized[mappedKey] = rawValue
+    }
   })
 
-  if (node.name === 'path') return <path key={keyPath} {...normalized} />
-  if (node.name === 'circle') return <circle key={keyPath} {...normalized} />
-  if (node.name === 'ellipse') return <ellipse key={keyPath} {...normalized} />
-  if (node.name === 'rect') return <rect key={keyPath} {...normalized} />
-  if (node.name === 'g') {
-    return (
-      <g key={keyPath} {...normalized}>
-        {(node.children || []).map((child, index) => (
-          <HeadwearLabElement
-            key={`${keyPath}-${index}`}
-            keyPath={`${keyPath}-${index}`}
-            node={child}
-          />
-        ))}
-      </g>
-    )
-  }
+  const children = (node.children || []).map((child, index) => (
+    <HeadwearLabElement
+      key={`${keyPath}-${index}`}
+      keyPath={`${keyPath}-${index}`}
+      node={child}
+    />
+  ))
+
+  if (node.name === 'path') return <path key={keyPath} {...normalized}>{children}</path>
+  if (node.name === 'circle') return <circle key={keyPath} {...normalized}>{children}</circle>
+  if (node.name === 'ellipse') return <ellipse key={keyPath} {...normalized}>{children}</ellipse>
+  if (node.name === 'rect') return <rect key={keyPath} {...normalized}>{children}</rect>
+  if (node.name === 'g') return <g key={keyPath} {...normalized}>{children}</g>
   return null
 }
 
@@ -1488,8 +1499,10 @@ function HeadwearLabPart({ variant }) {
   const candidate = HEADWEAR_LAB_VARIANTS[variant]
   if (!candidate) return null
 
+  const transform = HEADWEAR_LAB_TUNING[variant]?.transform || AVATAAARS_HAIR_TRANSFORM
+
   return (
-    <g transform={AVATAAARS_HAIR_TRANSFORM}>
+    <g transform={transform}>
       {candidate.elements.map((node, index) => (
         <HeadwearLabElement
           key={`headwear-${variant}-${index}`}
