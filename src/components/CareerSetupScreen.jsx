@@ -214,6 +214,13 @@ function CareerSetupScreen({ profile = null, onBack }) {
       if (choice?.value !== undefined) next[key] = choice.value
     })
 
+    // P2.4.4.3B.16.4 — Frame color is a compact Glasses sub-control rather
+    // than another top-level category, but Randomize should still exercise it.
+    const frameColors = APPEARANCE_OPTIONS.glassesColor
+    if (Array.isArray(frameColors) && frameColors.length > 0) {
+      next.glassesColor = frameColors[Math.floor(Math.random() * frameColors.length)].value
+    }
+
     next.accessorySide = next.accessories === 'none'
       ? 'both'
       : ACCESSORY_SIDE_OPTIONS[Math.floor(Math.random() * ACCESSORY_SIDE_OPTIONS.length)].value
@@ -584,6 +591,35 @@ function CareerSetupScreen({ profile = null, onBack }) {
                   )
                 })}
               </div>
+
+              {appearanceCategory === 'glasses' && appearance.glasses !== 'none' && (
+                <div className="career-glasses-color-d434c">
+                  <span>FRAME COLOR</span>
+                  <div role="group" aria-label="Choose glasses frame color">
+                    {APPEARANCE_OPTIONS.glassesColor.map((frame) => {
+                      const selected = appearance.glassesColor === frame.value
+
+                      return (
+                        <button
+                          key={frame.value}
+                          type="button"
+                          className={selected ? 'selected' : ''}
+                          onClick={() => setAppearanceValue('glassesColor', frame.value)}
+                          aria-pressed={selected}
+                          aria-label={frame.label}
+                          title={frame.label}
+                        >
+                          <i
+                            aria-hidden="true"
+                            style={{ '--frame-color': frame.color }}
+                          />
+                          <span>{frame.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {appearanceCategory === 'accessories' && appearance.accessories !== 'none' && (
                 <div className="career-accessory-side-d434c">
