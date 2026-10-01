@@ -207,7 +207,11 @@ function CareerSetupScreen({ profile = null, onBack }) {
 
     APPEARANCE_CATEGORIES.forEach(({ key }) => {
       const options = APPEARANCE_OPTIONS[key]
-      next[key] = options[Math.floor(Math.random() * options.length)].value
+      // P2.4.4.3B.15.7 — Randomize is a stress-test path. Never let a
+      // missing/empty option group turn one tap into a creator-wide crash.
+      if (!Array.isArray(options) || options.length === 0) return
+      const choice = options[Math.floor(Math.random() * options.length)]
+      if (choice?.value !== undefined) next[key] = choice.value
     })
 
     next.accessorySide = next.accessories === 'none'
