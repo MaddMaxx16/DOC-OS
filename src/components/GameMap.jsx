@@ -86,7 +86,7 @@ function routeMatchesEndpoints(route, origin, destination, toleranceMiles = 1.5)
 }
 
 
-function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId = null, facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgressByDriver = {}, simulationSpeed = 1, isGameClockPaused = false, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, freightBrowseMode = false, freightBrowseLoads = [], freightBrowseSelectedLoadId = null, onFreightBrowseSelect, lunchCandidateLocations = [] }) {
+function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId = null, facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgressByDriver = {}, simulationSpeed = 1, isGameClockPaused = false, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, freightBrowseMode = false, freightBrowseLoads = [], freightBrowseSelectedLoadId = null, onFreightBrowseSelect, lunchCandidateLocations = [], visualSuspended = false }) {
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const planningPopupRef = useRef(null)
@@ -285,6 +285,13 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       center: [-73.9857, 40.7484],
       zoom: 10,
       attributionControl: false,
+      // PERF 1 — a 3x iPhone otherwise renders nine physical map pixels for
+      // every CSS pixel. 2x stays sharp while substantially reducing WebGL work.
+      pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+      renderWorldCopies: false,
+      fadeDuration: 0,
+      maxTileCacheZoomLevels: 2,
+      validateStyle: false,
     })
     mapRef.current = map
 
@@ -342,19 +349,35 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     }
   }, [])
 
+  const continuousMapMotionActive = !visualSuspended && !isGameClockPaused && drivers.some((driver) => {
+    const owner = resolveDriverMovementOwner({ driver, gameTime, loads })
+    return ['freight', 'lunch-route', 'idle-route'].includes(owner.type)
+  })
+
   useEffect(() => {
-    // AV2.5.6: continuous driver render clock.
-    // The simulation remains authoritative for state transitions and arrival.
-    // The map marker advances every animation frame using fractional game time
-    // between the integer-minute simulation ticks.
-    if (!mapReady) return undefined
+    // PERF 1 — the old driver renderer ran requestAnimationFrame forever, even
+    // while paused or while the phone completely covered the map. Keep the
+    // simulation authoritative, but only animate visible physical movement.
+    // 30 fps is more than enough for a dispatcher map and halves JS/DOM marker
+    // work versus the previous 60 fps loop.
+    if (!mapReady || visualSuspended) return undefined
 
     let frameId = null
+    let frameTimerId = null
     let lastFrame = performance.now()
     let renderGameMinute = null
     let lastAuthoritativeMinute = null
+    const FRAME_INTERVAL_MS = 1000 / 30
 
     const absoluteMinuteFrom = (time) => (time?.gameDayIndex ?? 0) * 1440 + (time?.totalMinutesOfDay ?? 0)
+
+    const scheduleNextFrame = (render) => {
+      if (!continuousMapMotionActive) return
+      frameTimerId = window.setTimeout(() => {
+        frameTimerId = null
+        frameId = window.requestAnimationFrame(render)
+      }, FRAME_INTERVAL_MS)
+    }
 
     const render = (now) => {
       const dt = Math.max(0, Math.min(100, now - lastFrame))
@@ -370,39 +393,24 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
 
       if (!Number.isFinite(renderGameMinute)) renderGameMinute = authoritativeMinute
 
-      // Large discontinuities are explicit simulation jumps (resume/dev/day change),
-      // not ordinary clock ticks. Snap the visual clock only for those cases.
       if (lastAuthoritativeMinute !== null && Math.abs(authoritativeMinute - lastAuthoritativeMinute) > 2) {
         renderGameMinute = authoritativeMinute
       }
       lastAuthoritativeMinute = authoritativeMinute
 
       if (!paused && speed > 0) {
-        // App.jsx advances one game minute every 3000ms / simulationSpeed.
         renderGameMinute += (dt * speed) / 3000
-
-        // Reconcile gently with the authoritative integer clock without creating
-        // a visible once-per-tick marker jump. Between ticks the render clock is
-        // expected to lead the integer minute by up to roughly one minute.
         const error = authoritativeMinute - renderGameMinute
         if (error > 0.2) renderGameMinute += Math.min(error, (dt / 1000) * 0.35)
         if (error < -1.25) renderGameMinute += Math.max(error + 1, -(dt / 1000) * 0.35)
       } else if (renderGameMinute < authoritativeMinute) {
-        // Pausing immediately freezes visual motion, but never leaves the marker
-        // behind a simulation transition that already occurred.
         renderGameMinute = authoritativeMinute
       }
 
-      // CS2.0A.1 — facility states are stronger than stale runtime coordinates.
-      // This snap is allowed even while paused so the loading/unloading overlays
-      // cannot leave Marcus visually parked off the facility after arrival.
       const facilityLockedDriverIds = new Set()
       currentDrivers.forEach((driver) => {
         const marker = driverMarkerRefs.current.get(driver.id)
         if (!marker) return
-        // Lunch owns the driver's physical marker until its diversion/rest/resume
-        // lifecycle is complete. A stale freight facility state must never snap the
-        // marker to pickup/delivery while lunch has authority.
         if (hasLunchMovementAuthority(driver, state.gameTime)) return
         const facilityPosition = getDriverFacilityPosition(currentLoads, driver.id)
         if (!facilityPosition) return
@@ -410,14 +418,6 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
         facilityLockedDriverIds.add(driver.id)
       })
 
-      // AW1.6.4 — a paused operations map is visually frozen. Facility authority
-      // above may reconcile a completed arrival, but active travel never advances.
-      //
-      // Checkpoint 3B.6 — restored active freight legs are already represented by
-      // runtimePositions when the save opens. Remember that live leg while paused
-      // so pressing Play does not misclassify the restored leg as a brand-new leg
-      // and deliberately pin the marker back to route point 0 for one frame.
-      // New legs created during live play still use the route-origin pin below.
       if (paused) {
         currentDrivers.forEach((driver) => {
           if (facilityLockedDriverIds.has(driver.id)) return
@@ -427,10 +427,8 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
           const delivery = travelingLoad.tripStatus === 'en-route-delivery'
           const departure = delivery ? travelingLoad.deliveryDepartureGameMinute : travelingLoad.departureGameMinute
           if (!Number.isFinite(departure)) return
-          const travelKey = `${travelingLoad.id}:${travelingLoad.tripStatus}:${departure}`
-          activeTravelKey.current.set(driver.id, travelKey)
+          activeTravelKey.current.set(driver.id, `${travelingLoad.id}:${travelingLoad.tripStatus}:${departure}`)
         })
-        frameId = requestAnimationFrame(render)
         return
       }
 
@@ -452,23 +450,12 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
         }
 
         const travelingLoad = movementOwner.load
-
         const delivery = travelingLoad.tripStatus === 'en-route-delivery'
         const route = delivery ? travelingLoad.plannedLoadedRouteGeometry : travelingLoad.plannedDeadheadRouteGeometry
         const departure = delivery ? travelingLoad.deliveryDepartureGameMinute : travelingLoad.departureGameMinute
         const duration = delivery ? travelingLoad.plannedLoadedDriveTimeMinutes : travelingLoad.plannedDeadheadDriveTimeMinutes
         if (!Array.isArray(route) || route.length < 2 || !Number.isFinite(departure) || !Number.isFinite(duration) || duration <= 0) return
 
-        // B.5.3.3.10.5 — a newly installed travel leg must render route point 0
-        // before the fractional visual clock is allowed to advance it. The shared
-        // render clock can legitimately lead the integer game clock by nearly one
-        // game minute. At the lunch -> freight handoff that lead was enough to
-        // consume the short parking-lot access segment on the very first frame,
-        // making Marcus appear to snap directly onto the road even though the
-        // resumed geometry correctly began at his parked lunch coordinates.
-        // Track the live leg per driver (future multi-driver safe), pin its first
-        // rendered frame to the exact route origin, then let normal interpolation
-        // take over on following frames.
         const travelKey = `${travelingLoad.id}:${travelingLoad.tripStatus}:${departure}`
         const previousTravelKey = activeTravelKey.current.get(driver.id)
         if (previousTravelKey !== travelKey) {
@@ -480,19 +467,28 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
         }
 
         const fractionalProgress = Math.max(0, Math.min(1, (renderGameMinute - departure) / duration))
-        // Authoritative simulation and visual rendering now share the same
-        // distance-weighted sampler. The render clock may interpolate between
-        // game-minute ticks without reconciling against a second parameterization.
         const point = sampleRoutePosition(route, fractionalProgress)
         if (point) marker.setLngLat(point)
       })
 
-      frameId = requestAnimationFrame(render)
+      scheduleNextFrame(render)
     }
 
-    frameId = requestAnimationFrame(render)
-    return () => { if (frameId) cancelAnimationFrame(frameId) }
-  }, [mapReady])
+    // One immediate reconciliation also covers paused/static states. A repeating
+    // render clock is created only when a driver is physically moving.
+    render(performance.now())
+
+    return () => {
+      if (frameId) window.cancelAnimationFrame(frameId)
+      if (frameTimerId) window.clearTimeout(frameTimerId)
+    }
+  }, [mapReady, continuousMapMotionActive, visualSuspended])
+
+  useEffect(() => {
+    if (!visualSuspended) return
+    // Stop any MapLibre camera transition hidden behind a full-screen overlay.
+    mapRef.current?.stop?.()
+  }, [visualSuspended])
 
   useEffect(() => {
     const map = mapRef.current
