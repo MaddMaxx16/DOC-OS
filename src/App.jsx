@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { Keyboard, KeyboardResize, KeyboardStyle } from '@capacitor/keyboard'
-import './App.css'
+import './AppShell.css'
 import seedLoads from './data/loads.js'
 import seedCarriers from './data/carriers.js'
 import seedDrivers from './data/drivers.js'
