@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { Keyboard, KeyboardResize, KeyboardStyle } from '@capacitor/keyboard'
 import './App.css'
@@ -14,7 +14,7 @@ import MarketSelectionScreen from './components/MarketSelectionScreen.jsx'
 // B.5.4D.1 — Day 1 Entry / Post-Market Handoff
 import DayOneEntryScreen from './components/DayOneEntryScreen.jsx'
 import CareerSetupScreen from './components/CareerSetupScreen.jsx'
-import MainGameScreen from './components/MainGameScreen.jsx'
+const MainGameScreen = lazy(() => import('./components/MainGameScreen.jsx'))
 import StartScreen from './components/StartScreen.jsx'
 import EntryLiveMap from './components/EntryLiveMap.jsx'
 import StartOfficeBackdrop from './components/StartOfficeBackdrop.jsx'
@@ -1811,24 +1811,18 @@ Open CarrierSource to review your full account history.`
           />
         )}
         {stage === 'careerSetup' && (
-          <div
-            data-performance-diagnostic="blank-career-stage"
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 99999,
-              display: 'grid',
-              placeItems: 'center',
-              background: '#05080b',
-              color: '#66717b',
-              fontSize: '11px',
-              fontWeight: 800,
-              letterSpacing: '.12em',
-              textAlign: 'center',
-            }}
-          >
-            STATIC PERFORMANCE TEST
-          </div>
+          <CareerSetupScreen
+            profile={dispatcherProfile}
+            onBack={() => runMajorTransition('back', () => {
+              setResumeStage('careerSetup')
+              setStage('start')
+            })}
+            onContinue={(profile) => runMajorTransition('forward', () => {
+              setDispatcherProfile(profile)
+              setResumeStage('market')
+              setStage('market')
+            })}
+          />
         )}
         {stage === 'market' && (
           <MarketSelectionScreen
@@ -1896,7 +1890,26 @@ Dispatch Mentor`,receivedGameMinute: now,
           />
         )}
         {stage === 'game' && (
-          <MainGameScreen
+          <Suspense
+            fallback={
+              <div
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  display: 'grid',
+                  placeItems: 'center',
+                  background: '#05080b',
+                  color: '#77838e',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  letterSpacing: '.1em',
+                }}
+              >
+                LOADING OPERATIONS
+              </div>
+            }
+          >
+            <MainGameScreen
             selectedMarket={selectedMarket}
             initialPhoneOpen={Boolean(gameEntryScreen)}
             initialPhoneScreen={gameEntryScreen || 'home'}
@@ -1952,6 +1965,7 @@ Dispatch Mentor`,receivedGameMinute: now,
             setLedgerWorkflowByLoadId={setLedgerWorkflowByLoadId}
             seenLedgerPaymentReadyIds={seenLedgerPaymentReceivedIds}
           />
+          </Suspense>
         )}
       </section>
     </main>
