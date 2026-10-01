@@ -406,6 +406,7 @@ export const HEADWEAR_LAB_VARIANTS = {
       "headwear:hat"
     ]
   }
+}
 
 export const HEADWEAR_LAB_OPTIONS = [
   { value: 'none', label: 'None' },
