@@ -17,6 +17,7 @@ const FACIAL_HAIR_OPTIONS_PER_PAGE = 8
 const GLASSES_OPTIONS_PER_PAGE = 8
 const ACCESSORY_OPTIONS_PER_PAGE = 8
 const OUTFIT_OPTIONS_PER_PAGE = 8
+const CLOTHING_COLOR_OPTIONS_PER_PAGE = 6
 const ACCESSORY_SIDE_OPTIONS = [
   { value: 'left', label: 'LEFT' },
   { value: 'both', label: 'BOTH' },
@@ -45,6 +46,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
   const [glassesPage, setGlassesPage] = useState(0)
   const [accessoryPage, setAccessoryPage] = useState(0)
   const [outfitPage, setOutfitPage] = useState(0)
+  const [clothingColorPage, setClothingColorPage] = useState(0)
 
   const screenRef = useRef(null)
   const nameRef = useRef(null)
@@ -156,6 +158,10 @@ function CareerSetupScreen({ profile = null, onBack }) {
     optionPageForValue('outfit', value, OUTFIT_OPTIONS_PER_PAGE)
   )
 
+  const clothingColorPageForValue = (value) => (
+    optionPageForValue('clothingColor', value, CLOTHING_COLOR_OPTIONS_PER_PAGE)
+  )
+
   const setAppearanceValue = (key, value) => {
     setAppearance((current) => ({ ...current, [key]: value }))
     if (key === 'hair') setHairPage(hairPageForValue(value))
@@ -167,6 +173,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
     if (key === 'glasses') setGlassesPage(glassesPageForValue(value))
     if (key === 'accessories') setAccessoryPage(accessoryPageForValue(value))
     if (key === 'outfit') setOutfitPage(outfitPageForValue(value))
+    if (key === 'clothingColor') setClothingColorPage(clothingColorPageForValue(value))
   }
 
   const selectAppearanceCategory = (key) => {
@@ -182,6 +189,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
     if (key === 'glasses') setGlassesPage(glassesPageForValue(appearance.glasses))
     if (key === 'accessories') setAccessoryPage(accessoryPageForValue(appearance.accessories))
     if (key === 'outfit') setOutfitPage(outfitPageForValue(appearance.outfit))
+    if (key === 'clothingColor') {
+      setClothingColorPage(clothingColorPageForValue(appearance.clothingColor))
+    }
   }
 
   const randomizeAppearance = () => {
@@ -210,6 +220,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
     if (appearanceCategory === 'glasses') setGlassesPage(glassesPageForValue(next.glasses))
     if (appearanceCategory === 'accessories') setAccessoryPage(accessoryPageForValue(next.accessories))
     if (appearanceCategory === 'outfit') setOutfitPage(outfitPageForValue(next.outfit))
+    if (appearanceCategory === 'clothingColor') {
+      setClothingColorPage(clothingColorPageForValue(next.clothingColor))
+    }
   }
 
   const resetAppearance = () => {
@@ -224,6 +237,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
     setGlassesPage(glassesPageForValue(DEFAULT_APPEARANCE.glasses))
     setAccessoryPage(accessoryPageForValue(DEFAULT_APPEARANCE.accessories))
     setOutfitPage(outfitPageForValue(DEFAULT_APPEARANCE.outfit))
+    setClothingColorPage(clothingColorPageForValue(DEFAULT_APPEARANCE.clothingColor))
   }
 
   const startOptionSwipe = (event) => {
@@ -236,7 +250,8 @@ function CareerSetupScreen({ profile = null, onBack }) {
       appearanceCategory !== 'facialHair' &&
       appearanceCategory !== 'glasses' &&
       appearanceCategory !== 'accessories' &&
-      appearanceCategory !== 'outfit'
+      appearanceCategory !== 'outfit' &&
+      appearanceCategory !== 'clothingColor'
     ) return
     const touch = event.touches?.[0]
     if (!touch) return
@@ -253,7 +268,8 @@ function CareerSetupScreen({ profile = null, onBack }) {
       appearanceCategory === 'facialHair' ||
       appearanceCategory === 'glasses' ||
       appearanceCategory === 'accessories' ||
-      appearanceCategory === 'outfit'
+      appearanceCategory === 'outfit' ||
+      appearanceCategory === 'clothingColor'
     if (!pagedCategory || !optionSwipeRef.current) return
     const touch = event.changedTouches?.[0]
     const start = optionSwipeRef.current
@@ -281,7 +297,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
                     ? GLASSES_OPTIONS_PER_PAGE
                     : appearanceCategory === 'accessories'
                       ? ACCESSORY_OPTIONS_PER_PAGE
-                      : OUTFIT_OPTIONS_PER_PAGE
+                      : appearanceCategory === 'outfit'
+                        ? OUTFIT_OPTIONS_PER_PAGE
+                        : CLOTHING_COLOR_OPTIONS_PER_PAGE
     const pageCount = Math.ceil(APPEARANCE_OPTIONS[appearanceCategory].length / perPage)
     const setPage =
       appearanceCategory === 'hair'
@@ -300,7 +318,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
                     ? setGlassesPage
                     : appearanceCategory === 'accessories'
                       ? setAccessoryPage
-                      : setOutfitPage
+                      : appearanceCategory === 'outfit'
+                        ? setOutfitPage
+                        : setClothingColorPage
     setPage((current) => (
       dx < 0
         ? Math.min(pageCount - 1, current + 1)
@@ -358,7 +378,8 @@ function CareerSetupScreen({ profile = null, onBack }) {
       appearanceCategory === 'facialHair' ||
       appearanceCategory === 'glasses' ||
       appearanceCategory === 'accessories' ||
-      appearanceCategory === 'outfit'
+      appearanceCategory === 'outfit' ||
+      appearanceCategory === 'clothingColor'
     const optionsPerPage =
       appearanceCategory === 'hair'
         ? HAIR_OPTIONS_PER_PAGE
@@ -376,7 +397,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
                     ? GLASSES_OPTIONS_PER_PAGE
                     : appearanceCategory === 'accessories'
                       ? ACCESSORY_OPTIONS_PER_PAGE
-                      : OUTFIT_OPTIONS_PER_PAGE
+                      : appearanceCategory === 'outfit'
+                        ? OUTFIT_OPTIONS_PER_PAGE
+                        : CLOTHING_COLOR_OPTIONS_PER_PAGE
     const optionPage =
       appearanceCategory === 'hair'
         ? hairPage
@@ -394,7 +417,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
                     ? glassesPage
                     : appearanceCategory === 'accessories'
                       ? accessoryPage
-                      : outfitPage
+                      : appearanceCategory === 'outfit'
+                        ? outfitPage
+                        : clothingColorPage
     const optionPageCount = optionPaging
       ? Math.ceil(activeOptions.length / optionsPerPage)
       : 1
@@ -416,7 +441,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
                     ? setGlassesPage
                     : appearanceCategory === 'accessories'
                       ? setAccessoryPage
-                      : setOutfitPage
+                      : appearanceCategory === 'outfit'
+                        ? setOutfitPage
+                        : setClothingColorPage
     const visibleOptions = optionPaging
       ? activeOptions.slice(
         safeOptionPage * optionsPerPage,
