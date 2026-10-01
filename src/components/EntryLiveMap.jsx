@@ -21,13 +21,6 @@ const NEW_YORK_MARKET_VIEW = {
 function EntryLiveMap({ stage, selectedMarket }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
-  const driftTimerRef = useRef(null)
-  const stageRef = useRef(stage)
-
-  useEffect(() => {
-    stageRef.current = stage
-  }, [stage])
-
   useEffect(() => {
     if (!containerRef.current) return undefined
 
@@ -37,6 +30,11 @@ function EntryLiveMap({ stage, selectedMarket }) {
       center: NEW_YORK_START_VIEW.center,
       zoom: NEW_YORK_START_VIEW.zoom,
       attributionControl: false,
+      pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+      renderWorldCopies: false,
+      fadeDuration: 0,
+      maxTileCacheZoomLevels: 2,
+      validateStyle: false,
       interactive: false,
       pitchWithRotate: false,
       dragRotate: false,
@@ -75,30 +73,15 @@ function EntryLiveMap({ stage, selectedMarket }) {
         attributionButton.appendChild(infoGlyph)
       }
 
-      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-      if (!reducedMotion) {
-        let phase = false
-        const drift = () => {
-          const base = stageRef.current === 'market' ? NEW_YORK_MARKET_VIEW : NEW_YORK_START_VIEW
-          const offset = phase ? [0.028, 0.012] : [-0.022, -0.01]
-          phase = !phase
-          map.easeTo({
-            center: [base.center[0] + offset[0], base.center[1] + offset[1]],
-            zoom: base.zoom + (phase ? 0.04 : 0),
-            duration: 12000,
-            easing: (t) => t * t * (3 - 2 * t),
-          })
-        }
-        drift()
-        driftTimerRef.current = window.setInterval(drift, 12200)
-      }
+      // PERF 1 — keep the entry map visually alive through stage changes only.
+      // The previous 12-second repeating camera drift kept WebGL rendering almost
+      // continuously on mobile even when the player was simply reading the screen.
     })
 
     const resize = () => map.resize()
     window.addEventListener('resize', resize)
 
     return () => {
-      if (driftTimerRef.current) window.clearInterval(driftTimerRef.current)
       window.removeEventListener('resize', resize)
       map.remove()
       mapRef.current = null
