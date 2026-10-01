@@ -9,35 +9,35 @@ export const GLASSES_LAB_OPTIONS = [
   },
   {
     "value": "notionGlasses1",
-    "label": "Notion · 02"
+    "label": "Frames 01"
   },
   {
     "value": "notionGlasses3",
-    "label": "Notion · 04"
+    "label": "Frames 02"
   },
   {
     "value": "notionGlasses5",
-    "label": "Notion · 06"
+    "label": "Frames 03"
   },
   {
     "value": "notionGlasses8",
-    "label": "Notion · 09"
+    "label": "Frames 04"
   },
   {
     "value": "glasseslab-avataaars-kurt",
-    "label": "Ava · Kurt"
+    "label": "Bold Frames"
   },
   {
     "value": "glasseslab-avataaars-prescription01",
-    "label": "Ava · Prescription 01"
+    "label": "Prescription 01"
   },
   {
     "value": "glasseslab-avataaars-prescription02",
-    "label": "Ava · Prescription 02"
+    "label": "Prescription 02"
   },
   {
     "value": "glasseslab-avataaars-round",
-    "label": "Ava · Round"
+    "label": "Round Frames"
   }
 ]
 
