@@ -488,7 +488,8 @@ useEffect(() => {
   // 3B.1 persistence hardening: the old autosave was a true debounce. Because the
   // simulation clock changes continuously while operations are running, every tick
   // cancelled the pending save and a moving driver could go unsaved indefinitely.
-  // Keep the newest snapshot in a ref and allow one trailing save every 700ms instead.
+  // Keep the newest snapshot in a ref and persist routine movement at a battery-friendly
+  // cadence. Lifecycle transitions and iOS background/pagehide still flush immediately.
   useEffect(() => {
     if (!hydrated || !activeSaveSlotId) return
     if (!savePersistenceAuthorityRef.current.canPersistToSlot(activeSaveSlotId)) return
@@ -507,7 +508,7 @@ useEffect(() => {
       if (!snapshot) return
       persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, snapshot.state, snapshot.slotId)
       setSaveSlots(getSaveSlots())
-    }, 700)
+    }, 5000)
   }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression, career])
 
   useEffect(() => () => {
