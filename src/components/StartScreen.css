@@ -184,6 +184,52 @@
   padding: 0 !important;
 }
 
+/* P2.4 title plate calibration.
+   These coordinates belong to the approved 941×1671 cubicle artwork and must
+   live with the title component rather than the gameplay stylesheet. */
+.start-desk-title-p243 .start-monitor-ui-p243 {
+  position: absolute;
+  z-index: 2;
+  top: 31.25%;
+  right: calc(50% - 21.16dvh);
+  left: calc(50% - 20.25dvh);
+  height: 26.25%;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  color: #d7e0e8;
+  text-shadow: none;
+  animation: docos-desk-terminal-reveal .48s .24s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.app:has(.start-desk-title-p243) .start-office-backdrop {
+  background: #080c12;
+  animation: docos-desk-environment-reveal .72s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.app:has(.start-desk-title-p243) .start-office-backdrop-image {
+  object-fit: cover;
+  object-position: 50% 50%;
+  filter: none;
+  transform: none;
+}
+
+.app:has(.start-desk-title-p243) .start-office-backdrop-tone {
+  background:
+    linear-gradient(180deg, rgba(5, 8, 13, .08), transparent 54%, rgba(5, 8, 13, .12)),
+    linear-gradient(90deg, rgba(5, 8, 13, .05), transparent 48%, rgba(5, 8, 13, .03));
+}
+
+@keyframes docos-desk-environment-reveal {
+  0%, 8% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes docos-desk-terminal-reveal {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .start-desk-title-p243 .start-monitor-ui-p243 {
   overflow: hidden;
   box-sizing: border-box;
