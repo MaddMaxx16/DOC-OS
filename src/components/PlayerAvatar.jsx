@@ -130,6 +130,13 @@ export const APPEARANCE_OPTIONS = {
   mouth: MOUTH_LAB_OPTIONS,
   facialHair: FACIAL_HAIR_LAB_OPTIONS,
   glasses: GLASSES_LAB_OPTIONS,
+  glassesColor: [
+    { value: 'black', label: 'Black', color: '#17212b' },
+    { value: 'navy', label: 'Navy', color: '#294b67' },
+    { value: 'gold', label: 'Gold', color: '#b58a3b' },
+    { value: 'silver', label: 'Silver', color: '#8796a3' },
+    { value: 'burgundy', label: 'Burgundy', color: '#6b3443' },
+  ],
   accessories: DOC_OS_ACCESSORY_OPTIONS,
   headwear: HEADWEAR_LAB_OPTIONS,
   outfit: [
@@ -168,6 +175,7 @@ export const DEFAULT_APPEARANCE = {
   mouth: 'lab-avataaars-smile',
   facialHair: 'none',
   glasses: 'none',
+  glassesColor: 'black',
   accessories: 'none',
   accessorySide: 'both',
   headwear: 'none',
@@ -982,7 +990,7 @@ function DocOsAccessoryPair({ variant, side = 'both' }) {
   )
 }
 
-function normalizeGlassesAttributes(attributes = {}) {
+function normalizeGlassesAttributes(attributes = {}, frameColor = EYE_INK) {
   const normalized = {}
 
   Object.entries(attributes).forEach(([key, rawValue]) => {
@@ -997,7 +1005,9 @@ function normalizeGlassesAttributes(attributes = {}) {
       'stroke-linejoin': 'strokeLinejoin',
     }[key] || key
 
-    if (rawValue === '__FRAME_COLOR__' || rawValue === '#000000') {
+    if (rawValue === '__FRAME_COLOR__') {
+      normalized[mappedKey] = frameColor
+    } else if (rawValue === '#000000') {
       normalized[mappedKey] = EYE_INK
     } else if (rawValue === '__LENS_COLOR__') {
       normalized[mappedKey] = '#f6f1e4'
@@ -1009,8 +1019,8 @@ function normalizeGlassesAttributes(attributes = {}) {
   return normalized
 }
 
-function GlassesLabElement({ node, keyPath }) {
-  const attributes = normalizeGlassesAttributes(node.attributes)
+function GlassesLabElement({ node, frameColor, keyPath }) {
+  const attributes = normalizeGlassesAttributes(node.attributes, frameColor)
 
   if (node.name === 'path') return <path key={keyPath} {...attributes} />
   if (node.name === 'circle') return <circle key={keyPath} {...attributes} />
@@ -1033,7 +1043,7 @@ const GLASSES_LAB_TUNING = {
   'avataaars-prescription02': { scale: 1.08 },
 }
 
-function GlassesLabPart({ candidate, clothingColor }) {
+function GlassesLabPart({ candidate, frameColor }) {
   if (!candidate) return null
 
   const candidateKey = `${candidate.style}-${candidate.variant}`
@@ -1067,7 +1077,7 @@ function GlassesLabPart({ candidate, clothingColor }) {
           key={`${candidate.style}-${candidate.variant}-${index}`}
           keyPath={`${candidate.style}-${candidate.variant}-${index}`}
           node={node}
-          clothingColor={clothingColor}
+          frameColor={frameColor}
         />
       ))}
     </svg>
@@ -1386,6 +1396,12 @@ function recolorNotionSvg(svg, kind, color) {
       .replace(/fill="black"/gi, `fill="${color}"`)
       .replace(/stroke="#000000"/gi, `stroke="${color}"`)
       .replace(/stroke="black"/gi, `stroke="${color}"`)
+  } else if (kind === 'glasses') {
+    next = next
+      .replace(/fill="#000000"/gi, `fill="${color}"`)
+      .replace(/fill="black"/gi, `fill="${color}"`)
+      .replace(/stroke="#000000"/gi, `stroke="${color}"`)
+      .replace(/stroke="black"/gi, `stroke="${color}"`)
   } else {
     next = next
       .replace(/fill="#000000"/gi, 'fill="#4b2422"')
@@ -1616,6 +1632,12 @@ function buildToonHeadPortrait(appearance) {
   const mouth = validOption('mouth', appearance.mouth, DEFAULT_APPEARANCE.mouth)
   const facialHair = validOption('facialHair', appearance.facialHair, DEFAULT_APPEARANCE.facialHair)
   const glasses = validOption('glasses', appearance.glasses, DEFAULT_APPEARANCE.glasses)
+  const glassesColorChoice = validOption(
+    'glassesColor',
+    appearance.glassesColor,
+    DEFAULT_APPEARANCE.glassesColor,
+  )
+  const glassesColor = optionColor('glassesColor', glassesColorChoice, '#17212b')
   const accessories = validOption('accessories', appearance.accessories, DEFAULT_APPEARANCE.accessories)
   const accessorySide = ['left', 'both', 'right'].includes(appearance.accessorySide)
     ? appearance.accessorySide
@@ -1695,6 +1717,7 @@ function buildToonHeadPortrait(appearance) {
     mouthLab,
     facialHairLab,
     glassesLab,
+    glassesColor: `#${glassesColor}`,
     docOsAccessory,
     accessorySide,
     headwearLab,
@@ -1716,7 +1739,6 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
     portrait.mouthLab ||
     portrait.facialHairLab ||
     portrait.glassesLab ||
-    portrait.outfitLab ||
     portrait.headwearLab ||
     portrait.docOsAccessory ||
     portrait.notionGlasses ||
@@ -1784,6 +1806,32 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
         </svg>
       )}
 
+      {portrait.outfitLab && (
+        <svg
+          viewBox="0 0 768 768"
+          preserveAspectRatio="xMidYMid slice"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            display: 'block',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        >
+          {/* P2.4.4.3B.16.4 — AVA clothing renders behind the base portrait.
+              Toon Head native clothing is already disabled for outfitLab, so
+              native facial hair stays above the shirt/hoodie instead of being
+              clipped by it. Donor facial hair still renders on the front layer. */}
+          <OutfitLabPart
+            variant={portrait.outfitLab}
+            clothingColor={portrait.clothingColor}
+          />
+        </svg>
+      )}
+
       <img
         src={portrait.src}
         width="260"
@@ -1815,12 +1863,6 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             zIndex: 2,
           }}
         >
-          {portrait.outfitLab && (
-            <OutfitLabPart
-              variant={portrait.outfitLab}
-              clothingColor={portrait.clothingColor}
-            />
-          )}
           {portrait.avataaarsHair && (
             <AvataaarsFrontSeamCleanup
               variant={portrait.avataaarsHair}
@@ -1862,7 +1904,10 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             />
           )}
           {portrait.glassesLab && (
-            <GlassesLabPart candidate={portrait.glassesLab} clothingColor={portrait.clothingColor} />
+            <GlassesLabPart
+              candidate={portrait.glassesLab}
+              frameColor={portrait.glassesColor}
+            />
           )}
           {portrait.notionGlasses && (() => {
             const tuning = NOTION_GLASSES_TUNING[portrait.notionGlasses]
@@ -1872,6 +1917,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
                 index={portrait.notionGlasses}
                 kind="glasses"
                 transform={NOTION_TRANSFORMS.glasses}
+                color={portrait.glassesColor}
               />
             )
 
