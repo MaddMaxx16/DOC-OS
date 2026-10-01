@@ -10,7 +10,6 @@ import {
   GLASSES_LAB_OPTIONS,
 } from '../data/glassesStyleAudition'
 import { DOC_OS_ACCESSORY_OPTIONS } from '../data/accessoryStyleAudition'
-import docLeatherJacket from '../assets/Doc-leather-jacket.PNG'
 import {
   AVATAAARS_OUTFIT_OPTIONS,
   AVATAAARS_OUTFIT_VARIANTS,
@@ -153,7 +152,7 @@ export const APPEARANCE_CATEGORIES = [
   { key: 'glasses', label: 'Glasses' },
   { key: 'accessories', label: 'Accessories' },
   { key: 'outfit', label: 'Outfit' },
-  { key: 'clothingColor', label: 'Clothing Color' },
+  { key: 'clothingColor', label: 'Outfit Color' },
 ]
 
 export const DEFAULT_APPEARANCE = {
@@ -1494,22 +1493,6 @@ function OutfitLabElement({ node, keyPath, clothingColor }) {
   return null
 }
 
-function DocLeatherJacketAsset() {
-  return (
-    <image
-      href={docLeatherJacket}
-      // 14.5 iPhone fit pass: the approved PNG is intentionally oversized so
-      // its illustrated shoulders replace the narrow Toon torso underneath.
-      // Keep the artwork's proportions intact; crop the lower edge in portrait.
-      x="54"
-      y="542"
-      width="660"
-      height="298"
-      preserveAspectRatio="xMidYMid meet"
-    />
-  )
-}
-
 function OutfitLabPart({ variant, clothingColor }) {
   const candidate = AVATAAARS_OUTFIT_VARIANTS[variant]
   if (!candidate) return null
@@ -1743,8 +1726,7 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             zIndex: 2,
           }}
         >
-          {portrait.outfitLab === 'docLeatherJacket' && <DocLeatherJacketAsset />}
-          {portrait.outfitLab && portrait.outfitLab !== 'docLeatherJacket' && (
+          {portrait.outfitLab && (
             <OutfitLabPart
               variant={portrait.outfitLab}
               clothingColor={portrait.clothingColor}
