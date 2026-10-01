@@ -68,10 +68,7 @@ export const AVATAAARS_OUTFIT_VARIANTS = {
         "type": "element",
         "attributes": {
           "d": "M68.78 14.42 69 13.3c-2.96.05-6 1-6 1l-.42.66A72 72 0 0 0 0 86.36v8.94h74s-10.7-51.56-5.24-80.8zM126 95.3s11-53 5-82c2.96.05 6 1 6 1l.42.66A72 72 0 0 1 200 86.36v8.94z",
-          "fill": {
-            "type": "color",
-            "name": "clothes"
-          }
+          "fill": "#18324a"
         }
       },
       {
