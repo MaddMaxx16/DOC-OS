@@ -68,7 +68,10 @@ export const AVATAAARS_OUTFIT_VARIANTS = {
         "type": "element",
         "attributes": {
           "d": "M68.78 14.42 69 13.3c-2.96.05-6 1-6 1l-.42.66A72 72 0 0 0 0 86.36v8.94h74s-10.7-51.56-5.24-80.8zM126 95.3s11-53 5-82c2.96.05 6 1 6 1l.42.66A72 72 0 0 1 200 86.36v8.94z",
-          "fill": "#18324a"
+          "fill": {
+            "type": "color",
+            "name": "clothes"
+          }
         }
       },
       {
@@ -80,6 +83,14 @@ export const AVATAAARS_OUTFIT_VARIANTS = {
           "fill-opacity": ".15",
           "fill-rule": "evenodd",
           "clip-rule": "evenodd"
+        }
+      },
+      {
+        "name": "path",
+        "type": "element",
+        "attributes": {
+          "d": "M76 6.84c-6.77 4.6-11 11.12-11 18.35 0 7.4 4.43 14.06 11.48 18.67l5.94-4.68 4.58.33-1-3.15.08-.06C79.98 33.14 76 28 76 22.18zm48 15.34c0 5.82-3.98 10.97-10.08 14.12l.08.06-1 3.15 4.58-.33 5.94 4.68C130.57 39.24 135 32.59 135 25.19c0-7.23-4.23-13.75-11-18.35z",
+          "fill": "#f2f2f2"
         }
       },
       {
