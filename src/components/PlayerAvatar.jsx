@@ -1498,10 +1498,13 @@ function DocLeatherJacketAsset() {
   return (
     <image
       href={docLeatherJacket}
-      x="118"
-      y="568"
-      width="532"
-      height="240"
+      // 14.5 iPhone fit pass: the approved PNG is intentionally oversized so
+      // its illustrated shoulders replace the narrow Toon torso underneath.
+      // Keep the artwork's proportions intact; crop the lower edge in portrait.
+      x="54"
+      y="542"
+      width="660"
+      height="298"
       preserveAspectRatio="xMidYMid meet"
     />
   )
