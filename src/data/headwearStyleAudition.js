@@ -341,78 +341,6 @@ export const HEADWEAR_LAB_VARIANTS = {
       "headwear:headband"
     ]
   },
-  "personas-cap": {
-    "elements": [
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M22.5 14.5c3.88 0 7.55-.37 11 4.22l-1.9 6.5c-.61 1.22-1.64 1.55-2.46.79Q26 23.14 22.5 23.14T15.86 26c-.82.76-1.85.43-2.46-.8l-1.9-6.49c3.45-4.6 7.12-4.22 11-4.22",
-          "fill": "#000000",
-          "opacity": ".2"
-        }
-      },
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M19.8 8.7a3 3 0 0 1 5.4 0c6.1.96 10.82 5.24 11.3 12.72a28 28 0 0 0-3.96-1.3l-.94.6a2 2 0 0 1-2.46.46 13.9 13.9 0 0 0-13.28 0 2 2 0 0 1-2.46-.46l-.94-.6q-2.1.52-3.96 1.3c.48-7.48 5.2-11.76 11.3-12.71",
-          "fill": "#f29c65"
-        }
-      },
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M3.96 11.62q-2.1.52-3.96 1.3C.55 4.37 6.63 0 14 0s13.45 4.37 14 12.92a28 28 0 0 0-3.96-1.3L25 11q-5.18-4-11-4T3 11z",
-          "fill": "#000000",
-          "transform": "translate(8.5 8.5)",
-          "opacity": ".28",
-          "style": "mix-blend-mode:overlay"
-        }
-      },
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "m18.9 2.5-.35.22a2 2 0 0 1-2.47.46 13.9 13.9 0 0 0-13.27 0 2 2 0 0 1-2.44-.46L0 2.49c.87.07 2.18-.47 2.81-.81a13.9 13.9 0 0 1 13.27 0c.63.34 1.95.88 2.82.81",
-          "fill": "#ffffff",
-          "transform": "translate(13.05 18)",
-          "opacity": ".2",
-          "style": "mix-blend-mode:lighten"
-        }
-      }
-    ],
-    "tags": [
-      "headwear:cap"
-    ]
-  },
-  "personas-beanie": {
-    "elements": [
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M9.5 17.3a14 14 0 0 1 26 0l.24.2a1 1 0 0 1 .34.54l.62 2.64a.5.5 0 0 1-.77.52q-6.66-4.7-13.43-4.7T9.08 21.2a.5.5 0 0 1-.77-.52l.61-2.64a1 1 0 0 1 .34-.55z",
-          "fill": "#e15c66"
-        }
-      },
-      {
-        "name": "path",
-        "type": "element",
-        "attributes": {
-          "d": "M14.2 0c6.46 0 12.02 4.04 13.25 5q.26.21.33.53l.62 2.6c.1.46-.43.83-.82.57C25.26 7.18 19.78 4 14.2 4S3.17 7.18.86 8.7c-.4.26-.93-.1-.83-.56l.6-2.6Q.72 5.2.97 5c1.23-.96 6.79-5 13.24-5",
-          "fill": "#000000",
-          "transform": "translate(8.3 12.5)",
-          "opacity": ".26",
-          "style": "mix-blend-mode:overlay"
-        }
-      }
-    ],
-    "tags": [
-      "headwear:beanie"
-    ]
-  },
   "notionists-hat": {
     "elements": [
       {
@@ -489,8 +417,6 @@ export const HEADWEAR_LAB_OPTIONS = [
   { value: 'headwearlab-winterHat02', label: 'Winter Hat 02' },
   { value: 'headwearlab-winterHat03', label: 'Winter Hat 03' },
   { value: 'headwearlab-winterHat04', label: 'Winter Hat 04' },
-  { value: 'headwearlab-personas-cap', label: 'Personas · Cap' },
   { value: 'headwearlab-notionists-hat', label: 'Notionists · Hat' },
   { value: 'headwearlab-open-peeps-hatHip', label: 'Open Peeps · Hip Hat' },
-  { value: 'headwearlab-personas-beanie', label: 'Personas · Beanie' },
 ]
