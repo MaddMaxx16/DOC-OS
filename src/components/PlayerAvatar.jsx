@@ -1621,6 +1621,14 @@ function buildToonHeadPortrait(appearance) {
     ? appearance.accessorySide
     : DEFAULT_APPEARANCE.accessorySide
   const headwear = validOption('headwear', appearance.headwear, DEFAULT_APPEARANCE.headwear)
+  const headwearLab = headwear.startsWith('headwearlab-')
+    ? headwear.slice('headwearlab-'.length)
+    : null
+  // P2.4.4.3B.16.3 — Full headwear owns the scalp silhouette.
+  // Keep the player's selected hair in appearance state, but suppress both
+  // native Toon Head hair and AVA overlay hair while a full hat/scarf/turban
+  // is equipped. Headbands intentionally keep the hairstyle visible.
+  const suppressScalpHair = Boolean(headwearLab && headwearLab !== 'headband')
   const outfit = validOption('outfit', appearance.outfit, DEFAULT_APPEARANCE.outfit)
   const clothingColorChoice = validOption(
     'clothingColor',
@@ -1666,20 +1674,20 @@ function buildToonHeadPortrait(appearance) {
     beardProbability: hasNativeFacialHair ? '100' : '0',
     eyebrowsProbability: notionBrows ? '0' : '100',
     eyesProbability: notionEyes || docOsEyes ? '0' : '100',
-    hairProbability: hair.avataaars ? '0' : (hair.front ? '100' : '0'),
-    rearHairProbability: hair.avataaars ? '0' : (hair.rear ? '100' : '0'),
+    hairProbability: suppressScalpHair ? '0' : (hair.avataaars ? '0' : (hair.front ? '100' : '0')),
+    rearHairProbability: suppressScalpHair ? '0' : (hair.avataaars ? '0' : (hair.rear ? '100' : '0')),
   })
 
   if (!notionBrows) params.set('eyebrowsVariant', brows)
   if (!notionEyes && !docOsEyes) params.set('eyesVariant', eyes)
-  if (!hair.avataaars && hair.front) params.set('hairVariant', hair.front)
-  if (!hair.avataaars && hair.rear) params.set('rearHairVariant', hair.rear)
+  if (!suppressScalpHair && !hair.avataaars && hair.front) params.set('hairVariant', hair.front)
+  if (!suppressScalpHair && !hair.avataaars && hair.rear) params.set('rearHairVariant', hair.rear)
   if (hasNativeFacialHair) params.set('beardVariant', facialHair)
 
   return {
     src: `${DICEBEAR_TOON_HEAD}?${params.toString()}`,
     skinTone,
-    avataaarsHair: hair.avataaars || null,
+    avataaarsHair: suppressScalpHair ? null : (hair.avataaars || null),
     notionBrows,
     notionEyes,
     docOsEyes,
@@ -1689,7 +1697,7 @@ function buildToonHeadPortrait(appearance) {
     glassesLab,
     docOsAccessory,
     accessorySide,
-    headwearLab: headwear.startsWith('headwearlab-') ? headwear.slice('headwearlab-'.length) : null,
+    headwearLab,
     outfitLab,
     clothingColor: `#${clothingColor}`,
     notionGlasses: glassesLab ? null : NOTION_GLASSES[glasses] || null,
