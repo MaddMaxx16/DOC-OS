@@ -268,64 +268,7 @@ export const AVATAAARS_OUTFIT_VARIANTS = {
     ]
   }
 ,
-  "docLeatherJacket": {
-    "elements": [
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V88C1 58 18 35 50 22L73 14h54l23 8c32 13 49 36 50 66v7.31z","fill":{"type":"color","name":"clothes"},"stroke":"#111820","stroke-width":"2.7","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M73 14 100 40 78 95.31H60L50 22zM127 14 100 40l22 55.31h18l10-73.31z","fill":"#000000","fill-opacity":".13"}},
-      {"name":"path","type":"element","attributes":{"d":"M73 14 100 40 75 58 48 27 61 20z","fill":{"type":"color","name":"clothes"},"stroke":"#111820","stroke-width":"2.7","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M127 14 100 40l30 20 24-33-15-7z","fill":{"type":"color","name":"clothes"},"stroke":"#111820","stroke-width":"2.7","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M100 40 82 95.31h36z","fill":"#f1efea","stroke":"#d9d7d2","stroke-width":"1.2","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M100 40 75 58 64 45M100 40l30 20 12-17","fill":"none","stroke":"#111820","stroke-width":"2.4","stroke-linecap":"round","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M130 60 116 95.31","fill":"none","stroke":"#d5d9dc","stroke-width":"3.2","stroke-linecap":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M129 61 116 95.31","fill":"none","stroke":"#777f85","stroke-width":"1","stroke-dasharray":"2 2"}},
-      {"name":"path","type":"element","attributes":{"d":"M121 42 159 34","fill":"none","stroke":"#d5d9dc","stroke-width":"3","stroke-linecap":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M122 42 158 34","fill":"none","stroke":"#777f85","stroke-width":"1","stroke-dasharray":"2 2"}},
-      {"name":"path","type":"element","attributes":{"d":"M29 57 62 50M35 76l28-7M143 71l27 6","fill":"none","stroke":"#d5d9dc","stroke-width":"2.8","stroke-linecap":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M29 57 62 50M35 76l28-7M143 71l27 6","fill":"none","stroke":"#777f85","stroke-width":".9","stroke-dasharray":"2 2"}},
-      {"name":"path","type":"element","attributes":{"d":"M18 91h61M121 91h61","fill":"none","stroke":"#0d1319","stroke-width":"3"}},
-      {"name":"path","type":"element","attributes":{"d":"M10 48c8-13 21-21 40-26M190 48c-8-13-21-21-40-26","fill":"none","stroke":"#ffffff","stroke-opacity":".12","stroke-width":"2","stroke-linecap":"round"}},
-      {"name":"circle","type":"element","attributes":{"cx":"60","cy":"27","r":"2.8","fill":"#d7dadd","stroke":"#111820","stroke-width":"1"}},
-      {"name":"circle","type":"element","attributes":{"cx":"140","cy":"27","r":"2.8","fill":"#d7dadd","stroke":"#111820","stroke-width":"1"}},
-      {"name":"circle","type":"element","attributes":{"cx":"73","cy":"59","r":"2.4","fill":"#d7dadd","stroke":"#111820","stroke-width":"1"}},
-      {"name":"circle","type":"element","attributes":{"cx":"137","cy":"61","r":"2.4","fill":"#d7dadd","stroke":"#111820","stroke-width":"1"}},
-      {"name":"path","type":"element","attributes":{"d":"M153 64h22l-4 18h-25z","fill":"#000000","fill-opacity":".12","stroke":"#111820","stroke-width":"1.8","stroke-linejoin":"round"}},
-      {"name":"circle","type":"element","attributes":{"cx":"160","cy":"71","r":"2","fill":"#d7dadd"}}
-    ]
-  },
-  "docLumberjack": {
-    "elements": [
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V87C2 50 26 27 65 17L82 30h36l17-13c39 10 63 33 65 70v8.31z","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2.6","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M65 17 82 30 100 43 118 30l17-13 11 11-27 22H81L54 28z","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2.6","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M100 43v52.31M17 43h166M10 62h180M6 81h188M35 25v70.31M57 19v76.31M79 31v64.31M121 31v64.31M143 19v76.31M165 25v70.31","fill":"none","stroke":"#202a33","stroke-opacity":".7","stroke-width":"2"}},
-      {"name":"path","type":"element","attributes":{"d":"M17 52h166M46 20v75.31M154 20v75.31","fill":"none","stroke":"#e6c58c","stroke-opacity":".8","stroke-width":"2"}},
-      {"name":"path","type":"element","attributes":{"d":"M29 49h37v22H29l5-6h27M134 49h37v22h-37l5-6h27","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2","stroke-linejoin":"round"}},
-      {"name":"circle","type":"element","attributes":{"cx":"100","cy":"55","r":"2","fill":"#e7d4b0"}},
-      {"name":"circle","type":"element","attributes":{"cx":"100","cy":"70","r":"2","fill":"#e7d4b0"}},
-      {"name":"circle","type":"element","attributes":{"cx":"100","cy":"85","r":"2","fill":"#e7d4b0"}}
-    ]
-  },
-  "docWorkJacket": {
-    "elements": [
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V88C2 52 24 29 61 18L79 30h42l18-12c37 11 59 34 61 70v7.31z","fill":"#ece9e2"}},
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V88C2 52 24 29 61 18L82 36 75 95.31zM200 95.31V88c-2-36-24-59-61-70l-21 18 7 59.31z","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2.7","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M61 18 82 36 72 50 52 29zM139 18l-21 18 10 14 20-21z","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2.7","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M75 95.31 82 36M125 95.31l-7-59.31M16 43h62M122 43h62M17 83h58M125 83h58","fill":"none","stroke":"#d9e0e4","stroke-opacity":".7","stroke-width":"2"}},
-      {"name":"path","type":"element","attributes":{"d":"M27 49h40v25H27v-19h40M133 49h40v25h-40v-19h40","fill":"#000000","fill-opacity":".07","stroke":"#d9e0e4","stroke-opacity":".9","stroke-width":"2.1","stroke-linejoin":"round"}},
-      {"name":"circle","type":"element","attributes":{"cx":"47","cy":"61","r":"2.1","fill":"#d9c49c"}},
-      {"name":"circle","type":"element","attributes":{"cx":"153","cy":"61","r":"2.1","fill":"#d9c49c"}},
-      {"name":"path","type":"element","attributes":{"d":"M82 36h36","fill":"none","stroke":"#202a33","stroke-width":"2"}}
-    ]
-  },
-  "docBomber": {
-    "elements": [
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V84C1 48 25 26 65 17l15 14h40l15-14c40 9 64 31 65 67v11.31z","fill":"#ece9e2"}},
-      {"name":"path","type":"element","attributes":{"d":"M0 95.31V84C1 48 25 26 65 17l20 22-8 47H20L14 95.31zm200 0L186 84h-63l-8-45 20-22c40 9 64 31 65 67z","fill":{"type":"color","name":"clothes"},"stroke":"#202a33","stroke-width":"2.8","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M65 17c4 14 11 22 20 22h30c9 0 16-8 20-22l-10-2c-3 10-7 15-13 15H88c-6 0-10-5-13-15z","fill":"#000000","fill-opacity":".2","stroke":"#202a33","stroke-width":"2.5","stroke-linejoin":"round"}},
-      {"name":"path","type":"element","attributes":{"d":"M20 84h57M123 84h63M18 88h59M123 88h61","fill":"none","stroke":"#202a33","stroke-width":"3.5"}},
-      {"name":"path","type":"element","attributes":{"d":"M77 86 85 39M123 86l-8-47M100 39v56.31","fill":"none","stroke":"#b8bec2","stroke-width":"2.2"}},
-      {"name":"path","type":"element","attributes":{"d":"M36 58h31l8 11H43zm128 0h-31l-8 11h32z","fill":"#000000","fill-opacity":".12","stroke":"#202a33","stroke-width":"2","stroke-linejoin":"round"}}
-    ]
-  }
+
 }
 
 export const AVATAAARS_OUTFIT_OPTIONS = [
@@ -336,8 +279,4 @@ export const AVATAAARS_OUTFIT_OPTIONS = [
   { value: 'outfitlab-avataaars-shirtCrewNeck', label: 'Ava · Crew Neck' },
   { value: 'outfitlab-avataaars-shirtScoopNeck', label: 'Ava · Scoop Neck' },
   { value: 'outfitlab-avataaars-shirtVNeck', label: 'Ava · V-Neck' },
-  { value: 'outfitlab-avataaars-docLeatherJacket', label: 'DOC · Leather Jacket' },
-  { value: 'outfitlab-avataaars-docLumberjack', label: 'DOC · Lumberjack Jacket' },
-  { value: 'outfitlab-avataaars-docWorkJacket', label: 'DOC · Work Jacket' },
-  { value: 'outfitlab-avataaars-docBomber', label: 'DOC · Bomber Jacket' },
 ]
