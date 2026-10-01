@@ -476,6 +476,41 @@ export const HEADWEAR_LAB_VARIANTS = {
     "tags": [
       "headwear:hat"
     ]
+  },
+  "doc-cowboy": {
+    "elements": [
+      {"name":"path","type":"element","attributes":{"d":"M52 77 C68 69 82 65 91 64 C95 38 110 23 132 23 C154 23 169 38 173 64 C184 65 199 69 216 77 C205 89 184 94 161 92 C150 91 142 88 132 88 C122 88 114 91 103 92 C80 94 61 89 52 77 Z","fill":{"type":"color","name":"hat"}}},
+      {"name":"path","type":"element","attributes":{"d":"M91 64 C105 69 119 71 132 71 C145 71 159 69 173 64 L171 75 C157 80 146 82 132 82 C118 82 107 80 93 75 Z","fill":"#000000","fill-opacity":".22"}},
+      {"name":"path","type":"element","attributes":{"d":"M104 45 C113 38 122 35 132 35 C142 35 151 38 160 45","fill":"none","stroke":"#ffffff","stroke-width":"3","stroke-linecap":"round","opacity":".22"}}
+    ],
+    "tags":["headwear:cowboy"]
+  },
+  "doc-trucker": {
+    "elements": [
+      {"name":"path","type":"element","attributes":{"d":"M79 79 C81 48 100 31 132 31 C164 31 183 48 185 79 C168 74 150 71 132 71 C114 71 96 74 79 79 Z","fill":{"type":"color","name":"hat"}}},
+      {"name":"path","type":"element","attributes":{"d":"M132 31 C159 32 178 47 184 70 C166 66 150 64 132 64 Z","fill":"#000000","fill-opacity":".16"}},
+      {"name":"path","type":"element","attributes":{"d":"M77 78 C101 70 126 69 149 73 C165 76 179 81 188 87 C170 89 155 88 141 84 C119 79 99 80 77 86 Z","fill":{"type":"color","name":"hat"}}},
+      {"name":"path","type":"element","attributes":{"d":"M92 48 L105 43 M91 57 L108 49 M172 48 L159 43 M173 57 L156 49","fill":"none","stroke":"#ffffff","stroke-width":"2.5","stroke-linecap":"round","opacity":".28"}}
+    ],
+    "tags":["headwear:trucker"]
+  },
+  "doc-snapback": {
+    "elements": [
+      {"name":"path","type":"element","attributes":{"d":"M82 76 C85 48 104 34 132 34 C160 34 179 48 182 76 C165 71 149 69 132 69 C115 69 99 71 82 76 Z","fill":{"type":"color","name":"hat"}}},
+      {"name":"path","type":"element","attributes":{"d":"M132 34 L132 69 M93 49 C104 43 117 40 132 40","fill":"none","stroke":"#000000","stroke-width":"2.5","stroke-linecap":"round","opacity":".18"}},
+      {"name":"path","type":"element","attributes":{"d":"M80 75 C105 69 129 70 151 75 L205 89 C184 93 163 92 143 86 C121 80 101 81 80 85 Z","fill":{"type":"color","name":"hat"}}},
+      {"name":"path","type":"element","attributes":{"d":"M151 75 L205 89 C183 89 164 86 146 82","fill":"#000000","fill-opacity":".18"}}
+    ],
+    "tags":["headwear:snapback"]
+  },
+  "doc-curved-cap": {
+    "elements": [
+      {"name":"path","type":"element","attributes":{"d":"M84 76 C88 51 105 38 132 38 C159 38 176 51 180 76 C164 72 148 70 132 70 C116 70 100 72 84 76 Z","fill":{"type":"color","name":"hat"}}},
+      {"name":"path","type":"element","attributes":{"d":"M132 38 L132 70","fill":"none","stroke":"#000000","stroke-width":"2","opacity":".16"}},
+      {"name":"path","type":"element","attributes":{"d":"M82 76 C104 70 126 70 146 75 C164 79 176 85 183 91 C167 91 153 88 140 84 C120 78 101 79 82 85 Z","fill":{"type":"color","name":"hat"}}},
+      {"name":"path","type":"element","attributes":{"d":"M91 72 C103 67 116 65 132 65 C148 65 161 67 173 72","fill":"none","stroke":"#ffffff","stroke-width":"2.5","stroke-linecap":"round","opacity":".2"}}
+    ],
+    "tags":["headwear:cap"]
   }
 }
 
@@ -493,4 +528,8 @@ export const HEADWEAR_LAB_OPTIONS = [
   { value: 'headwearlab-notionists-hat', label: 'Notionists · Hat' },
   { value: 'headwearlab-open-peeps-hatHip', label: 'Open Peeps · Hip Hat' },
   { value: 'headwearlab-personas-beanie', label: 'Personas · Beanie' },
+  { value: 'headwearlab-doc-cowboy', label: 'DOC · Cowboy' },
+  { value: 'headwearlab-doc-trucker', label: 'DOC · Trucker Cap' },
+  { value: 'headwearlab-doc-snapback', label: 'DOC · Snapback' },
+  { value: 'headwearlab-doc-curved-cap', label: 'DOC · Curved Cap' },
 ]
