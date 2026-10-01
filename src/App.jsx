@@ -1811,18 +1811,24 @@ Open CarrierSource to review your full account history.`
           />
         )}
         {stage === 'careerSetup' && (
-          <CareerSetupScreen
-            profile={dispatcherProfile}
-            onBack={() => runMajorTransition('back', () => {
-              setResumeStage('careerSetup')
-              setStage('start')
-            })}
-            onContinue={(profile) => runMajorTransition('forward', () => {
-              setDispatcherProfile(profile)
-              setResumeStage('market')
-              setStage('market')
-            })}
-          />
+          <div
+            data-performance-diagnostic="blank-career-stage"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 99999,
+              display: 'grid',
+              placeItems: 'center',
+              background: '#05080b',
+              color: '#66717b',
+              fontSize: '11px',
+              fontWeight: 800,
+              letterSpacing: '.12em',
+              textAlign: 'center',
+            }}
+          >
+            STATIC PERFORMANCE TEST
+          </div>
         )}
         {stage === 'market' && (
           <MarketSelectionScreen
