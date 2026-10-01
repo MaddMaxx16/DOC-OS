@@ -264,6 +264,7 @@ function CareerSetupScreen({ profile = null, onBack }) {
       appearanceCategory !== 'facialHair' &&
       appearanceCategory !== 'glasses' &&
       appearanceCategory !== 'accessories' &&
+      appearanceCategory !== 'headwear' &&
       appearanceCategory !== 'outfit' &&
       appearanceCategory !== 'clothingColor'
     ) return
