@@ -1807,7 +1807,6 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
             zIndex: 2,
           }}
         >
-          {portrait.headwearLab && <HeadwearLabPart variant={portrait.headwearLab} />}
           {portrait.outfitLab && (
             <OutfitLabPart
               variant={portrait.outfitLab}
@@ -1895,6 +1894,11 @@ function PlayerAvatar({ appearance = DEFAULT_APPEARANCE, className = '' }) {
               transform={NOTION_TRANSFORMS.accessories}
             />
           )}
+          {/* P2.4.4.3B.16.2 — Headwear is the final wearable layer.
+              This keeps front hair and earrings from painting over hats,
+              while cutout-based pieces such as the headscarf wrap around
+              the already-rendered face instead of disappearing behind it. */}
+          {portrait.headwearLab && <HeadwearLabPart variant={portrait.headwearLab} />}
         </svg>
       )}
     </div>
