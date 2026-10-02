@@ -108,6 +108,59 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
     return true
   }
 
+  const openLoadApprovalReview = (loadId, driverId) => {
+    const load = loads.find((item) => item.id === loadId)
+    const driver = drivers.find((item) => item.id === (driverId || load?.candidateDriverId))
+    const carrier = carriers.find((item) => item.id === driver?.carrierId) || carriers[0]
+    if (!load || !driver || !load.driverFitVerified) return false
+
+    setLoads((current) => current.map((item) => item.id === loadId
+      ? { ...item, scheduleApprovalQueued: true, carrierApprovalStatus: item.carrierApprovalStatus === 'NEEDS_INFO' ? null : item.carrierApprovalStatus }
+      : item))
+
+    openComposer({
+      workflowType: 'carrier-approval',
+      label: 'LOAD APPROVAL',
+      batchDriverId: driver.id,
+      suggestedRecipientId: `${carrier?.id || 'metroline'}-operations`,
+      subject: `Approval request · ${load ? getFreightRouteName(load) : 'FreightLink lane'}`,
+      body: `Please review the attached FreightLink offer for ${driver.fullName || driver.name}. Confirm whether we are approved to pursue this lane.`,
+      attachmentIds: [`load-offer:${loadId}`],
+      returnScreen: 'loadDetails',
+    })
+    return true
+  }
+
+  const requestLoadBooking = (loadId) => {
+    const load = loads.find((item) => item.id === loadId)
+    const driver = drivers.find((item) => item.id === load?.candidateDriverId)
+    const carrier = carriers.find((item) => item.id === (driver?.carrierId || load?.carrierId)) || carriers[0]
+    if (!load || load.status !== 'available' || !load.driverFitVerified || !driver) return false
+    if (carrier?.dispatchAgreement?.loadApprovalRequired && load.carrierApprovalStatus !== 'APPROVED') return false
+    if (load.bookingStatus || load.rateConfirmation?.id) return false
+
+    setLoads((current) => current.map((item) => item.id === loadId ? {
+      ...item,
+      bookingStatus: 'REQUESTED',
+      bookingRequestedGameMinute: nowGameMinute,
+      bookingResponseGameMinute: nowGameMinute,
+    } : item))
+    return true
+  }
+
+  const openRateConfirmation = (loadId) => {
+    const load = loads.find((item) => item.id === loadId)
+    if (!load?.rateConfirmation?.id) return false
+    setPreviewAttachment({
+      id: load.rateConfirmation.id,
+      type: 'rate-confirmation',
+      title: `Rate Confirmation · ${getFreightRouteName(load)}`,
+      meta: load.rateConfirmation.reference,
+      loadId,
+    })
+    return true
+  }
+
   const openAttachment = (item) => {
     if (!item) return
     if (item.type === 'pod' && item.loadId) { setDocumentReturnScreen(screen); setSelectedLoadId(item.loadId); setScreen('podDetail'); return }
@@ -430,7 +483,38 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           showSiteBranding={false}
         >
           {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => { setSelectedLoadId(loadId); setScreen('loadDetails') }} onOpenScheduler={() => { setSelectedLoadId(null); setSelectedDriverId((current) => current || drivers.find((driver) => driver.carrierId)?.id || null); setScreen('scheduler') }} />}
-          {screen === 'loadDetails' && <LoadDetailsScreen loads={loads} drivers={drivers} carriers={carriers} loadId={selectedLoadId} planningDriverId={selectedDriverId} runtimePositions={runtimePositions} gameTime={gameTime} onAddToSchedule={(loadId, driverId) => onAddToSchedule?.(loadId, driverId)} onOpenScheduler={async (loadId) => { const target = loads.find((item) => item.id === loadId); if (target?.status === 'available' && !target.scheduleApprovalQueued) { const ok = target.candidateDriverId ? true : await onAddToSchedule?.(loadId); if (ok === false) return; setLoads((current) => current.map((item) => item.id === loadId ? { ...item, scheduleApprovalQueued: true } : item)); } setSelectedLoadId(loadId); setSelectedDriverId(target?.candidateDriverId || target?.assignedDriverId || selectedDriverId || drivers.find((driver) => driver.carrierId)?.id || null); setScreen('scheduler') }} onSendLoadDetails={(loadId, driverId) => { const targetLoad = loads.find((item) => item.id === loadId); if (!Number.isFinite(targetLoad?.pickupDriverBriefedGameMinute)) onSendDriverLoadUpdate?.(loadId, driverId); setSelectedLoadId(loadId); setSelectedDriverId(driverId); setMessageLoadContextId(loadId); setScreen('messageThread') }} onBack={() => setScreen('loadBoard')} />}
+          {screen === 'loadDetails' && <LoadDetailsScreen
+            loads={loads}
+            drivers={drivers}
+            carriers={carriers}
+            loadId={selectedLoadId}
+            planningDriverId={selectedDriverId}
+            runtimePositions={runtimePositions}
+            gameTime={gameTime}
+            onEvaluateLoad={async (loadId, driverId) => {
+              const ok = await onAddToSchedule?.(loadId, driverId)
+              if (ok !== false) setSelectedDriverId(driverId)
+              return ok
+            }}
+            onRequestApproval={(loadId, driverId) => openLoadApprovalReview(loadId, driverId)}
+            onRequestBooking={(loadId) => requestLoadBooking(loadId)}
+            onOpenRateConfirmation={(loadId) => openRateConfirmation(loadId)}
+            onOpenScheduler={(loadId) => {
+              const target = loads.find((item) => item.id === loadId)
+              setSelectedLoadId(loadId)
+              setSelectedDriverId(target?.candidateDriverId || target?.assignedDriverId || selectedDriverId || drivers.find((driver) => driver.carrierId)?.id || null)
+              setScreen('scheduler')
+            }}
+            onSendLoadDetails={(loadId, driverId) => {
+              const targetLoad = loads.find((item) => item.id === loadId)
+              if (!Number.isFinite(targetLoad?.pickupDriverBriefedGameMinute)) onSendDriverLoadUpdate?.(loadId, driverId)
+              setSelectedLoadId(loadId)
+              setSelectedDriverId(driverId)
+              setMessageLoadContextId(loadId)
+              setScreen('messageThread')
+            }}
+            onBack={() => setScreen('loadBoard')}
+          />}
           {screen === 'scheduler' && <FleetSchedulerScreen loads={loads} drivers={drivers} carriers={carriers} gameTime={gameTime} focusLoadId={selectedLoadId} initialDriverId={selectedDriverId} onBackToFreightLink={() => setScreen('loadBoard')} onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)} onBookRoute={(loadId) => onAcceptCandidateAssignment?.(loadId)} onBookApprovedSchedule={(driverId) => onBookApprovedSchedule?.(driverId)} onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)} onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)} onUpdateDriverWorkday={updateDriverWorkday} onOpenLunchDecision={onOpenLunchDecision} onDriverContextChange={setSelectedDriverId} />}
           {screen === 'driverFit' && <DriverFitScreen load={loads.find((load) => load.id === selectedLoadId)} loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} candidateDriverId={loads.find((load) => load.id === selectedLoadId)?.candidateDriverId} onEvaluate={(driverId, fit) => {
             onEvaluateFit(selectedLoadId, driverId, fit)
@@ -441,7 +525,18 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
         </BrowserScreen>
       ) : null}
         </div>
-        {previewAttachment && <OperationalDocumentViewer attachment={previewAttachment} loads={loads} workflows={ledgerWorkflowByLoadId} businessDocuments={businessDocuments} onClose={() => setPreviewAttachment(null)} onRateConCheck={(loadId, key, value) => setLoads((current) => current.map((load) => load.id === loadId && load.rateConfirmation ? { ...load, rateConfirmation: { ...load.rateConfirmation, reviewChecks: { ...(load.rateConfirmation.reviewChecks || {}), [key]: value }, reviewStatus: 'IN_REVIEW' } } : load))} onConfirmRateCon={(loadId) => setLoads((current) => current.map((load) => load.id === loadId && load.rateConfirmation ? { ...load, rateConfirmation: { ...load.rateConfirmation, status: 'CONFIRMED', reviewStatus: 'CONFIRMED', confirmedGameMinute: nowGameMinute } } : load))} onRequestRateConCorrection={(loadId) => { const load = loads.find((item) => item.id === loadId); const carrier = carriers.find((item) => item.id === load?.carrierId) || carriers[0]; setPreviewAttachment(null); openComposer({ workflowType: 'ratecon-correction', label: 'RATE CONFIRMATION CORRECTION', loadId, loadNumber: load ? getFreightRouteName(load) : 'Route', suggestedRecipientId: `${carrier?.id || 'metroline'}-documents`, subject: `Rate Confirmation correction required · ${load ? getFreightRouteName(load) : 'Route'}`, body: `Please review the attached FreightLink offer and Rate Confirmation. The Rate Confirmation contains a discrepancy and a corrected copy is required.`, attachmentIds: [`load-offer:${loadId}`, load?.rateConfirmation?.id].filter(Boolean), returnScreen: 'documents' }) }} />}
+        {previewAttachment && <OperationalDocumentViewer attachment={previewAttachment} loads={loads} workflows={ledgerWorkflowByLoadId} businessDocuments={businessDocuments} onClose={() => setPreviewAttachment(null)} onRateConCheck={(loadId, key, value) => setLoads((current) => current.map((load) => load.id === loadId && load.rateConfirmation ? { ...load, rateConfirmation: { ...load.rateConfirmation, reviewChecks: { ...(load.rateConfirmation.reviewChecks || {}), [key]: value }, reviewStatus: 'IN_REVIEW' } } : load))} onConfirmRateCon={(loadId) => {
+          const target = loads.find((item) => item.id === loadId)
+          if (!target?.rateConfirmation) return false
+          setLoads((current) => current.map((load) => load.id === loadId && load.rateConfirmation ? {
+            ...load,
+            bookingStatus: 'CONFIRMED',
+            bookingConfirmedGameMinute: nowGameMinute,
+            rateConfirmation: { ...load.rateConfirmation, status: 'CONFIRMED', reviewStatus: 'CONFIRMED', confirmedGameMinute: nowGameMinute },
+          } : load))
+          onAcceptCandidateAssignment?.(loadId)
+          return true
+        } onRequestRateConCorrection={(loadId) => { const load = loads.find((item) => item.id === loadId); const carrier = carriers.find((item) => item.id === load?.carrierId) || carriers[0]; setPreviewAttachment(null); openComposer({ workflowType: 'ratecon-correction', label: 'RATE CONFIRMATION CORRECTION', loadId, loadNumber: load ? getFreightRouteName(load) : 'Route', suggestedRecipientId: `${carrier?.id || 'metroline'}-documents`, subject: `Rate Confirmation correction required · ${load ? getFreightRouteName(load) : 'Route'}`, body: `Please review the attached FreightLink offer and Rate Confirmation. The Rate Confirmation contains a discrepancy and a corrected copy is required.`, attachmentIds: [`load-offer:${loadId}`, load?.rateConfirmation?.id].filter(Boolean), returnScreen: 'documents' }) }} />}
         <div className="phone-navigation-bar">
           <button type="button" className="phone-home-button" onClick={() => setScreen('home')} aria-label="Phone home">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 10.5 12 4l7.5 6.5v8.75H14v-5.5h-4v5.5H4.5V10.5Z"/></svg>
