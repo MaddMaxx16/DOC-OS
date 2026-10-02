@@ -1,4 +1,4 @@
-import { needsRateConfirmationBeforeDeparture, getRateConfirmationHoldReason } from '../utils/rateConfirmation.js'
+import { needsRateConfirmationBeforeDeparture, isRateConfirmationConfirmed, getRateConfirmationHoldReason } from '../utils/rateConfirmation.js'
 import { useEffect, useMemo, useState } from 'react'
 import mapLocations from '../data/mapLocations.js'
 import { formatAppointment, formatCompactDate, formatTime, getCalendarDate } from '../utils/gameTime.js'
@@ -504,7 +504,7 @@ function FleetSchedulerScreen({
               const statusLabel = booked
                 ? (needsRateConfirmationBeforeDeparture(load) ? 'RATE CON REQUIRED' : 'BOOKED')
                 : approval === 'APPROVED'
-                  ? 'APPROVED TO BOOK'
+                  ? (isRateConfirmationConfirmed(load) ? 'READY TO BOOK' : 'REVIEW RATE CON')
                   : approvalPending
                     ? 'AWAITING APPROVAL'
                     : approvalQueued
@@ -539,8 +539,8 @@ function FleetSchedulerScreen({
                     <span>{String(load.tripStatus || load.status || 'planned').replace(/[-_]+/g, ' ').toUpperCase()}</span>
                   </div>
 
-                  {needsRateConfirmationBeforeDeparture(load) && <section className="ratecon-dispatch-hold" aria-label="Dispatch held for rate confirmation">
-                    <strong>DISPATCH HELD</strong><p>{getRateConfirmationHoldReason(load)}</p>
+                  {(needsRateConfirmationBeforeDeparture(load) || (!booked && approval === 'APPROVED' && !isRateConfirmationConfirmed(load))) && <section className="ratecon-dispatch-hold" aria-label="Dispatch held for rate confirmation">
+                    <strong>{booked ? 'DISPATCH HELD' : 'NOT BOOKED · REVIEW THE RATE CON'}</strong><p>{booked ? getRateConfirmationHoldReason(load) : 'Metroline approved this tentative offer. Compare and confirm the rate con before BOOK LOAD. Nothing is booked yet.'}</p>
                     {load.rateConfirmation && <button type="button" onClick={() => onReviewRateCon?.(load.id)}>REVIEW RATE CON</button>}
                   </section>}
 
@@ -551,7 +551,7 @@ function FleetSchedulerScreen({
                       </button>
 
                       {approval === 'APPROVED' ? (
-                        <button type="button" className="primary" onClick={() => onBookRoute?.(load.id)}>
+                        <button type="button" className="primary" disabled={!isRateConfirmationConfirmed(load)} onClick={() => onBookRoute?.(load.id)}>
                           BOOK LOAD
                         </button>
                       ) : (

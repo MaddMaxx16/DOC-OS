@@ -1,0 +1,6 @@
+.freight-route-detail-compact .freight-route-title-block h2 { display: block; -webkit-line-clamp: unset; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; font-size: 17px; line-height: 1.3; }
+.freight-route-detail-compact .first-day-lesson { margin: 0 0 12px; }
+.guided-lane-review[data-review-section="pickup"] .freight-route-window-card,
+.guided-lane-review[data-review-section="hours"] .freight-route-hos-check,
+.guided-lane-review[data-review-section="money"] .freight-route-metrics { border: 1px solid #a994bc; border-radius: 12px; box-shadow: 0 0 0 2px #a994bc22; }
+.lane-review-next-hint { display: block; color: #b6c1ce; font-size: 11px; line-height: 1.4; padding: 8px; }

@@ -1,25 +1,21 @@
-DOC OS — P2.4-FD.4.1-TEST — Rate Confirmation Departure Gate
+DOC OS — P2.4-FD.4.2-TEST — First Day Flow Correction
 Branch: p2.4-experience-rebuild
 
 Direct repository edits → automatic Vercel → refresh DOC OS on iPhone.
 
-A driver cannot start a new freight leg until the current rate con is CONFIRMED.
-Carrier approval and schedule acknowledgement do not bypass this requirement.
-Automatic departures, queued promotion, itinerary handoff, and manual route sends
-use the gate. Missing, pending, correction-requested, superseded, and wrong-load
-documents cannot authorize departure. A corrected current document needs review.
-Already-active travel/facility work is preserved; no mid-route reset or teleport.
+Shift → shop the real board → Jordan’s five lane checks → tentative evaluation
+→ carrier approval → rate-con review and confirmation → book first lane.
+Then shop the rest of Marcus’s day. Lunch is introduced around a selected
+second lane, using the real lunch planner and returning to that same lane.
+Shift-end planning follows a second actual booked delivery route.
 
-Today’s Plan and Driver conversations explain DISPATCH HELD with REVIEW RATE CON.
-Trip Plan and map driver panels also lead to the current document. Confirming
-requires the four manual comparison checks on the displayed current document.
-Marking a discrepancy as matched remains a player decision; future penalties
-remain planned. Confirmation saves through the existing operation persistence.
+BOOK LOAD requires the current confirmed rate con in both UI and assignment
+writers. The existing departure gate remains in force. Confirmation itself
+never books or dispatches freight. Board selection is not forced to DOC001.
 
-Jordan now uses the Empire-to-Harborline lane name and REVIEW THE LANE instead
-of DOC001 in his lesson. The fuller Lane Review redesign is the next UI slice.
-Build Bible and Roadmap record the gameplay rule and lane-review requirements.
-
-Build and 176 tests passed; no added runtime lint diagnostics. Browser checks
-use a booked/acknowledged fixture with real document review, departure, and save
-controls. Physical iPhone/full approval-booking/lane-redesign checks remain pending.
+Old lunch-first lesson saves migrate to the corrected chapter without deleting
+loads, workdays, or existing lunch plans. No restart is needed.
+Build Bible and Roadmap updated. Build and 178 tests pass; no added lint issues.
+Browser checks cover actual evaluation, approval, confirmation, booking, lunch,
+and resume with deterministic routing responses. Live routing and physical
+iPhone acceptance remain pending.

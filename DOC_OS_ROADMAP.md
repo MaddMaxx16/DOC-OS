@@ -137,14 +137,14 @@ DOC002 may become available later the same operating day after DOC001.
   - Surface the real schedule/HOS context the player needs for the first assignment.
   - Marcus's first operational communication occurs at actual clock-in through the real workday/HOS system.
   - Roster presence at the Yard does not itself put Marcus on duty or send an introduction.
-  - Initial context is exposed by the real scheduler. Browser clock advancement verified silence/off-duty before 7 AM, one clock-in message and on-duty HOS at 7 AM, and no duplicate message afterward. FD.3.1 adds Jordan’s real shift/lunch preparation and saved resume boundaries. Plan lunch before freight; introduce passive yard/staging finish planning after an actual booked DOC001 delivery route exists. Actual lunch-stop and shift-end/off-duty lessons remain planned at their live events. Existing ready saves can opt in without reseeding.
+  - Initial context is exposed by the real scheduler. Browser clock advancement verified silence/off-duty before 7 AM, one clock-in message and on-duty HOS at 7 AM, and no duplicate message afterward. FD.4.2 replaces the lunch-first sequence: inspect the shift, shop and review a lane, get approval, confirm its rate con, and book. Introduce lunch while considering a second lane; introduce passive finish planning after a second actual booked delivery route exists. Legacy lesson saves migrate without resetting operation data. Actual lunch-stop and shift-end/off-duty lessons remain planned at their live events. Existing ready saves can opt in without reseeding.
 
-- [NEXT / BOARD INTRODUCTION IMPLEMENTED] **P2.4-FD.4 — FreightLink / DOC001**
-  - FD.3.1 now hands off to the real FreightLink board and DOC001 details after a valid saved lunch window. Detailed authored fit/approval/acceptance guidance remains next.
+- [NEXT / BOARD INTRODUCTION IMPLEMENTED] **P2.4-FD.4 — FreightLink / Lane Review**
+  - FD.4.2 IN TEST: Schedule hands off to the real board before lunch. Jordan reviews the chosen lane through five persisted checks: pickup, delivery, travel, hours, and offer economics. After first booking, shop the rest of the day and plan lunch around the selected second lane.
   - Teach load evaluation, driver fit/HOS signal, written Metroline approval for the exact load, and acceptance/assignment under the real Metroline workflow.
-  - FD.4.1 IN TEST: current rate confirmation must be explicitly confirmed before new freight departure, including automatic and queued departures. Today’s Plan, Driver conversation, Trip Plan, and map panel explain the hold and lead to the real review.
+  - FD.4.1 IN TEST: current rate confirmation must be explicitly confirmed before booking (FD.4.2) and new freight departure, including automatic and queued departures. Today’s Plan, Driver conversation, Trip Plan, and map panel explain the hold and lead to the real review.
   - Lane terminology: Jordan identifies freight by shipper → receiver; internal DOC001 references stay out of his player-facing lesson.
-  - NEXT: redesign Lane Review around “Does this shipment work for Marcus?” Explain full names, projected stop/travel timeline, appointments/lunch/shift/HOS checks with reasons, and loaded versus unpaid mileage/rate context. Teach approval, booking, document comparison/correction, briefing, and dispatch as distinct steps.
+  - PARTIALLY IMPLEMENTED: Lane Review now explains appointments, initial travel/HOS estimates, full names, and loaded-mile economics. NEXT: expand the projected stop/travel timeline around “Does this shipment work for Marcus?” Explain full names, projected stop/travel timeline, appointments/lunch/shift/HOS checks with reasons, and loaded versus unpaid mileage/rate context. Teach approval, booking, document comparison/correction, briefing, and dispatch as distinct steps.
 
 - [PLANNED] **P2.4-FD.5 — First Dispatch**
   - Runtime entry already occurs at the FD.1/FD.2 legitimate handoff; this slice teaches first dispatch.

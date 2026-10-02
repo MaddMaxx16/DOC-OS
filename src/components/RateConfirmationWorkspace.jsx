@@ -164,7 +164,7 @@ function RateConfirmationWorkspace({
               <header className="ratecon-paper-masthead offer">
                 <span>DOC OS · FREIGHTLINK</span>
                 <h2>Load Offer</h2>
-                <p>Booking record</p>
+                <p>FreightLink offer</p>
               </header>
 
               <section className="ratecon-offer-route">
@@ -206,7 +206,7 @@ function RateConfirmationWorkspace({
               <section className="ratecon-offer-reference">
                 <span>REFERENCE COPY</span>
                 <p>
-                  Use this FreightLink booking record to verify the carrier-issued
+                  Use this FreightLink offer to verify the carrier-issued
                   Rate Confirmation before dispatch.
                 </p>
               </section>
@@ -343,6 +343,7 @@ function RateConfirmationWorkspace({
                   <div className="ratecon-paper-status confirmed">
                     <span>VERIFIED</span>
                     <strong>RATE CONFIRMATION CONFIRMED</strong>
+                    {load.status === 'available' && <small>Return to Today’s Plan to book. Confirmation alone does not book this lane.</small>}
                   </div>
                 ) : correctionRequested ? (
                   <div className="ratecon-paper-status waiting">

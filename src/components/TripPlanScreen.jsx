@@ -130,8 +130,8 @@ function TripPlanScreen({
           </section>
         )}
 
-        {booked && <section className="docos-section trip-plan-ratecon" aria-label="Rate confirmation dispatch requirement">
-          <div className="docos-section-heading"><span>RATE CONFIRMATION</span><small>{isRateConfirmationConfirmed(load) ? 'CONFIRMED' : 'DISPATCH HELD'}</small></div>
+        {(booked || approvalReady) && <section className="docos-section trip-plan-ratecon" aria-label="Rate confirmation dispatch requirement">
+          <div className="docos-section-heading"><span>RATE CONFIRMATION</span><small>{isRateConfirmationConfirmed(load) ? 'CONFIRMED' : booked ? 'DISPATCH HELD' : 'REQUIRED BEFORE BOOKING'}</small></div>
           <p>{getRateConfirmationHoldReason(load) || 'Current document confirmed. Existing schedule, route, lunch, and HOS checks still apply.'}</p>
           {load.rateConfirmation && <button type="button" className="docos-secondary-action" onClick={() => onReviewRateCon?.(load.id)}>{isRateConfirmationConfirmed(load) ? 'VIEW RATE CON' : 'REVIEW RATE CON'}</button>}
         </section>}
@@ -140,7 +140,7 @@ function TripPlanScreen({
           {!booked ? (
             <>
               {approvalReady ? (
-                <button type="button" className="docos-primary-action" onClick={() => onBook?.(load.id)}>BOOK LOAD</button>
+                <button type="button" className="docos-primary-action" disabled={!isRateConfirmationConfirmed(load)} onClick={() => onBook?.(load.id)}>BOOK LOAD</button>
               ) : approvalStatus === 'PENDING' ? (
                 <button type="button" className="docos-primary-action" disabled>AWAITING APPROVAL</button>
               ) : (

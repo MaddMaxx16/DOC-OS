@@ -508,6 +508,7 @@ function DriverSchedulerScreen({
   firstDay,
   onFirstDayProgress,
   onFirstDayComplete,
+  onResumeLaneReview,
   drivers = [],
   carriers = [],
   loads = [],
@@ -603,20 +604,20 @@ function DriverSchedulerScreen({
 
             
 
-      {firstDay?.step === 'schedule' && marcus && <FirstDayLesson title="Start with the shift" actionLabel={view === 'schedule' ? 'PLAN MARCUS’S LUNCH' : 'VIEW MARCUS’S SCHEDULE'} onAction={() => {
+      {firstDay?.step === 'schedule' && marcus && <FirstDayLesson title="Start with the shift" actionLabel={view === 'schedule' ? 'SHOP LANES WITH JORDAN' : 'VIEW MARCUS’S SCHEDULE'} onAction={() => {
         if (view !== 'schedule') { setView('schedule'); return }
-        if (continueLesson('lunch')) chooseDriver('marcus')
-      }}>
-        {marcusWorkday ? `Metroline has confirmed Marcus’s shift: ${formatTime(marcusWorkday.startMinutes)}–${formatTime(marcusWorkday.endMinutes)}. ` : 'Check Marcus’s carrier-confirmed availability. '}
-        The carrier owns these hours. We need freight, lunch, travel, and his finish position to fit inside them. Let’s plan his lunch before looking for a load.
-      </FirstDayLesson>}
-      {firstDay?.step === 'lunch' && marcus && <FirstDayLesson title={lunchPlanned ? 'Lunch window saved' : 'Protect time for lunch'} actionLabel={view !== 'driver' || selectedDriver?.id !== 'marcus' ? 'VIEW MARCUS' : lunchPlanned ? 'OPEN FREIGHTLINK' : 'SET MARCUS’S LUNCH WINDOW'} onAction={() => {
-        if (view !== 'driver' || selectedDriver?.id !== 'marcus') { chooseDriver('marcus'); return }
-        if (!lunchPlanned) { setLunchDriverId('marcus'); return }
         if (continueLesson('freight')) onFindFreight?.('marcus')
       }}>
-        {lunchPlanned ? `Marcus’s window is ${formatTime(marcusWorkday.lunchWindowStartMinutes)}–${formatTime(marcusWorkday.lunchWindowEndMinutes)}. We’ll check freight against it next. ` : 'Set a lunch window in Marcus’s real workday. Leave enough room around appointments and travel. '}
-        This reserves planning time; it does not start a break. When lunch comes due, we’ll teach the actual stop and return to work.
+        {marcusWorkday ? `Metroline has confirmed Marcus’s shift: ${formatTime(marcusWorkday.startMinutes)}–${formatTime(marcusWorkday.endMinutes)}. ` : 'Check Marcus’s carrier-confirmed availability. '}
+        These are the hours we have to work with. Let’s shop for his first lane together, then check each part before we commit.
+      </FirstDayLesson>}
+      {firstDay?.step === 'lunch' && marcus && <FirstDayLesson title={lunchPlanned ? 'Lunch window saved' : 'Protect time for lunch'} actionLabel={view !== 'driver' || selectedDriver?.id !== 'marcus' ? 'VIEW MARCUS' : lunchPlanned ? 'REVIEW THE SECOND LANE' : 'SET MARCUS’S LUNCH WINDOW'} onAction={() => {
+        if (view !== 'driver' || selectedDriver?.id !== 'marcus') { chooseDriver('marcus'); return }
+        if (!lunchPlanned) { setLunchDriverId('marcus'); return }
+        if (continueLesson('secondLane')) onResumeLaneReview?.(firstDay.reviewLoadId)
+      }}>
+        {lunchPlanned ? `Marcus’s window is ${formatTime(marcusWorkday.lunchWindowStartMinutes)}–${formatTime(marcusWorkday.lunchWindowEndMinutes)}. We’ll check freight against it next. ` : 'His first lane is booked. Before adding this second lane, fit a lunch window around his existing appointments and travel. '}
+        Save the window, then return to the second lane and evaluate it against the booked work. This does not start a break.
       </FirstDayLesson>}
       {firstDay?.step === 'shiftEnd' && marcus && <FirstDayLesson title={shiftEndPlanned ? 'Finish position saved' : 'Where should Marcus finish?'} actionLabel={view !== 'driver' || selectedDriver?.id !== 'marcus' ? 'VIEW MARCUS' : shiftEndPlanned ? 'RETURN TO DISPATCH' : 'PLAN MARCUS’S SHIFT END'} onAction={() => {
         if (view !== 'driver' || selectedDriver?.id !== 'marcus') { chooseDriver('marcus'); return }

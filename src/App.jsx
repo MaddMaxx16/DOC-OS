@@ -38,7 +38,7 @@ import { sampleRoutePoint } from './utils/routeSampler.js'
 import { anchorMovementRoute, reconcileIdleMovement, reconcileFreightMovement, restoreMovementOwnerContinuity } from './utils/runtimeMovement.js'
 import { createLegacyIndependentCareer, normalizeCareerState } from './utils/careerState.js'
 import { establishCarrierOperationalContext } from './utils/carrierOperationalContext.js'
-import { normalizeFirstDayProgress, isFirstDayTeachingPaused } from './utils/firstDayProgress.js'
+import { normalizeFirstDayProgress, migrateFirstDayFlow, isFirstDayTeachingPaused } from './utils/firstDayProgress.js'
 import { initializeMetrolineEmployeeOperation } from './utils/employeeCareerInitializer.js'
 
 
@@ -435,7 +435,7 @@ useEffect(() => {
     setDayLoop(saved.dayLoop ? { ...DEFAULT_DAY_LOOP_STATE, ...saved.dayLoop, history: Array.isArray(saved.dayLoop.history) ? saved.dayLoop.history : [] } : { ...DEFAULT_DAY_LOOP_STATE })
     setPlayerProgression(saved.playerProgression ? { ...DEFAULT_PLAYER_PROGRESSION, ...saved.playerProgression } : { ...DEFAULT_PLAYER_PROGRESSION })
     setCareer(normalizeCareerState(saved.career))
-    setFirstDay(normalizeFirstDayProgress(saved.firstDay))
+    setFirstDay(migrateFirstDayFlow(saved.firstDay, saved.loads))
     setResumeStage(saved.stage && !['start', 'market', 'dayOneIntro'].includes(saved.stage) ? saved.stage : 'game')
   }
 
@@ -932,7 +932,7 @@ useEffect(() => {
   const persistFirstDayProgress = (nextProgress) => {
     const snapshot = latestAutosaveRef.current
     if (!snapshot || snapshot.slotId !== activeSaveSlotId) return false
-    const next = normalizeFirstDayProgress(nextProgress)
+    const next = normalizeFirstDayProgress({ ...snapshot.state.firstDay, ...nextProgress, flowVersion: 2 })
     if (!next) return false
     const state = { ...snapshot.state, firstDay: next }
     if (!persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, state, activeSaveSlotId)) return false

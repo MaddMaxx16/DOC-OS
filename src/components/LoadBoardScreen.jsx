@@ -29,11 +29,11 @@ function bucketFor(load) {
 }
 
 
-function LoadBoardScreen({ loads, drivers = [], runtimePositions = {}, gameTime, operationDay = 1, embedded = false, planningDriverId = null, onPlanningDriverChange, onBack, onSelectLoad, onOpenScheduler }) {
+function LoadBoardScreen({ initialPickupDay = null, loads, drivers = [], runtimePositions = {}, gameTime, operationDay = 1, embedded = false, planningDriverId = null, onPlanningDriverChange, onBack, onSelectLoad, onOpenScheduler }) {
 const [sortMode, setSortMode] = useState('pickup')
   const [mapOpen, setMapOpen] = useState(false)
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
-  const [pickupDateFilter, setPickupDateFilter] = useState('all')
+  const [pickupDateFilter, setPickupDateFilter] = useState(initialPickupDay === null ? 'all' : Number(initialPickupDay))
   const [driverMenuOpen, setDriverMenuOpen] = useState(false)
   const now = (gameTime?.gameDayIndex ?? 0) * 1440 + (gameTime?.totalMinutesOfDay ?? 360)
 
