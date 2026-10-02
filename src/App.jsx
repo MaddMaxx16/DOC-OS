@@ -333,6 +333,56 @@ useEffect(() => {
     })
     let hydratedLoads = mergeSavedLoads(saved.loads ?? [])
     const savedNow = (saved.gameTime?.gameDayIndex ?? 0) * 1440 + (saved.gameTime?.totalMinutesOfDay ?? 360)
+    const upgradingFirstDayV3 = Boolean(
+      saved.firstDay
+      && Number(saved.firstDay?.flowVersion || 0) < 3
+      && Number(saved.gameTime?.gameDayIndex || 0) === 0
+      && saved.firstDay?.workdayLessonComplete !== true
+    )
+    const firstDayTutorialSeed = seedLoads.find((item) => item.loadNumber === 'LD-78421') || null
+
+    // Flow v3 changes the business meaning of the first pursuit. Older Day 1
+    // saves could already contain a candidate plan, Metroline approval, and a
+    // Rate Con that was incorrectly created by approval. Reset only that
+    // unfinished tutorial offer so the player experiences the new flow cleanly.
+    if (upgradingFirstDayV3 && firstDayTutorialSeed) {
+      hydratedLoads = hydratedLoads.map((load) => {
+        if (load.loadNumber !== firstDayTutorialSeed.loadNumber
+          || load.status !== 'available'
+          || load.assignedDriverId) return load
+        return {
+          ...load,
+          pickupLocationId: firstDayTutorialSeed.pickupLocationId,
+          deliveryLocationId: firstDayTutorialSeed.deliveryLocationId,
+          pickupDayIndex: firstDayTutorialSeed.pickupDayIndex,
+          pickupWindowStartMinutes: firstDayTutorialSeed.pickupWindowStartMinutes,
+          pickupWindowEndMinutes: firstDayTutorialSeed.pickupWindowEndMinutes,
+          deliveryDayIndex: firstDayTutorialSeed.deliveryDayIndex,
+          deliveryWindowStartMinutes: firstDayTutorialSeed.deliveryWindowStartMinutes,
+          deliveryWindowEndMinutes: firstDayTutorialSeed.deliveryWindowEndMinutes,
+          rate: firstDayTutorialSeed.rate,
+          listedMiles: firstDayTutorialSeed.listedMiles,
+          freight: firstDayTutorialSeed.freight ? structuredClone(firstDayTutorialSeed.freight) : undefined,
+          candidateDriverId: null,
+          driverFitVerified: false,
+          scheduleApprovalQueued: false,
+          carrierApprovalStatus: null,
+          carrierApprovalRequestedGameMinute: null,
+          carrierApprovedGameMinute: null,
+          carrierApprovalEmailId: null,
+          bookingStatus: null,
+          bookingRequestedGameMinute: null,
+          bookingAcceptedGameMinute: null,
+          bookingConfirmedGameMinute: null,
+          bookingRequestEmailId: null,
+          rateConfirmation: null,
+          assignmentProjection: null,
+          tripPlan: null,
+          scheduleConflict: null,
+        }
+      })
+    }
+
     hydratedLoads = hydratedLoads.map((load) => {
       if (load.tripStatus === 'at-delivery' && !Number.isFinite(load.deliveryArrivalGameMinute)) return { ...load, deliveryArrivalGameMinute: savedNow }
       if (load.tripStatus === 'waiting-at-delivery') {
@@ -412,7 +462,16 @@ useEffect(() => {
     setCarrierApplicationsById(hydratedApplications)
     setCarrierCareerById(buildCarrierCareerById(hydratedCarriers, hydratedApplications, saved.carrierCareerById || {}))
     setDispatcherProfile(saved.dispatcherProfile || null)
-    setEmailMessages(Array.isArray(saved.emailMessages) ? saved.emailMessages.filter((message) => !message.templateId) : [])
+    setEmailMessages(Array.isArray(saved.emailMessages)
+      ? saved.emailMessages.filter((message) => {
+          if (message.templateId) return false
+          if (!upgradingFirstDayV3) return true
+          const tutorialLoadId = firstDayTutorialSeed?.id
+          if (message.loadId !== tutorialLoadId) return true
+          return !['carrier-approval', 'rate-confirmation', 'booking-request'].includes(message.workflowType)
+            && message.type !== 'rate-confirmation-delivery'
+        })
+      : [])
     const savedDriverMessages = Array.isArray(saved.driverMessages) ? saved.driverMessages : []
     // CS2.0B.4.1 — collapse the old three-text Marcus tutorial burst into one
     // relationship-start message. Existing saves keep their history without carrying
