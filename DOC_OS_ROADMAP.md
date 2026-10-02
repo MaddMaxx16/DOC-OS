@@ -74,7 +74,7 @@ Current reachable clean-save flow:
 
 Target tutorial arc:
 
-**First Day at Metroline → Jordan orientation/training → employee workstation/phone → Marcus already rostered with Metroline → FreightLink DOC001 → evaluate/assign/accept through the real Metroline workflow → plan → dispatch → pickup → facility cycle → delivery → paperwork → payment**
+**Create Player → Metroline employee workstation / Junior Dispatcher → Jordan orientation/training → Marcus already rostered at the Metroline Yard with real schedule/HOS state → first Marcus communication at actual clock-in → FreightLink DOC001 → evaluate driver fit/HOS → written Metroline load approval → accept/assign → plan → brief Marcus → explicit dispatch → automatic facility check-in / facility cycle → delivery → paperwork → payment**
 
 DOC002 may become available later the same operating day after DOC001.
 
@@ -98,19 +98,21 @@ DOC002 may become available later the same operating day after DOC001.
 - [PLANNED] **P2.4-FD.3 — Marcus / First Workday Context**
   - Introduce Marcus as the player's assigned Metroline driver without an artificial activation event.
   - Surface the real schedule/HOS context the player needs for the first assignment.
-  - Driver communication begins from legitimate work events such as clock-in or schedule communication.
+  - Marcus's first operational communication occurs at actual clock-in through the real workday/HOS system.
+  - Roster presence at the Yard does not itself put Marcus on duty or send an introduction.
 
 - [PLANNED] **P2.4-FD.4 — FreightLink / DOC001**
   - Introduce the real FreightLink board and DOC001.
-  - Teach load evaluation, driver fit/HOS signal, assignment, and acceptance under the real Metroline workflow.
+  - Teach load evaluation, driver fit/HOS signal, written Metroline approval for the exact load, and acceptance/assignment under the real Metroline workflow.
 
 - [PLANNED] **P2.4-FD.5 — First Dispatch**
   - Enter the protected Operations runtime at the legitimate handoff.
   - Plan the real route.
+  - Send Marcus the correct load brief before dispatch.
   - Explicit dispatch remains separate from planning.
 
 - [PLANNED] **P2.4-FD.6 — Pickup / Facility Operations**
-  - Teach arrival, check-in, waiting/loading, and meaningful exceptions using existing facility authority.
+  - Teach arrival, automatic check-in, waiting/loading, and meaningful exceptions using existing facility authority.
 
 - [PLANNED] **P2.4-FD.7 — Delivery / POD / Closeout**
   - Complete delivery, document review, correction if applicable, invoice/payment loop, and first-job completion feedback.
