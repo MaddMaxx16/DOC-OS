@@ -36,7 +36,7 @@ The current clean-new-player path is:
 
 The former Market Selection / Day-One Entry opening route has been retired and removed. The player begins the game as a **Metroline employee in New York**; market selection and CarrierSource application are not part of the rebuilt onboarding path.
 
-**Employee-career start contract:** a clean new operation uses the Metroline employee career model. Metroline is already active as the employer, Marcus is already on the Metroline roster, and onboarding must not require a carrier application or signed carrier agreement to create that state.
+**Employee-career start contract:** a clean new operation uses the Metroline employee career model. The player begins as a **Junior Dispatcher** at the Metroline employee workstation. Metroline is already active as the employer, Marcus is already on the Metroline roster, and onboarding must not require a carrier application or signed carrier agreement to create that state.
 
 The current title is a physical workstation/login presentation over the office backdrop. Save slots are represented as workstation users. Entering a workstation physically pushes into the monitor before handoff. Returning from Career Setup must not replay the branded startup splash during the same app runtime.
 
@@ -116,7 +116,7 @@ The existing Operations runtime remains the protected gameplay foundation while 
 
 Metroline is the player's **employer at career start**, not a carrier the player applies to during First Day. Marcus remains the first authored driver and is already part of Metroline's operational roster when the employee operation is initialized. His physical starting position is the Metroline Yard and his schedule/HOS state comes from the real driver/workday systems.
 
-Marcus must not be "activated" by reading an email or accepting a carrier agreement. His first driver communication should follow an actual work event such as clock-in, schedule receipt/change, meaningful movement, delay/exception, or end-of-day sign-off.
+Marcus must not be "activated" by reading an email or accepting a carrier agreement. His first operational communication occurs when he actually clocks in through the real workday/HOS system. Being rostered at the Yard does not itself make him on duty. Later communication follows legitimate work events such as schedule receipt/change, meaningful movement, delay/exception, or end-of-day sign-off.
 
 Jordan is the player's **Metroline trainer/supervisor** for First Day. Jordan teaches context, expectations, and the reasoning behind the work without becoming a tutorial notification system or narrating every click.
 
@@ -154,7 +154,9 @@ The Character Creator is functionally locked unless a real regression or an expl
 
 The intended tutorial arc is:
 
-**First Day at Metroline → Jordan orientation/training → employee workstation/phone → Marcus already present on the Metroline roster → FreightLink DOC001 → evaluate/confirm fit → assign Marcus → accept/book through the real Metroline workflow → plan route → dispatch to pickup → pickup check-in → facility cycle → delivery → POD/closeout → payment**
+**Create Player → Metroline employee workstation / Junior Dispatcher → Jordan orientation/training → Marcus already rostered at the Metroline Yard with real schedule/HOS state → first Marcus communication at actual clock-in → FreightLink DOC001 → evaluate driver fit/HOS → written Metroline load approval → accept/assign → plan route → brief Marcus → explicit dispatch to pickup → automatic facility check-in / facility cycle → delivery → POD/closeout → payment**
+
+The employee opening removes carrier-relationship setup, not Metroline's load-approval or driver-briefing requirements. FreightLink acceptance still requires written approval for that load, and route confirmation still requires the correct driver brief followed by explicit dispatch. Facility check-in remains owned by the existing automatic facility lifecycle.
 
 DOC002 may become available later the same operating day after DOC001.
 
@@ -513,7 +515,9 @@ Pickup flow:
 Documents is the business record center, not POD-only storage. It may contain signed carrier agreements, PODs, rate confirmations, invoices, and other future records. Master AB begins this expansion with signed carrier agreements while preserving the existing POD workflow.
 
 
-## Metroline Agreement UX — Master AC
+## Metroline Agreement UX — Master AC (LATER CAREER / HISTORICAL)
+> This retained agreement presentation is not part of First Day. Its historical carrier-activation/Marcus-introduction behavior does not apply to the Metroline employee opening; sections 2.1, 2.5, and 2.8 govern that opening.
+
 - Master AC is a presentation/input hardening pass built from Master AB.
 - The Metroline agreement uses a compact two-column information layout: **Shift goals** and **Operating expectations**.
 - Carrier priorities remain visible in a compact full-width summary below the two columns.
