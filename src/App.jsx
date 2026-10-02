@@ -1834,6 +1834,7 @@ Open CarrierSource to review your full account history.`
             }
           >
             <MainGameScreen
+            career={career}
             selectedMarket={selectedMarket}
             initialPhoneOpen={Boolean(gameEntryScreen)}
             initialPhoneScreen={gameEntryScreen || 'home'}

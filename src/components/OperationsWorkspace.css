@@ -1,0 +1,109 @@
+/* P2.4-FD.0: map workspace chrome. Existing apps retain their workflow owners. */
+.main-game-screen .operations-status-header {
+  height: auto;
+  min-height: calc(58px + env(safe-area-inset-top, 0px));
+  flex: 0 0 auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 14px 8px;
+  letter-spacing: .04em;
+}
+.operations-identity, .operations-clock { display: grid; gap: 4px; min-width: 0; }
+.operations-identity strong { font-size: 13px; color: #f2f4f7; }
+.operations-identity small { font-size: 10px; color: #9ba8b8; letter-spacing: 0; }
+.operations-clock { text-align: right; font-variant-numeric: tabular-nums; }
+.operations-clock small { font-size: 9px; color: #9ba8b8; }
+.operations-clock strong { font-size: 16px; letter-spacing: 0; }
+.operations-toolbar {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px 9px;
+  background: #0f1115;
+  border-bottom: 1px solid #28303b;
+}
+.operations-toolbar .operations-hud { padding: 0; position: static; }
+.operations-toolbar .operations-bar { min-height: 40px; padding: 6px 8px; border-radius: 10px; gap: 4px; box-shadow: none; }
+.operations-toolbar .operations-bar-main { display: none; }
+.operations-toolbar .operations-bar-meta { width: 100%; justify-content: space-between; gap: 5px; }
+.operations-toolbar .operations-bar-status { font-size: 9px; }
+.operations-toolbar .operations-drawer { position: absolute; top: 100%; left: 8px; right: 8px; max-height: min(65dvh, 480px); overflow-y: auto; }
+.operations-toolbar .time-controls-wrap { position: static; display: flex; align-items: center; gap: 6px; }
+.operations-toolbar .time-state-label { min-width: 0; font-size: 8px; padding: 4px; border: 0; background: transparent; box-shadow: none; }
+.operations-toolbar .time-controls { position: static; gap: 3px; }
+.operations-toolbar .time-controls button { width: 36px; height: 40px; border-radius: 8px; box-shadow: none; }
+.main-game-screen .board-view-control { top: 10px; min-height: 40px; font-size: 9px; }
+.main-game-screen .console-launcher, .main-game-screen .phone-button, .main-game-screen .driver-hub-launcher {
+  position: absolute;
+  z-index: 28;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  width: calc((100% - 44px) / 3);
+  height: 56px;
+  min-height: 56px;
+  padding: 8px 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #465260;
+  border-radius: 12px;
+  background: rgba(17, 22, 28, .96);
+  color: #e4eaf2;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .3);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  cursor: pointer;
+  transform: none;
+}
+.main-game-screen .console-launcher { left: 14px; }
+.main-game-screen .driver-hub-launcher { left: calc(14px + (100% - 44px) / 3 + 8px); }
+.main-game-screen .phone-button { left: auto; right: 14px; }
+.main-game-screen .console-launcher > svg, .main-game-screen .phone-button-icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.main-game-screen .driver-hub-launcher-icon { height: 22px; width: 22px; background: transparent; font-size: 15px; }
+.main-game-screen .driver-hub-launcher strong, .workspace-notification-badge, .main-game-screen .phone-notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0 3px;
+  box-sizing: border-box;
+  border-radius: 20px;
+  background: #9d6bc4;
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: 0;
+}
+.main-game-screen .driver-hub-sheet { bottom: calc(82px + env(safe-area-inset-bottom, 0px)); }
+.main-game-screen .phone-overlay.operations-console { top: 8px; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+.main-game-screen .phone-overlay.communications-phone {
+  top: auto;
+  left: auto;
+  right: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  width: min(304px, calc(100% - 28px));
+  height: min(540px, calc(100% - 28px - env(safe-area-inset-bottom, 0px)));
+  border-radius: 24px;
+}
+.communications-phone .phone-device-screen { grid-template-rows: 48px minmax(0, 1fr) 42px; border-radius: 23px; }
+.communications-phone .phone-status-bar { gap: 6px; padding: 6px 10px; }
+.communications-phone .device-status-context span { font-size: 8px; }
+.communications-phone .device-status-context strong { font-size: 9px; }
+.communications-phone .home-screen { padding: 16px 12px; }
+.communications-phone .phone-app-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.console-settings-link { display: flex; align-items: center; gap: 7px; align-self: flex-start; min-height: 40px; margin-top: 18px; padding: 5px 8px; border: 0; background: transparent; color: #a7b4c5; font: inherit; font-size: 12px; }
+.console-settings-link svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.contacts-screen { padding: 16px 12px; }
+.contacts-list { display: grid; gap: 4px; }
+.contact-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 62px; padding: 8px 4px; border: 0; border-bottom: 1px solid #2d3540; background: transparent; color: #dfe7f0; text-align: left; }
+.contact-row > span:nth-child(2) { display: grid; gap: 4px; min-width: 0; }
+.contact-row strong { font-size: 13px; overflow-wrap: anywhere; }
+.contact-row small { font-size: 10px; color: #9ba8b8; }
+@media (prefers-reduced-motion: reduce) { .main-game-screen .phone-overlay { animation: none; transition: none; } }

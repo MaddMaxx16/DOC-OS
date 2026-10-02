@@ -20,6 +20,7 @@ const EmailScreen = lazy(() => import('./EmailScreen.jsx'))
 const EmailDetailScreen = lazy(() => import('./EmailDetailScreen.jsx'))
 const EmailComposeScreen = lazy(() => import('./EmailComposeScreen.jsx'))
 const PaperworkWorkspace = lazy(() => import('./PaperworkWorkspace.jsx'))
+const ContactsScreen = lazy(() => import('./ContactsScreen.jsx'))
 const MessagesScreen = lazy(() => import('./MessagesScreen.jsx'))
 const DriverMessageThreadScreen = lazy(() => import('./DriverMessageThreadScreen.jsx'))
 const BusinessDocumentDetailScreen = lazy(() => import('./BusinessDocumentDetailScreen.jsx'))
@@ -63,7 +64,9 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
 // =========================================================
   // B.5.4C.2 — Directional Phone Navigation
   // =========================================================
+  const isPhone = ['phoneHome', 'contacts', 'messages', 'messageThread'].includes(screen)
   const setScreen = (nextScreen) => {
+    if (nextScreen === 'home') nextScreen = isPhone ? 'phoneHome' : 'home'
     if (!nextScreen || nextScreen === screen) return
 
     const backTargets = {
@@ -85,6 +88,8 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
 
     const depth = {
       home: 0,
+      phoneHome: 0,
+      contacts: 1,
 
       browser: 1,
       email: 1,
@@ -115,7 +120,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
 
     let direction = 'forward'
 
-    if (nextScreen === 'home') {
+    if (nextScreen === 'home' || nextScreen === 'phoneHome') {
       direction = 'home'
     } else if (backTargets[screen] === nextScreen) {
       direction = 'back'
@@ -363,7 +368,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
 
 // B.5.4D.4.2.7A — Standard Phone + Visible Plan Entry
   return (
-    <aside className="phone-overlay scheduler-expanded" aria-label="DOC OS operations device">
+    <aside className={`phone-overlay ${isPhone ? 'communications-phone' : 'scheduler-expanded operations-console'}`} aria-label={isPhone ? 'Phone' : 'Operations Console'}>
       <div className="device-sheet-handle" aria-hidden="true" />
       <div className="phone-device-screen">
         <div className="phone-status-bar">
@@ -380,10 +385,10 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
             DOC OS
           </button>
           <div className="device-status-context" aria-label={`Day ${operationDay}, ${formatTime(gameTime.totalMinutesOfDay)}`}>
-            <span>OPERATIONS DEVICE</span>
+            <span>{isPhone ? 'PHONE' : 'OPERATIONS CONSOLE'}</span>
             <strong>DAY {operationDay} · {formatTime(gameTime.totalMinutesOfDay)}</strong>
           </div>
-          <button type="button" className="phone-close-button" onClick={onClose} aria-label="Close device">×</button>
+          <button type="button" className="phone-close-button" onClick={onClose} aria-label={isPhone ? 'Close phone' : 'Close console'}>×</button>
         </div>
         {devToolsOpen && (
           <div className="phone-reset-overlay" role="dialog" aria-modal="true" aria-labelledby="phone-dev-title">
@@ -564,8 +569,10 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
         )}
         <div className="phone-app-viewport">
 
-      {screen === 'home' ? (
+      {screen === 'home' || screen === 'phoneHome' ? (
         <HomeScreen
+          surface={isPhone ? 'phone' : 'console'}
+          onOpenContacts={() => setScreen('contacts')}
           onOpenBrowser={() => setScreen('browser')}
           onOpenAgenda={() => {
             setSelectedLoadId(null)
@@ -651,6 +658,8 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
             setScreen('loadBoard')
           }}
         />
+      ) : screen === 'contacts' ? (
+        <ContactsScreen drivers={drivers} carriers={carriers} onOpenThread={(driverId) => { setSelectedDriverId(driverId); setMessageLoadContextId(null); setScreen('messageThread') }} />
       ) : screen === 'messages' ? (
         <MessagesScreen
           messages={driverMessages}
@@ -1241,7 +1250,7 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
             </button>
           )}
 
-          <button type="button" className="phone-home-button" onClick={() => setScreen('home')} aria-label="Phone home">
+          <button type="button" className="phone-home-button" onClick={() => setScreen('home')} aria-label={isPhone ? 'Phone home' : 'Console home'}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 10.5 12 4l7.5 6.5v8.75H14v-5.5h-4v5.5H4.5V10.5Z"/></svg>
           </button>
         </div>

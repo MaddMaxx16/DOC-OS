@@ -77,32 +77,37 @@ function AppTile({ label, description, icon, onClick, disabled = false, badgeCou
   )
 }
 
-function HomeScreen({ onOpenBrowser, onOpenAgenda, agendaLocked = false, agendaBadgeCount = 0, onOpenDocuments, onOpenLedger, onOpenMessages, onOpenEmail, onOpenSettings, emailBadgeCount = 0, messagesBadgeCount = 0, documentsBadgeCount = 0, ledgerUnreadCount = 0 }) {
+function HomeScreen({ surface = 'console', onOpenContacts, onOpenBrowser, onOpenAgenda, agendaLocked = false, agendaBadgeCount = 0, onOpenDocuments, onOpenLedger, onOpenMessages, onOpenEmail, onOpenSettings, emailBadgeCount = 0, messagesBadgeCount = 0, documentsBadgeCount = 0, ledgerUnreadCount = 0 }) {
+  const isPhone = surface === 'phone'
   return (
     <div className="phone-page home-screen docos-ui-page">
       <header className="device-home-header docos-ui-header">
-        <span className="docos-ui-kicker">WORKSPACE</span>
-        <h1>Dispatch Console</h1>
-        <p>Open an app to manage the operation.</p>
+        <span className="docos-ui-kicker">{isPhone ? 'COMMUNICATIONS' : 'WORKSPACE'}</span>
+        <h1>{isPhone ? 'Phone' : 'Dispatch Console'}</h1>
+        <p>{isPhone ? 'Your contacts and conversations.' : 'Open an app to manage the operation.'}</p>
       </header>
 
       <section className="device-home-section" aria-labelledby="device-tools-title">
         <div className="docos-section-heading">
-          <span id="device-tools-title">OPERATIONS TOOLS</span>
+          <span id="device-tools-title">{isPhone ? 'KEEP IN TOUCH' : 'OPERATIONS TOOLS'}</span>
           <small>SELECT AN APP</small>
         </div>
-        <div className="phone-app-grid" aria-label="DOC OS apps">
+        <div className="phone-app-grid" aria-label={isPhone ? 'Phone apps' : 'Console apps'}>
+          {isPhone ? <>
+            <AppTile label="Contacts" description="Your driver contacts" icon={<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5 20v-2a7 7 0 0 1 14 0v2" /></svg>} onClick={onOpenContacts} />
+            <AppTile label="Messages" description="Driver communication" icon={<MessagesIcon />} onClick={onOpenMessages} badgeCount={messagesBadgeCount} />
+          </> : <>
           <AppTile label="Browser" description="FreightLink and Carrier Source" icon={<BrowserIcon />} onClick={onOpenBrowser} />
           <AppTile label="Scheduler" description="Driver schedules and appointments" icon={<AgendaIcon />} onClick={onOpenAgenda} disabled={agendaLocked} badgeCount={agendaBadgeCount} />
           <AppTile label="Documents" description="PODs and operation records" icon={<DocumentsIcon />} onClick={onOpenDocuments} badgeCount={documentsBadgeCount} />
           <AppTile label="LedgerDesk" description="Invoices and receivables" icon={<LedgerIcon />} onClick={onOpenLedger} badgeCount={ledgerUnreadCount} badgeClassName="ledger-badge" />
-          <AppTile label="Messages" description="Driver communication" icon={<MessagesIcon />} onClick={onOpenMessages} badgeCount={messagesBadgeCount} />
           <AppTile label="Email" description="Carrier and business mail" icon={<EmailIcon />} onClick={onOpenEmail} badgeCount={emailBadgeCount} />
-          <AppTile label="Settings" description="Game and operation settings" icon={<SettingsIcon />} onClick={onOpenSettings} />
+          </>}
         </div>
       </section>
 
-      <div className="phone-home-version" aria-hidden="true">DOC OS · OPERATIONS DEVICE</div>
+      {!isPhone && <button className="console-settings-link" type="button" onClick={onOpenSettings}><SettingsIcon /> Settings</button>}
+      <div className="phone-home-version" aria-hidden="true">DOC OS · {isPhone ? 'PHONE' : 'CONSOLE'}</div>
     </div>
   )
 }

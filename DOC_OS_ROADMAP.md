@@ -70,7 +70,7 @@ Battery percentage is a coarse signal; the result is used as a strong regression
 
 Current reachable clean-save flow:
 
-**Startup → Workstation/Login → New Dispatcher → Name → Character Creator → First Day**
+**Startup → Workstation/Login → New Dispatcher → Name → Character Creator → accepted Metroline Employee-ID Welcome**
 
 Target tutorial arc:
 
@@ -82,7 +82,7 @@ DOC002 may become available later the same operating day after DOC001.
 
 ### First Day implementation slices
 
-- [IN TEST] **P2.4-ENTRY.1 — Metroline Employee-ID Welcome**
+- [PRESENTATION ACCEPTED; HANDOFF PENDING] **P2.4-ENTRY.1 — Metroline Employee-ID Welcome**
   - Replace the final First Day placeholder after Character Creator with a Metroline employee-ID welcome.
   - Show Metroline branding, the created avatar, player name, and Junior Dispatcher · New York Operations.
   - Welcome the player and establish that the workstation is ready and Jordan will help them get started.
@@ -94,19 +94,22 @@ DOC002 may become available later the same operating day after DOC001.
   - START FIRST DAY remains disabled until the authoritative map handoff is implemented.
   - Verified: production build, focused ESLint, all 165 existing tests, and browser checks for creation, avatar consistency, save/resume, edits, long names, layout, and failed-save recovery.
   - ENTRY.1.1 visual polish: smaller ID/tighter spacing and removal of the redundant green header check; build, focused lint, and browser checks passed.
-  - Pending: physical iPhone acceptance and battery sanity check; live map transition and Jordan conversation remain planned.
+  - Maxx accepted ENTRY.1.1 on iPhone October 2. A fresh ID-specific battery check was not reported; the earlier protected onboarding battery checkpoint remains the reference.
+  - Pending: live map transition and Jordan conversation; the full First Day is not promoted.
 
-- [NEXT AFTER ENTRY.1 ACCEPTANCE] **P2.4-FD.0 — Operations Workspace Remodel**
+- [IMPLEMENTED; DEVICE ACCEPTANCE PENDING] **P2.4-FD.0 — Operations Workspace Remodel**
   - Replace BOARD with CONSOLE; retain camera-fit as a separate map utility.
   - Console contains Email, Browser/FreightLink, Scheduler/Agenda, Documents, and LedgerDesk.
   - Resize Phone as the smaller Contacts/Messages surface.
   - Keep DRIVERS / Driver Hub separate and directly accessible from the map.
   - Preserve message history, unread counts, notification destinations, thread navigation, acknowledgements, quick replies, and load updates.
-  - Redesign the map's top status/operations bars; final composition and employee-era money presentation require design before implementation.
+  - Implemented header: career-aware Metroline/location, date/day/time, then compact alerts and pause/play/speed. Cash is removed from the map header; LedgerDesk balances are unchanged and employee money semantics remain undecided.
   - Preserve lazy loading, the startup/Operations boundary, and protected workflow/simulation authority.
-  - Establish this workspace before First Day teaches its navigation.
+  - Implemented: separate bottom launchers, FIT MAP camera utility, larger Console shell/five business apps + Settings utility, smaller Phone/Contacts/Messages, context-based surface selection, existing Driver Hub.
+  - Verified: isolated build/browser checks through actual Operations components and authoritative employee initializer; message/email/schedule navigation and phone bounds passed, with no page errors; all 165 existing tests passed; no new lint diagnostics. Startup bundle is unchanged. Test-environment map tiles were unavailable.
+  - Remains behind the startup gate until the real handoff exists; no test bypass is shipped. Physical iPhone navigation/layout/battery and protected DOC001 regression remain pending.
 
-- [PLANNED] **P2.4-FD.1 — First Day Arrival / Orientation**
+- [NEXT] **P2.4-FD.1 — First Day Arrival / Orientation**
   - Establish the player at the Metroline workstation after Character Creator.
   - Establish the player's Junior Dispatcher employee role and Jordan as Metroline trainer/supervisor.
   - Teach only the minimum workstation/phone orientation needed for the first assignment.
@@ -181,7 +184,7 @@ Milestone-based career negotiation through CarrierSource/Documents with meaningf
 ## LATER SYSTEM / CONTENT PASSES
 
 ### Dedicated Visual Pass
-Polish closeout, level-ups, reviews, document folders, LedgerDesk, remaining Agenda presentation debt, and other proven workflows without changing their underlying authority.
+After the Operations workspace and first-day flow are connected, do a full visual pass across every screen: opening, Character Creator, employee ID, map/header, Console, Phone, Driver Hub, and all connected workflows. Check spacing, typography, colors, avatar sizing, buttons, transitions, and iPhone/safe-area fit. Include closeout, level-ups, reviews, document folders, LedgerDesk, and remaining Agenda presentation debt without changing workflow authority. Fix obvious visual issues during implementation as needed; First Day is not finished until the consistency pass is complete.
 
 ### Communications Phase 2
 Email threading, differentiated driver personality, varied phrasing, and richer exception-driven communication while preserving the quiet-when-routine contract.
@@ -203,7 +206,7 @@ Add markets only after the core simulation has sufficient depth. Each market mus
 7. On-device acceptance is required before promotion.
 8. Historical notes below are evidence/history, not the current priority list.
 9. Keep this Roadmap and the Build Bible aligned with each approved decision and implementation change; planned work is not marked tested or complete before evidence exists.
-10. Default delivery/testing is push to `p2.4-experience-rebuild` → automatic Vercel deployment → refresh the existing DOC OS link on iPhone. Verify Vercel status before saying a build is ready. No terminal/Xcode commands are required for this workflow.
+10. Default delivery/testing is push to `p2.4-experience-rebuild` → automatic Vercel deployment → refresh the existing DOC OS link on iPhone. Verify Vercel status before saying a build is ready. No terminal/Xcode commands are required for this workflow. Patched ZIP delivery was explicitly retired by Maxx on October 2; no routine ZIP artifacts.
 
 ---
 

@@ -1,3 +1,4 @@
+import './OperationsWorkspace.css'
 import { canAcquireDriverMovement, resolveDriverMovementOwner } from '../utils/driverMovementOwner.js'
 import { anchorMovementRoute, getLunchMovementFrame } from '../utils/runtimeMovement.js'
 import { beginPickupLoading, completePickupLoading, getPickupLoadingChallengeRequest } from '../utils/loadLifecycle.js'
@@ -268,7 +269,7 @@ function getAuthoritativeScheduleConstraint(load, driver) {
   return getDriverScheduleConstraint(load, driver)
 }
 
-function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario, onInitializeEmployeeCareer, initialPhoneOpen = false, initialPhoneScreen = 'home', onInitialPhoneEntryConsumed }) {
+function MainGameScreen({ career, selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario, onInitializeEmployeeCareer, initialPhoneOpen = false, initialPhoneScreen = 'home', onInitialPhoneEntryConsumed }) {
   const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen))
   const [phoneInitialScreen, setPhoneInitialScreen] = useState(initialPhoneScreen || 'home')
   // B.5.4D.1.1 — Opening Guidance + CarrierSource Clock Gate
@@ -870,7 +871,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     ...lifecycleDriverMessages,
   ]
   const driverMessageUnreadCount = driverMessages.filter((message) => message.direction !== 'outbound' && !message.read).length
-  const phoneNotificationCount = emailUnreadCount + driverMessageUnreadCount + lunchReadyDriverIds.length
+  const phoneNotificationCount = driverMessageUnreadCount
+  const consoleNotificationCount = emailUnreadCount + podNotificationCount + lunchReadyDriverIds.length + ledgerNotificationCount
   const driverLunchAlerts = lunchReadyDriverIds.map((driverId) => {
     const driver = drivers.find((item) => item.id === driverId)
     const driverName = driver?.fullName || driver?.name || 'Driver'
@@ -2582,7 +2584,8 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
 
   return (
     <div className="main-game-screen">
-      <StatusBar selectedMarket={selectedMarket} gameTime={gameTime} cash={ledgerAccountSummary.availableBalance} operationDay={operationDay} />
+      <StatusBar career={career} selectedMarket={selectedMarket} gameTime={gameTime} operationDay={operationDay} />
+      <div className="operations-toolbar">
       <OperationsBar
         selectedMarket={selectedMarket}
         notificationCount={operationsNotificationCount}
@@ -2590,7 +2593,10 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         scheduleEntries={daySchedule}
         nextScheduleItem={nextScheduleItem}
         drivers={drivers}
-        onOpenChange={setOperationsOpen}
+        onOpenChange={(open) => {
+          setOperationsOpen(open)
+          if (open) { setIsPhoneOpen(false); setDriverHubOpen(false) }
+        }}
         onNotificationAction={openOperationNotification}
         onSendSchedule={sendDriverSchedule}
         onRequestScheduleApproval={requestScheduleApproval}
@@ -2605,14 +2611,6 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         endDayDisabled={endDayLockedForCloseout || isPhoneOpen || Boolean(planningMode) || Boolean(deliveryPlanning) || endDayOpen}
         onEndDay={() => { pauseClockForModal(); setEndDayOpen(true) }}
       />
-      <div className={`map-area ${operationsOpen ? 'operations-open' : ''}`}>
-        <></>
-        {!freightBrowseMode && !planningMode && !deliveryPlanning && (
-          <button type="button" className="board-view-control" onClick={() => setBoardViewRequest((value) => value + 1)} aria-label="Fit all active operations on map">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="2.4"/></svg>
-            <span>BOARD</span>
-          </button>
-        )}
         <div className="time-controls-wrap">
           <span className="time-state-label" aria-live="polite">{pauseActive ? 'PAUSED' : `${simulationSpeed}× SPEED`}</span>
           <div className="time-controls" aria-label="Simulation time controls">
@@ -2648,6 +2646,15 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           </button>
           </div>
         </div>
+      </div>
+      <div className={`map-area ${operationsOpen ? 'operations-open' : ''}`}>
+        <></>
+        {!isPhoneOpen && !freightBrowseMode && !planningMode && !deliveryPlanning && (
+          <button type="button" className="board-view-control" onClick={() => setBoardViewRequest((value) => value + 1)} aria-label="Fit all active operations on map">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="2.4"/></svg>
+            <span>FIT MAP</span>
+          </button>
+        )}
         {endDayOpen && (
           <EndDaySheet
             operationDay={operationDay}
@@ -3064,15 +3071,23 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         })()}
 
         {!isPhoneOpen && !driverFitEvaluation && !planningMode && !deliveryPlanning && !freightBrowseMode && (
+          <>
+          <button type="button" className="console-launcher" aria-label="Open operations console" onClick={() => { setDriverHubOpen(false); setPhoneInitialScreen('home'); setPhoneLoadId(null); setPhoneInitialDriverId(null); setPhoneInitialEmailContext(null); setIsPhoneOpen(true) }}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8M12 17v4" /></svg>
+            <span>CONSOLE</span>
+            {consoleNotificationCount > 0 && <span className="workspace-notification-badge">{consoleNotificationCount > 9 ? '9+' : consoleNotificationCount}</span>}
+          </button>
           <button
             type="button"
             className="phone-button"
-            onClick={() => { setPhoneInitialScreen('home'); setIsPhoneOpen(true) }}
+            onClick={() => { setDriverHubOpen(false); setPhoneInitialScreen('phoneHome'); setPhoneLoadId(null); setPhoneInitialDriverId(null); setPhoneInitialEmailContext(null); setIsPhoneOpen(true) }}
             aria-label="Open phone"
           >
             <svg className="phone-button-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10 5h4"/><circle cx="12" cy="18.5" r=".8"/></svg>
+            <span className="phone-launcher-label">PHONE</span>
             {phoneNotificationCount > 0 && <span className="phone-notification-badge">{phoneNotificationCount > 9 ? '9+' : phoneNotificationCount}</span>}
           </button>
+          </>
         )}
         {isPhoneOpen && (
           <Suspense fallback={null}>
