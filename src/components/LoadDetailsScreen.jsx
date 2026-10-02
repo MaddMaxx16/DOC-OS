@@ -95,7 +95,7 @@ function LoadDetailsScreen({
     if (!isAvailable) return { label: 'VIEW TODAY\'S PLAN', action: () => onOpenScheduler?.(load.id), disabled: false }
     if (!planningDriver) return { label: 'NO DRIVER AVAILABLE', disabled: true }
     if (!evaluated) return { label: `EVALUATE FOR ${(planningDriver.fullName || planningDriver.name || 'DRIVER').split(' ')[0].toUpperCase()}`, action: () => onEvaluateLoad?.(load.id, planningDriver.id), disabled: false }
-    if (needsLunchPlan) return { label: `PLAN ${(planningDriver.fullName || planningDriver.name || 'DRIVER').split(' ')[0].toUpperCase()}\'S LUNCH`, action: () => onPlanLunch?.(load.id, planningDriver.id), disabled: false }
+    if (needsLunchPlan) return { label: `PLAN ${(planningDriver.fullName || planningDriver.name || 'DRIVER').split(' ')[0].toUpperCase()}'S LUNCH`, action: () => onPlanLunch?.(load.id, planningDriver.id), disabled: false }
     if (approvalRequired && !['PENDING', 'APPROVED'].includes(load.carrierApprovalStatus)) return { label: load.carrierApprovalStatus === 'NEEDS_INFO' ? 'RESEND METROLINE APPROVAL' : 'REQUEST METROLINE APPROVAL', action: () => onRequestApproval?.(load.id, candidateDriver?.id || planningDriver.id), disabled: !goodCandidate }
     if (approvalRequired && load.carrierApprovalStatus === 'PENDING') return { label: 'AWAITING METROLINE APPROVAL', disabled: true }
     if (approvedToPursue && !bookingStatus && !rateConReady) return { label: 'REQUEST BOOKING', action: () => onRequestBooking?.(load.id), disabled: !goodCandidate }
