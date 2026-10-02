@@ -19,6 +19,14 @@ function absoluteTime(value) {
   return Number.isFinite(number) ? formatTime(((number % 1440) + 1440) % 1440) : '—'
 }
 
+function compactDuration(value) {
+  const minutes = Math.max(0, Math.round(Number(value) || 0))
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  const remainder = minutes % 60
+  return remainder ? `${hours} hr ${remainder} min` : `${hours} hr`
+}
+
 function timingResult(arrival, windowStart, windowEnd) {
   if (![arrival, windowStart, windowEnd].every(Number.isFinite)) return { tone: 'pending', label: 'CALCULATING', detail: 'Timing not available yet.' }
   if (arrival > windowEnd) {
@@ -183,6 +191,40 @@ function LoadDetailsScreen({
     }] : []),
   ].sort((a, b) => a.sortMinute - b.sortMinute)
 
+  const loadPosition = confirmedDayLoads.length + 1
+  const originName = load.assignmentProjection?.projectedOriginName
+    || mapLocations.find((location) => location.id === confirmedDayLoads.at(-1)?.deliveryLocationId)?.name
+    || 'Metroline Yard'
+  const pickupWaitMinutes = Number.isFinite(pickupArrival) && Number.isFinite(pickupStart)
+    ? Math.max(0, pickupStart - pickupArrival)
+    : 0
+  const deliveryWaitMinutes = Number.isFinite(deliveryArrival) && Number.isFinite(deliveryStart)
+    ? Math.max(0, deliveryStart - deliveryArrival)
+    : 0
+  const decisionTone = !evaluated
+    ? 'pending'
+    : goodCandidate
+      ? (deliveryWaitMinutes >= 60 ? 'caution' : 'good')
+      : 'risk'
+  const decisionLabel = !evaluated
+    ? 'PREVIEW'
+    : goodCandidate
+      ? (deliveryWaitMinutes >= 60 ? 'FITS · LONG WAIT' : 'FITS')
+      : 'AT RISK'
+  const decisionNote = !evaluated
+    ? 'Run the load check to verify the appointments, HOS, equipment, and rate.'
+    : !goodCandidate
+      ? (pickupTiming.tone === 'risk'
+        ? `Pickup misses the appointment by ${compactDuration(pickupArrival - pickupEnd)}.`
+        : deliveryTiming.tone === 'risk'
+          ? `Delivery misses the appointment by ${compactDuration(deliveryArrival - deliveryEnd)}.`
+          : 'One or more route, HOS, equipment, or rate checks failed.')
+      : deliveryWaitMinutes >= 60
+        ? `The lane fits, but Marcus would wait about ${compactDuration(deliveryWaitMinutes)} for the delivery window to open.`
+        : pickupWaitMinutes > 0
+          ? `The lane fits with about ${compactDuration(pickupWaitMinutes)} of pickup buffer.`
+          : 'The appointments fit the work already confirmed on Marcus’s day.'
+
   const coachSteps = [
     {
       key: 'pickup',
@@ -338,11 +380,47 @@ function LoadDetailsScreen({
           </FirstDayLesson>
         )}
 
+        <section className={`lane-day-check ${decisionTone}`} aria-label={`Load ${loadPosition} day check`}>
+          <header>
+            <div>
+              <span>DAY CHECK · LOAD {loadPosition}</span>
+              <strong>{isAvailable ? 'Can this fit Marcus’s day?' : `Load ${loadPosition} decision`}</strong>
+            </div>
+            <em>{isAvailable ? decisionLabel : 'BOOKED'}</em>
+          </header>
+          <div className="lane-day-check-flow">
+            <div>
+              <span>{confirmedDayLoads.length ? `FREE AFTER LOAD ${confirmedDayLoads.length}` : 'SHIFT START'}</span>
+              <strong>{absoluteTime(projectedStart)}</strong>
+              <small>{originName}</small>
+            </div>
+            <b>→</b>
+            <div className={pickupTiming.tone}>
+              <span>PICKUP ETA</span>
+              <strong>{absoluteTime(pickupArrival)}</strong>
+              <small>{absoluteTime(pickupStart)}–{absoluteTime(pickupEnd)} · {pickupTiming.label}</small>
+            </div>
+            <b>→</b>
+            <div className={deliveryTiming.tone}>
+              <span>DELIVERY ETA</span>
+              <strong>{absoluteTime(deliveryArrival)}</strong>
+              <small>{absoluteTime(deliveryStart)}–{absoluteTime(deliveryEnd)}{deliveryWaitMinutes > 0 ? ` · WAIT ${compactDuration(deliveryWaitMinutes)}` : ` · ${deliveryTiming.label}`}</small>
+            </div>
+            <b>→</b>
+            <div>
+              <span>AVAILABLE AGAIN</span>
+              <strong>{absoluteTime(deliveryComplete)}</strong>
+              <small>{delivery.name}</small>
+            </div>
+          </div>
+          <p>{decisionNote}</p>
+        </section>
+
         <section className="lane-timeline" aria-label="Projected load timeline">
           <header className="lane-timeline-head">
             <div>
-              <span>{proposedLoadNumber > 1 ? `PROPOSED LOAD ${proposedLoadNumber}` : 'PROJECTED DAY'}</span>
-              <strong>{proposedLoadNumber > 1 ? `Does Load ${proposedLoadNumber} fit the day?` : 'Marcus’s load timeline'}</strong>
+              <span>{loadPosition > 1 ? `${isAvailable ? 'PROPOSED' : 'CONFIRMED'} LOAD ${loadPosition}` : (isAvailable ? 'PROJECTED DAY' : 'CONFIRMED LOAD')}</span>
+              <strong>{loadPosition > 1 ? (isAvailable ? `Detailed Load ${loadPosition} timeline` : `Why Load ${loadPosition} fit when booked`) : 'Marcus’s load timeline'}</strong>
             </div>
             <small>{evaluated ? 'ROUTE CHECKED' : 'MARKET ESTIMATE'}</small>
           </header>
@@ -376,7 +454,7 @@ function LoadDetailsScreen({
           <div className={`lane-timeline-stop shift ${activeCoachKey === 'pickup' ? 'coach-focus' : ''}`}>
             <time>{absoluteTime(projectedStart)}</time>
             <i />
-            <div><span>{confirmedDayLoads.length ? `AVAILABLE AFTER LOAD ${confirmedDayLoads.length}` : 'SHIFT START'}</span><strong>{load.assignmentProjection?.projectedOriginName || 'Metroline Yard'}</strong></div>
+            <div><span>{confirmedDayLoads.length ? `AVAILABLE AFTER LOAD ${confirmedDayLoads.length}` : 'SHIFT START'}</span><strong>{originName}</strong></div>
           </div>
 
           <div className={`lane-timeline-leg ${activeCoachKey === 'pickup' ? 'coach-focus' : ''}`}>
