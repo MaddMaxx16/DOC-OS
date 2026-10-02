@@ -2688,7 +2688,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
             onComplete={completeUnloadSequence}
           />
         )}
-        <GameMap boardViewRequest={boardViewRequest} driverFocusRequest={driverFocusRequest} driverFocusId={driverFocusId} facilityFocusRequest={facilityFocusRequest} facilityFocusRole={facilityFocusRole} loads={loads} activeRouteGeometry={freightBrowseMode ? freightBrowseRouteGeometry : activeRouteGeometry} routeFocusMode={freightBrowseMode && freightBrowseRouteGeometry ? 'freight-browse' : planningMode || deliveryPlanning ? 'planning' : null} routeReviewLoad={planningLoad || deliveryPlanningLoad} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgressByDriver={runtimeProgressByDriver} simulationSpeed={simulationSpeed} isGameClockPaused={isGameClockPaused} assignedLoad={assignedLoad} evaluationLoad={null} isDriverFitEvaluation={false} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} freightBrowseMode={freightBrowseMode} freightBrowseLoads={freightBrowseLoads} freightBrowseSelectedLoadId={freightBrowseLoadId} onFreightBrowseSelect={selectFreightBrowseLoad} lunchCandidateLocations={lunchMapLocations} visualSuspended={Boolean(isPhoneOpen || endDayOpen || loadingChallengeLoadId || unloadSequenceLoadId || completionResultLoadId || driverHubOpen || dayLoopOverlayActive)} />
+        <GameMap initialDriverId={firstDay ? 'marcus' : null} boardViewRequest={boardViewRequest} driverFocusRequest={driverFocusRequest} driverFocusId={driverFocusId} facilityFocusRequest={facilityFocusRequest} facilityFocusRole={facilityFocusRole} loads={loads} activeRouteGeometry={freightBrowseMode ? freightBrowseRouteGeometry : activeRouteGeometry} routeFocusMode={freightBrowseMode && freightBrowseRouteGeometry ? 'freight-browse' : planningMode || deliveryPlanning ? 'planning' : null} routeReviewLoad={planningLoad || deliveryPlanningLoad} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgressByDriver={runtimeProgressByDriver} simulationSpeed={simulationSpeed} isGameClockPaused={isGameClockPaused} assignedLoad={assignedLoad} evaluationLoad={null} isDriverFitEvaluation={false} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} freightBrowseMode={freightBrowseMode} freightBrowseLoads={freightBrowseLoads} freightBrowseSelectedLoadId={freightBrowseLoadId} onFreightBrowseSelect={selectFreightBrowseLoad} lunchCandidateLocations={lunchMapLocations} visualSuspended={Boolean(isPhoneOpen || endDayOpen || loadingChallengeLoadId || unloadSequenceLoadId || completionResultLoadId || driverHubOpen || dayLoopOverlayActive)} />
         {freightBrowseMode && (
           <>
             <div className="freight-browse-mode-bar">
@@ -2935,9 +2935,10 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
               className={`driver-hub-launcher${driverHubOpen ? ' open' : ''}`}
               onClick={() => setDriverHubOpen((value) => !value)}
               aria-expanded={driverHubOpen}
+              aria-label="Open drivers"
+              title="Drivers"
             >
-              <span className="driver-hub-launcher-icon">D</span>
-              <span>DRIVERS</span>
+              <svg className="driver-hub-launcher-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4" /><path d="M4 21v-2a8 8 0 0 1 16 0v2" /></svg>
               <strong>{drivers.length}</strong>
             </button>
 
@@ -3075,9 +3076,8 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
 
         {!isPhoneOpen && !driverFitEvaluation && !planningMode && !deliveryPlanning && !freightBrowseMode && (
           <>
-          <button type="button" className="console-launcher" aria-label="Open operations console" onClick={() => { setDriverHubOpen(false); setPhoneInitialScreen('home'); setPhoneLoadId(null); setPhoneInitialDriverId(null); setPhoneInitialEmailContext(null); setIsPhoneOpen(true) }}>
+          <button type="button" className="console-launcher" aria-label="Open operations console" title="Operations console" onClick={() => { setDriverHubOpen(false); setPhoneInitialScreen('home'); setPhoneLoadId(null); setPhoneInitialDriverId(null); setPhoneInitialEmailContext(null); setIsPhoneOpen(true) }}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8M12 17v4" /></svg>
-            <span>CONSOLE</span>
             {consoleNotificationCount > 0 && <span className="workspace-notification-badge">{consoleNotificationCount > 9 ? '9+' : consoleNotificationCount}</span>}
           </button>
           <button
@@ -3085,9 +3085,9 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
             className="phone-button"
             onClick={() => { setDriverHubOpen(false); setPhoneInitialScreen('phoneHome'); setPhoneLoadId(null); setPhoneInitialDriverId(null); setPhoneInitialEmailContext(null); setIsPhoneOpen(true) }}
             aria-label="Open phone"
+            title="Phone"
           >
             <svg className="phone-button-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10 5h4"/><circle cx="12" cy="18.5" r=".8"/></svg>
-            <span className="phone-launcher-label">PHONE</span>
             {phoneNotificationCount > 0 && <span className="phone-notification-badge">{phoneNotificationCount > 9 ? '9+' : phoneNotificationCount}</span>}
           </button>
           </>

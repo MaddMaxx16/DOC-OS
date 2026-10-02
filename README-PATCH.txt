@@ -1,4 +1,4 @@
-DOC OS — P2.4-FD.1/FD.2-TEST — First Day Arrival
+DOC OS — P2.4-FD.1.1-TEST — Arrival Camera and Map Icons
 Branch: p2.4-experience-rebuild
 
 Delivery
@@ -6,6 +6,10 @@ Direct repository edits → automatic Vercel → refresh the usual DOC OS link o
 No patched ZIPs, terminal commands, or Xcode steps for normal testing.
 
 What changed
+First-day Operations now opens centered on Marcus at Metroline Yard, at a closer zoom.
+The camera is selected only on mount; later resume follows his actual saved position.
+The three wide launchers are replaced by 52 px computer, person, and phone circles.
+The familiar phone glyph returns; accessible names and badges/count are preserved.
 START FIRST DAY now opens the real Metroline employee operation.
 Brief Opening your workstation transition → actual map → Jordan’s local portrait
 and three short welcome messages → Marcus’s actual Driver Scheduler in Console.
@@ -21,15 +25,18 @@ Build Bible and Roadmap updated; full visual pass remains scheduled later.
 
 Validation
 Production build and 169 system tests passed.
-Focused lightweight lint passed; no new older-runtime lint diagnostics.
-Browser checks cover cold startup, real handoff, pause, save failures, message/schedule
+No new GameMap/MainGameScreen lint diagnostics.
+Browser checks verify actual-map center with a local empty style, 52 px icon targets
+at three mobile sizes, real Driver Hub navigation, cold startup, handoff, pause,
+save failures, message/schedule
 resume, responsive controls, runtime exit, and real 7 AM clock-in/HOS/message timing.
-Test-environment map tiles unavailable.
-Physical iPhone arrival/workspace/battery acceptance and full DOC001 regression pending.
+Test-environment map tiles unavailable; the iPhone recording confirms real tiles render.
+Maxx praised the first-day flow on iPhone. Revised camera/icon appearance, remaining
+workspace/battery acceptance, and full DOC001 regression are pending.
 
 Phone check
 1. Refresh DOC OS and enter your saved employee ID; tap START FIRST DAY.
-2. Confirm the real map appears behind Jordan’s portrait/message.
+2. Confirm Metroline Yard and Marcus appear centered on the real map behind Jordan’s portrait/message.
 3. Continue through his three messages; game time should stay paused at 6 AM.
 4. View Marcus’s schedule: one Metroline driver, confirmed 7 AM–5 PM shift.
 5. Close Console, then check Console, Phone (Contacts/Messages), and Drivers.

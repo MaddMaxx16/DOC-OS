@@ -95,7 +95,7 @@ DOC002 may become available later the same operating day after DOC001.
   - Verified: production build, focused ESLint, all 165 existing tests, and browser checks for creation, avatar consistency, save/resume, edits, long names, layout, and failed-save recovery.
   - ENTRY.1.1 visual polish: smaller ID/tighter spacing and removal of the redundant green header check; build, focused lint, and browser checks passed.
   - Maxx accepted ENTRY.1.1 on iPhone October 2. A fresh ID-specific battery check was not reported; the earlier protected onboarding battery checkpoint remains the reference.
-  - Live map transition and Jordan conversation are implemented below; physical arrival acceptance and the full First Day promotion remain pending.
+  - Live map transition and Jordan conversation are implemented below. Maxx praised the arrival flow on iPhone October 2; camera/icon refinements and full First Day promotion remain in test.
 
 - [IMPLEMENTED; DEVICE ACCEPTANCE PENDING] **P2.4-FD.0 — Operations Workspace Remodel**
   - Replace BOARD with CONSOLE; retain camera-fit as a separate map utility.
@@ -116,6 +116,8 @@ DOC002 may become available later the same operating day after DOC001.
   - Implemented: brief opening transition, deliberate lazy runtime mount, local Jordan portrait/three-message welcome with inert scene and paused clock, saved message progress, and final handoff to the real Marcus scheduler.
   - Failed initial/progress saves preserve the current boundary; resume restores welcome/schedule or ready map without replay/reseeding. Return to Title flushes and unmounts Operations.
   - Verified: production build, 169 passing tests, no new runtime lint diagnostics, and production browser checks for cold import boundaries, save failure, pause, resume, scheduler, smaller screens, and runtime exit. Physical iPhone appearance/battery and full DOC001 regression pending.
+  - October 2 iPhone feedback: Maxx praised the flow; the recording confirms map tiles render. Requested camera/icon refinement is implemented: initial view centers on Marcus's real position (Metroline Yard on arrival) at 11.2 zoom, once per mount; later resume uses his saved position and ordinary updates preserve player camera control.
+  - Wide labeled map launchers are now 52 px circles: computer/Console left, person/Drivers center, familiar phone glyph right. Accessible names, badges/count, safe-area spacing, and real destinations remain. Build and 169 tests pass; actual-map center, responsive icon tap targets, roster navigation, and existing arrival/resume/clock-in browser checks pass with no page errors or new runtime lint diagnostics. Revised iPhone appearance acceptance is pending; full visual pass/battery/DOC001 checks remain required.
   - No fake simulation state and no full Operations runtime before required.
 
 - [IN TEST] **P2.4-FD.2 — Employee Operation Initialization**

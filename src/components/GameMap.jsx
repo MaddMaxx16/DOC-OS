@@ -86,7 +86,17 @@ function routeMatchesEndpoints(route, origin, destination, toleranceMiles = 1.5)
 }
 
 
-function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId = null, facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgressByDriver = {}, simulationSpeed = 1, isGameClockPaused = false, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, freightBrowseMode = false, freightBrowseLoads = [], freightBrowseSelectedLoadId = null, onFreightBrowseSelect, lunchCandidateLocations = [], visualSuspended = false }) {
+function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequest = 0, driverFocusId = null, facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgressByDriver = {}, simulationSpeed = 1, isGameClockPaused = false, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, freightBrowseMode = false, freightBrowseLoads = [], freightBrowseSelectedLoadId = null, onFreightBrowseSelect, lunchCandidateLocations = [], visualSuspended = false }) {
+  // Resolve only on mount. Status/clock updates must never recenter a map the
+  // player has panned. Resume uses Marcus's saved position, not a forced yard reset.
+  const [initialCamera] = useState(() => {
+    const driver = drivers?.find((item) => item.id === initialDriverId)
+    const position = driver && (runtimePositions?.[driver.id]
+      || mapLocations.find((location) => location.id === driver.homeBaseLocationId))
+    return position && Number.isFinite(position.longitude) && Number.isFinite(position.latitude)
+      ? { center: [position.longitude, position.latitude], zoom: 11.2 }
+      : { center: [-73.9857, 40.7484], zoom: 10 }
+  })
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
   const planningPopupRef = useRef(null)
@@ -282,8 +292,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
     const map = new MapLibreMap({
       container: mapContainer.current,
       style: 'https://tiles.openfreemap.org/styles/dark',
-      center: [-73.9857, 40.7484],
-      zoom: 10,
+      ...initialCamera,
       attributionControl: false,
       // PERF 1 — a 3x iPhone otherwise renders nine physical map pixels for
       // every CSS pixel. 2x stays sharp while substantially reducing WebGL work.
@@ -347,7 +356,7 @@ function GameMap({ boardViewRequest = 0, driverFocusRequest = 0, driverFocusId =
       mapRef.current = null
       setMapReady(false)
     }
-  }, [])
+  }, [initialCamera])
 
   const continuousMapMotionActive = !visualSuspended && !isGameClockPaused && drivers.some((driver) => {
     const owner = resolveDriverMovementOwner({ driver, gameTime, loads })
