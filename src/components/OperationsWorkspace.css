@@ -1,13 +1,18 @@
 /* P2.4-FD.0: map workspace chrome. Existing apps retain their workflow owners. */
+.main-game-screen { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.main-game-screen .operations-status-header, .main-game-screen .operations-toolbar,
+.main-game-screen .board-view-control { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+
 .main-game-screen .operations-status-header {
   height: auto;
-  min-height: calc(58px + env(safe-area-inset-top, 0px));
+  min-height: calc(48px + env(safe-area-inset-top, 0px));
   flex: 0 0 auto;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: calc(8px + env(safe-area-inset-top, 0px)) 14px 8px;
+  padding: max(6px, env(safe-area-inset-top, 0px)) 14px 6px;
+  line-height: 1.2;
   letter-spacing: .04em;
 }
-.operations-identity, .operations-clock { display: grid; gap: 4px; min-width: 0; }
+.operations-identity, .operations-clock { display: grid; gap: 2px; min-width: 0; }
 .operations-identity strong { font-size: 13px; color: #f2f4f7; }
 .operations-identity small { font-size: 10px; color: #9ba8b8; letter-spacing: 0; }
 .operations-clock { text-align: right; font-variant-numeric: tabular-nums; }
@@ -20,7 +25,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  padding: 0 14px 9px;
+  padding: 0 14px 7px;
   background: #0f1115;
   border-bottom: 1px solid #28303b;
 }
@@ -35,10 +40,28 @@
 .operations-toolbar .time-controls { position: static; gap: 3px; }
 .operations-toolbar .time-controls button { width: 36px; height: 40px; border-radius: 8px; box-shadow: none; }
 .main-game-screen .board-view-control { top: 10px; min-height: 40px; font-size: 9px; }
-.main-game-screen .console-launcher, .main-game-screen .phone-button, .main-game-screen .driver-hub-launcher {
+.main-game-screen .operations-map-dock {
   position: absolute;
-  z-index: 28;
+  z-index: 70;
+  left: 50%;
   bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border: 1px solid #394451;
+  border-radius: 38px;
+  background: rgba(15, 20, 27, .96);
+  box-shadow: 0 8px 24px #0006;
+}
+.main-game-screen .operations-map-dock > button {
+  position: relative;
+  z-index: 28;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  flex: 0 0 52px;
   width: 52px;
   height: 52px;
   min-height: 52px;
@@ -50,7 +73,7 @@
   border-radius: 50%;
   background: rgba(17, 22, 28, .96);
   color: #e4eaf2;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, .3);
+  box-shadow: none;
   font: inherit;
   font-size: 9px;
   font-weight: 800;
@@ -58,9 +81,6 @@
   cursor: pointer;
   transform: none;
 }
-.main-game-screen .console-launcher { left: 14px; }
-.main-game-screen .driver-hub-launcher { left: calc(50% - 26px); }
-.main-game-screen .phone-button { left: auto; right: 14px; }
 .main-game-screen .console-launcher > svg, .main-game-screen .phone-button-icon, .main-game-screen .driver-hub-launcher-icon { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; background: transparent; }
 .main-game-screen .driver-hub-launcher strong, .workspace-notification-badge, .main-game-screen .phone-notification-badge {
   position: absolute;
@@ -78,7 +98,7 @@
   font-size: 10px;
   letter-spacing: 0;
 }
-.main-game-screen .driver-hub-sheet { bottom: calc(82px + env(safe-area-inset-bottom, 0px)); }
+.main-game-screen .driver-hub-sheet { bottom: calc(94px + env(safe-area-inset-bottom, 0px)); }
 .main-game-screen .phone-overlay.operations-console { top: 8px; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
 .main-game-screen .phone-overlay.communications-phone {
   top: auto;
@@ -104,3 +124,21 @@
 .contact-row strong { font-size: 13px; overflow-wrap: anywhere; }
 .contact-row small { font-size: 10px; color: #9ba8b8; }
 @media (prefers-reduced-motion: reduce) { .main-game-screen .phone-overlay { animation: none; transition: none; } }
+
+/* Readable map identities; offsets are visual and never change coordinates. */
+.main-game-screen .game-marker.carrier-yard::after { content: none; }
+.main-game-screen .yard-map-name, .main-game-screen .driver-map-name {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: rgba(12, 17, 23, .95);
+  color: #e4eaf2;
+  font: 600 10px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.main-game-screen .yard-map-name { top: calc(100% + 6px); }
+.main-game-screen .driver-map-name { bottom: calc(100% + 6px); }

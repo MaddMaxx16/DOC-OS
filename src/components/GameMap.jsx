@@ -79,6 +79,18 @@ function coordinateDistanceMiles(a, b) {
   return 2 * earthMiles * Math.asin(Math.min(1, Math.sqrt(h)))
 }
 
+// Separate co-located driver/yard symbols in screen space only.
+function getDriverYardOffset(position, yard) {
+  return coordinateDistanceMiles(position, yard) < 0.025 ? [34, -28] : [0, 0]
+}
+
+function syncDriverYardOffset(marker, yard) {
+  const point = marker.getLngLat()
+  const next = getDriverYardOffset([point.lng, point.lat], yard)
+  const current = marker.getOffset()
+  if (current.x !== next[0] || current.y !== next[1]) marker.setOffset(next)
+}
+
 function routeMatchesEndpoints(route, origin, destination, toleranceMiles = 1.5) {
   if (!Array.isArray(route) || route.length < 2 || !origin || !destination) return false
   return coordinateDistanceMiles(route[0], origin) <= toleranceMiles
@@ -429,6 +441,12 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
 
       if (paused) {
         currentDrivers.forEach((driver) => {
+          const marker = driverMarkerRefs.current.get(driver.id)
+          if (!marker) return
+          const yard = mapLocations.find((location) => location.id === driver.homeBaseLocationId && yardMarkerRefs.current.has(location.id))
+          syncDriverYardOffset(marker, yard)
+        })
+        currentDrivers.forEach((driver) => {
           if (facilityLockedDriverIds.has(driver.id)) return
           const movementOwner = resolveDriverMovementOwner({ driver, gameTime: state.gameTime, loads: currentLoads })
           if (movementOwner.type !== 'freight' || !movementOwner.load) return
@@ -480,6 +498,12 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
         if (point) marker.setLngLat(point)
       })
 
+      currentDrivers.forEach((driver) => {
+        const marker = driverMarkerRefs.current.get(driver.id)
+        if (!marker) return
+        const yard = mapLocations.find((location) => location.id === driver.homeBaseLocationId && yardMarkerRefs.current.has(location.id))
+        syncDriverYardOffset(marker, yard)
+      })
       scheduleNextFrame(render)
     }
 
@@ -576,6 +600,10 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
       element.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.2 12 4l8.5 6.2v9.3h-3.2v-6.1H6.7v6.1H3.5v-9.3Z"/><path d="M8.2 15.1h7.6v1.8H8.2zM8.2 18h7.6v1.5H8.2z"/></svg>'
       element.setAttribute('aria-label', `${carrier.name || 'Carrier'} home base · ${yard.name}`)
       element.title = `${carrier.name || 'Carrier'} · ${yard.name}`
+      const yardLabel = document.createElement('span')
+      yardLabel.className = 'yard-map-name'
+      yardLabel.textContent = yard.name
+      element.appendChild(yardLabel)
       const marker = new Marker({ element }).setLngLat([yard.longitude, yard.latitude]).addTo(map)
       yardMarkerRefs.current.set(yard.id, marker)
     })
@@ -694,6 +722,10 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
       if (!position) return
       const element = document.createElement('div'); element.className = 'game-marker driver'; element.textContent = driver.name?.charAt(0)?.toUpperCase() || 'D'; element.style.setProperty('--driver-color', getDriverColorFamily(driver.id)[1])
       element.setAttribute('aria-label', `${driver.fullName || driver.name || 'Driver'} map position`)
+      const nameLabel = document.createElement('span')
+      nameLabel.className = 'driver-map-name'
+      nameLabel.textContent = driver.name || 'Driver'
+      element.appendChild(nameLabel)
       element.addEventListener('click', (event) => {
         event.stopPropagation()
         setFocusedDriverId((current) => current === driver.id ? null : driver.id)
@@ -710,7 +742,7 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
       })
       // B.5.3.2.6 — drivers always sit above world POIs/facilities.
       element.style.zIndex = '90'
-      const marker = new Marker({ element }).setLngLat([position.longitude, position.latitude]).addTo(map)
+      const marker = new Marker({ element, offset: getDriverYardOffset(position, yardMarkerRefs.current.has(home?.id) ? home : null) }).setLngLat([position.longitude, position.latitude]).addTo(map)
       driverMarkerRefs.current.set(driver.id, marker); markerRecords.current.push({ location: { id: driver.id, name: driver.name, type: 'driver' }, marker, markerElement: element, popup: null })
     })
     if (showPickup && pickup) createLocationMarker(pickup, pickupMarkerRef, 'pickup')

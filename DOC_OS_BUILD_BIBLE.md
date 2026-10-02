@@ -210,6 +210,20 @@ The real map now chooses Marcus's authoritative saved position once when it moun
 
 Console, Drivers, and Phone now use 52 px circular icon launchers, placed left, center, and right along the lower map edge. The existing phone glyph is retained; the driver letter becomes a person glyph. Accessible button names, notification badges, driver count, open state, safe-area clearance, and real destinations are retained. Validation: production build and all 169 system tests pass, with no new lint diagnostics in GameMap/MainGameScreen. Browser checks use the actual MapLibre map with a local empty style (no cartographic acceptance): Marcus projects to the map center; all three 52 px launchers are accessible at 390×844, 375×812, and 320×568; the person icon opens the real roster; welcome, save failure, scheduler/resume, runtime exit, and clock-in/HOS checks still pass without page errors. Revised on-device visual acceptance is pending. The full visual pass, battery check, and protected DOC001 regression remain required before promotion.
 
+### 2.8.5 Workstation visual refinement — IN TEST
+
+October 2 follow-up: Maxx said the arrival screen still felt off. The phone screenshot showed a tall header with serif fallback text, overlapping Marcus/yard symbols, and three isolated launchers. Maxx authorized a tighter header, distinct named markers, and one compact bottom dock.
+
+The Operations shell/header now uses an explicit local system sans-serif stack. The identity/time row is 48 px plus the real top safe area, with tighter line spacing and one notch padding budget. The legitimate iPhone notch space remains protected. The welcome backdrop follows the reduced header budget.
+
+A centered Workstation dock groups the computer, person, and familiar phone glyph in a single dark rounded surface, approximately 198 px wide with three 52 px tap targets. Original destination/visibility conditions and badge/count/open behavior remain; the Driver Hub clears the taller dock. The dock stays inside the operational scene so Jordan's welcome keeps it inert and behind the conversation.
+
+Yards carry their actual map-location name (Metroline Yard); driver symbols carry the driver's name (Marcus). When a driver is physically within 0.025 miles of an active home yard, its marker receives a small [34, -28] screen offset so the yard and driver are distinguishable. The offset clears as the driver departs and returns on arrival. It changes no longitude/latitude, route, movement owner, HOS, schedule, or saved operation. It shares the existing reconciliation/render lifecycle and introduces no timer; unchanged offsets do not trigger marker updates.
+
+Validation: production build and 169 system tests pass; GameMap/MainGameScreen retain their existing 11/25 lint diagnostics with none added. Production browser checks pass for named non-overlapping markers, actual MapLibre centering with a local empty style, system-font/compact header, notch/home clearance, centered dock, three mobile-size tap targets, real Driver Hub navigation, existing welcome/save-failure/scheduler/resume/runtime-exit flow, and the confirmed single 7 AM clock-in/HOS message, without page errors. A separate moved-position resume check confirms Marcus centers on his actual saved position, has no yard offset away from the yard, and retains the saved coordinate. These map checks verify symbols/camera rather than cartographic appearance.
+
+The earlier FD.1.1 spread-launcher presentation is superseded by this grouped dock. Revised physical iPhone acceptance, the full visual pass, battery check, and protected DOC001 regression remain pending.
+
 ### 2.9 First Day build guardrails
 
 Before coding a First Day slice:
