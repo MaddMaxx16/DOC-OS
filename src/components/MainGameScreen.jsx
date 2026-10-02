@@ -281,8 +281,8 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
   const restIntroActive = shouldTeachFirstDayRest(firstDay, loads)
   const [phoneLessonEntry, setPhoneLessonEntry] = useState(0)
   const shiftEndIntroActive = shouldTeachFirstDayShiftEnd(firstDay, loads)
-  const guidedWorkdayActive = ['schedule', 'lunch', 'shiftEnd'].includes(firstDay?.step)
-  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen || ['schedule', 'lunch', 'freight', 'restOfDay', 'secondLane', 'shiftEnd'].includes(firstDay?.step)))
+  const guidedWorkdayActive = ['lunch', 'shiftEnd'].includes(firstDay?.step)
+  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen || ['lunch', 'freight', 'restOfDay', 'secondLane', 'shiftEnd'].includes(firstDay?.step)))
   const [phoneInitialScreen, setPhoneInitialScreen] = useState(guidedWorkdayActive ? 'agenda' : firstDay?.step === 'secondLane' ? 'loadDetails' : ['freight', 'restOfDay'].includes(firstDay?.step) ? 'loadBoard' : initialPhoneScreen || 'home')
   // B.5.4D.1.1 — Opening Guidance + CarrierSource Clock Gate
   const [dayOneCarrierSourceGateActive, setDayOneCarrierSourceGateActive] = useState(
@@ -1588,7 +1588,7 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
     return true
   }
 
-  const acceptCandidateAssignment = (loadId) => {
+  const acceptCandidateAssignment = (loadId, bookingProof = false) => {
     const currentLoad = loads.find((item) => item.id === loadId)
     const driverId = currentLoad?.candidateDriverId
     
@@ -1612,7 +1612,7 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
       )))
       return false
     }
-if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFitVerified || !driverId || !isRateConfirmationConfirmed(currentLoad)) return false
+if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFitVerified || !driverId || (!bookingProof && !isRateConfirmationConfirmed(currentLoad))) return false
     const selectedDriver = drivers.find((driver) => driver.id === driverId)
     if (!selectedDriver || isDriverOnLunch(selectedDriver, gameTime)) return false
     const carrier = carriers.find((item) => item.id === selectedDriver.carrierId)
@@ -1624,10 +1624,11 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       const activeAtCommit = getDriverActiveLoad(current, driverId)
       const queuePosition = activeAtCommit ? getNextQueuePosition(current, driverId) : 0
       const nextTripStatus = activeAtCommit ? 'queued' : 'assigned'
-      return current.map((load) => load.id === loadId && load.status === 'available' && isRateConfirmationConfirmed(load) ? {
+      return current.map((load) => load.id === loadId && load.status === 'available' && (bookingProof || isRateConfirmationConfirmed(load)) ? {
         ...load,
         status: nextTripStatus,
         tripStatus: nextTripStatus,
+        bookingStatus: 'CONFIRMED',
         assignedDriverId: driverId,
         candidateDriverId: null,
         driverFitVerified: true,
@@ -3078,10 +3079,10 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
 
         {!isPhoneOpen && !planningMode && !deliveryPlanning && firstDay && !welcomeActive
           && !firstDay.workdayLessonComplete && Number(gameTime?.gameDayIndex || 0) === 0
-          && !loads.some((load) => load.id === 'DOC001' && ['completed', 'paid', 'delivered'].includes(load.status)) && (
+          && !loads.some((load) => (load.assignedDriverId === 'marcus' || load.completedDriverId === 'marcus') && ['completed', 'paid', 'delivered'].includes(load.status)) && (
           <button type="button" className="first-day-resume" onClick={() => {
-            const step = firstDay.step === 'ready' ? 'schedule' : firstDay.step
-            if (onFirstDayProgress?.({ step, messageIndex: 2, flowVersion: 2 }) === false) return
+            const step = ['ready', 'schedule'].includes(firstDay.step) ? 'freight' : firstDay.step
+            if (onFirstDayProgress?.({ step, messageIndex: 2, flowVersion: 3 }) === false) return
             setDriverHubOpen(false)
             setPhoneInitialScreen(step === 'secondLane' ? 'loadDetails' : ['freight', 'restOfDay'].includes(step) ? 'loadBoard' : 'agenda')
             setPhoneInitialDriverId('marcus')
@@ -3246,7 +3247,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       </div>
       {restIntroActive && <FirstDayWelcome lessonMessage="That first lane is booked and its rate con is confirmed. Now let’s build the rest of Marcus’s day. We’ll go back to FreightLink and look at a second lane. Before adding it, we’ll make room for lunch around the work he already has." actionLabel="SHOP THE REST OF HIS DAY" onContinue={() => {
         const first = getFirstDayBookedLanes(loads)[0]
-        if (onFirstDayProgress?.({ step: 'restOfDay', firstLaneId: first.id, flowVersion: 2, messageIndex: 2 }) === false) return
+        if (onFirstDayProgress?.({ step: 'restOfDay', firstLaneId: first.id, flowVersion: 3, messageIndex: 2 }) === false) return
         setPhoneInitialScreen('loadBoard')
         setPhoneInitialDriverId('marcus')
         setPhoneLoadId(null)
@@ -3263,10 +3264,10 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       {welcomeActive && <FirstDayWelcome playerName={dispatcherProfile?.displayName} messageIndex={firstDay.messageIndex} onContinue={() => {
         const next = firstDay.messageIndex < 2
           ? { step: 'welcome', messageIndex: firstDay.messageIndex + 1 }
-          : { step: 'schedule', messageIndex: 2 }
+          : { step: 'freight', messageIndex: 2, flowVersion: 3 }
         if (onFirstDayProgress?.(next) === false) return
-        if (next.step === 'schedule') {
-          setPhoneInitialScreen('agenda')
+        if (next.step === 'freight') {
+          setPhoneInitialScreen('loadBoard')
           setPhoneInitialDriverId('marcus')
           setPhoneLoadId(null)
           setIsPhoneOpen(true)

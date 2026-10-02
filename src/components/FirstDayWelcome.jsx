@@ -10,7 +10,7 @@ function FirstDayWelcome({ playerName, messageIndex = 0, onContinue, lessonMessa
   const messages = [
     `Welcome to Metroline, ${playerName || 'dispatcher'}. I’m Jordan Blake, your trainer. We’ll take your first shift one step at a time.`,
     'This map is your workspace. Console holds your dispatch tools, Phone is for conversations, and Drivers shows your roster.',
-    'Marcus Reed is your assigned driver. He’s at the Metroline Yard. Let’s check his schedule before we find his first load.',
+    'Marcus Reed is your assigned driver. Metroline has him scheduled 7:00 AM–5:00 PM, starting at the Metroline Yard. That is our operating window. Let’s find his first load.',
   ]
   return (
     <div className="first-day-welcome-backdrop">
@@ -20,7 +20,7 @@ function FirstDayWelcome({ playerName, messageIndex = 0, onContinue, lessonMessa
           <div><small>METROLINE · YOUR TRAINER</small><h2 id="first-day-jordan-title">Jordan Blake</h2><span>{lessonMessage ? 'Plan the whole workday' : 'Welcome to your first day'}</span></div>
         </header>
         <p id="first-day-jordan-message" aria-live="polite">{lessonMessage || messages[messageIndex]}</p>
-        <footer><span>{lessonMessage ? 'SHIFT-END PLAN' : `${messageIndex + 1} / ${messages.length}`} · TIME PAUSED</span><button ref={buttonRef} type="button" onClick={onContinue}>{actionLabel || (messageIndex === 2 ? 'VIEW MARCUS’S SCHEDULE' : 'CONTINUE')} <span aria-hidden="true">→</span></button></footer>
+        <footer><span>{lessonMessage ? 'SHIFT-END PLAN' : `${messageIndex + 1} / ${messages.length}`} · TIME PAUSED</span><button ref={buttonRef} type="button" onClick={onContinue}>{actionLabel || (messageIndex === 2 ? 'OPEN FREIGHTLINK' : 'CONTINUE')} <span aria-hidden="true">→</span></button></footer>
       </section>
     </div>
   )

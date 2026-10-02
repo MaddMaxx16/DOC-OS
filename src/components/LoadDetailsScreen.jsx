@@ -2,7 +2,7 @@ import { useState } from 'react'
 import FirstDayLesson from './FirstDayLesson.jsx'
 import './LaneReview.css'
 import mapLocations from '../data/mapLocations.js'
-import { formatAppointment } from '../utils/gameTime.js'
+import { formatAppointment, formatTime } from '../utils/gameTime.js'
 import { getAgreementRules } from '../utils/carrierAgreement.js'
 import { getFreightCommodity, getFreightRouteName } from '../utils/freightIdentity.js'
 import { getFreightHaulClass } from '../utils/planningIntelligence.js'
@@ -10,138 +10,445 @@ import { getLoadHosEvaluation } from '../utils/hosPlanning.js'
 import { formatHosClock, getDriverHosSummary } from '../utils/driverHOS.js'
 
 function formatMiles(value) {
-  if (Number.isFinite(value)) return `${value.toFixed(1)} mi`
-  return value === 'unavailable' ? 'Unavailable' : 'Not listed'
+  const number = Number(value)
+  return Number.isFinite(number) ? `${number.toFixed(1)} mi` : '—'
 }
 
-function LoadDetailsScreen({ firstDay, onFirstDayProgress, onPlanFirstDayLunch, loads, drivers, carriers = [], loadId, planningDriverId = null, runtimePositions = {}, gameTime, onAddToSchedule, onOpenScheduler, onSendLoadDetails, onBack }) {
+function absoluteTime(value) {
+  const number = Number(value)
+  return Number.isFinite(number) ? formatTime(((number % 1440) + 1440) % 1440) : '—'
+}
+
+function timingResult(arrival, windowStart, windowEnd) {
+  if (![arrival, windowStart, windowEnd].every(Number.isFinite)) return { tone: 'pending', label: 'CALCULATING', detail: 'Timing not available yet.' }
+  if (arrival > windowEnd) {
+    const late = Math.round(arrival - windowEnd)
+    return { tone: 'risk', label: `${late} MIN LATE`, detail: `Projected arrival is ${late} minutes after the appointment closes.` }
+  }
+  if (arrival < windowStart) {
+    const early = Math.round(windowStart - arrival)
+    return { tone: 'good', label: `${early} MIN EARLY`, detail: `Projected arrival is ${early} minutes before the appointment opens.` }
+  }
+  const inside = Math.max(0, Math.round(windowEnd - arrival))
+  return { tone: inside <= 20 ? 'tight' : 'good', label: 'IN WINDOW', detail: `${inside} minutes remain in the appointment window.` }
+}
+
+function LoadDetailsScreen({
+  firstDay,
+  onFirstDayProgress,
+  onPlanFirstDayLunch,
+  loads,
+  drivers,
+  carriers = [],
+  loadId,
+  planningDriverId = null,
+  runtimePositions = {},
+  gameTime,
+  onEvaluateLoad,
+  onRequestApproval,
+  onRequestBooking,
+  onOpenRateConfirmation,
+  onViewConfirmedDay,
+  onSendLoadDetails,
+  onBack,
+}) {
   const [evaluating, setEvaluating] = useState(false)
   const [evaluationError, setEvaluationError] = useState(null)
+
   const load = loads.find((item) => item.id === loadId)
   const pickup = load && mapLocations.find((location) => location.id === load.pickupLocationId)
   const delivery = load && mapLocations.find((location) => location.id === load.deliveryLocationId)
   const eligibleDrivers = drivers.filter((driver) => driver.carrierId)
   const candidateDriver = load ? drivers.find((driver) => driver.id === load.candidateDriverId) : null
-  const planningDriver = drivers.find((driver) => driver.id === planningDriverId) || candidateDriver || null
+  const assignedDriver = load ? drivers.find((driver) => driver.id === load.assignedDriverId) : null
+  const planningDriver = drivers.find((driver) => driver.id === planningDriverId)
+    || candidateDriver
+    || assignedDriver
+    || eligibleDrivers[0]
+    || null
 
-  // AW1.7: viewing a FreightLink load is read-only. The plan is only mutated
-  // after the dispatcher explicitly taps ADD TO PLAN.
-
-  if (!load || !pickup || !delivery) return <div className="phone-page load-details-screen"><div className="load-detail-empty"><strong>Route unavailable</strong><button type="button" onClick={onBack}>RETURN TO FREIGHTLINK</button></div></div>
+  if (!load || !pickup || !delivery) {
+    return (
+      <div className="phone-page load-details-screen">
+        <div className="load-detail-empty">
+          <strong>Lane unavailable</strong>
+          <button type="button" onClick={onBack}>RETURN TO FREIGHTLINK</button>
+        </div>
+      </div>
+    )
+  }
 
   const isAvailable = load.status === 'available'
-  const assignedDriver = drivers.find((driver) => driver.id === load.assignedDriverId)
-  const candidateCarrier = candidateDriver ? carriers.find((carrier) => carrier.id === candidateDriver.carrierId) : carriers.find((carrier) => carrier.id === load.carrierId)
-  const rules = getAgreementRules(candidateCarrier || carriers[0])
-  const rpm = Number.isFinite(load.listedMiles) && load.listedMiles > 0 ? load.rate / load.listedMiles : null
-  const rateFit = !Number.isFinite(rules.minimumRatePerLoadedMile) || !Number.isFinite(rpm) || rpm >= rules.minimumRatePerLoadedMile
+  const carrier = carriers.find((item) => item.id === (planningDriver?.carrierId || load.carrierId)) || carriers[0] || null
+  const rules = getAgreementRules(carrier)
+  const rpm = Number.isFinite(Number(load.listedMiles)) && Number(load.listedMiles) > 0
+    ? Number(load.rate) / Number(load.listedMiles)
+    : null
+  const rateFit = !Number.isFinite(rules.minimumRatePerLoadedMile)
+    || !Number.isFinite(rpm)
+    || rpm >= rules.minimumRatePerLoadedMile
   const haulClass = getFreightHaulClass(load)
-  const hosEvaluation = isAvailable && planningDriver ? getLoadHosEvaluation({ load, driver: planningDriver, loads, runtimePositions, gameTime }) : null
+  const hosEvaluation = planningDriver
+    ? getLoadHosEvaluation({ load, driver: planningDriver, loads, runtimePositions, gameTime })
+    : null
   const planningHos = planningDriver ? getDriverHosSummary(planningDriver) : null
+  const workday = planningDriver?.workdayByDay?.[String(load.pickupDayIndex)]
+    || planningDriver?.workdayByDay?.[load.pickupDayIndex]
+    || null
 
-  const addToPlan = async () => {
-    if (evaluating) return
+  const pickupStart = Number(load.pickupDayIndex || 0) * 1440 + Number(load.pickupWindowStartMinutes || 0)
+  const pickupEnd = Number(load.pickupDayIndex || 0) * 1440 + Number(load.pickupWindowEndMinutes || load.pickupWindowStartMinutes || 0)
+  const deliveryStart = Number(load.deliveryDayIndex || 0) * 1440 + Number(load.deliveryWindowStartMinutes || 0)
+  const deliveryEnd = Number(load.deliveryDayIndex || 0) * 1440 + Number(load.deliveryWindowEndMinutes || load.deliveryWindowStartMinutes || 0)
+
+  const projectedStart = Number(hosEvaluation?.projectedStartMinute)
+  const pickupArrival = Number(hosEvaluation?.projectedPickupArrivalMinute)
+  const pickupServiceStart = Number(hosEvaluation?.projectedPickupServiceStartMinute)
+  const pickupDepart = Number(hosEvaluation?.projectedPickupDepartMinute)
+  const deliveryArrival = Number(hosEvaluation?.projectedDeliveryArrivalMinute)
+  const deliveryServiceStart = Number(hosEvaluation?.projectedDeliveryServiceStartMinute)
+  const deliveryComplete = Number(hosEvaluation?.projectedDeliveryCompleteMinute)
+  const deadheadMinutes = Number(hosEvaluation?.deadheadMinutes)
+  const loadedMinutes = Number(hosEvaluation?.loadedMinutes)
+  const deadheadMiles = Number(load.assignmentProjection?.deadheadMiles ?? hosEvaluation?.deadheadMiles)
+  const loadedMiles = Number(load.tripPlan?.legs?.loaded?.miles ?? hosEvaluation?.loadedMiles ?? load.listedMiles)
+  const totalMiles = [deadheadMiles, loadedMiles].every(Number.isFinite) ? deadheadMiles + loadedMiles : null
+  const totalRpm = Number.isFinite(totalMiles) && totalMiles > 0 ? Number(load.rate) / totalMiles : null
+
+  const pickupTiming = timingResult(pickupArrival, pickupStart, pickupEnd)
+  const deliveryTiming = timingResult(deliveryArrival, deliveryStart, deliveryEnd)
+  const requiredEquipmentType = load.freight?.equipmentType || load.equipmentType || 'dry-van'
+  const requiredEquipmentLabel = load.freight?.equipmentLabel || load.equipmentLabel || "53' Dry Van"
+  const equipmentMatch = planningDriver?.equipment?.type
+    ? planningDriver.equipment.type === requiredEquipmentType
+    : null
+  const hosWorks = hosEvaluation ? hosEvaluation.tone !== 'risk' : null
+  const evaluated = Boolean(load.driverFitVerified && load.assignmentProjection && load.tripPlan)
+  const routeCheckWorks = evaluated
+    ? !String(load.assignmentProjection?.status || '').toUpperCase().includes('AT RISK') && !load.scheduleConflict
+    : null
+  const goodCandidate = Boolean(
+    evaluated
+    && routeCheckWorks
+    && pickupTiming.tone !== 'risk'
+    && deliveryTiming.tone !== 'risk'
+    && hosWorks
+    && equipmentMatch !== false
+    && rateFit
+  )
+
+  const guidedFirstLane = isAvailable
+    && planningDriver?.id === 'marcus'
+    && firstDay?.step === 'freight'
+  const reviewIndex = firstDay?.laneReviewLoadId === load.id
+    ? Number(firstDay.laneReviewIndex || 0)
+    : 0
+  const lunchStart = Number(workday?.lunchWindowStartMinutes ?? workday?.lunchStartMinutes)
+  const lunchEnd = Number(workday?.lunchWindowEndMinutes)
+  const lunchDuration = Number(workday?.lunchDurationMinutes)
+  const lunchPlanned = Number.isFinite(lunchStart)
+    && (Number.isFinite(lunchEnd) || Number.isFinite(lunchDuration))
+  const secondLaneNeedsLunch = isAvailable
+    && firstDay?.step === 'restOfDay'
+    && firstDay?.firstLaneId
+    && load.id !== firstDay.firstLaneId
+    && !lunchPlanned
+
+  const coachSteps = [
+    {
+      key: 'pickup',
+      title: 'First check: pickup',
+      text: planningDriver
+        ? `${planningDriver.fullName || planningDriver.name} starts at ${absoluteTime(projectedStart)}. This lane needs about ${Number.isFinite(deadheadMinutes) ? Math.round(deadheadMinutes) : '—'} minutes of deadhead, putting him at ${pickup.name} around ${absoluteTime(pickupArrival)}. ${pickupTiming.detail}`
+        : 'Start by choosing the driver, then compare the truck’s starting point with the pickup appointment.',
+    },
+    {
+      key: 'delivery',
+      title: 'Now check delivery',
+      text: `After pickup service, Marcus should leave around ${absoluteTime(pickupDepart)}. The loaded leg is about ${Number.isFinite(loadedMinutes) ? Math.round(loadedMinutes) : '—'} minutes, with projected arrival at ${absoluteTime(deliveryArrival)}. ${deliveryTiming.detail}`,
+    },
+    {
+      key: 'hos',
+      title: 'Can he legally run it?',
+      text: hosEvaluation
+        ? `This commitment uses about ${formatHosClock(hosEvaluation.driveRequiredMinutes)} of driving and ${formatHosClock(hosEvaluation.dutyRequiredMinutes)} of duty time. Marcus has ${planningHos?.driving || '—'} drive and ${planningHos?.duty || '—'} duty available.`
+        : 'Driving time and duty time are separate limits. Both need enough room for the complete commitment.',
+    },
+    {
+      key: 'equipment',
+      title: 'Does the truck match?',
+      text: `The freight calls for ${requiredEquipmentLabel}. Marcus is running ${planningDriver?.equipment?.label || 'equipment not listed'}. ${equipmentMatch === false ? 'That is not a match.' : 'The equipment matches.'}`,
+    },
+    {
+      key: 'money',
+      title: 'Last check: the money',
+      text: `The offer is $${Number(load.rate).toLocaleString()} for ${formatMiles(loadedMiles)} loaded. Deadhead matters too: ${formatMiles(deadheadMiles)} before pickup, or ${formatMiles(totalMiles)} total truck miles. Look at the work, not just the posted rate.`,
+    },
+  ]
+  const coach = coachSteps[Math.min(coachSteps.length - 1, reviewIndex)]
+
+  const runEvaluation = async () => {
+    if (evaluating || !planningDriver) return false
     setEvaluating(true)
     setEvaluationError(null)
     try {
-      if (!candidateDriver) {
-        const ok = await onAddToSchedule?.(load.id, planningDriver?.id || null)
-        if (ok === false) { setEvaluationError('Could not evaluate this lane. Try again or choose another lane.'); return }
+      const ok = await onEvaluateLoad?.(load.id, planningDriver.id)
+      if (ok === false) {
+        setEvaluationError('The route check could not be completed. Try this lane again.')
+        return false
       }
-      onOpenScheduler?.(load.id)
-    } finally { setEvaluating(false) }
+      return true
+    } finally {
+      setEvaluating(false)
+    }
   }
 
-  const driverLabel = candidateDriver ? 'AVAILABLE' : eligibleDrivers.length ? 'CHECKING' : 'NONE'
-  const driverName = candidateDriver?.fullName || candidateDriver?.name || (eligibleDrivers.length ? `${eligibleDrivers.length} ON ROSTER` : 'NO DRIVER')
-  const bookingLabel = rules.loadApprovalRequired ? 'APPROVAL REQUIRED' : 'AUTHORIZED'
-  const rateLabel = rateFit ? 'RATE MATCH' : 'RATE REVIEW'
+  const advanceCoach = async () => {
+    if (reviewIndex < coachSteps.length - 1) {
+      onFirstDayProgress?.({
+        laneReviewLoadId: load.id,
+        laneReviewIndex: reviewIndex + 1,
+        flowVersion: 3,
+      })
+      return
+    }
+    await runEvaluation()
+  }
 
-  const guided = isAvailable && planningDriver?.id === 'marcus' && ['freight', 'secondLane'].includes(firstDay?.step)
-  const reviewIndex = firstDay?.laneReviewLoadId === load.id ? firstDay.laneReviewIndex || 0 : 0
-  const checks = [
-    { title: '1 · Can he make pickup?', text: `Pickup at ${pickup.name}: ${formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}. Marcus needs time to reach the shipper from his projected position. Reaching it before the window opens can mean waiting; arriving after it closes is a risk.`, section: 'pickup' },
-    { title: '2 · Can he make delivery?', text: `Delivery at ${delivery.name}: ${formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)}. Allow for loading, driving, waiting, and unloading. A short drive alone does not prove the appointments fit.`, section: 'pickup' },
-    { title: '3 · Count the travel and work', text: hosEvaluation ? `Initial estimates: ${hosEvaluation.deadheadMinutes} minutes to pickup, then ${hosEvaluation.loadedMinutes} minutes driving loaded. The full routing check must include existing work and facility time. ${firstDay.step === 'secondLane' ? 'We must also respect the lunch window you just saved.' : 'For this first lane, focus on the appointments and his shift.'}` : 'Travel is not evaluated yet. We need the drive to pickup, the loaded leg, and the facility time before deciding this works.', section: 'hours' },
-    { title: '4 · Does Marcus have the hours?', text: hosEvaluation ? `${hosEvaluation.driverTimeSummary} Driving required: ${formatHosClock(hosEvaluation.driveRequiredMinutes)}. Duty required: ${formatHosClock(hosEvaluation.dutyRequiredMinutes)}. These estimates are one check; the route evaluation must also test appointments and the carrier’s shift.` : 'Available driving time and duty time are separate limits. We still need a complete evaluation before claiming a fit.', section: 'hours' },
-    { title: '5 · Is the offer worth reviewing?', text: `$${load.rate} for ${formatMiles(load.listedMiles)} loaded. ${Number.isFinite(rpm) ? `$${rpm.toFixed(2)} per loaded mile. ` : ''}${rateFit ? 'This meets the carrier’s loaded-mile rate rule. ' : 'This needs rate review against the carrier’s rule. '}That is not profit: unpaid travel and time matter too. Next, evaluate the real route and add it to a tentative plan. Approval and rate-con confirmation come before BOOK LOAD.`, section: 'money' },
-  ]
-  const check = checks[Math.min(4, reviewIndex)]
+  const approvalRequired = Boolean(rules.loadApprovalRequired)
+  const approvalStatus = load.carrierApprovalStatus || null
+  const approvedToPursue = !approvalRequired || approvalStatus === 'APPROVED'
+  const bookingStatus = load.bookingStatus || null
+  const rateConReady = Boolean(load.rateConfirmation?.id)
+  const rateConConfirmed = load.rateConfirmation?.status === 'CONFIRMED'
+
+  const primaryAction = (() => {
+    if (!isAvailable) {
+      return { label: 'VIEW MARCUS’S DAY', action: () => onViewConfirmedDay?.(load.id), disabled: false }
+    }
+    if (!planningDriver) return { label: 'NO DRIVER AVAILABLE', disabled: true }
+    if (guidedFirstLane && reviewIndex < coachSteps.length - 1) return { label: 'FOLLOW JORDAN’S CHECKS ABOVE', disabled: true }
+    if (!evaluated) return { label: evaluating ? 'CHECKING THE ROUTE…' : 'RUN FINAL LOAD CHECK', action: runEvaluation, disabled: evaluating }
+    if (!goodCandidate) return { label: 'REVIEW FAILED CHECKS', disabled: true }
+    if (secondLaneNeedsLunch) return { label: 'PLAN MARCUS’S LUNCH', action: () => onPlanFirstDayLunch?.(load.id), disabled: false }
+    if (approvalRequired && !['PENDING', 'APPROVED'].includes(approvalStatus)) {
+      return {
+        label: approvalStatus === 'NEEDS_INFO' ? 'RESEND METROLINE APPROVAL' : 'REQUEST METROLINE APPROVAL',
+        action: () => onRequestApproval?.(load.id, planningDriver.id),
+        disabled: false,
+      }
+    }
+    if (approvalRequired && approvalStatus === 'PENDING') return { label: 'AWAITING METROLINE APPROVAL', disabled: true }
+    if (approvedToPursue && !bookingStatus && !rateConReady) return { label: 'REQUEST BOOKING', action: () => onRequestBooking?.(load.id), disabled: false }
+    if (bookingStatus === 'REQUESTED' && !rateConReady) return { label: 'BOOKING REQUEST SENT', disabled: true }
+    if (rateConReady && !rateConConfirmed) return { label: 'REVIEW RATE CONFIRMATION', action: () => onOpenRateConfirmation?.(load.id), disabled: false }
+    if (rateConConfirmed) return { label: 'VIEW MARCUS’S DAY', action: () => onViewConfirmedDay?.(load.id), disabled: false }
+    return { label: 'LOAD CHECK COMPLETE', disabled: true }
+  })()
+
+  const activeCoachKey = guidedFirstLane ? coach.key : secondLaneNeedsLunch ? 'lunch' : null
+  const freight = load.freight || {}
+  const pallets = Number(freight.pallets)
+  const weight = Number(freight.weightLbs)
+  const palletCapacity = Number(freight.trailerCapacityPallets)
+  const weightCapacity = Number(freight.trailerMaxWeightLbs)
 
   return (
-    <div className="phone-page load-details-screen freight-route-detail-sheet freight-route-detail-compact">
-      <header className="freight-route-detail-header">
+    <div className="phone-page load-details-screen lane-review-v3">
+      <header className="lane-review-header">
         <button type="button" onClick={onBack} aria-label="Back to FreightLink">‹</button>
-        <div className="freight-route-title-block">
-          <span>LANE REVIEW</span>
+        <div>
+          <span>FREIGHTLINK · LANE REVIEW</span>
           <h2>{getFreightRouteName(load)}</h2>
-          <p>{getFreightCommodity(load)}</p>
+          <p>{getFreightCommodity(load)} · {load.loadNumber || 'LOAD OFFER'}</p>
         </div>
         <em className={`freight-haul-tag ${haulClass.tone}`}>{haulClass.label}</em>
       </header>
 
-      <div className={`freight-route-detail-body${guided ? ' guided-lane-review' : ''}`} data-review-section={guided ? check.section : undefined}>
-        {firstDay?.step === 'restOfDay' && isAvailable && load.id !== firstDay.firstLaneId && <FirstDayLesson title="Before we add a second lane" actionLabel="PLAN LUNCH AROUND HIS BOOKED WORK" onAction={() => onPlanFirstDayLunch?.(load.id)}>
-          His first lane is committed. This second one has to fit around it. Now let’s protect time for lunch, then come back to this exact lane and review it together.
-        </FirstDayLesson>}
-        {guided && <FirstDayLesson title={check.title} disabled={evaluating} actionLabel={evaluating ? 'CALCULATING THE ROUTE…' : reviewIndex < 4 ? 'NEXT CHECK' : 'EVALUATE FOR MARCUS'} onAction={() => {
-          if (reviewIndex < 4) { onFirstDayProgress?.({ laneReviewLoadId: load.id, laneReviewIndex: reviewIndex + 1, flowVersion: 2 }); return }
-          addToPlan()
-        }}>{check.text}</FirstDayLesson>}
+      <div className="lane-review-scroll">
+        {guidedFirstLane && (
+          <FirstDayLesson
+            compact
+            title={coach.title}
+            disabled={evaluating}
+            actionLabel={reviewIndex < coachSteps.length - 1 ? 'NEXT CHECK' : evaluated ? null : (evaluating ? 'CHECKING ROUTE…' : 'RUN FINAL LOAD CHECK')}
+            onAction={advanceCoach}
+          >
+            {coach.text}
+          </FirstDayLesson>
+        )}
+
+        {secondLaneNeedsLunch && (
+          <FirstDayLesson compact tone="attention" title="Now build around the first load">
+            Marcus already has confirmed freight. Before we pursue another lane, protect a lunch window inside the day he already has.
+          </FirstDayLesson>
+        )}
+
+        <section className="lane-driver-card">
+          <div>
+            <span>DRIVER</span>
+            <strong>{planningDriver?.fullName || planningDriver?.name || 'No driver selected'}</strong>
+            <small>{load.assignmentProjection?.projectedOriginName || 'Metroline Yard'} · shift {workday ? `${formatTime(workday.startMinutes)}–${formatTime(workday.endMinutes)}` : 'not listed'}</small>
+          </div>
+          <div className="lane-driver-hos">
+            <span><b>DRIVE</b><strong>{planningHos?.driving || '—'}</strong></span>
+            <span><b>DUTY</b><strong>{planningHos?.duty || '—'}</strong></span>
+          </div>
+        </section>
+
+        <section className="lane-timeline" aria-label="Projected load timeline">
+          <header>
+            <span>PROJECTED DAY</span>
+            <strong>Does this lane fit Marcus?</strong>
+            <small>{evaluated ? 'ROUTE CHECKED' : 'MARKET ESTIMATE · final route check required'}</small>
+          </header>
+
+          <div className={`lane-timeline-stop shift ${activeCoachKey === 'pickup' ? 'coach-focus' : ''}`}>
+            <time>{absoluteTime(projectedStart)}</time>
+            <i />
+            <div><span>SHIFT START</span><strong>{load.assignmentProjection?.projectedOriginName || 'Metroline Yard'}</strong></div>
+          </div>
+
+          <div className={`lane-timeline-leg ${activeCoachKey === 'pickup' ? 'coach-focus' : ''}`}>
+            <span>DEADHEAD</span>
+            <strong>{formatMiles(deadheadMiles)} · {Number.isFinite(deadheadMinutes) ? `${Math.round(deadheadMinutes)} min` : '—'}</strong>
+          </div>
+
+          <div className={`lane-timeline-stop ${activeCoachKey === 'pickup' ? 'coach-focus' : ''}`}>
+            <time>{absoluteTime(pickupArrival)}</time>
+            <i />
+            <div>
+              <span>PICKUP ARRIVAL</span>
+              <strong>{pickup.name}</strong>
+              <small>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</small>
+              <em className={pickupTiming.tone}>{pickupTiming.label}</em>
+            </div>
+          </div>
+
+          <div className={`lane-timeline-stop service ${activeCoachKey === 'pickup' ? 'coach-focus' : ''}`}>
+            <time>{absoluteTime(pickupServiceStart)}</time>
+            <i />
+            <div><span>LOADING</span><strong>{Number.isFinite(Number(hosEvaluation?.pickupServiceMinutes)) ? `${Math.round(hosEvaluation.pickupServiceMinutes)} min estimated` : 'Service estimate pending'}</strong></div>
+          </div>
+
+          <div className={`lane-timeline-leg loaded ${activeCoachKey === 'delivery' ? 'coach-focus' : ''}`}>
+            <span>LOADED DRIVE</span>
+            <strong>{formatMiles(loadedMiles)} · {Number.isFinite(loadedMinutes) ? `${Math.round(loadedMinutes)} min` : '—'}</strong>
+          </div>
+
+          <div className={`lane-timeline-stop ${activeCoachKey === 'delivery' ? 'coach-focus' : ''}`}>
+            <time>{absoluteTime(deliveryArrival)}</time>
+            <i />
+            <div>
+              <span>DELIVERY ARRIVAL</span>
+              <strong>{delivery.name}</strong>
+              <small>{formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)}</small>
+              <em className={deliveryTiming.tone}>{deliveryTiming.label}</em>
+            </div>
+          </div>
+
+          <div className={`lane-timeline-stop service ${activeCoachKey === 'delivery' ? 'coach-focus' : ''}`}>
+            <time>{absoluteTime(deliveryServiceStart)}</time>
+            <i />
+            <div><span>UNLOADING</span><strong>{Number.isFinite(Number(hosEvaluation?.deliveryServiceMinutes)) ? `${Math.round(hosEvaluation.deliveryServiceMinutes)} min estimated` : 'Service estimate pending'}</strong></div>
+          </div>
+
+          {lunchPlanned && (
+            <div className={`lane-timeline-stop lunch ${activeCoachKey === 'lunch' ? 'coach-focus' : ''}`}>
+              <time>{absoluteTime(lunchStart)}</time>
+              <i />
+              <div><span>LUNCH WINDOW</span><strong>{Number.isFinite(lunchEnd) ? `${absoluteTime(lunchStart)}–${absoluteTime(lunchEnd)}` : `${Math.round(lunchDuration)} min protected`}</strong></div>
+            </div>
+          )}
+
+          <div className="lane-timeline-stop available">
+            <time>{absoluteTime(deliveryComplete)}</time>
+            <i />
+            <div><span>AVAILABLE AGAIN</span><strong>{delivery.name}</strong></div>
+          </div>
+        </section>
+
+        <section className="lane-check-grid">
+          <div className={`lane-check ${pickupTiming.tone} ${activeCoachKey === 'pickup' ? 'coach-focus' : ''}`}>
+            <span>PICKUP</span><strong>{pickupTiming.tone === 'risk' ? 'AT RISK' : 'REACHABLE'}</strong><small>{pickupTiming.detail}</small>
+          </div>
+          <div className={`lane-check ${deliveryTiming.tone} ${activeCoachKey === 'delivery' ? 'coach-focus' : ''}`}>
+            <span>DELIVERY</span><strong>{deliveryTiming.tone === 'risk' ? 'AT RISK' : 'REACHABLE'}</strong><small>{deliveryTiming.detail}</small>
+          </div>
+          <div className={`lane-check ${hosWorks === false ? 'risk' : 'good'} ${activeCoachKey === 'hos' ? 'coach-focus' : ''}`}>
+            <span>HOS</span><strong>{hosWorks === false ? 'NOT ENOUGH' : 'ENOUGH'}</strong><small>{hosEvaluation ? `${formatHosClock(hosEvaluation.driveRequiredMinutes)} drive · ${formatHosClock(hosEvaluation.dutyRequiredMinutes)} duty` : 'Calculating'}</small>
+          </div>
+          <div className={`lane-check ${equipmentMatch === false ? 'risk' : 'good'} ${activeCoachKey === 'equipment' ? 'coach-focus' : ''}`}>
+            <span>EQUIPMENT</span><strong>{equipmentMatch === false ? 'NO MATCH' : 'MATCH'}</strong><small>{requiredEquipmentLabel}</small>
+          </div>
+        </section>
+
+        <section className={`lane-freight-card ${activeCoachKey === 'equipment' ? 'coach-focus' : ''}`}>
+          <header><span>FREIGHT / TRAILER</span><strong>{requiredEquipmentLabel}</strong></header>
+          <div>
+            <span><b>PALLETS</b><strong>{Number.isFinite(pallets) ? `${pallets}${Number.isFinite(palletCapacity) ? ` / ${palletCapacity}` : ''}` : 'Not listed'}</strong></span>
+            <span><b>WEIGHT</b><strong>{Number.isFinite(weight) ? `${weight.toLocaleString()} lb` : 'Not listed'}</strong></span>
+            <span><b>TRAILER</b><strong>{equipmentMatch === false ? 'NO MATCH' : 'COMPATIBLE'}</strong></span>
+          </div>
+          {Number.isFinite(weightCapacity) && Number.isFinite(weight) && <small>{Math.max(0, weightCapacity - weight).toLocaleString()} lb estimated trailer capacity remains after this freight.</small>}
+        </section>
+
+        <section className={`lane-money-card ${activeCoachKey === 'money' ? 'coach-focus' : ''}`}>
+          <header><span>MONEY</span><strong>${Number(load.rate).toLocaleString()}</strong></header>
+          <div>
+            <span><b>LOADED MILES</b><strong>{formatMiles(loadedMiles)}</strong></span>
+            <span><b>DEADHEAD</b><strong>{formatMiles(deadheadMiles)}</strong></span>
+            <span><b>TOTAL TRUCK MI</b><strong>{formatMiles(totalMiles)}</strong></span>
+            <span><b>LOADED $/MI</b><strong>{Number.isFinite(rpm) ? `$${rpm.toFixed(2)}` : '—'}</strong></span>
+            <span><b>TOTAL $/MI</b><strong>{Number.isFinite(totalRpm) ? `$${totalRpm.toFixed(2)}` : '—'}</strong></span>
+          </div>
+        </section>
 
         {evaluationError && <p className="lane-review-error" role="alert">{evaluationError}</p>}
-        {load.scheduleConflict && <section className="ratecon-dispatch-hold"><strong>{load.scheduleConflict.label}</strong><p>{load.scheduleConflict.detail || load.scheduleConflict.reason}</p></section>}
-        <section className="freight-route-window-card" aria-label="Pickup and delivery windows">
-          <div>
-            <span>PICKUP</span>
-            <strong>{formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes)}</strong>
-            <small>{pickup.name}</small>
-          </div>
-          <i>→</i>
-          <div>
-            <span>DELIVERY</span>
-            <strong>{formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes)}</strong>
-            <small>{delivery.name}</small>
-          </div>
-        </section>
 
-        <section className="freight-route-metrics" aria-label="Route economics">
-          <div><span>RATE</span><strong>${load.rate}</strong></div>
-          <div><span>MILES</span><strong>{formatMiles(load.listedMiles)}</strong></div>
-          <div><span>RATE / MI</span><strong>{Number.isFinite(rpm) ? `$${rpm.toFixed(2)}` : '—'}</strong></div>
-        </section>
+        {evaluated && (
+          <section className={`lane-verdict ${goodCandidate ? 'good' : 'risk'}`}>
+            <span>WHY THIS {goodCandidate ? 'FITS' : 'NEEDS WORK'}</span>
+            <strong>{goodCandidate ? `Good candidate for ${planningDriver?.fullName || planningDriver?.name}.` : 'One or more checks do not support pursuing this lane.'}</strong>
+            <p>{goodCandidate
+              ? 'The appointments work, legal hours are available, the equipment matches, and the rate clears Metroline’s rule. The next step is permission and paperwork — not dispatching the truck.'
+              : 'Resolve the failed timing, HOS, equipment, schedule, or rate check before requesting this freight.'}</p>
+          </section>
+        )}
 
-        {isAvailable && planningDriver && hosEvaluation && <section className="freight-route-hos-check" aria-label="HOS evaluation">
-          <div className="freight-route-section-title"><span>HOS CHECK · {planningDriver.fullName || planningDriver.name}</span><strong className={`freight-hos-detail-status ${hosEvaluation.tone}`}>{hosEvaluation.label}</strong></div>
-          <div className="freight-route-hos-grid">
-            <span><b>DRIVE AVAILABLE</b><strong>{planningHos?.driving || '—'}</strong></span>
-            <span><b>DRIVE REQUIRED</b><strong>{formatHosClock(hosEvaluation.driveRequiredMinutes)}</strong></span>
-            <span><b>DUTY AVAILABLE</b><strong>{planningHos?.duty || '—'}</strong></span>
-            <span><b>DUTY REQUIRED</b><strong>{formatHosClock(hosEvaluation.dutyRequiredMinutes)}</strong></span>
-          </div>
-          {hosEvaluation.tone === 'risk' && <p>Current HOS does not cover this load commitment. DOC OS will not alter the route or dispatch automatically.</p>}
-        </section>}
+        {evaluated && (
+          <section className="lane-booking-progress" aria-label="Load pursuit progress">
+            <div className={approvalStatus === 'APPROVED' ? 'done' : approvalStatus === 'PENDING' ? 'active' : ''}><span>1</span><b>METROLINE</b><small>{!approvalRequired ? 'No approval required' : approvalStatus === 'APPROVED' ? 'Approved to pursue' : approvalStatus === 'PENDING' ? 'Reviewing' : 'Approval needed'}</small></div>
+            <div className={bookingStatus === 'REQUESTED' ? 'active' : rateConReady ? 'done' : ''}><span>2</span><b>BOOKING</b><small>{rateConReady ? 'Accepted' : bookingStatus === 'REQUESTED' ? 'Request sent' : 'Not requested'}</small></div>
+            <div className={rateConConfirmed ? 'done' : rateConReady ? 'active' : ''}><span>3</span><b>RATE CON</b><small>{rateConConfirmed ? 'Confirmed' : rateConReady ? 'Review required' : 'Waiting'}</small></div>
+          </section>
+        )}
 
-        {isAvailable && <section className="freight-route-initial-check freight-route-check-strip">
-          <div className="freight-route-section-title"><span>INITIAL CHECK</span></div>
-          <div className="freight-route-check-row">
-            <span><b>DRIVER</b><strong>{driverLabel}</strong><small>{driverName}</small></span>
-            <span><b>RATE</b><strong>{rateLabel}</strong></span>
-            <span><b>BOOKING</b><strong>{bookingLabel}</strong></span>
-            <span><b>HAUL</b><strong>{haulClass.label}</strong></span>
-          </div>
-          {haulClass.label === 'LONG HAUL' && <p className="freight-route-commitment-note">Major travel commitment — review the full day in Today’s Plan before requesting approval.</p>}
-        </section>}
-
-        {assignedDriver && <section className="freight-route-assigned"><span>ASSIGNED DRIVER</span><strong>{assignedDriver.fullName || assignedDriver.name}</strong><button type="button" onClick={() => onSendLoadDetails?.(load.id, assignedDriver.id)}>OPEN DRIVER THREAD</button></section>}
+        {assignedDriver && (
+          <section className="lane-confirmed-driver">
+            <span>CONFIRMED DRIVER</span>
+            <strong>{assignedDriver.fullName || assignedDriver.name}</strong>
+            <button type="button" onClick={() => onSendLoadDetails?.(load.id, assignedDriver.id)}>OPEN DRIVER THREAD</button>
+          </section>
+        )}
       </div>
 
-      <div className="freight-route-primary-action">
-        {isAvailable && firstDay?.step === 'restOfDay' ? <button type="button" onClick={() => onPlanFirstDayLunch?.(load.id)}>PLAN LUNCH BEFORE THIS SECOND LANE</button> : guided ? <span className="lane-review-next-hint">Follow Jordan’s checks above. Adding to a plan does not book the lane.</span> : isAvailable ? <button type="button" onClick={addToPlan}>{load.scheduleApprovalQueued ? 'VIEW IN SCHEDULER' : 'ADD TO PLAN'}</button> : <button type="button" onClick={() => onOpenScheduler?.(load.id)}>VIEW SCHEDULE</button>}
-      </div>
+      <footer className="lane-review-footer">
+        <button type="button" disabled={primaryAction.disabled} onClick={primaryAction.action}>{primaryAction.label}</button>
+        {evaluated && isAvailable && (
+          <small>
+            {approvalRequired && approvalStatus !== 'APPROVED'
+              ? 'Metroline approval lets you pursue the lane. It does not secure the freight.'
+              : approvedToPursue && !rateConReady
+                ? 'Approval is in. Request the booking next.'
+                : rateConReady && !rateConConfirmed
+                  ? 'The freight is not confirmed until the Rate Confirmation is reviewed and accepted.'
+                  : ''}
+          </small>
+        )}
+      </footer>
     </div>
   )
-
 }
 
 export default LoadDetailsScreen

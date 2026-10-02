@@ -1,6 +1,515 @@
-.freight-route-detail-compact .freight-route-title-block h2 { display: block; -webkit-line-clamp: unset; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; font-size: 17px; line-height: 1.3; }
-.freight-route-detail-compact .first-day-lesson { margin: 0 0 12px; }
-.guided-lane-review[data-review-section="pickup"] .freight-route-window-card,
-.guided-lane-review[data-review-section="hours"] .freight-route-hos-check,
-.guided-lane-review[data-review-section="money"] .freight-route-metrics { border: 1px solid #a994bc; border-radius: 12px; box-shadow: 0 0 0 2px #a994bc22; }
-.lane-review-next-hint { display: block; color: #b6c1ce; font-size: 11px; line-height: 1.4; padding: 8px; }
+
+.lane-review-v3{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+  background:#0b1015;
+  color:#edf2f7;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+
+.lane-review-header{
+  flex:0 0 auto;
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) auto;
+  gap:10px;
+  align-items:start;
+  padding:14px 14px 12px;
+  border-bottom:1px solid #2b3541;
+  background:#0c1117;
+}
+.lane-review-header>button{
+  width:34px;
+  height:34px;
+  border:1px solid #405064;
+  border-radius:10px;
+  background:#121a23;
+  color:#e7edf5;
+  font-size:22px;
+}
+.lane-review-header>div{min-width:0}
+.lane-review-header span{
+  display:block;
+  color:#8ea0b5;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.13em;
+}
+.lane-review-header h2{
+  margin:5px 0 3px;
+  overflow-wrap:anywhere;
+  color:#f5f7fa;
+  font-size:17px;
+  line-height:1.22;
+}
+.lane-review-header p{
+  margin:0;
+  color:#8f9fb1;
+  font-size:9px;
+  line-height:1.35;
+}
+.lane-review-header .freight-haul-tag{
+  margin-top:2px;
+  white-space:nowrap;
+}
+
+.lane-review-scroll{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  padding:10px 12px 20px;
+}
+.lane-review-scroll>.first-day-lesson{margin:0 0 10px}
+
+.lane-driver-card{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:12px;
+  align-items:center;
+  padding:12px;
+  border:1px solid #2e3945;
+  border-radius:13px;
+  background:#111820;
+}
+.lane-driver-card>div:first-child{min-width:0}
+.lane-driver-card span,
+.lane-timeline header span,
+.lane-check span,
+.lane-freight-card header span,
+.lane-money-card header span,
+.lane-verdict>span,
+.lane-confirmed-driver>span{
+  color:#8294a8;
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.13em;
+}
+.lane-driver-card>div:first-child>strong{
+  display:block;
+  margin:4px 0 2px;
+  color:#f1f5f9;
+  font-size:14px;
+}
+.lane-driver-card>div:first-child>small{
+  display:block;
+  color:#8e9daf;
+  font-size:9px;
+  line-height:1.35;
+}
+.lane-driver-hos{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:5px;
+}
+.lane-driver-hos>span{
+  min-width:58px;
+  padding:7px 8px;
+  border:1px solid #33404e;
+  border-radius:9px;
+  background:#0d141c;
+  text-align:center;
+}
+.lane-driver-hos b{
+  display:block;
+  color:#73869b;
+  font-size:6px;
+  letter-spacing:.08em;
+}
+.lane-driver-hos strong{
+  display:block;
+  margin-top:2px;
+  color:#dfe8f2;
+  font-size:11px;
+  font-variant-numeric:tabular-nums;
+}
+
+.lane-timeline{
+  margin-top:10px;
+  overflow:hidden;
+  border:1px solid #2e3945;
+  border-radius:14px;
+  background:#0f151c;
+}
+.lane-timeline>header{
+  display:grid;
+  gap:3px;
+  padding:12px 13px;
+  border-bottom:1px solid #27323d;
+  background:#121a23;
+}
+.lane-timeline>header strong{
+  color:#f2f6fa;
+  font-size:14px;
+}
+.lane-timeline>header small{
+  color:#74879b;
+  font-size:8px;
+  line-height:1.3;
+}
+
+.lane-timeline-stop{
+  position:relative;
+  display:grid;
+  grid-template-columns:55px 14px minmax(0,1fr);
+  gap:7px;
+  min-height:62px;
+  padding:9px 11px 9px 8px;
+  transition:background .15s ease,box-shadow .15s ease;
+}
+.lane-timeline-stop:not(:last-child)::after{
+  content:'';
+  position:absolute;
+  left:68px;
+  top:37px;
+  bottom:-15px;
+  width:1px;
+  background:#344351;
+}
+.lane-timeline-stop time{
+  padding-top:2px;
+  color:#dce5ee;
+  font-size:10px;
+  font-weight:800;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.lane-timeline-stop>i{
+  position:relative;
+  z-index:1;
+  width:10px;
+  height:10px;
+  margin-top:2px;
+  border:2px solid #6f8297;
+  border-radius:50%;
+  background:#111820;
+}
+.lane-timeline-stop>div{
+  min-width:0;
+  display:grid;
+  gap:2px;
+}
+.lane-timeline-stop>div>span{
+  color:#77899d;
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.1em;
+}
+.lane-timeline-stop>div>strong{
+  overflow-wrap:anywhere;
+  color:#eef3f8;
+  font-size:11px;
+  line-height:1.25;
+}
+.lane-timeline-stop>div>small{
+  color:#8797a9;
+  font-size:8px;
+  line-height:1.3;
+}
+.lane-timeline-stop>div>em{
+  justify-self:start;
+  margin-top:3px;
+  padding:3px 6px;
+  border:1px solid #3b4a59;
+  border-radius:999px;
+  color:#9eacba;
+  font-size:6.5px;
+  font-style:normal;
+  font-weight:900;
+  letter-spacing:.06em;
+}
+.lane-timeline-stop>div>em.good{
+  border-color:rgba(90,166,116,.5);
+  background:rgba(55,118,76,.15);
+  color:#91d4a9;
+}
+.lane-timeline-stop>div>em.tight{
+  border-color:rgba(193,151,76,.5);
+  background:rgba(150,103,36,.14);
+  color:#dfbd7f;
+}
+.lane-timeline-stop>div>em.risk{
+  border-color:rgba(190,83,83,.52);
+  background:rgba(146,55,55,.14);
+  color:#efa2a2;
+}
+.lane-timeline-stop.shift>i,
+.lane-timeline-stop.available>i{
+  border-color:#7aa2ca;
+}
+.lane-timeline-stop.service>i{border-style:dashed}
+.lane-timeline-stop.lunch>i{border-color:#c49d63}
+
+.lane-timeline-leg{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  margin:0 11px 0 84px;
+  padding:6px 8px;
+  border-left:2px solid #364554;
+  background:#0b1117;
+}
+.lane-timeline-leg span{
+  color:#6f8297;
+  font-size:6.5px;
+  font-weight:900;
+  letter-spacing:.08em;
+}
+.lane-timeline-leg strong{
+  color:#b8c5d2;
+  font-size:8px;
+  font-variant-numeric:tabular-nums;
+}
+.lane-timeline-leg.loaded{border-left-color:#5c748d}
+
+.coach-focus{
+  background:rgba(117,103,128,.13)!important;
+  box-shadow:inset 3px 0 0 #9f8caf;
+}
+
+.lane-check-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  margin-top:10px;
+}
+.lane-check{
+  min-width:0;
+  display:grid;
+  gap:3px;
+  padding:10px;
+  border:1px solid #2f3b47;
+  border-radius:11px;
+  background:#111820;
+}
+.lane-check>strong{
+  color:#e7edf4;
+  font-size:10px;
+}
+.lane-check>small{
+  color:#8495a7;
+  font-size:7.5px;
+  line-height:1.35;
+}
+.lane-check.good{border-color:rgba(79,151,105,.34)}
+.lane-check.tight{border-color:rgba(181,139,70,.38)}
+.lane-check.risk{border-color:rgba(182,79,79,.4)}
+
+.lane-freight-card,
+.lane-money-card,
+.lane-verdict,
+.lane-booking-progress,
+.lane-confirmed-driver{
+  margin-top:10px;
+  border:1px solid #2f3b47;
+  border-radius:13px;
+  background:#111820;
+}
+.lane-freight-card header,
+.lane-money-card header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:10px 11px;
+  border-bottom:1px solid #29343f;
+}
+.lane-freight-card header strong,
+.lane-money-card header strong{
+  color:#eef3f8;
+  font-size:12px;
+}
+.lane-freight-card>div,
+.lane-money-card>div{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.lane-money-card>div{grid-template-columns:repeat(2,minmax(0,1fr))}
+.lane-freight-card>div>span,
+.lane-money-card>div>span{
+  display:grid;
+  gap:3px;
+  min-width:0;
+  padding:9px 10px;
+  border-right:1px solid #27323c;
+  border-bottom:1px solid #27323c;
+}
+.lane-freight-card b,
+.lane-money-card b{
+  color:#73869a;
+  font-size:6px;
+  letter-spacing:.08em;
+}
+.lane-freight-card strong,
+.lane-money-card strong{
+  overflow-wrap:anywhere;
+  color:#e4ebf2;
+  font-size:10px;
+}
+.lane-freight-card>small{
+  display:block;
+  padding:8px 10px;
+  color:#8192a4;
+  font-size:7.5px;
+  line-height:1.35;
+}
+
+.lane-verdict{
+  display:grid;
+  gap:5px;
+  padding:12px;
+}
+.lane-verdict>strong{
+  color:#eef4f8;
+  font-size:12px;
+  line-height:1.3;
+}
+.lane-verdict>p{
+  margin:0;
+  color:#91a0b0;
+  font-size:8.5px;
+  line-height:1.45;
+}
+.lane-verdict.good{
+  border-color:rgba(73,150,101,.42);
+  background:rgba(43,94,62,.12);
+}
+.lane-verdict.risk{
+  border-color:rgba(181,77,77,.42);
+  background:rgba(115,44,44,.11);
+}
+
+.lane-booking-progress{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:0;
+  overflow:hidden;
+}
+.lane-booking-progress>div{
+  display:grid;
+  grid-template-columns:18px minmax(0,1fr);
+  gap:2px 5px;
+  align-items:center;
+  min-width:0;
+  padding:8px 7px;
+  border-right:1px solid #28343f;
+}
+.lane-booking-progress>div:last-child{border-right:0}
+.lane-booking-progress>div>span{
+  grid-row:1/3;
+  display:grid;
+  place-items:center;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#202b37;
+  color:#8797a7;
+  font-size:6px;
+  font-weight:900;
+}
+.lane-booking-progress b{
+  color:#aab7c5;
+  font-size:6px;
+  letter-spacing:.06em;
+}
+.lane-booking-progress small{
+  overflow:hidden;
+  color:#718397;
+  font-size:6px;
+  line-height:1.2;
+}
+.lane-booking-progress>div.active>span{
+  background:#334963;
+  color:#d5e8fb;
+}
+.lane-booking-progress>div.done>span{
+  background:#2b573b;
+  color:#a7dfbb;
+}
+
+.lane-confirmed-driver{
+  display:grid;
+  gap:5px;
+  padding:11px;
+}
+.lane-confirmed-driver>strong{
+  color:#f0f4f8;
+  font-size:12px;
+}
+.lane-confirmed-driver>button{
+  min-height:38px;
+  border:1px solid #415365;
+  border-radius:9px;
+  background:#17212b;
+  color:#c6d3df;
+  font-size:8px;
+  font-weight:800;
+}
+
+.lane-review-error{
+  margin:10px 0 0;
+  padding:9px 10px;
+  border:1px solid rgba(187,79,79,.45);
+  border-radius:10px;
+  background:rgba(119,47,47,.12);
+  color:#e8a0a0;
+  font-size:9px;
+}
+
+.lane-review-footer{
+  flex:0 0 auto;
+  padding:9px 12px calc(10px + env(safe-area-inset-bottom,0px));
+  border-top:1px solid #29343f;
+  background:#0b1015;
+}
+.lane-review-footer>button{
+  width:100%;
+  min-height:46px;
+  border:1px solid #8c7898;
+  border-radius:12px;
+  background:#756780;
+  color:#fff;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.03em;
+}
+.lane-review-footer>button:disabled{
+  border-color:#34414e;
+  background:#182029;
+  color:#728294;
+  opacity:.8;
+}
+.lane-review-footer>small{
+  display:block;
+  margin:6px 4px 0;
+  color:#7e8fa2;
+  font-size:7.5px;
+  line-height:1.35;
+  text-align:center;
+}
+
+@media (max-width:390px){
+  .lane-review-header{
+    grid-template-columns:32px minmax(0,1fr);
+  }
+  .lane-review-header .freight-haul-tag{
+    grid-column:2;
+    justify-self:start;
+    margin-top:0;
+  }
+  .lane-driver-card{
+    grid-template-columns:1fr;
+  }
+  .lane-driver-hos{
+    justify-self:stretch;
+  }
+  .lane-driver-hos>span{min-width:0}
+  .lane-timeline-stop{
+    grid-template-columns:50px 12px minmax(0,1fr);
+  }
+  .lane-timeline-stop:not(:last-child)::after{left:61px}
+  .lane-timeline-leg{margin-left:75px}
+}

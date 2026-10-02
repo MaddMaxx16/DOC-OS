@@ -6,8 +6,8 @@ const mapLocations = [
     id: 'empire-freight-terminal',
     name: 'Empire Wireless Distribution',
     type: 'pickup',
-    longitude: -74.0116,
-    latitude: 40.6759,
+    longitude: -74.1450,
+    latitude: 40.7000,
   },
   {
     id: 'harborline-logistics',

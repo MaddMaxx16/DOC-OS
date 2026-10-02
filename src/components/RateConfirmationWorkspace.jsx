@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import mapLocations from '../data/mapLocations.js'
 import { getFreightRouteName } from '../utils/freightIdentity.js'
+import { formatAppointment } from '../utils/gameTime.js'
 
 function money(value) {
   return Number.isFinite(Number(value))
@@ -51,15 +52,33 @@ function RateConfirmationWorkspace({
   const reviewFields = [
     {
       key: 'pickup',
-      label: 'Pickup',
+      label: 'Pickup facility',
       offer: pickup?.name || 'Pickup',
       ratecon: rcPickup?.name || 'Pickup',
     },
     {
+      key: 'pickupTime',
+      label: 'Pickup appointment',
+      offer: formatAppointment(load?.pickupDayIndex, load?.pickupWindowStartMinutes, load?.pickupWindowEndMinutes),
+      ratecon: formatAppointment(rc?.pickupDayIndex, rc?.pickupWindowStartMinutes, rc?.pickupWindowEndMinutes),
+    },
+    {
       key: 'delivery',
-      label: 'Delivery',
+      label: 'Delivery facility',
       offer: delivery?.name || 'Delivery',
       ratecon: rcDelivery?.name || 'Delivery',
+    },
+    {
+      key: 'deliveryTime',
+      label: 'Delivery appointment',
+      offer: formatAppointment(load?.deliveryDayIndex, load?.deliveryWindowStartMinutes, load?.deliveryWindowEndMinutes),
+      ratecon: formatAppointment(rc?.deliveryDayIndex, rc?.deliveryWindowStartMinutes, rc?.deliveryWindowEndMinutes),
+    },
+    {
+      key: 'equipment',
+      label: 'Equipment',
+      offer: load?.freight?.equipmentLabel || load?.equipmentLabel || "53' Dry Van",
+      ratecon: rc?.equipmentLabel || "53' Dry Van",
     },
     {
       key: 'rate',
@@ -199,15 +218,15 @@ function RateConfirmationWorkspace({
 
                 <div>
                   <span>LOAD ID</span>
-                  <strong>{load.id}</strong>
+                  <strong>{load.loadNumber || getFreightRouteName(load)}</strong>
                 </div>
               </section>
 
               <section className="ratecon-offer-reference">
                 <span>REFERENCE COPY</span>
                 <p>
-                  Use this FreightLink offer to verify the carrier-issued
-                  Rate Confirmation before dispatch.
+                  Use this FreightLink offer to verify the booking terms
+                  before the freight becomes part of the driver’s confirmed day.
                 </p>
               </section>
             </article>
@@ -229,7 +248,7 @@ function RateConfirmationWorkspace({
           >
             <article className="ratecon-physical-paper carrier-ratecon-paper">
               <header className="ratecon-paper-masthead carrier">
-                <span>{rc.carrierName || 'CARRIER'} · RATE CONFIRMATION</span>
+                <span>{rc.issuerName || rc.carrierName || 'FREIGHTLINK BOOKING DESK'} · RATE CONFIRMATION</span>
                 <h2>{rc.reference || `RC-${load.id}`}</h2>
                 <p>
                   {getFreightRouteName(load)}
@@ -240,8 +259,8 @@ function RateConfirmationWorkspace({
 
               <section className="ratecon-carrier-meta">
                 <div>
-                  <span>CARRIER</span>
-                  <strong>{rc.carrierName || 'Carrier'}</strong>
+                  <span>ISSUED BY</span>
+                  <strong>{rc.issuerName || rc.carrierName || 'FreightLink Booking Desk'}</strong>
                 </div>
 
                 <div>
@@ -343,7 +362,7 @@ function RateConfirmationWorkspace({
                   <div className="ratecon-paper-status confirmed">
                     <span>VERIFIED</span>
                     <strong>RATE CONFIRMATION CONFIRMED</strong>
-                    {load.status === 'available' && <small>Return to Today’s Plan to book. Confirmation alone does not book this lane.</small>}
+                    {load.status === 'available' && <small>Confirming these terms secures the freight and adds it to the driver’s day.</small>}
                   </div>
                 ) : correctionRequested ? (
                   <div className="ratecon-paper-status waiting">
@@ -367,7 +386,7 @@ function RateConfirmationWorkspace({
                   >
                     {allMatched
                       ? 'CONFIRM RATE CON'
-                      : `VERIFY ${Object.values(rc.reviewChecks || {}).filter((value) => value === 'match').length}/4`}
+                      : `VERIFY ${Object.values(rc.reviewChecks || {}).filter((value) => value === 'match').length}/${reviewFields.length}`}
                   </button>
                 )}
               </footer>
@@ -388,7 +407,7 @@ function RateConfirmationWorkspace({
         <footer className="ratecon-workspace-footer">
           <span>
             {frontDocument === 'ratecon'
-              ? 'Carrier Rate Confirmation · tap exposed FreightLink offer to compare.'
+              ? 'Rate Confirmation · tap the exposed FreightLink offer to compare.'
               : 'FreightLink reference copy · tap exposed Rate Confirmation to review.'}
           </span>
         </footer>

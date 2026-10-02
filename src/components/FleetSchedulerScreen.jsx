@@ -242,11 +242,13 @@ function FleetSchedulerScreen({
   }
 
 
-  const scheduleLoads = useMemo(() => loads.filter((load) => {
-    const assigned = load.assignedDriverId === driver?.id && !['completed', 'delivered', 'expired'].includes(load.status) && !['completed', 'delivered'].includes(load.tripStatus)
-    const planned = load.status === 'available' && load.candidateDriverId === driver?.id && load.scheduleApprovalQueued
-    return assigned || planned
-  }).sort((a, b) => minuteFor(a, 'pickup') - minuteFor(b, 'pickup')), [loads, driver?.id])
+  // Today’s Plan is execution truth, not a pursuit board. Freight stays in
+  // FreightLink through evaluation, approval, booking, and Rate Con review.
+  const scheduleLoads = useMemo(() => loads.filter((load) => (
+    load.assignedDriverId === driver?.id
+    && !['completed', 'delivered', 'expired', 'cancelled'].includes(String(load.status || '').toLowerCase())
+    && !['completed', 'delivered', 'expired', 'cancelled'].includes(String(load.tripStatus || '').toLowerCase())
+  )).sort((a, b) => minuteFor(a, 'pickup') - minuteFor(b, 'pickup')), [loads, driver?.id])
 
   const currentDayLoads = scheduleLoads.filter((load) => (load.pickupDayIndex ?? currentDay) === currentDay || (load.deliveryDayIndex ?? currentDay) === currentDay)
   const relativeTimelineMinute = (load, side) => {
