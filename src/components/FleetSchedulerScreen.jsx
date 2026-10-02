@@ -93,7 +93,7 @@ function toneFor(load) { return getRouteLifecycleTone(load) }
 
 function FleetSchedulerScreen({
   loads = [], drivers = [], carriers = [], gameTime, focusLoadId = null, initialDriverId = null,
-  onBackToFreightLink, onRequestScheduleApproval, onBookRoute, onBookApprovedSchedule, onRemoveFromPlan, onSendDriverSchedule, onUpdateDriverWorkday, onOpenLunchDecision, onDriverContextChange,
+  onBackToFreightLink, onRequestScheduleApproval, onRemoveFromPlan, onSendDriverSchedule, onUpdateDriverWorkday, onOpenLunchDecision, onDriverContextChange,
 }) {
   const focusLoad = loads.find((load) => load.id === focusLoadId)
   const firstDriverId = initialDriverId || focusLoad?.candidateDriverId || focusLoad?.assignedDriverId || drivers.find((driver) => driver.carrierId)?.id || drivers[0]?.id || null
@@ -393,7 +393,7 @@ function FleetSchedulerScreen({
           ) : pendingApprovalLoads.length > 0 ? (
             <button type="button" className="primary" disabled>AWAITING APPROVAL</button>
           ) : approvedUnbookedLoads.length > 0 ? (
-            <button type="button" className="primary" onClick={() => onBookApprovedSchedule?.(driver?.id)}>BOOK APPROVED ROUTE{approvedUnbookedLoads.length === 1 ? '' : 'S'}</button>
+            <button type="button" className="primary" disabled>APPROVED TO PURSUE</button>
           ) : hasBookedRoutes ? (
             <button type="button" className="primary" onClick={() => onSendDriverSchedule?.(driver?.id)}>{schedulePreviouslySent ? 'SEND UPDATE' : 'SEND SCHEDULE'}</button>
           ) : null}
@@ -628,9 +628,9 @@ function FleetSchedulerScreen({
             {driverOnLunch ? (
               <button type="button" className="primary" disabled>DRIVER ON LUNCH</button>
             ) : (<>
-              {selectedLoad.status === 'available' && selectedLoad.carrierApprovalStatus === 'APPROVED' && <button type="button" className="primary" onClick={() => onBookRoute?.(selectedLoad.id)}>BOOK ROUTE</button>}
+              {selectedLoad.status === 'available' && selectedLoad.carrierApprovalStatus === 'APPROVED' && <button type="button" className="primary" disabled>APPROVED · BOOK IN FREIGHTLINK</button>}
               {selectedLoad.status === 'available' && approvalRequired && selectedLoad.scheduleApprovalQueued && !['PENDING','APPROVED'].includes(selectedLoad.carrierApprovalStatus) && (planHasConflict ? <button type="button" className="primary" disabled>RESOLVE PLAN CONFLICT</button> : <button type="button" className="primary" onClick={() => onRequestScheduleApproval?.(driver.id)}>REQUEST APPROVAL</button>)}
-              {selectedLoad.status === 'available' && !approvalRequired && selectedLoad.scheduleApprovalQueued && (planHasConflict ? <button type="button" className="primary" disabled>RESOLVE PLAN CONFLICT</button> : <button type="button" className="primary" onClick={() => onBookRoute?.(selectedLoad.id)}>BOOK ROUTE</button>)}
+              {selectedLoad.status === 'available' && !approvalRequired && selectedLoad.scheduleApprovalQueued && <button type="button" className="primary" disabled>BOOK IN FREIGHTLINK</button>}
               {selectedLoad.status === 'available' && selectedLoad.carrierApprovalStatus === 'PENDING' && <button type="button" className="primary" disabled>AWAITING APPROVAL</button>}
               {selectedCanRemove && <button type="button" onClick={() => { const removed = onRemoveFromPlan?.(selectedLoad.id); if (removed !== false) setSelectedLoadId(null) }}>{selectedRemoveLabel}</button>}
               {!selectedCanRemove && selectedLoad.status !== 'available' && <button type="button" disabled>ROUTE IN PROGRESS</button>}
