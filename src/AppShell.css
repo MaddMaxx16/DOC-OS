@@ -145,3 +145,11 @@
   .app-stage-transition.cover { animation-duration: .14s; }
   .app-stage-transition.reveal { animation-duration: .20s; }
 }
+
+/* First Day loads only after an explicit employee start/resume. */
+.workstation-opening { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; box-sizing: border-box; background: #0f141b; color: #e6edf6; text-align: center; animation: workstation-opening-in 180ms ease-out both; }
+.workstation-opening > span { font-size: 11px; font-weight: 800; letter-spacing: .16em; color: #bda8d4; }
+.workstation-opening strong { font-size: 20px; }
+.workstation-opening small { font-size: 12px; color: #a6b2c2; }
+@keyframes workstation-opening-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .workstation-opening { animation: none; } }

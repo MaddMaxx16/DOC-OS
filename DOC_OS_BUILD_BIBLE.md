@@ -32,7 +32,7 @@ The core loop remains:
 
 The current clean-new-player path is:
 
-**DOC OS startup → workstation/login → New Dispatcher → name → Character Creator → Metroline employee-ID welcome**
+**DOC OS startup → workstation/login → New Dispatcher → name → Character Creator → Metroline employee-ID welcome → START FIRST DAY → Opening your workstation → real Operations map / Jordan welcome → Marcus’s real schedule**
 
 The former Market Selection / Day-One Entry opening route has been retired and removed. The player begins the game as a **Metroline employee in New York**; market selection and CarrierSource application are not part of the rebuilt onboarding path.
 
@@ -42,7 +42,8 @@ The current title is a physical workstation/login presentation over the office b
 
 Character Creator is the approved player-identity system. Its current categories are Skin, Hair, Hair Color, Brows, Eyes, Eye Color, Mouth, Facial Hair, Glasses, Accessories, Headwear, Outfit, and Outfit Color. The avatar is a composited local renderer; appearance work must preserve the established layer order and must not reintroduce live DiceBear network rendering.
 
-**Current onboarding boundary:** the employee-ID welcome presentation (ENTRY.1.1) is accepted on iPhone as of October 2. Its live map handoff remains pending. START FIRST DAY is visibly disabled until the workspace remodel and real Operations handoff are ready. A clean new save intentionally cannot enter Operations until the rebuilt onboarding/First Day experience provides that handoff. Do not create a permanent bypass around this boundary merely for testing.
+**Current onboarding boundary — FD.1/FD.2 IN TEST:** the employee-ID presentation (ENTRY.1.1) is accepted on iPhone. START FIRST DAY is now enabled and performs the deliberate real Operations handoff. A brief opening transition covers dynamic imports and initialization; the operation is saved successfully before the simulator mounts. The real Metroline map opens with Jordan’s three-message welcome. His final action opens Marcus’s actual scheduler. This is the legitimate player flow, with no fake map or testing bypass. Physical iPhone acceptance of the arrival/workspace remains pending.
+
 
 ### 2.2 Performance architecture — LOCKED
 
@@ -58,7 +59,8 @@ Battery percentage is coarse and does not prove zero energy use. The result is t
 - `main.jsx` mounts the lightweight `StartupApp.jsx` for the currently reachable experience.
 - Startup/onboarding may own save-slot identity, title presentation, player profile/appearance, and native keyboard presentation.
 - Routing, freight-market simulation, HOS, driver movement, facility lifecycle, LedgerDesk reconciliation, day-loop simulation, Operations maps, and dev scenario tooling must remain dormant until Operations is entered.
-- When First Day is connected to Operations, the simulator runtime must be loaded at that handoff rather than moved back into the startup shell.
+- `StartupApp` dynamically imports the employee initializer and `App` only on START FIRST DAY, or imports `App` on explicit resume of a saved operation. The initializer never mounts the simulator; the saved game is hydrated by the existing runtime.
+- Console Settings → Return to Title flushes the saved operation before unmounting `App`; the lightweight startup then owns the title again. A failed flush keeps Operations mounted and displays the save error.
 - Operations CSS must remain outside the startup bundle. `AppShell.css` owns the lightweight shell; `App.css` is Operations-owned.
 - Do not solve a future cross-boundary need by statically importing the entire Operations runtime into `StartupApp`.
 
@@ -156,7 +158,7 @@ The Character Creator is functionally locked unless a real regression or an expl
 
 ### 2.8 Current development objective
 
-**Next objective: connect the accepted employee-ID welcome through a deliberate lazy-load handoff to the real employee operation, remodeled Operations workspace, and Jordan's First Day welcome without violating the performance boundary. FD.0 is implemented and browser checked; physical iPhone workspace acceptance is pending that legitimate handoff.**
+**Next objective: accept FD.1/FD.2 arrival and the remodeled workspace on iPhone, then teach the real Marcus workday/FreightLink DOC001 flow. Arrival, initialization, Jordan’s welcome, and scheduler handoff are implemented and browser checked; the full first-day tutorial and protected DOC001 device regression remain pending.**
 
 The intended tutorial arc is:
 
@@ -170,15 +172,15 @@ First Day must teach the player through the real systems rather than through a p
 
 **CarrierSource boundary:** CarrierSource is a later-career system associated with progression beyond the starting Metroline employee role. It must not appear as an application gate, agreement gate, or Marcus-activation gate during First Day.
 
-### 2.8.1 Employee-ID welcome — P2.4-ENTRY.1-TEST / Operations transition — PLANNED
+### 2.8.1 Employee-ID welcome — PRESENTATION ACCEPTED / Operations arrival — FD.1/FD.2 IN TEST
 
 Replace the current First Day placeholder after Character Creator with a Metroline employee-ID welcome. The ID is the centerpiece: Metroline branding, the created player avatar as the employee photo, player name, and **Junior Dispatcher · New York Operations**. Welcome copy establishes that the workstation is ready and Jordan will help the player get started. The primary action is **START FIRST DAY**.
 
-Target transition: **Character Creator → employee-ID welcome → START FIRST DAY → brief “Opening your workstation…” transition → operational map → Jordan welcome conversation**. Jordan's compact conversation shows his portrait, name/trainer role, one short message at a time, and Continue; the final welcome action opens Marcus's real schedule. Game time pauses during the authored welcome conversation. This does not redefine ordinary communications or global simulation pause behavior.
+Implemented transition: **Character Creator → employee-ID welcome → START FIRST DAY → brief “Opening your workstation…” transition → operational map → Jordan welcome conversation**. Jordan's compact conversation shows his portrait, name/trainer role, one short message at a time, and Continue; the final welcome action opens Marcus's real schedule. Game time pauses during the authored welcome conversation. This does not redefine ordinary communications or global simulation pause behavior.
 
-Build the welcome presentation first; prepare the Operations workspace before enabling its live-map handoff. The button must ultimately enter the real Metroline employee operation, with Marcus already rostered at the Yard and schedule/HOS initialized through authoritative systems. Do not use a fake map or a permanent Operations bypass. Operations loads only at the deliberate handoff; no simulation runtime is added to the employee-ID screen. The welcome presentation and identity save/resume are implemented; the live transition and Jordan conversation remain planned. START FIRST DAY is disabled with “Your first shift is coming next.” until an authoritative handoff exists.
+Build the welcome presentation first; prepare the Operations workspace before enabling its live-map handoff. The button must ultimately enter the real Metroline employee operation, with Marcus already rostered at the Yard and schedule/HOS initialized through authoritative systems. Do not use a fake map or a permanent Operations bypass. Operations loads only at the deliberate handoff; no simulation runtime is added to the employee-ID screen. The accepted welcome now exposes the implemented START FIRST DAY handoff. The previous disabled-button placeholder is retired. A failed initial save returns to the ID, preserves the identity-only save, and shows the existing save alert. A failed runtime import returns to the originating screen with a retryable error.
 
-**ENTRY.1.1 visual polish — PRESENTATION ACCEPTED:** following iPhone feedback, the ID is slightly narrower (304 px maximum) with tighter clip/header/body/footer spacing and a slightly smaller portrait frame. Text sizes remain readable. The redundant green Profile ready check is removed from the welcome header; the back-to-look control remains. The content is anchored below the header rather than recentered as the card shrinks. Save/resume and the disabled Operations handoff are unchanged. Production build, focused ESLint, and browser workflow/layout checks passed; Maxx accepted the polished presentation on iPhone on October 2 (“this worked perfect we can move on”).
+**ENTRY.1.1 visual polish — PRESENTATION ACCEPTED:** following iPhone feedback, the ID is slightly narrower (304 px maximum) with tighter clip/header/body/footer spacing and a slightly smaller portrait frame. Text sizes remain readable. The redundant green Profile ready check is removed from the welcome header; the back-to-look control remains. The content is anchored below the header rather than recentered as the card shrinks. Identity save/resume was unchanged by this visual-only revision. Its then-disabled Operations handoff is superseded by FD.1/FD.2. Production build, focused ESLint, and browser workflow/layout checks passed; Maxx accepted the polished presentation on iPhone on October 2 (“this worked perfect we can move on”).
 
 **Implemented identity boundary:** Continue from Character Creator saves the trimmed player name, full appearance, and Metroline employee career metadata in the active slot, with `careerSetupStep: employeeWelcome`. Resume opens the saved ID directly. Back/Edit returns to the existing creator; a subsequent Continue updates the ID and save. A failed save keeps the player in the creator and displays the existing save-failure alert rather than presenting an unsaved ID. New onboarding slots receive explicit employee career metadata without creating roster, freight, clock, or simulation state.
 
@@ -186,9 +188,19 @@ Build the welcome presentation first; prepare the Operations workspace before en
 
 ### 2.8.2 Operations workspace validation — P2.4-FD.0
 
-Implemented in the protected runtime; the current clean-save startup still ends at the accepted ID. Production startup build remains 46 modules with unchanged JS/CSS sizes. A temporary isolated browser harness compiled the actual Operations components and used the authoritative Metroline employee initializer, with QA-only message/email fixtures. No testing bypass or harness is shipped. Browser checks passed for launchers/header, exact Console/Phone app sets, email and schedule destinations, Contacts → existing driver thread, message read history, separate Driver Hub, and responsive Phone bounds at 390×844, 375×812, and 320×568; no page errors. Map tiles were unavailable in the test environment, so cartographic appearance is not accepted by that check. All 165 existing system tests passed. New/simple components pass ESLint; the three older runtime files retain their same pre-existing lint diagnostics, with no additional diagnostics.
+Implemented in the protected runtime; the current clean-save startup still ends at the accepted ID. At the FD.0 checkpoint, the production startup build remained 46 modules with unchanged JS/CSS sizes. FD.1/FD.2 now compiles the deliberately lazy Operations chunks into the production output; those chunks are not loaded by cold startup. A temporary isolated browser harness compiled the actual Operations components and used the authoritative Metroline employee initializer, with QA-only message/email fixtures. No testing bypass or harness is shipped. Browser checks passed for launchers/header, exact Console/Phone app sets, email and schedule destinations, Contacts → existing driver thread, message read history, separate Driver Hub, and responsive Phone bounds at 390×844, 375×812, and 320×568; no page errors. Map tiles were unavailable in the test environment, so cartographic appearance is not accepted by that check. All 165 existing system tests passed. New/simple components pass ESLint; the three older runtime files retain their same pre-existing lint diagnostics, with no additional diagnostics.
 
-Required next: legitimate startup-to-Operations connection, Jordan conversation, on-device workspace/navigation/battery checks, and protected DOC001 regression before promotion. A full visual pass across opening, creator, ID, map/header, Console, Phone, Driver Hub, and connected workflows follows the completed first-day flow; spacing, type, color, buttons, transitions, and phone/safe-area fit are included.
+The legitimate startup-to-Operations connection and Jordan conversation are now implemented below. Required next: on-device arrival/workspace/navigation/battery checks and protected DOC001 regression before promotion. A full visual pass across opening, creator, ID, map/header, Console, Phone, Driver Hub, and connected workflows follows the completed first-day flow; spacing, type, color, buttons, transitions, and phone/safe-area fit are included.
+
+### 2.8.3 First Day arrival / initialization — FD.1/FD.2 IN TEST
+
+The employee identity save is passed to `prepareFirstDayOperation` only after START FIRST DAY. It requires a completed Metroline employee ID, calls `initializeMetrolineEmployeeOperation`, and creates one real initial operation at Day 1, 6:00 AM, New York. Marcus is at the Metroline Yard, has Metroline-confirmed workdays (initial shift 7 AM–5 PM) and off-duty HOS, and has no manufactured introduction. Carrier application, agreement, and email state are empty. The existing financial baseline is preserved; this slice introduces no employee wage/wallet rules and does not resolve the pending employee money design.
+
+Jordan uses a fixed local portrait from the existing avatar renderer, his name/trainer role, and three short authored messages. The player’s name appears in the welcome. The operational scene is inert during the conversation, the clock processor explicitly blocks advancement, and clock controls are disabled. No timed typing/animation loop is introduced. Welcome progress is saved immediately before advancing; failed saves leave the current message in place. The final action saves the `schedule` boundary and opens Marcus’s existing Driver Scheduler in Console. Game time remains paused for schedule review; Play resumes the existing clock rather than advancing it artificially.
+
+`firstDay` is presentation progress, not a second simulation: `welcome` plus message index → `schedule` → `ready`. Every runtime persistence path retains it. Reload/resume restores the saved welcome message; a saved schedule boundary reopens Marcus’s scheduler. Closing that surface saves `ready`; subsequent resumes open the map without replaying Jordan or reinitializing roster/workday/HOS/position. Legacy saves without first-day metadata do not gain an invented welcome. Returning to title unmounts the Operations owner; normal title/new-character work remains lightweight even after visiting Operations.
+
+Validation: production build passed; all 169 system tests passed, including four new handoff/resume/input-boundary tests. New/changed lightweight components pass ESLint; App and MainGameScreen retain the same 19/25 pre-existing lint diagnostics with none added. Production browser checks passed for cold startup requesting no Operations chunks, failed initial-save recovery, real handoff, welcome pause, failed-message-save recovery, message resume, scheduler handoff/resume, ready/map resume without reseeding, responsive accessible conversation controls, return-to-title unmount of a running operation, and Marcus remaining off duty/silent until the confirmed clock-in, then generating one message and real on-duty HOS. Map tiles were unavailable in the test environment; physical map appearance and device battery remain unverified. Full DOC001 regression and arrival/workspace promotion remain pending iPhone acceptance.
 
 ### 2.9 First Day build guardrails
 

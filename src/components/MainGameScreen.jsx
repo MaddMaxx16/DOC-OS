@@ -11,6 +11,7 @@ import UnloadSequencingChallenge from './UnloadSequencingChallenge.jsx'
 import { getShiftEndAlert } from '../utils/shiftEndDecision.js'
 const PhoneOverlay = lazy(() => import('./PhoneOverlay.jsx'))
 import StatusBar from './StatusBar.jsx'
+import FirstDayWelcome from './FirstDayWelcome.jsx'
 import OperationsBar from './OperationsBar.jsx'
 import EndDaySheet from './EndDaySheet.jsx'
 import LunchDecisionOverlay from './LunchDecisionOverlay.jsx'
@@ -269,9 +270,10 @@ function getAuthoritativeScheduleConstraint(load, driver) {
   return getDriverScheduleConstraint(load, driver)
 }
 
-function MainGameScreen({ career, selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario, onInitializeEmployeeCareer, initialPhoneOpen = false, initialPhoneScreen = 'home', onInitialPhoneEntryConsumed }) {
-  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen))
-  const [phoneInitialScreen, setPhoneInitialScreen] = useState(initialPhoneScreen || 'home')
+function MainGameScreen({ firstDay, onFirstDayProgress, career, selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario, onInitializeEmployeeCareer, initialPhoneOpen = false, initialPhoneScreen = 'home', onInitialPhoneEntryConsumed }) {
+  const welcomeActive = firstDay?.step === 'welcome'
+  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen || firstDay?.step === 'schedule'))
+  const [phoneInitialScreen, setPhoneInitialScreen] = useState(firstDay?.step === 'schedule' ? 'agenda' : initialPhoneScreen || 'home')
   // B.5.4D.1.1 — Opening Guidance + CarrierSource Clock Gate
   const [dayOneCarrierSourceGateActive, setDayOneCarrierSourceGateActive] = useState(
     Boolean(initialPhoneOpen && initialPhoneScreen === 'email')
@@ -291,7 +293,7 @@ function MainGameScreen({ career, selectedMarket, gameTime, loads, setLoads, dri
 
   const [driverFitEvaluation, setDriverFitEvaluation] = useState(null)
   const [phoneLoadId, setPhoneLoadId] = useState(null)
-  const [phoneInitialDriverId, setPhoneInitialDriverId] = useState(null)
+  const [phoneInitialDriverId, setPhoneInitialDriverId] = useState(firstDay?.step === 'schedule' ? 'marcus' : null)
   const [phoneInitialEmailContext, setPhoneInitialEmailContext] = useState(null)
   const [phoneInitialShiftEndPromptDriverId, setPhoneInitialShiftEndPromptDriverId] = useState(null)
   const [planningMode, setPlanningMode] = useState(null)
@@ -2490,7 +2492,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
   const deliveryPlanningRoute = deliveryPlanning && deliveryPlanning.route && typeof deliveryPlanning.route === 'object' ? deliveryPlanning.route : null
   const deliveryPlanningArrivalAbsoluteMinutes = deliveryPlanningRoute ? (gameTime.gameDayIndex * 1440) + gameTime.totalMinutesOfDay + deliveryPlanningRoute.durationMinutes : null
   const deliveryPlanningBufferMinutes = deliveryPlanningLoad && deliveryPlanningRoute ? getDeliveryPlanningBufferMinutes(deliveryPlanningLoad, deliveryPlanningRoute, gameTime) : null
-  const timeControlsLocked = Boolean(endDayOpen || dayLoopOverlayActive)
+  const timeControlsLocked = Boolean(welcomeActive || endDayOpen || dayLoopOverlayActive)
   const pauseActive = isGameClockPaused
   const playActive = !isGameClockPaused && simulationSpeed === 1
   const fastForwardActive = !isGameClockPaused && [2, 5, 10].includes(simulationSpeed)
@@ -2584,6 +2586,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
 
   return (
     <div className="main-game-screen">
+      <div className="operations-scene" inert={welcomeActive}>
       <StatusBar career={career} selectedMarket={selectedMarket} gameTime={gameTime} operationDay={operationDay} />
       <div className="operations-toolbar">
       <OperationsBar
@@ -3179,7 +3182,10 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
             onBookApprovedSchedule={bookApprovedScheduleLoads}
             onRemoveScheduleLoad={removeScheduleLoad}
             onOpenLunchDecision={openLunchDecisionForDriver}
-            onClose={() => setIsPhoneOpen(false)}
+            onClose={() => {
+              if (firstDay?.step === 'schedule' && onFirstDayProgress?.({ step: 'ready', messageIndex: 2 }) === false) return
+              setIsPhoneOpen(false)
+            }}
           />
           </Suspense>
         )}
@@ -3204,6 +3210,19 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           onBegin={onBeginOperations}
         />
       )}
+      </div>
+      {welcomeActive && <FirstDayWelcome playerName={dispatcherProfile?.displayName} messageIndex={firstDay.messageIndex} onContinue={() => {
+        const next = firstDay.messageIndex < 2
+          ? { step: 'welcome', messageIndex: firstDay.messageIndex + 1 }
+          : { step: 'schedule', messageIndex: 2 }
+        if (onFirstDayProgress?.(next) === false) return
+        if (next.step === 'schedule') {
+          setPhoneInitialScreen('agenda')
+          setPhoneInitialDriverId('marcus')
+          setPhoneLoadId(null)
+          setIsPhoneOpen(true)
+        }
+      }} />}
     </div>
   )
 }

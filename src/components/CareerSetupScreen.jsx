@@ -28,7 +28,7 @@ const ACCESSORY_SIDE_OPTIONS = [
 // P2.4.4.3A/B — Create Player
 // Step 01 owns player-facing identity. Step 02 owns appearance.
 // Metroline is fixed to the New York market; market selection is not part of onboarding.
-function CareerSetupScreen({ profile = null, initialPhase = 'name', onSaveProfile, onBack }) {
+function CareerSetupScreen({ profile = null, initialPhase = 'name', onSaveProfile, onStartFirstDay, onBack }) {
   const [displayName, setDisplayName] = useState(profile?.displayName || '')
   const [keyboardOpen, setKeyboardOpen] = useState(false)
   const [nameFocused, setNameFocused] = useState(false)
@@ -379,6 +379,7 @@ function CareerSetupScreen({ profile = null, initialPhase = 'name', onSaveProfil
         playerName={playerName}
         appearance={appearance}
         onEditProfile={() => setPhase('look')}
+        onStartFirstDay={onStartFirstDay}
       />
     )
   }

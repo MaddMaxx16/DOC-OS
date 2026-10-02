@@ -70,7 +70,7 @@ Battery percentage is a coarse signal; the result is used as a strong regression
 
 Current reachable clean-save flow:
 
-**Startup → Workstation/Login → New Dispatcher → Name → Character Creator → accepted Metroline Employee-ID Welcome**
+**Startup → Workstation/Login → New Dispatcher → Name → Character Creator → accepted Metroline Employee-ID Welcome → START FIRST DAY → real Operations map / Jordan welcome → Marcus’s real schedule**
 
 Target tutorial arc:
 
@@ -82,7 +82,7 @@ DOC002 may become available later the same operating day after DOC001.
 
 ### First Day implementation slices
 
-- [PRESENTATION ACCEPTED; HANDOFF PENDING] **P2.4-ENTRY.1 — Metroline Employee-ID Welcome**
+- [PRESENTATION ACCEPTED; HANDOFF IN TEST] **P2.4-ENTRY.1 — Metroline Employee-ID Welcome**
   - Replace the final First Day placeholder after Character Creator with a Metroline employee-ID welcome.
   - Show Metroline branding, the created avatar, player name, and Junior Dispatcher · New York Operations.
   - Welcome the player and establish that the workstation is ready and Jordan will help them get started.
@@ -91,11 +91,11 @@ DOC002 may become available later the same operating day after DOC001.
   - Build this presentation first; enable the live handoff only after the workspace and authoritative employee initializer are ready.
   - Keep Operations runtime dormant on the welcome screen; no fake map or permanent bypass.
   - Implemented: employee badge, exact created portrait/name, edit return, explicit employee identity metadata, and save/resume to the ID.
-  - START FIRST DAY remains disabled until the authoritative map handoff is implemented.
+  - START FIRST DAY is now enabled by FD.1/FD.2 and saves the real employee operation before the lazy runtime mounts.
   - Verified: production build, focused ESLint, all 165 existing tests, and browser checks for creation, avatar consistency, save/resume, edits, long names, layout, and failed-save recovery.
   - ENTRY.1.1 visual polish: smaller ID/tighter spacing and removal of the redundant green header check; build, focused lint, and browser checks passed.
   - Maxx accepted ENTRY.1.1 on iPhone October 2. A fresh ID-specific battery check was not reported; the earlier protected onboarding battery checkpoint remains the reference.
-  - Pending: live map transition and Jordan conversation; the full First Day is not promoted.
+  - Live map transition and Jordan conversation are implemented below; physical arrival acceptance and the full First Day promotion remain pending.
 
 - [IMPLEMENTED; DEVICE ACCEPTANCE PENDING] **P2.4-FD.0 — Operations Workspace Remodel**
   - Replace BOARD with CONSOLE; retain camera-fit as a separate map utility.
@@ -107,33 +107,38 @@ DOC002 may become available later the same operating day after DOC001.
   - Preserve lazy loading, the startup/Operations boundary, and protected workflow/simulation authority.
   - Implemented: separate bottom launchers, FIT MAP camera utility, larger Console shell/five business apps + Settings utility, smaller Phone/Contacts/Messages, context-based surface selection, existing Driver Hub.
   - Verified: isolated build/browser checks through actual Operations components and authoritative employee initializer; message/email/schedule navigation and phone bounds passed, with no page errors; all 165 existing tests passed; no new lint diagnostics. Startup bundle is unchanged. Test-environment map tiles were unavailable.
-  - Remains behind the startup gate until the real handoff exists; no test bypass is shipped. Physical iPhone navigation/layout/battery and protected DOC001 regression remain pending.
+  - Now reachable through the legitimate FD.1/FD.2 handoff; no test bypass is shipped. Physical iPhone navigation/layout/battery and protected DOC001 regression remain pending.
 
-- [NEXT] **P2.4-FD.1 — First Day Arrival / Orientation**
+- [IN TEST] **P2.4-FD.1 — First Day Arrival / Orientation**
   - Establish the player at the Metroline workstation after Character Creator.
   - Establish the player's Junior Dispatcher employee role and Jordan as Metroline trainer/supervisor.
   - Teach only the minimum workstation/phone orientation needed for the first assignment.
+  - Implemented: brief opening transition, deliberate lazy runtime mount, local Jordan portrait/three-message welcome with inert scene and paused clock, saved message progress, and final handoff to the real Marcus scheduler.
+  - Failed initial/progress saves preserve the current boundary; resume restores welcome/schedule or ready map without replay/reseeding. Return to Title flushes and unmounts Operations.
+  - Verified: production build, 169 passing tests, no new runtime lint diagnostics, and production browser checks for cold import boundaries, save failure, pause, resume, scheduler, smaller screens, and runtime exit. Physical iPhone appearance/battery and full DOC001 regression pending.
   - No fake simulation state and no full Operations runtime before required.
 
-- [PLANNED] **P2.4-FD.2 — Employee Operation Initialization**
+- [IN TEST] **P2.4-FD.2 — Employee Operation Initialization**
   - Initialize the real Metroline employee career state.
   - Metroline begins active as the employer.
   - Marcus already belongs to the Metroline roster and begins from the Metroline Yard.
   - Preserve real workday/HOS state and carrier-controlled schedule data.
   - No CarrierSource application, approval, or agreement dependency.
+  - Implemented through the existing employee initializer; saved atomically before runtime mount. Marcus starts off duty at 6 AM with the confirmed 7 AM–5 PM shift; no early operational message. Existing financial baseline is retained pending employee-era money design.
 
-- [PLANNED] **P2.4-FD.3 — Marcus / First Workday Context**
+- [NEXT / INITIAL CONTEXT IMPLEMENTED] **P2.4-FD.3 — Marcus / First Workday Context**
   - Introduce Marcus as the player's assigned Metroline driver without an artificial activation event.
   - Surface the real schedule/HOS context the player needs for the first assignment.
   - Marcus's first operational communication occurs at actual clock-in through the real workday/HOS system.
   - Roster presence at the Yard does not itself put Marcus on duty or send an introduction.
+  - Initial context is exposed by the real scheduler. Browser clock advancement verified silence/off-duty before 7 AM, one clock-in message and on-duty HOS at 7 AM, and no duplicate message afterward. Further authored first-workday guidance remains planned.
 
 - [PLANNED] **P2.4-FD.4 — FreightLink / DOC001**
   - Introduce the real FreightLink board and DOC001.
   - Teach load evaluation, driver fit/HOS signal, written Metroline approval for the exact load, and acceptance/assignment under the real Metroline workflow.
 
 - [PLANNED] **P2.4-FD.5 — First Dispatch**
-  - Enter the protected Operations runtime at the legitimate handoff.
+  - Runtime entry already occurs at the FD.1/FD.2 legitimate handoff; this slice teaches first dispatch.
   - Plan the real route.
   - Send Marcus the correct load brief before dispatch.
   - Explicit dispatch remains separate from planning.

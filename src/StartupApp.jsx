@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { Keyboard, KeyboardResize, KeyboardStyle } from '@capacitor/keyboard'
 import './AppShell.css'
@@ -16,6 +16,12 @@ import {
   saveGame,
   setActiveSaveSlot,
 } from './utils/saveGame.js'
+
+const OperationsApp = lazy(() => import('./App.jsx'))
+
+function OpeningWorkstation() {
+  return <div className="workstation-opening" role="status"><span>METROLINE</span><strong>Opening your workstation…</strong><small>Getting your first shift ready.</small></div>
+}
 
 // P2.4 startup boundary:
 // Title + onboarding own only the state they actually need. The simulator runtime
@@ -73,9 +79,7 @@ function StartupApp() {
     setDispatcherProfile(null)
     setCareerSetupPhase('name')
 
-    // The current onboarding experience stops before Operations. Persist only
-    // its lightweight boundary state; the Operations runtime will own gameplay
-    // state once First Day is connected.
+    // Persist only identity before the deliberate Operations handoff.
     saveGame({
       stage: 'careerSetup',
       dispatcherProfile: null,
@@ -94,9 +98,10 @@ function StartupApp() {
     setDispatcherProfile(saved.dispatcherProfile || null)
     setCareerSetupPhase(saved.careerSetupStep === 'employeeWelcome' ? 'employeeWelcome' : 'name')
 
-    // Current saves created by the rebuilt experience resume at onboarding.
-    // Legacy Operations saves are intentionally not part of this startup path;
-    // Maxx confirmed there are no legacy saves to preserve.
+    if (saved.stage === 'game') {
+      openOperations(false)
+      return
+    }
     setStage('careerSetup')
   }
 
@@ -128,6 +133,39 @@ function StartupApp() {
     return true
   }
 
+  const openOperations = async (initializeFirstDay) => {
+    setSaveFailureMessage('')
+    setStage('openingOperations')
+    try {
+      // Dynamic imports begin only after the player's explicit start/resume action.
+      const [initializer] = await Promise.all([
+        initializeFirstDay ? import('./utils/firstDayOperation.js') : Promise.resolve(null),
+        import('./App.jsx'),
+        new Promise((resolve) => window.setTimeout(resolve, 300)),
+      ])
+      if (initializeFirstDay) {
+        const saved = loadGame(getActiveSaveSlot())
+        const operation = initializer.prepareFirstDayOperation(saved)
+        if (!saveGame(operation, getActiveSaveSlot())) {
+          setStage('careerSetup')
+          return
+        }
+      }
+      setStage('operations')
+    } catch (error) {
+      setSaveFailureMessage(error?.message || 'Your workstation could not open. Please try again.')
+      setStage(initializeFirstDay ? 'careerSetup' : 'start')
+    }
+  }
+
+  const returnToStartup = useCallback(() => { setSaveSlots(getSaveSlots()); setStage('start') }, [])
+
+  if (stage === 'operations') {
+    return <Suspense fallback={<main className="app"><section className="phone-shell"><OpeningWorkstation /></section></main>}>
+      <OperationsApp onReturnToStartup={returnToStartup} />
+    </Suspense>
+  }
+
   return (
     <main className="app">
       <section className="phone-shell">
@@ -151,11 +189,14 @@ function StartupApp() {
           />
         )}
 
+        {stage === 'openingOperations' && <OpeningWorkstation />}
+
         {stage === 'careerSetup' && (
           <CareerSetupScreen
             profile={dispatcherProfile}
             initialPhase={careerSetupPhase}
             onSaveProfile={saveEmployeeProfile}
+            onStartFirstDay={() => openOperations(true)}
             onBack={() => setStage('start')}
           />
         )}

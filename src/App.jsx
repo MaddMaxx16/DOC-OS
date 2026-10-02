@@ -38,6 +38,7 @@ import { sampleRoutePoint } from './utils/routeSampler.js'
 import { anchorMovementRoute, reconcileIdleMovement, reconcileFreightMovement, restoreMovementOwnerContinuity } from './utils/runtimeMovement.js'
 import { createLegacyIndependentCareer, normalizeCareerState } from './utils/careerState.js'
 import { establishCarrierOperationalContext } from './utils/carrierOperationalContext.js'
+import { normalizeFirstDayProgress } from './utils/firstDayProgress.js'
 import { initializeMetrolineEmployeeOperation } from './utils/employeeCareerInitializer.js'
 
 
@@ -82,8 +83,8 @@ function reconcileDriverRuntimeState(driver, activeLoad, savedPosition, now) {
   return { position: savedPosition || (fallback ? { longitude: fallback.longitude, latitude: fallback.latitude } : null), progress: null }
 }
 
-function App() {
-  const [stage, setStage] = useState('start')
+function App({ onReturnToStartup }) {
+  const [stage, setStage] = useState(onReturnToStartup ? 'loading' : 'start')
   const [gameEntryScreen, setGameEntryScreen] = useState(null)
   const [selectedMarket, setSelectedMarket] = useState(null)
   const [gameTime, setGameTime] = useState({ gameDayIndex: 0, totalMinutesOfDay: 360 })
@@ -147,6 +148,7 @@ function App() {
   const [businessDocuments, setBusinessDocuments] = useState([])
   const [dayLoop, setDayLoop] = useState(() => ({ ...DEFAULT_DAY_LOOP_STATE }))
   const [playerProgression, setPlayerProgression] = useState(() => ({ ...DEFAULT_PLAYER_PROGRESSION }))
+  const [firstDay, setFirstDay] = useState(null)
   const [career, setCareer] = useState(() => createLegacyIndependentCareer())
   const [saveSlots, setSaveSlots] = useState([])
   const [activeSaveSlotId, setActiveSaveSlotId] = useState(null)
@@ -433,6 +435,7 @@ useEffect(() => {
     setDayLoop(saved.dayLoop ? { ...DEFAULT_DAY_LOOP_STATE, ...saved.dayLoop, history: Array.isArray(saved.dayLoop.history) ? saved.dayLoop.history : [] } : { ...DEFAULT_DAY_LOOP_STATE })
     setPlayerProgression(saved.playerProgression ? { ...DEFAULT_PLAYER_PROGRESSION, ...saved.playerProgression } : { ...DEFAULT_PLAYER_PROGRESSION })
     setCareer(normalizeCareerState(saved.career))
+    setFirstDay(normalizeFirstDayProgress(saved.firstDay))
     setResumeStage(saved.stage && !['start', 'market', 'dayOneIntro'].includes(saved.stage) ? saved.stage : 'game')
   }
 
@@ -469,9 +472,15 @@ useEffect(() => {
     setActiveSaveSlotId(activeSlot)
     const saved = loadGame(activeSlot)
     setHasExistingOperation(slots.length > 0)
-    if (saved) hydrateSavedOperation(saved)
+    if (saved) {
+      hydrateSavedOperation(saved)
+      if (onReturnToStartup) setStage('game')
+    } else if (onReturnToStartup) {
+      onReturnToStartup()
+      return
+    }
     setHydrated(true)
-  }, [])
+  }, [onReturnToStartup])
 
   useEffect(() => {
     const onSaveFailure = () => {
@@ -493,7 +502,7 @@ useEffect(() => {
     const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
     latestAutosaveRef.current = {
       slotId: activeSaveSlotId,
-      state: { stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression, career },
+      state: { stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression, career, firstDay },
     }
     autosaveTimerSlotRef.current = activeSaveSlotId
     if (autosaveTimerRef.current !== null) return
@@ -505,7 +514,7 @@ useEffect(() => {
       persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, snapshot.state, snapshot.slotId)
       setSaveSlots(getSaveSlots())
     }, 5000)
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression, career])
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression, career, firstDay])
 
   useEffect(() => () => {
     if (autosaveTimerRef.current !== null) clearTimeout(autosaveTimerRef.current)
@@ -524,8 +533,8 @@ useEffect(() => {
     if (!signature || signature === lifecycleSaveSignatureRef.current) return
     lifecycleSaveSignatureRef.current = signature
     const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
-    persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, { stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression, career }, activeSaveSlotId)
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression, career])
+    persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, { stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression, career, firstDay }, activeSaveSlotId)
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression, career, firstDay])
 
   // AU3 mobile persistence hardening: keep the normal debounce for routine
   // updates, but flush the current snapshot immediately when iOS backgrounds
@@ -534,7 +543,7 @@ useEffect(() => {
     if (!hydrated || !activeSaveSlotId) return undefined
     const flushSave = () => {
       const persistedStage = stage === 'start' && hasExistingOperation ? (resumeStage || 'game') : stage
-      persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, { stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression, career }, activeSaveSlotId)
+      persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, { stage: persistedStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression, career, firstDay }, activeSaveSlotId)
     }
     const onVisibility = () => { if (document.visibilityState === 'hidden') flushSave() }
     window.addEventListener('pagehide', flushSave)
@@ -543,7 +552,7 @@ useEffect(() => {
       window.removeEventListener('pagehide', flushSave)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression, career])
+  }, [hydrated, activeSaveSlotId, stage, hasExistingOperation, resumeStage, selectedMarket, gameTime, loads, drivers, carriers, runtimePositions, runtimeProgressByDriver, seenLedgerReceivableIds, seenLedgerPaymentReceivedIds, ledgerWorkflowByLoadId, ledgerBanking, carrierApplicationsById, carrierCareerById, dispatcherProfile, emailMessages, driverMessages, businessDocuments, dayLoop, playerProgression, career, firstDay])
 
   // Market appointments are seeded directly; operation-day gates do not rewrite them.
 
@@ -920,7 +929,27 @@ useEffect(() => {
     window.location.reload()
   }
 
+  const persistFirstDayProgress = (nextProgress) => {
+    const snapshot = latestAutosaveRef.current
+    if (!snapshot || snapshot.slotId !== activeSaveSlotId) return false
+    const next = normalizeFirstDayProgress(nextProgress)
+    if (!next) return false
+    const state = { ...snapshot.state, firstDay: next }
+    if (!persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, state, activeSaveSlotId)) return false
+    latestAutosaveRef.current = { slotId: activeSaveSlotId, state }
+    setFirstDay(next)
+    return true
+  }
+
   const returnToTitle = () => {
+    if (onReturnToStartup) {
+      const snapshot = latestAutosaveRef.current
+      if (!snapshot || !persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, snapshot.state, snapshot.slotId)) return
+      if (autosaveTimerRef.current !== null) clearTimeout(autosaveTimerRef.current)
+      autosaveTimerRef.current = null
+      onReturnToStartup()
+      return
+    }
     runMajorTransition('back', () => {
       setResumeStage('game')
       setStage('start')
@@ -1519,7 +1548,7 @@ Dispatch Mentor`,
   }, [hydrated, stage, gameTime.gameDayIndex, gameTime.totalMinutesOfDay, loads, carriers])
 
   useEffect(() => {
-    if (stage !== 'game' || isGameClockPaused) return undefined
+    if (stage !== 'game' || isGameClockPaused || firstDay?.step === 'welcome') return undefined
     const timer = setInterval(() => setGameTime((time) => {
       const nextMinutes = time.totalMinutesOfDay + 1
       return nextMinutes >= 1440
@@ -1527,7 +1556,7 @@ Dispatch Mentor`,
         : { ...time, totalMinutesOfDay: nextMinutes }
     }), 3000 / simulationSpeed)
     return () => clearInterval(timer)
-  }, [stage, isGameClockPaused, simulationSpeed])
+  }, [stage, isGameClockPaused, simulationSpeed, firstDay?.step])
 
 
   // B.4.2.2: operation-day identity follows the calendar after midnight without
@@ -1793,6 +1822,7 @@ Open CarrierSource to review your full account history.`
           />
         )}
 
+        {stage === 'loading' && <div className="workstation-opening" role="status"><span>METROLINE</span><strong>Opening your workstation…</strong></div>}
         {stage === 'start' && <StartOfficeBackdrop />}
         {stage === 'start' && (
           <StartScreen
@@ -1815,26 +1845,12 @@ Open CarrierSource to review your full account history.`
         )}
         {stage === 'game' && (
           <Suspense
-            fallback={
-              <div
-                style={{
-                  position: 'fixed',
-                  inset: 0,
-                  display: 'grid',
-                  placeItems: 'center',
-                  background: '#05080b',
-                  color: '#77838e',
-                  fontSize: '10px',
-                  fontWeight: 800,
-                  letterSpacing: '.1em',
-                }}
-              >
-                LOADING OPERATIONS
-              </div>
-            }
+            fallback={<div className="workstation-opening" role="status"><span>METROLINE</span><strong>Opening your workstation…</strong></div>}
           >
             <MainGameScreen
             career={career}
+            firstDay={firstDay}
+            onFirstDayProgress={persistFirstDayProgress}
             selectedMarket={selectedMarket}
             initialPhoneOpen={Boolean(gameEntryScreen)}
             initialPhoneScreen={gameEntryScreen || 'home'}
@@ -1869,7 +1885,7 @@ Open CarrierSource to review your full account history.`
             setDrivers={setDrivers}
             plannedRoute={plannedRoute}
             setPlannedRoute={setPlannedRoute}
-            isGameClockPaused={isGameClockPaused}
+            isGameClockPaused={isGameClockPaused || firstDay?.step === 'welcome'}
             setGameClockPaused={setIsGameClockPaused}
             runtimePositions={runtimePositions}
             setRuntimePositions={setRuntimePositions}
