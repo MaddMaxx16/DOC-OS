@@ -9,3 +9,14 @@
 .first-day-lesson button { width: 100%; display: flex; justify-content: space-between; gap: 8px; }
 .first-day-lesson button:focus-visible, .first-day-resume:focus-visible { outline: 2px solid #cda8e6; outline-offset: 3px; }
 .first-day-resume { position: absolute; z-index: 5; left: 50%; transform: translateX(-50%); bottom: calc(98px + env(safe-area-inset-bottom, 0px)); white-space: nowrap; }
+
+.first-day-lesson.compact { margin: 8px 12px; padding: 10px 11px; border-color: #3d4858; background: #141c26; }
+.first-day-lesson.compact header { gap: 8px; }
+.first-day-lesson.compact .first-day-lesson-portrait { flex-basis: 30px; width: 30px; height: 34px; border-radius: 7px; }
+.first-day-lesson.compact .first-day-lesson-portrait .player-avatar { width: 30px; height: 34px; }
+.first-day-lesson.compact small { font-size: 7px; }
+.first-day-lesson.compact h2 { font-size: 12px; line-height: 1.25; margin-top: 2px; }
+.first-day-lesson.compact p { margin: 7px 0 0; font-size: 10px; line-height: 1.45; color: #c9d2de; }
+.first-day-lesson.compact button { margin-top: 8px; min-height: 40px; font-size: 9px; }
+.first-day-lesson.tone-success { border-color: #3f7355; background: #14231c; }
+.first-day-lesson.tone-attention { border-color: #8a7048; background: #241f17; }
