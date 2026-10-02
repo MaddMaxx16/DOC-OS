@@ -362,7 +362,7 @@
 .lane-verdict>span,
 .lane-confirmed-driver>span{
   color:#7c8ea2;
-  font-size:5.8px;
+  font-size:6.4px;
   font-weight:900;
   letter-spacing:.1em;
 }
@@ -487,7 +487,7 @@
   border-radius:50%;
   background:#202b37;
   color:#8797a7;
-  font-size:5.4px;
+  font-size:6px;
   font-weight:900;
 }
 .lane-booking-progress b{
@@ -526,7 +526,7 @@
   border-radius:8px;
   background:#17212b;
   color:#c6d3df;
-  font-size:6.5px;
+  font-size:7.2px;
   font-weight:800;
 }
 
@@ -537,7 +537,7 @@
   border-radius:8px;
   background:rgba(119,47,47,.11);
   color:#e8a0a0;
-  font-size:7.5px;
+  font-size:8px;
 }
 
 /* Bottom action floats in the unused lower space so the work surface stays visible. */
