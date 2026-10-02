@@ -96,6 +96,7 @@ function toneFor(load) { return getRouteLifecycleTone(load) }
 // B.5.4D.4.2.8 — Navigation Standardization
 // B.5.4D.4.3.2 — Status + UI Consistency
 function FleetSchedulerScreen({
+  firstDay = null,
   loads = [], drivers = [], carriers = [], gameTime, focusLoadId = null, initialDriverId = null,
   onBackToFreightLink, onRequestScheduleApproval, onBookRoute, onBookApprovedSchedule, onRemoveFromPlan, onSendDriverSchedule, onUpdateDriverWorkday, onOpenLunchDecision, onDriverContextChange,
   onOpenDriverOperations, onReviewRateCon,
@@ -394,6 +395,19 @@ function FleetSchedulerScreen({
     driverScheduleReady &&
     bookedDriverLoads.every((load) => Number.isFinite(Number(load.driverAcknowledgedGameMinute)))
 
+  const firstDayScheduleLocked = Boolean(
+    firstDay
+    && !firstDay.workdayLessonComplete
+    && driver?.id === 'marcus'
+    && (
+      firstDay.step !== 'staging'
+      || driver?.shiftEndPlanDayIndex === null
+      || driver?.shiftEndPlanDayIndex === undefined
+      || Number(driver.shiftEndPlanDayIndex) !== Number(currentDay)
+      || !driver?.shiftEndLocationId
+    )
+  )
+
   const driverScheduleNeedsUpdate =
     driverScheduleReady &&
     !driverScheduleSent &&
@@ -463,14 +477,16 @@ function FleetSchedulerScreen({
         <button
           type="button"
           className={`today-plan-send-schedule ${driverScheduleSent ? 'sent' : driverScheduleNeedsUpdate ? 'update' : ''}`}
-          disabled={!driverScheduleReady || driverScheduleSent}
+          disabled={!driverScheduleReady || driverScheduleSent || firstDayScheduleLocked}
           onClick={() => onSendDriverSchedule?.(driver?.id)}
         >
           {driverScheduleSent
             ? 'SCHEDULE SENT'
-            : driverScheduleNeedsUpdate
-              ? 'SEND UPDATED SCHEDULE'
-              : 'SEND SCHEDULE'}
+            : firstDayScheduleLocked
+              ? 'FINISH DAY PLAN FIRST'
+              : driverScheduleNeedsUpdate
+                ? 'SEND UPDATED SCHEDULE'
+                : 'SEND SCHEDULE'}
         </button>
       </section>
 
