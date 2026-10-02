@@ -74,30 +74,35 @@ Current reachable clean-save flow:
 
 Target tutorial arc:
 
-**First Day → Phone → Jordan Email → CarrierSource → Apply to Metroline → Approval Email → Accept Agreement → Marcus activates → FreightLink DOC001 → evaluate/assign/accept → plan → dispatch → pickup → facility cycle → delivery → paperwork → payment**
+**First Day at Metroline → Jordan orientation/training → employee workstation/phone → Marcus already rostered with Metroline → FreightLink DOC001 → evaluate/assign/accept through the real Metroline workflow → plan → dispatch → pickup → facility cycle → delivery → paperwork → payment**
 
 DOC002 may become available later the same operating day after DOC001.
+
+**Career-start contract:** the player begins as a Metroline employee. Metroline is already active, Marcus is already on the carrier roster at the Metroline Yard, and the clean employee operation has no CarrierSource application or signed-agreement dependency. CarrierSource is reserved for later career progression beyond the starting employee role.
 
 ### First Day implementation slices
 
 - [NEXT] **P2.4-FD.1 — First Day Arrival / Orientation**
-  - Establish the player at the workstation after Character Creator.
-  - Teach the phone/home surface and establish Jordan as mentor.
+  - Establish the player at the Metroline workstation after Character Creator.
+  - Establish the player's Junior Dispatcher employee role and Jordan as Metroline trainer/supervisor.
+  - Teach only the minimum workstation/phone orientation needed for the first assignment.
   - No fake simulation state and no full Operations runtime before required.
 
-- [PLANNED] **P2.4-FD.2 — CarrierSource / Metroline Application**
-  - Guide the player into the real CarrierSource system.
-  - Submit the real application.
-  - Approval pacing may be tutorial-accelerated without creating a second carrier-state authority.
+- [PLANNED] **P2.4-FD.2 — Employee Operation Initialization**
+  - Initialize the real Metroline employee career state.
+  - Metroline begins active as the employer.
+  - Marcus already belongs to the Metroline roster and begins from the Metroline Yard.
+  - Preserve real workday/HOS state and carrier-controlled schedule data.
+  - No CarrierSource application, approval, or agreement dependency.
 
-- [PLANNED] **P2.4-FD.3 — Agreement / Marcus Activation**
-  - Receive the real approval communication.
-  - Review/accept Metroline agreement.
-  - Marcus becomes available through the real career/carrier rules.
+- [PLANNED] **P2.4-FD.3 — Marcus / First Workday Context**
+  - Introduce Marcus as the player's assigned Metroline driver without an artificial activation event.
+  - Surface the real schedule/HOS context the player needs for the first assignment.
+  - Driver communication begins from legitimate work events such as clock-in or schedule communication.
 
 - [PLANNED] **P2.4-FD.4 — FreightLink / DOC001**
   - Introduce the real FreightLink board and DOC001.
-  - Teach load evaluation, driver fit/HOS signal, assignment, and acceptance.
+  - Teach load evaluation, driver fit/HOS signal, assignment, and acceptance under the real Metroline workflow.
 
 - [PLANNED] **P2.4-FD.5 — First Dispatch**
   - Enter the protected Operations runtime at the legitimate handoff.
@@ -122,6 +127,13 @@ DOC002 may become available later the same operating day after DOC001.
 The Operations engine must remain dormant until the tutorial legitimately enters Operations. Do not move routing, movement, HOS simulation, LedgerDesk reconciliation, facility runtime, map runtime, or dev-scenario systems back into the startup bundle to make onboarding implementation easier.
 
 Performance regressions block promotion just like lifecycle regressions.
+
+## LATER CAREER BOUNDARY
+
+### CarrierSource / Independent Career Progression
+CarrierSource is **not** part of First Day or the starting Metroline employee loop. It returns later when career progression moves the player beyond the employee role and carrier relationships/applications become a player responsibility. Do not surface CarrierSource early merely because its existing systems remain in the codebase.
+
+The exact progression gate should be designed from the employee-career experience rather than hard-coded into First Day.
 
 ## AFTER FIRST DAY — CORE EXPANSION
 
@@ -157,12 +169,13 @@ Add markets only after the core simulation has sufficient depth. Each market mus
 ## ROADMAP RULES
 
 1. First Day is the active feature phase; do not skip ahead to C.0 systems while the clean-new-player path ends at a placeholder.
-2. Build tutorial slices through the real authoritative systems.
-3. Keep the startup/Operations performance boundary intact.
-4. Preserve the known-good performance checkpoint before architecture changes.
-5. Stable Operations contracts are not rewritten merely to make tutorial scripting easier.
-6. On-device acceptance is required before promotion.
-7. Historical notes below are evidence/history, not the current priority list.
+2. The player starts as a Metroline employee; CarrierSource is not an onboarding gate.
+3. Build tutorial slices through the real authoritative systems.
+4. Keep the startup/Operations performance boundary intact.
+5. Preserve the known-good performance checkpoint before architecture changes.
+6. Stable Operations contracts are not rewritten merely to make tutorial scripting easier.
+7. On-device acceptance is required before promotion.
+8. Historical notes below are evidence/history, not the current priority list.
 
 ---
 
