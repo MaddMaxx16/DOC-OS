@@ -6,9 +6,10 @@ const loads = [
   {
     id: 'DOC001', loadNumber: 'LD-78421', postedGameMinute: 360, marketPostMinutes: 360,
     pickupLocationId: 'empire-freight-terminal', deliveryLocationId: 'harborline-logistics',
-    pickupDayIndex: 0, pickupWindowStartMinutes: 540, pickupWindowEndMinutes: 600,
-    deliveryDayIndex: 0, deliveryWindowStartMinutes: 720, deliveryWindowEndMinutes: 780,
-    rate: 650, listedMiles: 10.1, plannedMiles: null, plannedDriveTimeMinutes: null,
+    pickupDayIndex: 0, pickupWindowStartMinutes: 480, pickupWindowEndMinutes: 540,
+    deliveryDayIndex: 0, deliveryWindowStartMinutes: 540, deliveryWindowEndMinutes: 600,
+    rate: 425, listedMiles: 21.0, plannedMiles: null, plannedDriveTimeMinutes: null,
+    freight: { pallets: 8, weightLbs: 12400, equipmentType: 'dry-van', equipmentLabel: "53' Dry Van", trailerCapacityPallets: 26, trailerMaxWeightLbs: 44000 },
     selectedRouteId: null, candidateDriverId: null, status: 'available', assignedDriverId: null,
   },
   {
