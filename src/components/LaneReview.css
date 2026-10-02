@@ -600,3 +600,66 @@
   .lane-timeline-leg{margin-left:64px}
   .lane-review-footer{width:min(78%,360px);bottom:9px}
 }
+
+
+/* Day 1 v4 — show already-confirmed work before the proposed next load. */
+.lane-day-so-far{
+  border-bottom:1px solid #27313b;
+  background:#0d1319;
+}
+.lane-day-so-far>header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:7px 9px;
+  border-bottom:1px solid #222d37;
+  background:#0f161d;
+}
+.lane-day-so-far>header span{
+  color:#75879a;
+  font-size:6px;
+  font-weight:900;
+  letter-spacing:.1em;
+}
+.lane-day-so-far>header strong{
+  color:#9fb0c1;
+  font-size:6.4px;
+  font-weight:800;
+  text-align:right;
+}
+.lane-day-item{
+  display:grid;
+  gap:2px;
+  padding:7px 10px 7px 14px;
+  border-bottom:1px solid #202a34;
+  box-shadow:inset 3px 0 0 #466072;
+}
+.lane-day-item:last-child{border-bottom:0}
+.lane-day-item>span{
+  color:#758b9f;
+  font-size:5.8px;
+  font-weight:900;
+  letter-spacing:.09em;
+}
+.lane-day-item>strong{
+  color:#c9d4df;
+  font-size:8.7px;
+  line-height:1.22;
+}
+.lane-day-item>small{
+  color:#75879a;
+  font-size:6.5px;
+  line-height:1.25;
+}
+.lane-day-item.lunch{
+  background:rgba(150,105,49,.08);
+  box-shadow:inset 3px 0 0 #b58c54;
+}
+.lane-day-item.lunch>span{color:#c5a16d}
+.lane-day-item.lunch>strong{color:#dec395}
+
+@media (max-width:390px){
+  .lane-day-so-far>header{align-items:flex-start}
+  .lane-day-so-far>header strong{max-width:52%}
+}

@@ -14,7 +14,7 @@ const PhoneOverlay = lazy(() => import('./PhoneOverlay.jsx'))
 import StatusBar from './StatusBar.jsx'
 import FirstDayWelcome from './FirstDayWelcome.jsx'
 import './FirstDayLesson.css'
-import { shouldTeachFirstDayShiftEnd, shouldTeachFirstDayRest, getFirstDayBookedLanes, isFirstDayTeachingPaused } from '../utils/firstDayProgress.js'
+import { shouldTeachFirstDayLunch, shouldTeachFirstDayStaging, shouldTeachFirstDayRest, getFirstDayBookedLanes, isFirstDayTeachingPaused } from '../utils/firstDayProgress.js'
 import OperationsBar from './OperationsBar.jsx'
 import EndDaySheet from './EndDaySheet.jsx'
 import LunchDecisionOverlay from './LunchDecisionOverlay.jsx'
@@ -279,11 +279,12 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
   }, [onWorkstationReady])
   const welcomeActive = firstDay?.step === 'welcome'
   const restIntroActive = shouldTeachFirstDayRest(firstDay, loads)
+  const lunchIntroActive = shouldTeachFirstDayLunch(firstDay, loads)
+  const stagingIntroActive = shouldTeachFirstDayStaging(firstDay, loads)
   const [phoneLessonEntry, setPhoneLessonEntry] = useState(0)
-  const shiftEndIntroActive = shouldTeachFirstDayShiftEnd(firstDay, loads)
-  const guidedWorkdayActive = ['lunch', 'shiftEnd'].includes(firstDay?.step)
-  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen || ['lunch', 'freight', 'restOfDay', 'secondLane', 'shiftEnd'].includes(firstDay?.step)))
-  const [phoneInitialScreen, setPhoneInitialScreen] = useState(guidedWorkdayActive ? 'agenda' : firstDay?.step === 'secondLane' ? 'loadDetails' : ['freight', 'restOfDay'].includes(firstDay?.step) ? 'loadBoard' : initialPhoneScreen || 'home')
+  const guidedWorkdayActive = ['lunch', 'staging'].includes(firstDay?.step)
+  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen || ['lunch', 'freight', 'restOfDay', 'thirdLoad', 'staging'].includes(firstDay?.step)))
+  const [phoneInitialScreen, setPhoneInitialScreen] = useState(guidedWorkdayActive ? 'agenda' : ['freight', 'restOfDay', 'thirdLoad'].includes(firstDay?.step) ? 'loadBoard' : initialPhoneScreen || 'home')
   // B.5.4D.1.1 — Opening Guidance + CarrierSource Clock Gate
   const [dayOneCarrierSourceGateActive, setDayOneCarrierSourceGateActive] = useState(
     Boolean(initialPhoneOpen && initialPhoneScreen === 'email')
@@ -302,7 +303,7 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
   }
 
   const [driverFitEvaluation, setDriverFitEvaluation] = useState(null)
-  const [phoneLoadId, setPhoneLoadId] = useState(firstDay?.step === 'secondLane' ? firstDay.reviewLoadId : null)
+  const [phoneLoadId, setPhoneLoadId] = useState(null)
   const [phoneInitialDriverId, setPhoneInitialDriverId] = useState(firstDay && firstDay.step !== 'ready' ? 'marcus' : null)
   const [phoneInitialEmailContext, setPhoneInitialEmailContext] = useState(null)
   const [phoneInitialShiftEndPromptDriverId, setPhoneInitialShiftEndPromptDriverId] = useState(null)
@@ -2032,14 +2033,14 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
   // they do not advance load state. Send the current itinerary as one natural
   // pre-shift / revised schedule message and remember which loads Marcus has seen.
   const sendDriverSchedule = (driverId) => {
-    if (!driverId || !setDriverMessages) return
+    if (!driverId || !setDriverMessages) return false
     const scheduledDriver = drivers.find((item) => item.id === driverId)
-    if (isDriverOnLunch(scheduledDriver, gameTime)) return
+    if (isDriverOnLunch(scheduledDriver, gameTime)) return false
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
     const driver = drivers.find((item) => item.id === driverId)
     const firstName = String(driver?.fullName || driver?.name || 'Driver').split(' ')[0]
     const itinerary = buildDriverItinerary(loads, driverId).filter((stop) => !stop.completed)
-    if (!itinerary.length) return
+    if (!itinerary.length) return false
     const seenLoadIds = [...new Set(itinerary.map((stop) => stop.loadId).filter(Boolean))]
     const stopLines = itinerary.slice(0, 8).map((stop) => {
       const load = loads.find((item) => item.id === stop.loadId)
@@ -2077,6 +2078,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
     } : item))
     setDrivers((current) => current.map((item) => item.id === driverId ? { ...item, lastCommunicatedScheduleSignature: signature, lastCommunicatedScheduleStops: currentStops, scheduleCommunicatedGameMinute: now } : item))
     adjustDriverRelationship(driverId, isRevision ? 0 : 1, `day-schedule:${gameTime.gameDayIndex}:${driverId}`)
+    return true
   }
 
   // AV2.17 — one carrier approval request per planned schedule batch.
@@ -2601,7 +2603,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
 
   return (
     <div className="main-game-screen">
-      <div className="operations-scene" inert={welcomeActive || restIntroActive || shiftEndIntroActive}>
+      <div className="operations-scene" inert={welcomeActive || restIntroActive || lunchIntroActive || stagingIntroActive}>
       <StatusBar career={career} selectedMarket={selectedMarket} gameTime={gameTime} operationDay={operationDay} />
       <div className="operations-toolbar">
       <OperationsBar
@@ -3081,12 +3083,12 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           && !firstDay.workdayLessonComplete && Number(gameTime?.gameDayIndex || 0) === 0
           && !loads.some((load) => (load.assignedDriverId === 'marcus' || load.completedDriverId === 'marcus') && ['completed', 'paid', 'delivered'].includes(load.status)) && (
           <button type="button" className="first-day-resume" onClick={() => {
-            const step = ['ready', 'schedule'].includes(firstDay.step) ? 'freight' : firstDay.step
-            if (onFirstDayProgress?.({ step, messageIndex: 2, flowVersion: 3 }) === false) return
+            const step = ['ready', 'schedule', 'secondLane'].includes(firstDay.step) ? 'freight' : firstDay.step === 'shiftEnd' ? 'staging' : firstDay.step
+            if (onFirstDayProgress?.({ step, messageIndex: 2, flowVersion: 4 }) === false) return
             setDriverHubOpen(false)
-            setPhoneInitialScreen(step === 'secondLane' ? 'loadDetails' : ['freight', 'restOfDay'].includes(step) ? 'loadBoard' : 'agenda')
+            setPhoneInitialScreen(['freight', 'restOfDay', 'thirdLoad'].includes(step) ? 'loadBoard' : 'agenda')
             setPhoneInitialDriverId('marcus')
-            setPhoneLoadId(step === 'secondLane' ? firstDay.reviewLoadId : null)
+            setPhoneLoadId(null)
             setIsPhoneOpen(true)
           }}>CONTINUE WITH JORDAN</button>
         )}
@@ -3245,17 +3247,27 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         />
       )}
       </div>
-      {restIntroActive && <FirstDayWelcome lessonMessage="That first lane is booked and its rate con is confirmed. Now let’s build the rest of Marcus’s day. We’ll go back to FreightLink and look at a second lane. Before adding it, we’ll make room for lunch around the work he already has." actionLabel="SHOP THE REST OF HIS DAY" onContinue={() => {
-        const first = getFirstDayBookedLanes(loads)[0]
-        if (onFirstDayProgress?.({ step: 'restOfDay', firstLaneId: first.id, flowVersion: 3, messageIndex: 2 }) === false) return
+      {restIntroActive && <FirstDayWelcome lessonMessage="Load 1 is booked and confirmed. Now build onto it. Go back to FreightLink and find a second load that starts after Marcus finishes the first one. We are not planning lunch yet — secure Load 2 first." actionLabel="FIND LOAD 2" onContinue={() => {
+        const booked = getFirstDayBookedLanes(loads)
+        const first = booked[0]
+        if (onFirstDayProgress?.({ step: 'restOfDay', firstLaneId: first?.id, flowVersion: 4, messageIndex: 2 }) === false) return
         setPhoneInitialScreen('loadBoard')
         setPhoneInitialDriverId('marcus')
         setPhoneLoadId(null)
         setPhoneLessonEntry((value) => value + 1)
         setIsPhoneOpen(true)
       }} />}
-      {shiftEndIntroActive && <FirstDayWelcome lessonMessage="Now we know Marcus’s delivery route. Before dispatching, decide where he should finish his shift: return to the Metroline Yard or use an available staging location. Compare that position with the delivery destination and the time left in his shift. Saving this plan does not move the truck; we’ll revisit it when his shift actually ends." actionLabel="PLAN SHIFT END" onContinue={() => {
-        if (onFirstDayProgress?.({ step: 'shiftEnd', messageIndex: 2 }) === false) return
+      {lunchIntroActive && <FirstDayWelcome lessonMessage="Good — Marcus now has two confirmed loads. Before we shop the final load, protect a realistic lunch window around the work we already booked. Then we’ll use that lunch window as a real constraint when we choose Load 3." actionLabel="PLAN MARCUS’S LUNCH" onContinue={() => {
+        const booked = getFirstDayBookedLanes(loads)
+        if (onFirstDayProgress?.({ step: 'lunch', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, flowVersion: 4, messageIndex: 2 }) === false) return
+        setPhoneInitialScreen('agenda')
+        setPhoneInitialDriverId('marcus')
+        setPhoneLoadId(null)
+        setIsPhoneOpen(true)
+      }} />}
+      {stagingIntroActive && <FirstDayWelcome lessonMessage="That’s three confirmed loads, and lunch is protected. One planning decision remains before Marcus gets the schedule: where should the truck finish after the final delivery? Compare the yard and staging options, save the best finish position, then we’ll send Marcus the complete day." actionLabel="PLAN STAGING" onContinue={() => {
+        const booked = getFirstDayBookedLanes(loads)
+        if (onFirstDayProgress?.({ step: 'staging', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, thirdLaneId: booked[2]?.id, flowVersion: 4, messageIndex: 2 }) === false) return
         setPhoneInitialScreen('agenda')
         setPhoneInitialDriverId('marcus')
         setPhoneLoadId(null)
@@ -3264,7 +3276,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       {welcomeActive && <FirstDayWelcome playerName={dispatcherProfile?.displayName} messageIndex={firstDay.messageIndex} onContinue={() => {
         const next = firstDay.messageIndex < 2
           ? { step: 'welcome', messageIndex: firstDay.messageIndex + 1 }
-          : { step: 'freight', messageIndex: 2, flowVersion: 3 }
+          : { step: 'freight', messageIndex: 2, flowVersion: 4 }
         if (onFirstDayProgress?.(next) === false) return
         if (next.step === 'freight') {
           setPhoneInitialScreen('loadBoard')

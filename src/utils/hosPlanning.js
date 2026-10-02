@@ -45,21 +45,58 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
   const loadedMinutes = loadedDriveMinutes(load, pickup, delivery)
   if (!Number.isFinite(deadheadMinutes) || !Number.isFinite(loadedMinutes)) return null
 
-  const pickupStart = finite(load.pickupDayIndex) * 1440 + finite(load.pickupWindowStartMinutes)
+  const pickupDay = finite(load.pickupDayIndex)
+  const pickupStart = pickupDay * 1440 + finite(load.pickupWindowStartMinutes)
   const deliveryStart = finite(load.deliveryDayIndex) * 1440 + finite(load.deliveryWindowStartMinutes)
-  const scheduleWindow = getDriverScheduleWindow(driver, finite(load.pickupDayIndex))
-  const projectedStart = Math.max(
+  const scheduleWindow = getDriverScheduleWindow(driver, pickupDay)
+  const baseProjectedStart = Math.max(
     finite(projection.availableAbsoluteMinute),
     scheduleWindow?.startAbsoluteMinute ?? 0,
   )
-  const pickupArrival = projectedStart + deadheadMinutes
   const pickupService = 10 + Math.max(0, Number(load?.facilityOps?.pickup?.loadingDelayMinutes || 0))
   const deliveryService = 8 + Math.max(0, Number(load?.facilityOps?.delivery?.unloadingDelayMinutes || 0))
-  const pickupServiceStart = Math.max(pickupArrival, pickupStart)
-  const pickupDepart = pickupServiceStart + pickupService
-  const deliveryArrival = pickupDepart + loadedMinutes
-  const deliveryServiceStart = Math.max(deliveryArrival, deliveryStart)
-  const deliveryComplete = deliveryServiceStart + deliveryService
+
+  const timingFrom = (startMinute) => {
+    const pickupArrival = startMinute + deadheadMinutes
+    const pickupServiceStart = Math.max(pickupArrival, pickupStart)
+    const pickupDepart = pickupServiceStart + pickupService
+    const deliveryArrival = pickupDepart + loadedMinutes
+    const deliveryServiceStart = Math.max(deliveryArrival, deliveryStart)
+    const deliveryComplete = deliveryServiceStart + deliveryService
+    return { pickupArrival, pickupServiceStart, pickupDepart, deliveryArrival, deliveryServiceStart, deliveryComplete }
+  }
+
+  const workday = scheduleWindow?.workday || null
+  const lunchStartMinute = Number(workday?.lunchWindowStartMinutes)
+  const lunchEndMinute = Number(workday?.lunchWindowEndMinutes)
+  const lunchValid = Number.isFinite(lunchStartMinute) && Number.isFinite(lunchEndMinute)
+  const lunchStartAbsolute = lunchValid ? pickupDay * 1440 + lunchStartMinute : null
+  const lunchEndAbsolute = lunchValid
+    ? pickupDay * 1440 + lunchEndMinute + (lunchEndMinute <= lunchStartMinute ? 1440 : 0)
+    : null
+
+  let projectedStart = baseProjectedStart
+  let timing = timingFrom(projectedStart)
+  const overlapsLunch = lunchValid
+    && projectedStart < lunchEndAbsolute
+    && timing.deliveryComplete > lunchStartAbsolute
+
+  // A dispatcher-protected lunch window behaves like blocked planning time.
+  // If a new commitment would overlap it, defer the commitment until lunch ends
+  // and re-evaluate the appointments/HOS from there.
+  if (overlapsLunch) {
+    projectedStart = Math.max(projectedStart, lunchEndAbsolute)
+    timing = timingFrom(projectedStart)
+  }
+
+  const {
+    pickupArrival,
+    pickupServiceStart,
+    pickupDepart,
+    deliveryArrival,
+    deliveryServiceStart,
+    deliveryComplete,
+  } = timing
 
   const driveRequiredMinutes = deadheadMinutes + loadedMinutes
   const dutyRequiredMinutes = Math.max(0, deliveryComplete - projectedStart)
@@ -100,6 +137,9 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
     projectedDeliveryArrivalMinute: deliveryArrival,
     projectedDeliveryServiceStartMinute: deliveryServiceStart,
     projectedDeliveryCompleteMinute: deliveryComplete,
+    lunchAdjusted: overlapsLunch,
+    lunchWindowStartMinute: lunchStartAbsolute,
+    lunchWindowEndMinute: lunchEndAbsolute,
     pickupServiceMinutes: pickupService,
     deliveryServiceMinutes: deliveryService,
     deadheadMiles: Number.isFinite(Number(load?.tripPlan?.legs?.deadhead?.miles ?? load?.plannedDeadheadMiles ?? load?.assignmentProjection?.deadheadMiles))

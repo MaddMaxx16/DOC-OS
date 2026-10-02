@@ -604,21 +604,26 @@ function DriverSchedulerScreen({
 
             
 
-      {firstDay?.step === 'lunch' && marcus && <FirstDayLesson title={lunchPlanned ? 'Lunch window saved' : 'Protect time for lunch'} actionLabel={view !== 'driver' || selectedDriver?.id !== 'marcus' ? 'VIEW MARCUS' : lunchPlanned ? 'REVIEW THE SECOND LANE' : 'SET MARCUS’S LUNCH WINDOW'} onAction={() => {
+      {firstDay?.step === 'lunch' && marcus && <FirstDayLesson title={lunchPlanned ? 'Lunch is protected' : 'Protect time for lunch'} actionLabel={view !== 'driver' || selectedDriver?.id !== 'marcus' ? 'VIEW MARCUS' : lunchPlanned ? 'FIND LOAD 3' : 'SET MARCUS’S LUNCH WINDOW'} onAction={() => {
         if (view !== 'driver' || selectedDriver?.id !== 'marcus') { chooseDriver('marcus'); return }
         if (!lunchPlanned) { setLunchDriverId('marcus'); return }
-        if (continueLesson('secondLane')) onResumeLaneReview?.(firstDay.reviewLoadId)
+        if (continueLesson('thirdLoad')) onFindFreight?.('marcus')
       }}>
-        {lunchPlanned ? `Marcus’s window is ${formatTime(marcusWorkday.lunchWindowStartMinutes)}–${formatTime(marcusWorkday.lunchWindowEndMinutes)}. We’ll check freight against it next. ` : 'His first lane is booked. Before adding this second lane, fit a lunch window around his existing appointments and travel. '}
-        Save the window, then return to the second lane and evaluate it against the booked work. This does not start a break.
+        {lunchPlanned
+          ? `Marcus’s lunch window is ${formatTime(marcusWorkday.lunchWindowStartMinutes)}–${formatTime(marcusWorkday.lunchWindowEndMinutes)}. Loads 1 and 2 are already confirmed, so the final load has to fit around this protected time. `
+          : 'Marcus has two confirmed loads. Now choose a realistic lunch window around those commitments before we shop the final load. '}
+        This protects time in the plan; it does not start the actual break yet.
       </FirstDayLesson>}
-      {firstDay?.step === 'shiftEnd' && marcus && <FirstDayLesson title={shiftEndPlanned ? 'Finish position saved' : 'Where should Marcus finish?'} actionLabel={view !== 'driver' || selectedDriver?.id !== 'marcus' ? 'VIEW MARCUS' : shiftEndPlanned ? 'RETURN TO DISPATCH' : 'PLAN MARCUS’S SHIFT END'} onAction={() => {
+      {firstDay?.step === 'staging' && marcus && <FirstDayLesson title={shiftEndPlanned ? 'Staging is set' : 'Plan Marcus’s finish position'} actionLabel={view !== 'driver' || selectedDriver?.id !== 'marcus' ? 'VIEW MARCUS' : shiftEndPlanned ? 'SEND MARCUS’S SCHEDULE' : 'PLAN STAGING'} onAction={() => {
         if (view !== 'driver' || selectedDriver?.id !== 'marcus') { chooseDriver('marcus'); return }
         if (!shiftEndPlanned) { setShiftEndDriverId('marcus'); return }
-        if (onFirstDayProgress?.({ step: 'ready', messageIndex: 2, workdayLessonComplete: true }) !== false) onFirstDayComplete?.()
+        const sent = onSendDriverSchedule?.('marcus')
+        if (sent !== false) onFirstDayComplete?.()
       }}>
-        {shiftEndPlanned ? `Marcus is planned to finish at ${marcus.shiftEndLocationName || 'his selected location'}. ` : 'Compare the available yard and staging options with his delivery destination and remaining shift time. '}
-        The plan stays passive while freight owns the truck. His actual shift-end event will guide the final move and off-duty handoff. Now you can return to the real dispatch workflow.
+        {shiftEndPlanned
+          ? `Marcus is planned to finish at ${marcus.shiftEndLocationName || 'the selected staging location'}. His three loads, lunch window, and finish position are now one complete day. `
+          : 'Marcus has three confirmed loads and lunch protected. Compare the final delivery area with the Metroline Yard and nearby staging options, then choose where the truck should finish. '}
+        Once the finish position is saved, send Marcus the complete schedule.
       </FirstDayLesson>}
 
       {view === 'today' && (
@@ -640,6 +645,12 @@ function DriverSchedulerScreen({
                 !['completed', 'paid', 'cancelled', 'expired'].includes(String(load.status || '').toLowerCase())
               )
               const scheduleReady = bookedDayLoads.length > 0
+              const firstDayScheduleLocked = Boolean(
+                firstDay
+                && !firstDay.workdayLessonComplete
+                && driver.id === 'marcus'
+                && (firstDay.step !== 'staging' || !shiftEndPlanned)
+              )
               const scheduleSent =
                 scheduleReady &&
                 bookedDayLoads.every((load) => Number.isFinite(Number(load.driverAcknowledgedGameMinute)))
@@ -709,14 +720,16 @@ function DriverSchedulerScreen({
                     <button
                       type="button"
                       className={`driver-send-schedule-button ${scheduleSent ? 'sent' : scheduleNeedsUpdate ? 'update' : ''}`}
-                      disabled={!scheduleReady || scheduleSent}
+                      disabled={!scheduleReady || scheduleSent || firstDayScheduleLocked}
                       onClick={() => onSendDriverSchedule?.(driver.id)}
                     >
                       {scheduleSent
                         ? 'SCHEDULE SENT'
-                        : scheduleNeedsUpdate
-                          ? 'SEND UPDATED SCHEDULE'
-                          : 'SEND SCHEDULE'}
+                        : firstDayScheduleLocked
+                          ? 'FINISH DAY PLAN FIRST'
+                          : scheduleNeedsUpdate
+                            ? 'SEND UPDATED SCHEDULE'
+                            : 'SEND SCHEDULE'}
                     </button>
                     <span><b>{lunchWindowLabel(workday) || (workday?.lunchEvent ? 'ACTIVE' : 'NOT SET')}</b> LUNCH</span>
 
