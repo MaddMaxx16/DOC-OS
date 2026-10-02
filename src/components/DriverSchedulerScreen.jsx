@@ -604,13 +604,6 @@ function DriverSchedulerScreen({
 
             
 
-      {firstDay?.step === 'schedule' && marcus && <FirstDayLesson title="Start with the shift" actionLabel={view === 'schedule' ? 'SHOP LANES WITH JORDAN' : 'VIEW MARCUS’S SCHEDULE'} onAction={() => {
-        if (view !== 'schedule') { setView('schedule'); return }
-        if (continueLesson('freight')) onFindFreight?.('marcus')
-      }}>
-        {marcusWorkday ? `Metroline has confirmed Marcus’s shift: ${formatTime(marcusWorkday.startMinutes)}–${formatTime(marcusWorkday.endMinutes)}. ` : 'Check Marcus’s carrier-confirmed availability. '}
-        These are the hours we have to work with. Let’s shop for his first lane together, then check each part before we commit.
-      </FirstDayLesson>}
       {firstDay?.step === 'lunch' && marcus && <FirstDayLesson title={lunchPlanned ? 'Lunch window saved' : 'Protect time for lunch'} actionLabel={view !== 'driver' || selectedDriver?.id !== 'marcus' ? 'VIEW MARCUS' : lunchPlanned ? 'REVIEW THE SECOND LANE' : 'SET MARCUS’S LUNCH WINDOW'} onAction={() => {
         if (view !== 'driver' || selectedDriver?.id !== 'marcus') { chooseDriver('marcus'); return }
         if (!lunchPlanned) { setLunchDriverId('marcus'); return }
