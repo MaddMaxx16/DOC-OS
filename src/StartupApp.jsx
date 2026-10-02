@@ -29,6 +29,7 @@ function OpeningWorkstation() {
 // and dev tooling are not loaded while the player is still onboarding.
 function StartupApp() {
   const [stage, setStage] = useState('start')
+  const [entryPhase, setEntryPhase] = useState(null)
   const [saveSlots, setSaveSlots] = useState(() => getSaveSlots())
   const [activeSaveSlotId, setActiveSaveSlotId] = useState(() => getActiveSaveSlot())
   const [dispatcherProfile, setDispatcherProfile] = useState(null)
@@ -52,6 +53,16 @@ function StartupApp() {
 
     window.addEventListener('doc-os-save-failed', handleSaveFailure)
     return () => window.removeEventListener('doc-os-save-failed', handleSaveFailure)
+  }, [])
+
+  useEffect(() => {
+    if (entryPhase !== 'revealing') return undefined
+    const timer = window.setTimeout(() => setEntryPhase(null), 320)
+    return () => window.clearTimeout(timer)
+  }, [entryPhase])
+
+  const revealWorkstation = useCallback(() => {
+    setEntryPhase((current) => current === 'opening' ? 'revealing' : current)
   }, [])
 
   const refreshSaveSlots = () => {
@@ -135,24 +146,28 @@ function StartupApp() {
 
   const openOperations = async (initializeFirstDay) => {
     setSaveFailureMessage('')
+    setEntryPhase('opening')
     setStage('openingOperations')
     try {
       // Dynamic imports begin only after the player's explicit start/resume action.
       const [initializer] = await Promise.all([
         initializeFirstDay ? import('./utils/firstDayOperation.js') : Promise.resolve(null),
         import('./App.jsx'),
-        new Promise((resolve) => window.setTimeout(resolve, 300)),
+        import('./components/MainGameScreen.jsx'),
+        new Promise((resolve) => window.setTimeout(resolve, 1000)),
       ])
       if (initializeFirstDay) {
         const saved = loadGame(getActiveSaveSlot())
         const operation = initializer.prepareFirstDayOperation(saved)
         if (!saveGame(operation, getActiveSaveSlot())) {
+          setEntryPhase(null)
           setStage('careerSetup')
           return
         }
       }
       setStage('operations')
     } catch (error) {
+      setEntryPhase(null)
       setSaveFailureMessage(error?.message || 'Your workstation could not open. Please try again.')
       setStage(initializeFirstDay ? 'careerSetup' : 'start')
     }
@@ -160,13 +175,13 @@ function StartupApp() {
 
   const returnToStartup = useCallback(() => { setSaveSlots(getSaveSlots()); setStage('start') }, [])
 
-  if (stage === 'operations') {
-    return <Suspense fallback={<main className="app"><section className="phone-shell"><OpeningWorkstation /></section></main>}>
-      <OperationsApp onReturnToStartup={returnToStartup} />
-    </Suspense>
-  }
-
   return (
+    <>
+    {stage === 'operations' ? (
+      <Suspense fallback={null}>
+        <OperationsApp onReturnToStartup={returnToStartup} onWorkstationReady={revealWorkstation} />
+      </Suspense>
+    ) : (
     <main className="app">
       <section className="phone-shell">
         {saveFailureMessage && (
@@ -189,7 +204,6 @@ function StartupApp() {
           />
         )}
 
-        {stage === 'openingOperations' && <OpeningWorkstation />}
 
         {stage === 'careerSetup' && (
           <CareerSetupScreen
@@ -202,6 +216,13 @@ function StartupApp() {
         )}
       </section>
     </main>
+    )}
+    {entryPhase && (
+      <div className={`workstation-entry-cover ${entryPhase}`}>
+        <section className="phone-shell"><OpeningWorkstation /></section>
+      </div>
+    )}
+    </>
   )
 }
 

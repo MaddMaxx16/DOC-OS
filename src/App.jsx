@@ -83,7 +83,7 @@ function reconcileDriverRuntimeState(driver, activeLoad, savedPosition, now) {
   return { position: savedPosition || (fallback ? { longitude: fallback.longitude, latitude: fallback.latitude } : null), progress: null }
 }
 
-function App({ onReturnToStartup }) {
+function App({ onReturnToStartup, onWorkstationReady }) {
   const [stage, setStage] = useState(onReturnToStartup ? 'loading' : 'start')
   const [gameEntryScreen, setGameEntryScreen] = useState(null)
   const [selectedMarket, setSelectedMarket] = useState(null)
@@ -1822,7 +1822,7 @@ Open CarrierSource to review your full account history.`
           />
         )}
 
-        {stage === 'loading' && <div className="workstation-opening" role="status"><span>METROLINE</span><strong>Opening your workstation…</strong></div>}
+        {stage === 'loading' && !onWorkstationReady && <div className="workstation-opening" role="status"><span>METROLINE</span><strong>Opening your workstation…</strong></div>}
         {stage === 'start' && <StartOfficeBackdrop />}
         {stage === 'start' && (
           <StartScreen
@@ -1845,9 +1845,10 @@ Open CarrierSource to review your full account history.`
         )}
         {stage === 'game' && (
           <Suspense
-            fallback={<div className="workstation-opening" role="status"><span>METROLINE</span><strong>Opening your workstation…</strong></div>}
+            fallback={onWorkstationReady ? null : <div className="workstation-opening" role="status"><span>METROLINE</span><strong>Opening your workstation…</strong></div>}
           >
             <MainGameScreen
+            onWorkstationReady={onWorkstationReady}
             career={career}
             firstDay={firstDay}
             onFirstDayProgress={persistFirstDayProgress}
