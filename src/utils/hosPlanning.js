@@ -35,7 +35,12 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
   const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
   if (!pickup || !delivery) return null
 
-  const projection = getProjectedDriverOrigin({ driver, loads, runtimePositions, gameTime })
+  // When evaluating a load, "existing work" must exclude the load being
+  // reviewed. Once a load is booked it becomes part of the driver's itinerary;
+  // including it here would project the driver through the load and then try to
+  // evaluate the same load again from its own completion time.
+  const existingLoads = loads.filter((item) => item.id !== load.id)
+  const projection = getProjectedDriverOrigin({ driver, loads: existingLoads, runtimePositions, gameTime })
   if (!projection.location) return null
 
   const deadheadPlanned = Number(load?.tripPlan?.legs?.deadhead?.minutes ?? load?.plannedDeadheadDriveTimeMinutes ?? load?.assignmentProjection?.deadheadMinutes)
