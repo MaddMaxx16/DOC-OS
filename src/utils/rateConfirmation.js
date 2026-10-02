@@ -24,6 +24,8 @@ export function createRateConfirmation(load, issuedGameMinute, carrierName = 'Ca
     deliveryWindowEndMinutes: load.deliveryWindowEndMinutes,
     rate: Number(load.rate),
     listedMiles: Number(load.listedMiles),
+    equipmentType: load.equipmentType || 'dry-van',
+    equipmentLabel: load.equipmentLabel || "53' Dry Van",
     reviewChecks: {},
     reviewStatus: 'PENDING',
     history: [],
