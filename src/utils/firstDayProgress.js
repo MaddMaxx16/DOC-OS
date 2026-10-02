@@ -1,3 +1,5 @@
+import { isRateConfirmationConfirmed } from './rateConfirmation.js'
+
 const FIRST_DAY_STEPS = [
   'welcome',
   'schedule',
@@ -38,8 +40,14 @@ export function normalizeFirstDayProgress(value) {
 
 export function getFirstDayBookedLanes(loads = []) {
   return loads
-    .filter((load) => (load.assignedDriverId === 'marcus' || load.completedDriverId === 'marcus')
-      && !['available', 'cancelled', 'expired'].includes(String(load.status || '').toLowerCase()))
+    .filter((load) => {
+      const status = String(load.status || '').toLowerCase()
+      const owned = load.assignedDriverId === 'marcus' || load.completedDriverId === 'marcus'
+      const terminalComplete = ['completed', 'paid', 'delivered'].includes(status)
+      return owned
+        && !['available', 'cancelled', 'expired'].includes(status)
+        && (isRateConfirmationConfirmed(load) || terminalComplete)
+    })
     .sort((a, b) => loadOrder(a) - loadOrder(b))
 }
 
