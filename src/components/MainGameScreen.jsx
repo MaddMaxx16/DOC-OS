@@ -3079,10 +3079,10 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
 
         {!isPhoneOpen && !planningMode && !deliveryPlanning && firstDay && !welcomeActive
           && !firstDay.workdayLessonComplete && Number(gameTime?.gameDayIndex || 0) === 0
-          && !loads.some((load) => load.id === 'DOC001' && ['completed', 'paid', 'delivered'].includes(load.status)) && (
+          && !loads.some((load) => (load.assignedDriverId === 'marcus' || load.completedDriverId === 'marcus') && ['completed', 'paid', 'delivered'].includes(load.status)) && (
           <button type="button" className="first-day-resume" onClick={() => {
             const step = ['ready', 'schedule'].includes(firstDay.step) ? 'freight' : firstDay.step
-            if (onFirstDayProgress?.({ step, messageIndex: 2, flowVersion: 2 }) === false) return
+            if (onFirstDayProgress?.({ step, messageIndex: 2, flowVersion: 3 }) === false) return
             setDriverHubOpen(false)
             setPhoneInitialScreen(step === 'secondLane' ? 'loadDetails' : ['freight', 'restOfDay'].includes(step) ? 'loadBoard' : 'agenda')
             setPhoneInitialDriverId('marcus')
@@ -3247,7 +3247,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       </div>
       {restIntroActive && <FirstDayWelcome lessonMessage="That first lane is booked and its rate con is confirmed. Now let’s build the rest of Marcus’s day. We’ll go back to FreightLink and look at a second lane. Before adding it, we’ll make room for lunch around the work he already has." actionLabel="SHOP THE REST OF HIS DAY" onContinue={() => {
         const first = getFirstDayBookedLanes(loads)[0]
-        if (onFirstDayProgress?.({ step: 'restOfDay', firstLaneId: first.id, flowVersion: 2, messageIndex: 2 }) === false) return
+        if (onFirstDayProgress?.({ step: 'restOfDay', firstLaneId: first.id, flowVersion: 3, messageIndex: 2 }) === false) return
         setPhoneInitialScreen('loadBoard')
         setPhoneInitialDriverId('marcus')
         setPhoneLoadId(null)
