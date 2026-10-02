@@ -1,6 +1,7 @@
 import DocumentZoomOverlay from './DocumentZoomOverlay.jsx'
 import mapLocations from '../data/mapLocations.js'
 import { getFreightRouteName } from '../utils/freightIdentity.js'
+import { formatAppointment } from '../utils/gameTime.js'
 
 function money(value) {
   return Number.isFinite(Number(value)) ? `$${Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '—'
@@ -26,21 +27,24 @@ function OperationalDocumentViewer({ attachment, loads = [], workflows = {}, bus
   } else if (attachment.type === 'rate-confirmation' && load && load.rateConfirmation) {
     const rc = load.rateConfirmation
     body = <article className="docos-document-surface ratecon-paper">
-      <div className="pod-paper-masthead"><span>METROLINE TRANSPORT · RATE CONFIRMATION</span><strong>{rc.reference || `RC-${load.id}`}</strong><small>{getFreightRouteName(load)} · Version {rc.version || 1}</small></div>
+      <div className="pod-paper-masthead"><span>FREIGHTLINK · RATE CONFIRMATION</span><strong>{rc.reference || `RC-${load.id}`}</strong><small>{getFreightRouteName(load)} · Version {rc.version || 1}</small></div>
       <div className="pod-paper-route"><div><span>CARRIER</span><strong>{rc.carrierName || 'Carrier'}</strong></div><div><span>STATUS</span><strong>{rc.status || 'RECEIVED'}</strong></div></div>
       <div className="ratecon-lane"><div><span>PICKUP</span><strong>{pickup?.name || 'Pickup'}</strong></div><b>→</b><div><span>DELIVERY</span><strong>{delivery?.name || 'Delivery'}</strong></div></div>
       <div className="pod-paper-freight ratecon-summary"><div><span>AGREED RATE</span><strong>{money(rc.rate)}</strong></div><div><span>LISTED MILES</span><strong>{Number.isFinite(Number(rc.listedMiles)) ? `${Number(rc.listedMiles).toFixed(1)} mi` : '—'}</strong></div></div>
-      <div className="ratecon-review-note"><span>{rc.status === 'CORRECTION_REQUESTED' ? 'CORRECTION REQUESTED' : 'MANUAL REVIEW'}</span><strong>{rc.status === 'CORRECTION_REQUESTED' ? 'Waiting for Metroline Documentation to return a corrected Rate Confirmation.' : 'Compare the FreightLink offer with the carrier document. Mark each field ✓ or X.'}</strong></div>
+      <div className="ratecon-review-note"><span>{rc.status === 'CORRECTION_REQUESTED' ? 'CORRECTION REQUESTED' : 'MANUAL REVIEW'}</span><strong>{rc.status === 'CORRECTION_REQUESTED' ? 'Waiting for Metroline Documentation to return a corrected Rate Confirmation.' : 'Compare every booking term with the FreightLink offer. Mark each field ✓ or X before accepting the load.'}</strong></div>
       {rc.status !== 'CORRECTION_REQUESTED' && rc.status !== 'CONFIRMED' && <div className="ratecon-compare">
         <div className="ratecon-compare-head"><span>FIELD</span><span>FREIGHTLINK</span><span>RATE CON</span><span>CHECK</span></div>
         {[
-          ['pickup','Pickup',pickup?.name || 'Pickup', mapLocations.find((item) => item.id === rc.pickupLocationId)?.name || 'Pickup'],
-          ['delivery','Delivery',delivery?.name || 'Delivery', mapLocations.find((item) => item.id === rc.deliveryLocationId)?.name || 'Delivery'],
+          ['pickup','Pickup facility',pickup?.name || 'Pickup', mapLocations.find((item) => item.id === rc.pickupLocationId)?.name || 'Pickup'],
+          ['pickupTime','Pickup appt',formatAppointment(load.pickupDayIndex, load.pickupWindowStartMinutes, load.pickupWindowEndMinutes),formatAppointment(rc.pickupDayIndex, rc.pickupWindowStartMinutes, rc.pickupWindowEndMinutes)],
+          ['delivery','Delivery facility',delivery?.name || 'Delivery', mapLocations.find((item) => item.id === rc.deliveryLocationId)?.name || 'Delivery'],
+          ['deliveryTime','Delivery appt',formatAppointment(load.deliveryDayIndex, load.deliveryWindowStartMinutes, load.deliveryWindowEndMinutes),formatAppointment(rc.deliveryDayIndex, rc.deliveryWindowStartMinutes, rc.deliveryWindowEndMinutes)],
+          ['equipment','Equipment',load.equipmentLabel || "53' Dry Van",rc.equipmentLabel || "53' Dry Van"],
           ['rate','Rate',money(load.rate),money(rc.rate)],
           ['miles','Miles',Number.isFinite(Number(load.listedMiles)) ? `${Number(load.listedMiles).toFixed(1)} mi` : '—',Number.isFinite(Number(rc.listedMiles)) ? `${Number(rc.listedMiles).toFixed(1)} mi` : '—'],
         ].map(([key,label,offerValue,rcValue]) => <div className="ratecon-compare-row" key={key}><strong>{label}</strong><span>{offerValue}</span><span>{rcValue}</span><div className="ratecon-check-actions"><button className={rc.reviewChecks?.[key] === 'match' ? 'selected' : ''} type="button" onClick={() => onRateConCheck?.(load.id,key,'match')}>✓</button><button className={rc.reviewChecks?.[key] === 'flag' ? 'flag selected' : 'flag'} type="button" onClick={() => onRateConCheck?.(load.id,key,'flag')}>×</button></div></div>)}
       </div>}
-      {rc.status === 'CONFIRMED' ? <div className="ratecon-confirmed">✓ RATE CONFIRMATION CONFIRMED</div> : rc.status !== 'CORRECTION_REQUESTED' && <div className="ratecon-review-actions">{Object.values(rc.reviewChecks || {}).includes('flag') ? <button type="button" onClick={() => onRequestRateConCorrection?.(load.id)}>REQUEST CORRECTION</button> : <button type="button" disabled={!['pickup','delivery','rate','miles'].every((key) => rc.reviewChecks?.[key] === 'match')} onClick={() => onConfirmRateCon?.(load.id)}>CONFIRM RATE CON</button>}</div>}
+      {rc.status === 'CONFIRMED' ? <div className="ratecon-confirmed">✓ RATE CONFIRMATION CONFIRMED</div> : rc.status !== 'CORRECTION_REQUESTED' && <div className="ratecon-review-actions">{Object.values(rc.reviewChecks || {}).includes('flag') ? <button type="button" onClick={() => onRequestRateConCorrection?.(load.id)}>REQUEST CORRECTION</button> : <button type="button" disabled={!['pickup','pickupTime','delivery','deliveryTime','equipment','rate','miles'].every((key) => rc.reviewChecks?.[key] === 'match')} onClick={() => onConfirmRateCon?.(load.id)}>CONFIRM RATE CON</button>}</div>}
     </article>
   } else if (attachment.type === 'settlement-packet' && load) {
     const rc = load.rateConfirmation
