@@ -3,7 +3,7 @@
 > **Roadmap reconciled:** 2026-10-02  
 > **Current branch:** `p2.4-experience-rebuild`  
 > **Known-good onboarding/performance checkpoint:** `checkpoint/perf-onboarding-stable-2026-10-02` / `6d9bf13`  
-> **Current active phase:** P2.4 Experience Rebuild — First Day Onboarding
+> **Current active phase:** P2.4 Experience Rebuild — Operations Workspace Remodel → First Day Onboarding
 
 This file is the source of truth for **phase order and status**. `DOC_OS_BUILD_BIBLE.md` is the source of truth for system behavior, ownership contracts, design rules, and protected regression behavior.
 
@@ -82,7 +82,17 @@ DOC002 may become available later the same operating day after DOC001.
 
 ### First Day implementation slices
 
-- [NEXT] **P2.4-FD.1 — First Day Arrival / Orientation**
+- [NEXT] **P2.4-FD.0 — Operations Workspace Remodel**
+  - Replace BOARD with CONSOLE; retain camera-fit as a separate map utility.
+  - Console contains Email, Browser/FreightLink, Scheduler/Agenda, Documents, and LedgerDesk.
+  - Resize Phone as the smaller Contacts/Messages surface.
+  - Keep DRIVERS / Driver Hub separate and directly accessible from the map.
+  - Preserve message history, unread counts, notification destinations, thread navigation, acknowledgements, quick replies, and load updates.
+  - Redesign the map's top status/operations bars; final composition and employee-era money presentation require design before implementation.
+  - Preserve lazy loading, the startup/Operations boundary, and protected workflow/simulation authority.
+  - Establish this workspace before First Day teaches its navigation.
+
+- [PLANNED] **P2.4-FD.1 — First Day Arrival / Orientation**
   - Establish the player at the Metroline workstation after Character Creator.
   - Establish the player's Junior Dispatcher employee role and Jordan as Metroline trainer/supervisor.
   - Teach only the minimum workstation/phone orientation needed for the first assignment.
@@ -170,7 +180,7 @@ Add markets only after the core simulation has sufficient depth. Each market mus
 
 ## ROADMAP RULES
 
-1. First Day is the active feature phase; do not skip ahead to C.0 systems while the clean-new-player path ends at a placeholder.
+1. The Operations workspace remodel precedes First Day teaching/navigation; do not skip ahead to C.0 systems while the clean-new-player path ends at a placeholder.
 2. The player starts as a Metroline employee; CarrierSource is not an onboarding gate.
 3. Build tutorial slices through the real authoritative systems.
 4. Keep the startup/Operations performance boundary intact.
