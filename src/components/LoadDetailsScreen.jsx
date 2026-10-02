@@ -28,6 +28,7 @@ function LoadDetailsScreen({
   onRequestApproval,
   onRequestBooking,
   onOpenRateConfirmation,
+  onPlanLunch,
   onOpenScheduler,
   onSendLoadDetails,
   onBack,
@@ -82,11 +83,19 @@ function LoadDetailsScreen({
   const rateConReady = Boolean(load.rateConfirmation?.id)
   const rateConConfirmed = load.rateConfirmation?.status === 'CONFIRMED'
   const approvedToPursue = !approvalRequired || load.carrierApprovalStatus === 'APPROVED'
+  const planningDay = Number.isFinite(Number(load.pickupDayIndex)) ? Number(load.pickupDayIndex) : Number(gameTime?.gameDayIndex || 0)
+  const planningWorkday = planningDriver?.workdayByDay?.[String(planningDay)] || planningDriver?.workdayByDay?.[planningDay] || null
+  const hasEarlierBookedFreight = loads.some((item) => item.id !== load.id
+    && (item.assignedDriverId === planningDriver?.id || item.completedDriverId === planningDriver?.id)
+    && (item.bookingStatus === 'CONFIRMED' || item.rateConfirmation?.status === 'CONFIRMED'))
+  const lunchProtected = Number.isFinite(Number(planningWorkday?.lunchStartMinutes)) && Number.isFinite(Number(planningWorkday?.lunchDurationMinutes))
+  const needsLunchPlan = Boolean(isAvailable && evaluated && hasEarlierBookedFreight && !lunchProtected)
 
   const primaryAction = (() => {
     if (!isAvailable) return { label: 'VIEW TODAY\'S PLAN', action: () => onOpenScheduler?.(load.id), disabled: false }
     if (!planningDriver) return { label: 'NO DRIVER AVAILABLE', disabled: true }
     if (!evaluated) return { label: `EVALUATE FOR ${(planningDriver.fullName || planningDriver.name || 'DRIVER').split(' ')[0].toUpperCase()}`, action: () => onEvaluateLoad?.(load.id, planningDriver.id), disabled: false }
+    if (needsLunchPlan) return { label: `PLAN ${(planningDriver.fullName || planningDriver.name || 'DRIVER').split(' ')[0].toUpperCase()}\'S LUNCH`, action: () => onPlanLunch?.(load.id, planningDriver.id), disabled: false }
     if (approvalRequired && !['PENDING', 'APPROVED'].includes(load.carrierApprovalStatus)) return { label: load.carrierApprovalStatus === 'NEEDS_INFO' ? 'RESEND METROLINE APPROVAL' : 'REQUEST METROLINE APPROVAL', action: () => onRequestApproval?.(load.id, candidateDriver?.id || planningDriver.id), disabled: !goodCandidate }
     if (approvalRequired && load.carrierApprovalStatus === 'PENDING') return { label: 'AWAITING METROLINE APPROVAL', disabled: true }
     if (approvedToPursue && !bookingStatus && !rateConReady) return { label: 'REQUEST BOOKING', action: () => onRequestBooking?.(load.id), disabled: !goodCandidate }
@@ -181,6 +190,14 @@ function LoadDetailsScreen({
           </div>
           <em className={`freight-eval-result ${rateFit ? 'good' : 'risk'}`}>{rateFit ? 'RATE OK' : 'REVIEW'}</em>
         </section>
+
+        {hasEarlierBookedFreight && (
+          <section className={`freight-eval-day-check ${lunchProtected ? 'good' : 'attention'}`}>
+            <span>DAY-BUILDING CHECK</span>
+            <strong>{lunchProtected ? `Lunch protected · ${formatTime(Number(planningWorkday.lunchStartMinutes))} for ${Number(planningWorkday.lunchDurationMinutes)} min` : `Before adding another lane, protect ${planningDriver?.name || 'the driver'}'s lunch.`}</strong>
+            <p>{lunchProtected ? 'Now evaluate this freight around the break already reserved in the workday.' : 'The first load showed us the morning. The second load is where we start building the whole day — including a real break.'}</p>
+          </section>
+        )}
 
         <section className={`freight-eval-verdict ${evaluated ? (goodCandidate ? 'good' : 'risk') : 'pending'}`}>
           <span>DECISION</span>
