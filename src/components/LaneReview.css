@@ -10,169 +10,239 @@
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 }
 
+/* Compact working header: route context, not a hero banner. */
 .lane-review-header{
   flex:0 0 auto;
   display:grid;
-  grid-template-columns:34px minmax(0,1fr) auto;
-  gap:10px;
+  grid-template-columns:30px minmax(0,1fr);
+  gap:9px;
   align-items:start;
-  padding:14px 14px 12px;
-  border-bottom:1px solid #2b3541;
+  padding:9px 11px 8px;
+  border-bottom:1px solid #27323d;
   background:#0c1117;
 }
 .lane-review-header>button{
-  width:34px;
-  height:34px;
-  border:1px solid #405064;
-  border-radius:10px;
+  width:30px;
+  height:30px;
+  border:1px solid #3a495a;
+  border-radius:9px;
   background:#121a23;
   color:#e7edf5;
-  font-size:22px;
+  font-size:20px;
+  line-height:1;
 }
-.lane-review-header>div{min-width:0}
-.lane-review-header span{
+.lane-review-title{min-width:0}
+.lane-review-eyebrow{
   display:block;
-  color:#8ea0b5;
-  font-size:8px;
-  font-weight:800;
-  letter-spacing:.13em;
+  color:#8092a5;
+  font-size:6.5px;
+  font-weight:900;
+  letter-spacing:.14em;
 }
 .lane-review-header h2{
-  margin:5px 0 3px;
+  margin:3px 0 5px;
+  color:#f2f6fa;
+  font-size:13px;
+  line-height:1.16;
+  font-weight:800;
+  letter-spacing:-.01em;
   overflow-wrap:anywhere;
-  color:#f5f7fa;
-  font-size:17px;
-  line-height:1.22;
 }
-.lane-review-header p{
+.lane-review-header h2 i{
+  margin:0 2px;
+  color:#8ea0b4;
+  font-style:normal;
+  font-weight:700;
+}
+.lane-review-meta{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  min-width:0;
+  overflow:hidden;
+}
+.lane-review-meta>span,
+.lane-review-meta>.freight-haul-tag{
+  display:inline-flex;
+  align-items:center;
+  min-height:18px;
   margin:0;
-  color:#8f9fb1;
-  font-size:9px;
-  line-height:1.35;
-}
-.lane-review-header .freight-haul-tag{
-  margin-top:2px;
+  padding:2px 6px;
+  border:1px solid #2f3b48;
+  border-radius:999px;
+  background:#10161d;
+  color:#8496a9;
+  font-size:6.5px;
+  font-weight:800;
+  letter-spacing:.04em;
   white-space:nowrap;
 }
+.lane-review-meta>span:last-child{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.lane-review-meta>.freight-haul-tag{color:#c8d1db}
 
+/* More usable content per viewport. */
 .lane-review-scroll{
   flex:1 1 auto;
   min-height:0;
   overflow-y:auto;
   overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;
-  padding:10px 12px 20px;
+  padding:7px 10px 12px;
 }
-.lane-review-scroll>.first-day-lesson{margin:0 0 10px}
 
-.lane-driver-card{
+/* Driver context is a strip, not a standalone card. */
+.lane-driver-strip{
   display:grid;
-  grid-template-columns:minmax(0,1fr) auto;
-  gap:12px;
-  align-items:center;
-  padding:12px;
-  border:1px solid #2e3945;
-  border-radius:13px;
-  background:#111820;
+  grid-template-columns:minmax(0,1.45fr) minmax(64px,.9fr) minmax(54px,.7fr) minmax(54px,.7fr);
+  align-items:stretch;
+  overflow:hidden;
+  border:1px solid #2c3742;
+  border-radius:10px;
+  background:#10171f;
 }
-.lane-driver-card>div:first-child{min-width:0}
-.lane-driver-card span,
-.lane-timeline header span,
-.lane-check span,
-.lane-freight-card header span,
-.lane-money-card header span,
-.lane-verdict>span,
-.lane-confirmed-driver>span{
-  color:#8294a8;
-  font-size:7px;
-  font-weight:900;
-  letter-spacing:.13em;
-}
-.lane-driver-card>div:first-child>strong{
-  display:block;
-  margin:4px 0 2px;
-  color:#f1f5f9;
-  font-size:14px;
-}
-.lane-driver-card>div:first-child>small{
-  display:block;
-  color:#8e9daf;
-  font-size:9px;
-  line-height:1.35;
-}
-.lane-driver-hos{
+.lane-driver-strip>div{
+  min-width:0;
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:5px;
-}
-.lane-driver-hos>span{
-  min-width:58px;
+  align-content:center;
+  gap:2px;
+  min-height:48px;
   padding:7px 8px;
-  border:1px solid #33404e;
-  border-radius:9px;
-  background:#0d141c;
-  text-align:center;
+  border-right:1px solid #27323c;
 }
-.lane-driver-hos b{
-  display:block;
-  color:#73869b;
-  font-size:6px;
-  letter-spacing:.08em;
+.lane-driver-strip>div:last-child{border-right:0}
+.lane-driver-strip span{
+  color:#75879b;
+  font-size:5.8px;
+  font-weight:900;
+  letter-spacing:.11em;
 }
-.lane-driver-hos strong{
-  display:block;
-  margin-top:2px;
-  color:#dfe8f2;
-  font-size:11px;
+.lane-driver-strip strong{
+  overflow:hidden;
+  color:#e8eef5;
+  font-size:9.5px;
+  line-height:1.15;
+  text-overflow:ellipsis;
+  white-space:nowrap;
   font-variant-numeric:tabular-nums;
 }
-
-.lane-timeline{
-  margin-top:10px;
+.lane-driver-strip small{
   overflow:hidden;
-  border:1px solid #2e3945;
-  border-radius:14px;
+  color:#7f90a3;
+  font-size:6.5px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.lane-driver-identity strong{font-size:10.5px}
+
+/* Jordan is a coaching strip inside the workspace. */
+.lane-review-v3 .first-day-lesson.compact{
+  margin:7px 0;
+  padding:8px 9px;
+  border-radius:10px;
+  border-color:#374454;
+  background:#141c25;
+}
+.lane-review-v3 .first-day-lesson.compact header{gap:7px}
+.lane-review-v3 .first-day-lesson.compact .first-day-lesson-portrait{
+  flex:0 0 26px;
+  width:26px;
+  height:30px;
+  border-radius:6px;
+}
+.lane-review-v3 .first-day-lesson.compact .first-day-lesson-portrait .player-avatar{
+  width:26px;
+  height:30px;
+}
+.lane-review-v3 .first-day-lesson.compact small{font-size:6px}
+.lane-review-v3 .first-day-lesson.compact h2{
+  margin-top:1px;
+  font-size:10.5px;
+  line-height:1.18;
+}
+.lane-review-v3 .first-day-lesson.compact p{
+  margin:5px 0 0;
+  color:#bfcbd7;
+  font-size:8.2px;
+  line-height:1.38;
+}
+.lane-review-v3 .first-day-lesson.compact button{
+  min-height:34px;
+  margin-top:6px;
+  padding:7px 9px;
+  border-radius:8px;
+  font-size:7.5px;
+}
+
+/* Timeline is the visual center of the page. */
+.lane-timeline{
+  margin-top:7px;
+  overflow:hidden;
+  border:1px solid #2c3742;
+  border-radius:11px;
   background:#0f151c;
 }
-.lane-timeline>header{
+.lane-timeline-head{
+  display:flex!important;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 10px!important;
+  border-bottom:1px solid #27313b;
+  background:#111820;
+}
+.lane-timeline-head>div{
   display:grid;
-  gap:3px;
-  padding:12px 13px;
-  border-bottom:1px solid #27323d;
-  background:#121a23;
+  gap:1px;
+  min-width:0;
 }
-.lane-timeline>header strong{
-  color:#f2f6fa;
-  font-size:14px;
+.lane-timeline-head span{
+  color:#788a9e;
+  font-size:6px;
+  font-weight:900;
+  letter-spacing:.12em;
 }
-.lane-timeline>header small{
-  color:#74879b;
-  font-size:8px;
-  line-height:1.3;
+.lane-timeline-head strong{
+  color:#e8eef5!important;
+  font-size:10.5px!important;
+  line-height:1.15;
+}
+.lane-timeline-head>small{
+  flex:0 0 auto;
+  padding:3px 6px;
+  border:1px solid #324151;
+  border-radius:999px;
+  color:#8294a8!important;
+  font-size:5.8px!important;
+  font-weight:800;
+  letter-spacing:.06em;
 }
 
 .lane-timeline-stop{
   position:relative;
   display:grid;
-  grid-template-columns:55px 14px minmax(0,1fr);
-  gap:7px;
-  min-height:62px;
-  padding:9px 11px 9px 8px;
+  grid-template-columns:48px 12px minmax(0,1fr);
+  gap:6px;
+  min-height:47px;
+  padding:6px 9px 6px 6px;
   transition:background .15s ease,box-shadow .15s ease;
 }
 .lane-timeline-stop:not(:last-child)::after{
   content:'';
   position:absolute;
-  left:68px;
-  top:37px;
-  bottom:-15px;
+  left:58px;
+  top:28px;
+  bottom:-11px;
   width:1px;
-  background:#344351;
+  background:#33414f;
 }
 .lane-timeline-stop time{
-  padding-top:2px;
-  color:#dce5ee;
-  font-size:10px;
+  padding-top:1px;
+  color:#d9e2eb;
+  font-size:8.4px;
   font-weight:800;
   text-align:right;
   font-variant-numeric:tabular-nums;
@@ -180,9 +250,9 @@
 .lane-timeline-stop>i{
   position:relative;
   z-index:1;
-  width:10px;
-  height:10px;
-  margin-top:2px;
+  width:8px;
+  height:8px;
+  margin-top:1px;
   border:2px solid #6f8297;
   border-radius:50%;
   background:#111820;
@@ -190,326 +260,332 @@
 .lane-timeline-stop>div{
   min-width:0;
   display:grid;
-  gap:2px;
+  align-content:start;
+  gap:1px;
 }
 .lane-timeline-stop>div>span{
-  color:#77899d;
-  font-size:7px;
+  color:#75879a;
+  font-size:5.8px;
   font-weight:900;
   letter-spacing:.1em;
 }
 .lane-timeline-stop>div>strong{
   overflow-wrap:anywhere;
-  color:#eef3f8;
-  font-size:11px;
-  line-height:1.25;
+  color:#edf2f7;
+  font-size:9.6px;
+  line-height:1.2;
 }
 .lane-timeline-stop>div>small{
-  color:#8797a9;
-  font-size:8px;
-  line-height:1.3;
+  color:#8292a4;
+  font-size:6.8px;
+  line-height:1.22;
 }
 .lane-timeline-stop>div>em{
   justify-self:start;
-  margin-top:3px;
-  padding:3px 6px;
-  border:1px solid #3b4a59;
+  margin-top:2px;
+  padding:2px 5px;
+  border:1px solid #3a4857;
   border-radius:999px;
-  color:#9eacba;
-  font-size:6.5px;
+  color:#99a8b7;
+  font-size:5.6px;
   font-style:normal;
   font-weight:900;
-  letter-spacing:.06em;
+  letter-spacing:.05em;
 }
 .lane-timeline-stop>div>em.good{
-  border-color:rgba(90,166,116,.5);
-  background:rgba(55,118,76,.15);
+  border-color:rgba(90,166,116,.48);
+  background:rgba(55,118,76,.14);
   color:#91d4a9;
 }
 .lane-timeline-stop>div>em.tight{
-  border-color:rgba(193,151,76,.5);
-  background:rgba(150,103,36,.14);
+  border-color:rgba(193,151,76,.48);
+  background:rgba(150,103,36,.13);
   color:#dfbd7f;
 }
 .lane-timeline-stop>div>em.risk{
-  border-color:rgba(190,83,83,.52);
-  background:rgba(146,55,55,.14);
+  border-color:rgba(190,83,83,.5);
+  background:rgba(146,55,55,.13);
   color:#efa2a2;
 }
 .lane-timeline-stop.shift>i,
-.lane-timeline-stop.available>i{
-  border-color:#7aa2ca;
-}
+.lane-timeline-stop.available>i{border-color:#7aa2ca}
 .lane-timeline-stop.service>i{border-style:dashed}
 .lane-timeline-stop.lunch>i{border-color:#c49d63}
 
 .lane-timeline-leg{
   display:flex;
   justify-content:space-between;
-  gap:10px;
-  margin:0 11px 0 84px;
-  padding:6px 8px;
-  border-left:2px solid #364554;
+  gap:8px;
+  margin:0 9px 0 69px;
+  padding:4px 7px;
+  border-left:2px solid #354453;
   background:#0b1117;
 }
 .lane-timeline-leg span{
   color:#6f8297;
-  font-size:6.5px;
+  font-size:5.5px;
   font-weight:900;
   letter-spacing:.08em;
 }
 .lane-timeline-leg strong{
-  color:#b8c5d2;
-  font-size:8px;
+  color:#b6c3d0;
+  font-size:6.7px;
   font-variant-numeric:tabular-nums;
 }
 .lane-timeline-leg.loaded{border-left-color:#5c748d}
 
 .coach-focus{
-  background:rgba(117,103,128,.13)!important;
-  box-shadow:inset 3px 0 0 #9f8caf;
+  background:rgba(117,103,128,.11)!important;
+  box-shadow:inset 2px 0 0 #9785a6;
 }
 
+/* Dense secondary evaluation content. */
 .lane-check-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:7px;
-  margin-top:10px;
+  gap:5px;
+  margin-top:7px;
 }
 .lane-check{
   min-width:0;
   display:grid;
-  gap:3px;
-  padding:10px;
-  border:1px solid #2f3b47;
-  border-radius:11px;
-  background:#111820;
+  gap:2px;
+  padding:7px 8px;
+  border:1px solid #2d3945;
+  border-radius:9px;
+  background:#10171f;
+}
+.lane-check span,
+.lane-freight-card header span,
+.lane-money-card header span,
+.lane-verdict>span,
+.lane-confirmed-driver>span{
+  color:#7c8ea2;
+  font-size:5.8px;
+  font-weight:900;
+  letter-spacing:.1em;
 }
 .lane-check>strong{
-  color:#e7edf4;
-  font-size:10px;
+  color:#e6edf4;
+  font-size:8.5px;
 }
 .lane-check>small{
-  color:#8495a7;
-  font-size:7.5px;
-  line-height:1.35;
+  color:#7f90a2;
+  font-size:6.5px;
+  line-height:1.28;
 }
-.lane-check.good{border-color:rgba(79,151,105,.34)}
-.lane-check.tight{border-color:rgba(181,139,70,.38)}
-.lane-check.risk{border-color:rgba(182,79,79,.4)}
+.lane-check.good{border-color:rgba(79,151,105,.3)}
+.lane-check.tight{border-color:rgba(181,139,70,.34)}
+.lane-check.risk{border-color:rgba(182,79,79,.36)}
 
 .lane-freight-card,
 .lane-money-card,
 .lane-verdict,
 .lane-booking-progress,
 .lane-confirmed-driver{
-  margin-top:10px;
-  border:1px solid #2f3b47;
-  border-radius:13px;
-  background:#111820;
+  margin-top:7px;
+  border:1px solid #2d3945;
+  border-radius:10px;
+  background:#10171f;
 }
 .lane-freight-card header,
 .lane-money-card header{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  gap:12px;
-  padding:10px 11px;
-  border-bottom:1px solid #29343f;
+  gap:10px;
+  padding:7px 8px;
+  border-bottom:1px solid #27323c;
 }
 .lane-freight-card header strong,
 .lane-money-card header strong{
-  color:#eef3f8;
-  font-size:12px;
+  color:#edf2f7;
+  font-size:9.5px;
 }
 .lane-freight-card>div,
 .lane-money-card>div{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
 }
-.lane-money-card>div{grid-template-columns:repeat(2,minmax(0,1fr))}
+.lane-money-card>div{grid-template-columns:repeat(3,minmax(0,1fr))}
 .lane-freight-card>div>span,
 .lane-money-card>div>span{
   display:grid;
-  gap:3px;
+  gap:2px;
   min-width:0;
-  padding:9px 10px;
-  border-right:1px solid #27323c;
-  border-bottom:1px solid #27323c;
+  padding:7px 8px;
+  border-right:1px solid #26313b;
+  border-bottom:1px solid #26313b;
 }
 .lane-freight-card b,
 .lane-money-card b{
-  color:#73869a;
-  font-size:6px;
-  letter-spacing:.08em;
+  color:#718397;
+  font-size:5.4px;
+  letter-spacing:.07em;
 }
 .lane-freight-card strong,
 .lane-money-card strong{
   overflow-wrap:anywhere;
-  color:#e4ebf2;
-  font-size:10px;
+  color:#e2eaf2;
+  font-size:8.3px;
 }
 .lane-freight-card>small{
   display:block;
-  padding:8px 10px;
-  color:#8192a4;
-  font-size:7.5px;
-  line-height:1.35;
+  padding:6px 8px;
+  color:#7d8fa1;
+  font-size:6.3px;
+  line-height:1.28;
 }
 
 .lane-verdict{
   display:grid;
-  gap:5px;
-  padding:12px;
+  gap:3px;
+  padding:8px 9px;
 }
 .lane-verdict>strong{
   color:#eef4f8;
-  font-size:12px;
-  line-height:1.3;
+  font-size:9.8px;
+  line-height:1.25;
 }
 .lane-verdict>p{
   margin:0;
-  color:#91a0b0;
-  font-size:8.5px;
-  line-height:1.45;
+  color:#8d9dad;
+  font-size:7px;
+  line-height:1.35;
 }
 .lane-verdict.good{
-  border-color:rgba(73,150,101,.42);
-  background:rgba(43,94,62,.12);
+  border-color:rgba(73,150,101,.38);
+  background:rgba(43,94,62,.1);
 }
 .lane-verdict.risk{
-  border-color:rgba(181,77,77,.42);
-  background:rgba(115,44,44,.11);
+  border-color:rgba(181,77,77,.38);
+  background:rgba(115,44,44,.1);
 }
 
 .lane-booking-progress{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:0;
   overflow:hidden;
 }
 .lane-booking-progress>div{
   display:grid;
-  grid-template-columns:18px minmax(0,1fr);
-  gap:2px 5px;
+  grid-template-columns:16px minmax(0,1fr);
+  gap:1px 4px;
   align-items:center;
   min-width:0;
-  padding:8px 7px;
-  border-right:1px solid #28343f;
+  padding:6px;
+  border-right:1px solid #27323c;
 }
 .lane-booking-progress>div:last-child{border-right:0}
 .lane-booking-progress>div>span{
   grid-row:1/3;
   display:grid;
   place-items:center;
-  width:18px;
-  height:18px;
+  width:16px;
+  height:16px;
   border-radius:50%;
   background:#202b37;
   color:#8797a7;
-  font-size:6px;
+  font-size:5.4px;
   font-weight:900;
 }
 .lane-booking-progress b{
   color:#aab7c5;
-  font-size:6px;
-  letter-spacing:.06em;
+  font-size:5.4px;
+  letter-spacing:.05em;
 }
 .lane-booking-progress small{
   overflow:hidden;
   color:#718397;
-  font-size:6px;
-  line-height:1.2;
+  font-size:5.3px;
+  line-height:1.15;
 }
-.lane-booking-progress>div.active>span{
-  background:#334963;
-  color:#d5e8fb;
-}
-.lane-booking-progress>div.done>span{
-  background:#2b573b;
-  color:#a7dfbb;
-}
+.lane-booking-progress>div.active>span{background:#334963;color:#d5e8fb}
+.lane-booking-progress>div.done>span{background:#2b573b;color:#a7dfbb}
 
 .lane-confirmed-driver{
   display:grid;
-  gap:5px;
-  padding:11px;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:2px 8px;
+  align-items:center;
+  padding:8px 9px;
 }
+.lane-confirmed-driver>span{grid-column:1}
 .lane-confirmed-driver>strong{
+  grid-column:1;
   color:#f0f4f8;
-  font-size:12px;
+  font-size:9.5px;
 }
 .lane-confirmed-driver>button{
-  min-height:38px;
-  border:1px solid #415365;
-  border-radius:9px;
+  grid-column:2;
+  grid-row:1/3;
+  min-height:32px;
+  padding:6px 8px;
+  border:1px solid #3d4e60;
+  border-radius:8px;
   background:#17212b;
   color:#c6d3df;
-  font-size:8px;
+  font-size:6.5px;
   font-weight:800;
 }
 
 .lane-review-error{
-  margin:10px 0 0;
-  padding:9px 10px;
-  border:1px solid rgba(187,79,79,.45);
-  border-radius:10px;
-  background:rgba(119,47,47,.12);
+  margin:7px 0 0;
+  padding:7px 8px;
+  border:1px solid rgba(187,79,79,.42);
+  border-radius:8px;
+  background:rgba(119,47,47,.11);
   color:#e8a0a0;
-  font-size:9px;
+  font-size:7.5px;
 }
 
+/* Sticky action remains obvious without overpowering the work surface. */
 .lane-review-footer{
   flex:0 0 auto;
-  padding:9px 12px calc(10px + env(safe-area-inset-bottom,0px));
-  border-top:1px solid #29343f;
+  padding:6px 10px calc(7px + env(safe-area-inset-bottom,0px));
+  border-top:1px solid #27323d;
   background:#0b1015;
 }
 .lane-review-footer>button{
   width:100%;
-  min-height:46px;
-  border:1px solid #8c7898;
-  border-radius:12px;
-  background:#756780;
+  min-height:39px;
+  padding:7px 10px;
+  border:1px solid #816f8c;
+  border-radius:10px;
+  background:#6e6078;
   color:#fff;
-  font-size:10px;
+  font-size:8.4px;
   font-weight:900;
-  letter-spacing:.03em;
+  letter-spacing:.025em;
 }
 .lane-review-footer>button:disabled{
   border-color:#34414e;
   background:#182029;
   color:#728294;
-  opacity:.8;
+  opacity:.78;
 }
 .lane-review-footer>small{
   display:block;
-  margin:6px 4px 0;
-  color:#7e8fa2;
-  font-size:7.5px;
-  line-height:1.35;
+  margin:4px 3px 0;
+  color:#75879a;
+  font-size:6.3px;
+  line-height:1.25;
   text-align:center;
 }
 
 @media (max-width:390px){
-  .lane-review-header{
-    grid-template-columns:32px minmax(0,1fr);
+  .lane-review-header{padding-left:9px;padding-right:9px}
+  .lane-review-scroll{padding-left:8px;padding-right:8px}
+  .lane-driver-strip{
+    grid-template-columns:minmax(0,1.35fr) minmax(58px,.85fr) minmax(48px,.68fr) minmax(48px,.68fr);
   }
-  .lane-review-header .freight-haul-tag{
-    grid-column:2;
-    justify-self:start;
-    margin-top:0;
-  }
-  .lane-driver-card{
-    grid-template-columns:1fr;
-  }
-  .lane-driver-hos{
-    justify-self:stretch;
-  }
-  .lane-driver-hos>span{min-width:0}
+  .lane-driver-strip>div{padding-left:6px;padding-right:6px}
+  .lane-driver-strip strong{font-size:8.6px}
+  .lane-driver-identity strong{font-size:9.6px}
   .lane-timeline-stop{
-    grid-template-columns:50px 12px minmax(0,1fr);
+    grid-template-columns:45px 11px minmax(0,1fr);
+    padding-left:4px;
   }
-  .lane-timeline-stop:not(:last-child)::after{left:61px}
-  .lane-timeline-leg{margin-left:75px}
+  .lane-timeline-stop:not(:last-child)::after{left:54px}
+  .lane-timeline-leg{margin-left:64px}
 }
