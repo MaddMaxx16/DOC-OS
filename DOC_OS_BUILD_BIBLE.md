@@ -124,6 +124,12 @@ Jordan is the player's **Metroline trainer/supervisor** for First Day. Jordan te
 
 DOC OS should feel like a coherent operating system rather than a collection of unrelated game menus.
 
+**Planned Operations workspace remodel — prerequisite to First Day:** the Live Map remains the main operational canvas. Replace the BOARD launcher with CONSOLE; Console owns the larger work surface for Email, Browser/FreightLink, Scheduler/Agenda, Documents, and LedgerDesk. The smaller Phone owns Contacts and Messages. DRIVERS opens the separate map-level Driver Hub. Both Console and Phone close back to the map. Preserve message history, unread counts, thread navigation, acknowledgements, quick replies, load updates, and notification destinations across the split. Retain camera-fit as a separate map utility.
+
+These are target navigation responsibilities, not a claim that the split is implemented. Current `PhoneOverlay` still hosts the combined app ecosystem. References below to business apps living in the phone describe that existing implementation; they do not override the planned Console/Phone split. Preserve lazy loading and existing workflow authority when moving their presentation.
+
+The map's top status/operations bars also require redesign before onboarding teaches them. Final header composition, smaller Phone dimensions, and employee-era money presentation remain design decisions. Do not reinterpret the existing bank balance as employee personal cash merely by changing its label.
+
 - Dark, restrained operations surfaces.
 - Clear hierarchy before decoration.
 - Compact, scannable cards and fixed actions where the workflow requires them.
@@ -150,7 +156,7 @@ The Character Creator is functionally locked unless a real regression or an expl
 
 ### 2.8 Current development objective
 
-**Next objective: build the rebuilt First Day/onboarding experience and connect it to Operations without violating the performance boundary.**
+**Next objective: remodel the Operations workspace (Console, smaller communications Phone, separate Driver Hub, and top bars), then build First Day/onboarding against that workspace and connect it to Operations without violating the performance boundary.**
 
 The intended tutorial arc is:
 
