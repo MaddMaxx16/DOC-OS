@@ -398,39 +398,24 @@ function App() {
       const activeRequestedLoads = requestedLoads.filter((item) => item.carrierApprovalStatus === 'PENDING' && item.scheduleApprovalQueued)
       const activeRequestedIds = activeRequestedLoads.map((item) => item.id)
       if (!activeRequestedIds.length) {
-        bodyOverride = `Understood — the approval request was withdrawn. No action taken.`
+        bodyOverride = 'Understood — the approval request was withdrawn. No action taken.'
       } else if (pending.workflowValid) {
-        const lines = activeRequestedLoads.map((item) => { const pickupName = mapLocations.find((location) => location.id === item.pickupLocationId)?.name || 'Pickup'; const deliveryName = mapLocations.find((location) => location.id === item.deliveryLocationId)?.name || 'Delivery'; return `Approved — ${pickupName} → ${deliveryName}` })
+        const lines = activeRequestedLoads.map((item) => {
+          const pickupName = mapLocations.find((location) => location.id === item.pickupLocationId)?.name || 'Pickup'
+          const deliveryName = mapLocations.find((location) => location.id === item.deliveryLocationId)?.name || 'Delivery'
+          return `Approved to pursue — ${pickupName} → ${deliveryName}`
+        })
         bodyOverride = activeRequestedLoads.length > 1
-          ? `Approved for today's plan:\n\n${lines.join('\n')}\n\nGo ahead and book the approved freight. Keep us posted if the schedule or rate changes.`
-          : `Approved. Go ahead and book ${loadNumber}. Keep us posted if the schedule or rate changes.`
+          ? `Approved to pursue:\n\n${lines.join('\n')}\n\nReturn to FreightLink and request the booking. Approval does not secure the freight; the load is not confirmed until booking is accepted and the Rate Confirmation is reviewed.`
+          : `Approved to pursue ${loadNumber}. Return to FreightLink and request the booking. This approval does not secure the freight; the load is not confirmed until booking is accepted and the Rate Confirmation is reviewed.`
         const idSet = new Set(activeRequestedIds)
-        setLoads((current) => current.map((item) => idSet.has(item.id) ? { ...item, carrierApprovalStatus: 'APPROVED', carrierApprovedGameMinute: now, rateConfirmation: createRateConfirmation(item, now, carrierName) } : item))
-        const rateConfirmationEmails = activeRequestedLoads.map((approvedLoad) => {
-          const rateConfirmation = createRateConfirmation(approvedLoad, now, carrierName)
-          const routeName = getFreightRouteName(approvedLoad)
-          return {
-            id: `ratecon-email:${approvedLoad.id}:v${rateConfirmation.version || 1}`,
-            type: 'rate-confirmation-delivery',
-            direction: 'inbound',
-            senderOverride: `${carrierName} · Documentation`,
-            carrierId: pending.carrierId || pendingCarrier?.id || null,
-            workflowType: 'rate-confirmation',
-            subject: `Rate Confirmation · ${routeName}`,
-            bodyOverride: `Rate Confirmation for ${routeName} is attached. Please review the document against the FreightLink offer.`,
-            attachments: [{ id: rateConfirmation.id, type: 'rate-confirmation', title: `Rate Confirmation · ${routeName}`, meta: rateConfirmation.reference, loadId: approvedLoad.id }],
-            loadId: approvedLoad.id,
-            receivedGameMinute: now,
-            read: false,
-          }
-        })
-        setEmailMessages((current) => {
-          const existingIds = new Set(current.map((entry) => entry.id))
-          const fresh = rateConfirmationEmails.filter((entry) => !existingIds.has(entry.id))
-          return fresh.length ? [...current, ...fresh] : current
-        })
+        setLoads((current) => current.map((item) => idSet.has(item.id) ? {
+          ...item,
+          carrierApprovalStatus: 'APPROVED',
+          carrierApprovedGameMinute: now,
+        } : item))
       } else {
-        bodyOverride = `We can’t approve this plan yet. Please resend the request to Operations with the FreightLink offers attached.`
+        bodyOverride = `We can’t approve this plan yet. Please resend the request to Operations with the FreightLink offer attached.`
         const idSet = new Set(activeRequestedIds)
         setLoads((current) => current.map((item) => idSet.has(item.id) ? { ...item, carrierApprovalStatus: 'NEEDS_INFO' } : item))
       }
@@ -492,6 +477,52 @@ function App() {
       read: false,
     }])
   }, [hydrated, stage, gameTime, emailMessages, loads, carriers])
+
+  // First secure the freight, then receive the paperwork. Carrier approval only
+  // authorizes the dispatcher to pursue a lane; it never creates a Rate Con.
+  useEffect(() => {
+    if (!hydrated || stage !== 'game') return
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const pendingBooking = loads.find((item) => item.status === 'available'
+      && item.driverFitVerified
+      && item.candidateDriverId
+      && item.bookingStatus === 'REQUESTED'
+      && Number.isFinite(item.bookingResponseGameMinute)
+      && now >= item.bookingResponseGameMinute)
+    if (!pendingBooking) return
+
+    const bookingDriver = drivers.find((driver) => driver.id === pendingBooking.candidateDriverId)
+    const bookingCarrier = carriers.find((carrier) => carrier.id === (bookingDriver?.carrierId || pendingBooking.carrierId)) || carriers[0] || null
+    if (bookingCarrier?.dispatchAgreement?.loadApprovalRequired && pendingBooking.carrierApprovalStatus !== 'APPROVED') return
+
+    const carrierName = bookingCarrier?.name || 'Carrier'
+    const rateConfirmation = createRateConfirmation(pendingBooking, now, carrierName)
+    if (!rateConfirmation) return
+    const routeName = getFreightRouteName(pendingBooking)
+    const emailId = `ratecon-email:${pendingBooking.id}:v${rateConfirmation.version || 1}`
+
+    setLoads((current) => current.map((item) => item.id === pendingBooking.id ? {
+      ...item,
+      bookingStatus: 'RATE_CON_RECEIVED',
+      bookingAcceptedGameMinute: now,
+      rateConfirmation: createRateConfirmation(item, now, carrierName),
+    } : item))
+
+    setEmailMessages((current) => current.some((entry) => entry.id === emailId) ? current : [...current, {
+      id: emailId,
+      type: 'rate-confirmation-delivery',
+      direction: 'inbound',
+      senderOverride: 'FreightLink · Booking Desk',
+      carrierId: bookingCarrier?.id || null,
+      workflowType: 'rate-confirmation',
+      subject: `Booking accepted · ${routeName}`,
+      bodyOverride: `The booking request for ${routeName} was accepted. The Rate Confirmation is attached. Review it against the FreightLink offer before confirming the load or dispatching the driver.`,
+      attachments: [{ id: rateConfirmation.id, type: 'rate-confirmation', title: `Rate Confirmation · ${routeName}`, meta: rateConfirmation.reference, loadId: pendingBooking.id }],
+      loadId: pendingBooking.id,
+      receivedGameMinute: now,
+      read: false,
+    }])
+  }, [hydrated, stage, gameTime, loads, drivers, carriers, emailMessages])
 
 
   useEffect(() => {
