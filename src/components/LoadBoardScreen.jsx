@@ -29,7 +29,7 @@ function bucketFor(load) {
 }
 
 
-function LoadBoardScreen({ initialPickupDay = null, loads, drivers = [], runtimePositions = {}, gameTime, operationDay = 1, embedded = false, planningDriverId = null, onPlanningDriverChange, onBack, onSelectLoad, onOpenScheduler }) {
+function LoadBoardScreen({ initialPickupDay = null, loads, drivers = [], runtimePositions = {}, gameTime, operationDay = 1, embedded = false, planningDriverId = null, onPlanningDriverChange, onBack, onSelectLoad, onOpenScheduler, hidePlanShortcut = false }) {
 const [sortMode, setSortMode] = useState('pickup')
   const [mapOpen, setMapOpen] = useState(false)
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
@@ -128,10 +128,10 @@ const planningScheduleLabel = planningWorkday && !planningWorkday.isDayOff && Nu
             <h2>FreightLink</h2>
             {recentNewCount > 0 && <span className="freightlink-new-loads">{recentNewCount} NEW</span>}
           </div>
-          <button type="button" className="freightlink-scheduler-shortcut aw13" onClick={onOpenScheduler}>
+          {!hidePlanShortcut && <button type="button" className="freightlink-scheduler-shortcut aw13" onClick={onOpenScheduler}>
             <span>PLAN</span>
             <strong>TODAY'S PLAN</strong>
-          </button>
+          </button>}
         </div>
       </header>
 
