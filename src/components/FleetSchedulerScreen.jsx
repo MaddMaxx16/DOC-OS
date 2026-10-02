@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import mapLocations from '../data/mapLocations.js'
 import { formatAppointment, formatCompactDate, formatTime, getCalendarDate } from '../utils/gameTime.js'
 import { getFreightRouteName } from '../utils/freightIdentity.js'
@@ -93,7 +93,7 @@ function toneFor(load) { return getRouteLifecycleTone(load) }
 
 function FleetSchedulerScreen({
   loads = [], drivers = [], carriers = [], gameTime, focusLoadId = null, initialDriverId = null,
-  onBackToFreightLink, onRequestScheduleApproval, onRemoveFromPlan, onSendDriverSchedule, onUpdateDriverWorkday, onOpenLunchDecision, onDriverContextChange,
+  onBackToFreightLink, onRequestScheduleApproval, onRemoveFromPlan, onSendDriverSchedule, onUpdateDriverWorkday, onOpenLunchDecision, onDriverContextChange, autoOpenLunch = false,
 }) {
   const focusLoad = loads.find((load) => load.id === focusLoadId)
   const firstDriverId = initialDriverId || focusLoad?.candidateDriverId || focusLoad?.assignedDriverId || drivers.find((driver) => driver.carrierId)?.id || drivers[0]?.id || null
@@ -106,6 +106,8 @@ function FleetSchedulerScreen({
     if (focusLoadId) setSelectedLoadId(focusLoadId)
   }, [focusLoadId])
   const driver = drivers.find((item) => item.id === driverId) || drivers[0]
+  const hasConfirmedFreight = loads.some((load) => (load.assignedDriverId === driver?.id || load.completedDriverId === driver?.id)
+    && (load.bookingStatus === 'CONFIRMED' || load.rateConfirmation?.status === 'CONFIRMED'))
   const selectedLoad = loads.find((load) => load.id === selectedLoadId)
   const liveDay = gameTime?.gameDayIndex || 0
   const [currentDay, setCurrentDay] = useState(liveDay)
@@ -127,6 +129,7 @@ function FleetSchedulerScreen({
   const [workdayEditorMode, setWorkdayEditorMode] = useState('full')
   const [workdayError, setWorkdayError] = useState('')
   const [pendingLunchChange, setPendingLunchChange] = useState(null)
+  const autoLunchOpenedRef = useRef(false)
   const [workdayDraft, setWorkdayDraft] = useState({ start: '', lunchStart: '12:00', lunchDuration: '30', end: '', overnightMode: '', overnightTargetLocationId: '' })
   useEffect(() => {
     setWorkdayEditorOpen(false)
@@ -145,6 +148,12 @@ function FleetSchedulerScreen({
     setWorkdayError('')
     setWorkdayEditorOpen(true)
   }
+  useEffect(() => {
+    if (!autoOpenLunch || autoLunchOpenedRef.current || !workday || !hasConfirmedFreight) return
+    autoLunchOpenedRef.current = true
+    openWorkdayEditor('lunch')
+  }, [autoOpenLunch, driver?.id, currentDay, Boolean(workday), hasConfirmedFreight])
+
   const saveWorkday = () => {
     const startMinutes = dutyStartLocked && Number.isFinite(Number(workday?.startMinutes)) ? Number(workday.startMinutes) : timeInputToMinutes(workdayDraft.start)
     const endMinutes = timeInputToMinutes(workdayDraft.end)
@@ -437,7 +446,7 @@ function FleetSchedulerScreen({
             )}
           </div>
           <div className="scheduler-workday-actions">
-            <button type="button" disabled={!workday || Boolean(workday?.lunchEvent?.selectedChoiceId)} onClick={() => openWorkdayEditor('lunch')}>{workday?.lunchEvent?.selectedChoiceId ? 'LUNCH SET' : 'SET LUNCH'}</button>
+            {hasConfirmedFreight && <button type="button" disabled={!workday || Boolean(workday?.lunchEvent?.selectedChoiceId)} onClick={() => openWorkdayEditor('lunch')}>{workday?.lunchEvent?.selectedChoiceId ? 'LUNCH SET' : 'SET LUNCH'}</button>}
             {workday && <button type="button" className="overnight" onClick={() => openWorkdayEditor('overnight')}>{workday?.overnightMode ? 'SHIFT END ✓' : 'SHIFT END'}</button>}
             <button type="button" onClick={() => openWorkdayEditor('full')}>{workday ? 'EDIT DAY' : 'SET TIME'}</button>
           </div>
@@ -544,7 +553,7 @@ function FleetSchedulerScreen({
               <div><span>AGENDA · DRIVER HOURS</span><strong>{driver?.fullName || driver?.name}</strong></div>
               <button type="button" onClick={() => setWorkdayEditorOpen(false)} aria-label="Close workday editor">×</button>
             </div>
-            <p>{workdayEditorMode === 'lunch' ? 'Set this day’s lunch window. You can adjust it until the driver actually begins lunch.' : workdayEditorMode === 'overnight' ? `Choose where ${driver?.fullName || driver?.name || 'the driver'} stages after this shift.` : 'Set the driver’s scheduled start and end time. Lunch is managed separately.'}</p>
+            <p>{workdayEditorMode === 'lunch' ? 'Set this day’s lunch window. You can adjust it until the driver actually begins lunch.' : workdayEditorMode === 'overnight' ? `Choose where ${driver?.fullName || driver?.name || 'the driver'} stages after this shift.` : hasConfirmedFreight ? 'Set the driver’s scheduled start and end time. Lunch is managed separately.' : 'Set the driver’s scheduled start and end time.'}</p>
             {workdayEditorMode === 'full' ? (
               <div className="scheduler-workday-fields scheduler-workday-time-fields">
                 <TimeStepper label="START TIME" value={workdayDraft.start} disabled={dutyStartLocked} lockedLabel="LOCKED · DUTY STARTED" onChange={(value) => setWorkdayDraft((current) => ({ ...current, start: value }))} />
