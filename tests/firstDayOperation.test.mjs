@@ -1,7 +1,15 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { prepareFirstDayOperation } from '../src/utils/firstDayOperation.js'
-import { normalizeFirstDayProgress, isFirstDayTeachingPaused, shouldTeachFirstDayShiftEnd, shouldTeachFirstDayRest, migrateFirstDayFlow } from '../src/utils/firstDayProgress.js'
+import {
+  normalizeFirstDayProgress,
+  isFirstDayTeachingPaused,
+  shouldTeachFirstDayRest,
+  shouldTeachFirstDayLunch,
+  shouldTeachFirstDayStaging,
+  migrateFirstDayFlow,
+  getFirstDayBookedLanes,
+} from '../src/utils/firstDayProgress.js'
 
 const identity = {
   stage: 'careerSetup', careerSetupStep: 'employeeWelcome',
@@ -9,12 +17,24 @@ const identity = {
   dispatcherProfile: { created: true, displayName: 'Maxx', appearance: { skinTone: 'tan' } },
 }
 
+function booked(id, pickup, status = 'assigned') {
+  return {
+    id,
+    loadNumber: id.toUpperCase(),
+    status,
+    assignedDriverId: 'marcus',
+    pickupDayIndex: 0,
+    pickupWindowStartMinutes: pickup,
+    rateConfirmation: { status: 'CONFIRMED' },
+  }
+}
+
 test('first-day handoff creates one real employee operation without an early driver introduction', () => {
   const state = prepareFirstDayOperation(identity)
   assert.equal(state.stage, 'game')
   assert.equal(state.selectedMarket, 'new-york')
   assert.deepEqual(state.dispatcherProfile, identity.dispatcherProfile)
-  assert.deepEqual(state.firstDay, { step: 'welcome', messageIndex: 0, flowVersion: 3 })
+  assert.deepEqual(state.firstDay, { step: 'welcome', messageIndex: 0, flowVersion: 4 })
   assert.equal(state.carriers.find((c) => c.id === 'metroline').status, 'active')
   assert.equal(state.drivers.length, 1)
   assert.equal(state.drivers[0].id, 'marcus')
@@ -43,65 +63,95 @@ test('incomplete and independent profiles cannot enter the employee handoff', ()
   }
 })
 
-test('welcome resume normalizes malformed message indexes without inventing onboarding for old saves', () => {
+test('welcome resume normalizes malformed message indexes and legacy tutorial steps for migration', () => {
   assert.equal(normalizeFirstDayProgress(undefined), null)
   assert.equal(normalizeFirstDayProgress({ step: 'unknown' }), null)
   assert.deepEqual(normalizeFirstDayProgress({ step: 'welcome', messageIndex: 900 }), { step: 'welcome', messageIndex: 2 })
   assert.deepEqual(normalizeFirstDayProgress({ step: 'welcome', messageIndex: -5 }), { step: 'welcome', messageIndex: 0 })
-  assert.deepEqual(normalizeFirstDayProgress({ step: 'schedule', messageIndex: 2 }), { step: 'schedule', messageIndex: 2 })
+  assert.equal(normalizeFirstDayProgress({ step: 'schedule', messageIndex: 2 }).step, 'schedule')
+  assert.equal(normalizeFirstDayProgress({ step: 'secondLane' }).step, 'secondLane')
+  assert.equal(normalizeFirstDayProgress({ step: 'shiftEnd' }).step, 'shiftEnd')
 })
 
-
-test('Day 1 v3 teaches in FreightLink instead of pausing on the opening scheduler', () => {
-  assert.equal(normalizeFirstDayProgress({ step: 'schedule' }).step, 'schedule')
-  assert.equal(isFirstDayTeachingPaused({ step: 'schedule' }), false)
-  for (const step of ['lunch', 'shiftEnd']) {
-    assert.equal(normalizeFirstDayProgress({ step }).step, step)
-    assert.equal(isFirstDayTeachingPaused({ step }), true)
+test('Day 1 v4 pauses only at the active teaching steps', () => {
+  for (const step of ['welcome', 'lunch', 'staging']) {
+    assert.equal(isFirstDayTeachingPaused({ step, flowVersion: 4 }), true)
   }
-  assert.equal(isFirstDayTeachingPaused({ step: 'freight', flowVersion: 3 }), true)
+  for (const step of ['freight', 'restOfDay', 'thirdLoad']) {
+    assert.equal(isFirstDayTeachingPaused({ step, flowVersion: 4 }), true)
+  }
+  assert.equal(isFirstDayTeachingPaused({ step: 'schedule' }), false)
   assert.equal(isFirstDayTeachingPaused({ step: 'freight' }), false)
   assert.deepEqual(normalizeFirstDayProgress({ step: 'ready', workdayLessonComplete: true }), { step: 'ready', messageIndex: 0, workdayLessonComplete: true })
-  assert.deepEqual(normalizeFirstDayProgress({ step: 'ready' }), { step: 'ready', messageIndex: 0 })
 })
 
-test('shift-end teaching waits for the second booked lane and its actual delivery route', () => {
-  const progress = { step: 'secondLane', firstLaneId: 'first', reviewLoadId: 'second' }
-  const route = [[-74.1, 40.6], [-74, 40.7]]
-  const first = { id: 'first', status: 'assigned', assignedDriverId: 'marcus' }
-  const second = { id: 'second', status: 'queued', assignedDriverId: 'marcus', plannedLoadedRouteGeometry: route }
-  assert.equal(shouldTeachFirstDayShiftEnd(progress, [first, second]), true)
-  for (const loads of [[first], [second], [first, { ...second, assignedDriverId: null, candidateDriverId: 'marcus' }], [first, { ...second, plannedLoadedRouteGeometry: null }]]) {
-    assert.equal(shouldTeachFirstDayShiftEnd(progress, loads), false)
-  }
-  assert.equal(shouldTeachFirstDayShiftEnd({ step: 'freight' }, [first, second]), false)
+test('Day 1 booked-lane ordering counts only confirmed Marcus freight', () => {
+  const first = booked('first', 480)
+  const second = booked('second', 600, 'queued')
+  const unconfirmed = { ...booked('maybe', 540), rateConfirmation: { status: 'RECEIVED' } }
+  const otherDriver = { ...booked('other', 450), assignedDriverId: 'someone-else' }
+  assert.deepEqual(getFirstDayBookedLanes([second, unconfirmed, first, otherDriver]).map((load) => load.id), ['first', 'second'])
 })
 
-test('legacy Day 1 saves migrate to v3 without deleting real booked work', () => {
+test('first confirmed load opens Load 2 shopping', () => {
+  const progress = { step: 'freight', flowVersion: 4 }
+  const first = booked('first', 480)
+  assert.equal(shouldTeachFirstDayRest(progress, [first]), true)
+  assert.equal(shouldTeachFirstDayRest(progress, [{ ...first, rateConfirmation: { status: 'RECEIVED' } }]), false)
+  assert.equal(shouldTeachFirstDayRest({ step: 'restOfDay', flowVersion: 4 }, [first]), false)
+})
+
+test('second confirmed load triggers lunch before Load 3', () => {
+  const first = booked('first', 480)
+  const second = booked('second', 600, 'queued')
+  const progress = { step: 'restOfDay', flowVersion: 4, firstLaneId: first.id }
+  assert.equal(shouldTeachFirstDayLunch(progress, [first, second]), true)
+  assert.equal(shouldTeachFirstDayLunch(progress, [first]), false)
+  assert.equal(shouldTeachFirstDayLunch({ step: 'thirdLoad', flowVersion: 4 }, [first, second]), false)
+})
+
+test('third confirmed load triggers staging, not schedule send', () => {
+  const first = booked('first', 480)
+  const second = booked('second', 600, 'queued')
+  const third = booked('third', 780, 'queued')
+  const progress = { step: 'thirdLoad', flowVersion: 4, firstLaneId: first.id, secondLaneId: second.id }
+  assert.equal(shouldTeachFirstDayStaging(progress, [first, second, third]), true)
+  assert.equal(shouldTeachFirstDayStaging(progress, [first, second]), false)
+  assert.equal(shouldTeachFirstDayStaging({ step: 'staging', flowVersion: 4 }, [first, second, third]), false)
+})
+
+test('legacy Day 1 saves migrate into the three-load v4 arc without deleting booked work', () => {
   assert.deepEqual(
     migrateFirstDayFlow({ step: 'lunch', messageIndex: 2 }, []),
-    { step: 'freight', messageIndex: 2, flowVersion: 3, laneReviewIndex: 0 }
+    { step: 'freight', messageIndex: 2, flowVersion: 4, laneReviewIndex: 0 }
   )
-  assert.equal(migrateFirstDayFlow({ step: 'schedule', messageIndex: 2 }, []).step, 'freight')
-  const loads = [{ id: 'booked', status: 'assigned', assignedDriverId: 'marcus' }]
-  const before = JSON.stringify(loads)
-  assert.equal(migrateFirstDayFlow({ step: 'lunch' }, loads).step, 'lunch')
-  assert.equal(migrateFirstDayFlow({ step: 'schedule' }, loads).step, 'restOfDay')
-  assert.equal(JSON.stringify(loads), before)
-  const migratedBooked = migrateFirstDayFlow({ step: 'lunch', flowVersion: 2, firstLaneId: 'booked', reviewLoadId: 'second' }, loads)
-  assert.equal(migratedBooked.step, 'lunch')
-  assert.equal(migratedBooked.flowVersion, 3)
-  assert.equal(migratedBooked.firstLaneId, 'booked')
+
+  const first = booked('first', 480)
+  const second = booked('second', 600, 'queued')
+  const third = booked('third', 780, 'queued')
+  const before = JSON.stringify([first, second, third])
+
+  const afterOne = migrateFirstDayFlow({ step: 'lunch', flowVersion: 3, reviewLoadId: 'candidate' }, [first])
+  assert.equal(afterOne.step, 'restOfDay')
+  assert.equal(afterOne.firstLaneId, 'first')
+  assert.equal(afterOne.flowVersion, 4)
+
+  const afterTwo = migrateFirstDayFlow({ step: 'secondLane', flowVersion: 3 }, [first, second])
+  assert.equal(afterTwo.step, 'lunch')
+  assert.equal(afterTwo.firstLaneId, 'first')
+  assert.equal(afterTwo.secondLaneId, 'second')
+
+  const afterThree = migrateFirstDayFlow({ step: 'shiftEnd', flowVersion: 3 }, [first, second, third])
+  assert.equal(afterThree.step, 'staging')
+  assert.equal(afterThree.thirdLaneId, 'third')
+
+  assert.equal(JSON.stringify([first, second, third]), before)
   assert.equal(migrateFirstDayFlow(null), null)
-  assert.equal(migrateFirstDayFlow({ step: 'ready', workdayLessonComplete: true }, loads).step, 'ready')
+  assert.equal(migrateFirstDayFlow({ step: 'ready', workdayLessonComplete: true, flowVersion: 3 }, [first]).step, 'ready')
 })
 
-test('only the first actual confirmed booking introduces shopping for the rest of the day', () => {
-  const progress = { step: 'freight', flowVersion: 3 }
-  const load = { id: 'chosen', status: 'assigned', assignedDriverId: 'marcus', rateConfirmation: { status: 'CONFIRMED' } }
-  assert.equal(shouldTeachFirstDayRest(progress, [load]), true)
-  assert.equal(shouldTeachFirstDayRest(progress, [{ ...load, assignedDriverId: null, candidateDriverId: 'marcus', status: 'available' }]), false)
-  assert.equal(shouldTeachFirstDayRest(progress, [{ ...load, rateConfirmation: { status: 'RECEIVED' } }]), false)
+test('lane review coaching remains clamped while the three-load lesson owns time', () => {
+  const progress = { step: 'freight', flowVersion: 4 }
   assert.equal(isFirstDayTeachingPaused(progress, []), true)
   assert.equal(normalizeFirstDayProgress({ step: 'freight', laneReviewLoadId: 'chosen', laneReviewIndex: 999 }).laneReviewIndex, 4)
 })
