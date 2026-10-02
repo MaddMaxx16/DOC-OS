@@ -4,7 +4,7 @@ import { formatAppointment, formatCompactDate, formatTime, getCalendarDate } fro
 import { getFreightRouteName } from '../utils/freightIdentity.js'
 import { formatPlanningMinutes, getPlanQuality } from '../utils/planningIntelligence.js'
 import { getRouteLifecycleLabel } from '../utils/routeLifecycle.js'
-import { isDriverOnLunch, isLunchDecisionReady } from '../utils/lunchDecisionEvents.js'
+import { isDriverOnLunch } from '../utils/lunchDecisionEvents.js'
 
 const OVERNIGHT_TIMELINE_CAP = 36 * 60
 const PX_PER_MINUTE = 0.86
@@ -114,7 +114,6 @@ function FleetSchedulerScreen({
   const dutyStartLocked = dutySessionDayIndex !== null && dutySessionDayIndex !== undefined && dutySessionStartGameMinute !== null && dutySessionStartGameMinute !== undefined && Number(dutySessionDayIndex) === Number(currentDay) && Number.isFinite(Number(dutySessionStartGameMinute))
   const priorWorkday = currentDay > 0 ? (driver?.workdayByDay?.[currentDay - 1] || null) : null
   const carryoverWorkday = priorWorkday && getWorkdayEndOffset(priorWorkday) === 1 ? priorWorkday : null
-  const lunchDecisionReady = isLunchDecisionReady({ driver, loads, gameTime })
   const driverOnLunch = isDriverOnLunch(driver, gameTime)
   const [workdayEditorOpen, setWorkdayEditorOpen] = useState(Boolean(autoOpenLunch && workday && hasConfirmedFreight))
   const [workdayEditorMode, setWorkdayEditorMode] = useState(autoOpenLunch ? 'lunch' : 'full')
@@ -483,7 +482,6 @@ function FleetSchedulerScreen({
           <div className="scheduler-route-column">
             {currentDayLoads.flatMap((load) => {
               const pickupMinute = load.pickupWindowStartMinutes ?? startMinute
-              const deliveryMinute = load.deliveryWindowStartMinutes ?? (pickupMinute + 90)
               const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
               const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
               const selected = load.id === selectedLoadId
