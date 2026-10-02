@@ -211,6 +211,10 @@ Before coding a First Day slice:
 12. **Regression-test before promotion.**
 13. **Keep docs current with each change.** Update the Build Bible for approved behavior/design contracts and the Roadmap for order/status as decisions and implementation change. Distinguish approved/planned, implemented, tested, and promoted work; record the active branch/checkpoint so a new chat can resume from repository evidence.
 
+### 2.10.1 Current phone testing / delivery workflow
+
+The active testing workflow is **patch → push to `MaddMaxx16/DOC-OS`, branch `p2.4-experience-rebuild` → automatic Vercel deployment → Maxx refreshes the existing DOC OS link on iPhone**. Normal phone testing requires no terminal commands, local pull, Capacitor sync, or Xcode run. Check the pushed commit's Vercel deployment status before reporting it ready to test. Keep native build commands for an explicitly requested native-build workflow; do not present them as the default. A GitHub commit being saved and a Vercel deployment being ready are separate facts. The employee-ID code commit `6043a4782e5c1e18bb3a4aeca33c287171944ce0` has a successful Vercel status.
+
 ### 2.11 Change classes
 
 **A — Visual only:** typography, spacing, card density, labels, color, layout. Must not alter gameplay state.

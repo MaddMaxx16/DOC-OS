@@ -202,6 +202,7 @@ Add markets only after the core simulation has sufficient depth. Each market mus
 7. On-device acceptance is required before promotion.
 8. Historical notes below are evidence/history, not the current priority list.
 9. Keep this Roadmap and the Build Bible aligned with each approved decision and implementation change; planned work is not marked tested or complete before evidence exists.
+10. Default delivery/testing is push to `p2.4-experience-rebuild` → automatic Vercel deployment → refresh the existing DOC OS link on iPhone. Verify Vercel status before saying a build is ready. No terminal/Xcode commands are required for this workflow.
 
 ---
 

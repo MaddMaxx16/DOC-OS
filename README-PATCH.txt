@@ -19,14 +19,12 @@ Validation
   long names, responsive access, simulated safe areas, and failed-save recovery.
 - Physical iPhone layout/resume/battery acceptance is pending.
 
-Update from GitHub (run in your existing DOC OS repository)
-git switch p2.4-experience-rebuild
-git pull --ff-only origin p2.4-experience-rebuild
-npm ci
-npm run ios
-
-npm run ios builds, syncs the native iOS project, and opens Xcode.
-Use the existing iPhone run workflow in Xcode.
+Test on your phone — current workflow
+The update is pushed to p2.4-experience-rebuild and Vercel deploys automatically.
+Open your usual DOC OS link on iPhone and refresh/reopen it after deployment succeeds.
+No terminal commands or Xcode build are required for normal phone testing.
+The employee-ID code commit 6043a4782e5c1e18bb3a4aeca33c287171944ce0
+has a successful Vercel deployment status.
 
 ZIP alternative
 This ZIP contains the full source snapshot in DOC-OS/ and no node_modules or build output.
