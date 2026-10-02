@@ -80,7 +80,6 @@ function App() {
   const [loads, setLoads] = useState(() => seedLoads)
   const [drivers, setDrivers] = useState([])
   const [carriers, setCarriers] = useState(() => seedCarriers.map((carrier) => ({ ...carrier })))
-  const [plannedRoute, setPlannedRoute] = useState(null)
   const [isGameClockPaused, setIsGameClockPaused] = useState(true)
   const [simulationSpeed, setSimulationSpeed] = useState(1)
   const [runtimePositions, setRuntimePositions] = useState({})
@@ -252,7 +251,6 @@ function App() {
     setLoads(seedLoads.map((load) => ({ ...load })))
     setDrivers([])
     setCarriers(seedCarriers.map((carrier) => ({ ...carrier })))
-    setPlannedRoute(null)
     setIsGameClockPaused(true)
     setSimulationSpeed(1)
     setRuntimePositions({})
@@ -613,51 +611,6 @@ function App() {
   }
   const resetGame = () => { clearSave(activeSaveSlotId); window.location.reload() }
 
-  // AV2.18.1 dev shortcut: restart Day 1 planning at 6:00 AM while
-  // preserving the accepted carrier relationship, signed agreement, profile,
-  // and carrier-provided driver roster. This is intentionally test-only state.
-  const resetDayAfterCarrierApproval = () => {
-    const activeCarriers = carriers.filter((carrier) => carrier.status === 'active')
-    if (!activeCarriers.length) return false
-
-    const nextLoads = seedLoads.map((load) => ({ ...load }))
-    const nextDrivers = reconcileActiveCarrierDrivers([], carriers).map((driver) => ({
-      ...driver,
-      status: 'available',
-      assignedLoadId: null,
-      queuedLoadIds: [],
-      idleSinceGameMinute: null,
-      idleTargetLocationId: null,
-      idleRouteStatus: null,
-      idleRouteGeometry: null,
-      idleRouteStartGameMinute: null,
-      idleRouteDurationMinutes: null,
-    }))
-    const nextPositions = {}
-    nextDrivers.forEach((driver) => {
-      const home = mapLocations.find((location) => location.id === driver.homeBaseLocationId)
-      if (home) nextPositions[driver.id] = { longitude: home.longitude, latitude: home.latitude }
-    })
-
-    setGameTime({ gameDayIndex: 0, totalMinutesOfDay: 360 })
-    setLoads(nextLoads)
-    setDrivers(nextDrivers)
-    setRuntimePositions(nextPositions)
-    setRuntimeProgressByDriver({})
-    setPlannedRoute(null)
-    setSimulationSpeed(1)
-    setIsGameClockPaused(false)
-    setSeenLedgerReceivableIds([])
-    setSeenLedgerPaymentReceivedIds([])
-    setLedgerWorkflowByLoadId({})
-    setLedgerBanking(createInitialLedgerBanking())
-    setEmailMessages((current) => current.filter((message) => /application approved|agreement/i.test(`${message.subject || ''} ${message.body || ''}`)))
-    setDriverMessages((current) => current.filter((message) => message.id === 'marcus-intro' || String(message.id || '').startsWith('marcus-intro-')))
-    setBusinessDocuments((current) => current.filter((document) => document.type === 'dispatch-agreement'))
-    setDayLoop({ ...DEFAULT_DAY_LOOP_STATE, operationDay: 1, phase: 'operating', currentStartGameDayIndex: 0, report: null, history: [] })
-    setPlayerProgression({ ...DEFAULT_PLAYER_PROGRESSION })
-    return true
-  }
   const activateCarrier = (carrierId = 'metroline') => {
     const wasActive = carriers.some((carrier) => carrier.id === carrierId && carrier.status === 'active')
     const nextCarriers = carriers.map((carrier) => carrier.id === carrierId ? { ...carrier, status: 'active' } : carrier)
@@ -1460,8 +1413,6 @@ Open CarrierSource to review your full account history.`
             onBeginOperations={beginNextOperationDay}
             setEmailMessages={setEmailMessages}
             setDrivers={setDrivers}
-            plannedRoute={plannedRoute}
-            setPlannedRoute={setPlannedRoute}
             isGameClockPaused={isGameClockPaused}
             setGameClockPaused={setIsGameClockPaused}
             runtimePositions={runtimePositions}
@@ -1474,7 +1425,6 @@ Open CarrierSource to review your full account history.`
             onApplyDevPreset={applySelectedDevPreset}
             onSetupOvernightDevScenario={setupOvernightDevScenario}
             onResetGame={resetGame}
-            onResetDayAfterCarrierApproval={resetDayAfterCarrierApproval}
             seenLedgerReceivableIds={seenLedgerReceivableIds}
             onOpenLedger={() => { const records = getReceivables(loads, carriers, ledgerWorkflowByLoadId); setSeenLedgerReceivableIds((current) => Array.from(new Set([...current, ...records.map((item) => item.loadId)]))); setSeenLedgerPaymentReceivedIds((current) => Array.from(new Set([...current, ...records.filter((item) => item.financialStatus === 'PAID').map((item) => item.loadId)]))) }}
             ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}
