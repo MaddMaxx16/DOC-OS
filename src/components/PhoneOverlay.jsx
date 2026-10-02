@@ -27,7 +27,7 @@ import { isLunchDecisionReady } from '../utils/lunchDecisionEvents.js'
 
 function getReceivable(loads, carriers, workflows, id) { return getReceivables(loads, carriers, workflows).find((item) => item.loadId === id) }
 
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, gameTime, setGameTime, onAddToSchedule, onAcceptCandidateAssignment, initialScreen = 'home', initialLoadId = null, initialDriverId = null, initialEmailComposeContext = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, ledgerBanking, setLedgerWorkflowByLoadId, onResetGame, onResetDayAfterCarrierApproval, onOpenDriverSchedule, onRequestScheduleApproval, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onPickupCorrectionSent, onSetupOvernightDevScenario, onClose }) {
+function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, gameTime, setGameTime, onAddToSchedule, onAcceptCandidateAssignment, initialScreen = 'home', initialLoadId = null, initialDriverId = null, initialEmailComposeContext = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, ledgerBanking, setLedgerWorkflowByLoadId, onResetGame, onRequestScheduleApproval, onRemoveScheduleLoad, onSendDriverSchedule, onPickupCorrectionSent, onSetupOvernightDevScenario, onClose }) {
   const [screen, setScreen] = useState(initialScreen)
   const [documentsTab, setDocumentsTab] = useState('pending')
   const [selectedLoadId, setSelectedLoadId] = useState(initialLoadId)
@@ -404,7 +404,6 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)}
           onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)}
           onUpdateDriverWorkday={updateDriverWorkday}
-          onOpenLunchDecision={onOpenLunchDecision}
           onDriverContextChange={setSelectedDriverId}
         />
       ) : screen === 'messages' ? (
@@ -515,7 +514,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
             }}
             onBack={() => setScreen('loadBoard')}
           />}
-          {screen === 'scheduler' && <FleetSchedulerScreen loads={loads} drivers={drivers} carriers={carriers} gameTime={gameTime} focusLoadId={selectedLoadId} initialDriverId={selectedDriverId} autoOpenLunch={schedulerAutoLunch} onBackToFreightLink={() => { setSchedulerAutoLunch(false); setScreen('loadBoard') }} onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)} onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)} onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)} onUpdateDriverWorkday={updateDriverWorkday} onOpenLunchDecision={onOpenLunchDecision} onDriverContextChange={setSelectedDriverId} />}
+          {screen === 'scheduler' && <FleetSchedulerScreen loads={loads} drivers={drivers} carriers={carriers} gameTime={gameTime} focusLoadId={selectedLoadId} initialDriverId={selectedDriverId} autoOpenLunch={schedulerAutoLunch} onBackToFreightLink={() => { setSchedulerAutoLunch(false); setScreen('loadBoard') }} onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)} onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)} onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)} onUpdateDriverWorkday={updateDriverWorkday} onDriverContextChange={setSelectedDriverId} />}
 
         </BrowserScreen>
       ) : null}
@@ -531,7 +530,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           } : load))
           onAcceptCandidateAssignment?.(loadId, true)
           return true
-        }} onRequestRateConCorrection={(loadId) => { const load = loads.find((item) => item.id === loadId); const carrier = carriers.find((item) => item.id === load?.carrierId) || carriers[0]; setPreviewAttachment(null); openComposer({ workflowType: 'ratecon-correction', label: 'RATE CONFIRMATION CORRECTION', loadId, loadNumber: load ? getFreightRouteName(load) : 'Route', suggestedRecipientId: 'freightlink-booking', subject: `Rate Confirmation correction required · ${load ? getFreightRouteName(load) : 'Route'}`, body: `Please review the attached FreightLink offer and Rate Confirmation. The Rate Confirmation contains a discrepancy and a corrected copy is required.`, attachmentIds: [`load-offer:${loadId}`, load?.rateConfirmation?.id].filter(Boolean), returnScreen: 'documents' }) }} />}
+        }} onRequestRateConCorrection={(loadId) => { const load = loads.find((item) => item.id === loadId); setPreviewAttachment(null); openComposer({ workflowType: 'ratecon-correction', label: 'RATE CONFIRMATION CORRECTION', loadId, loadNumber: load ? getFreightRouteName(load) : 'Route', suggestedRecipientId: 'freightlink-booking', subject: `Rate Confirmation correction required · ${load ? getFreightRouteName(load) : 'Route'}`, body: `Please review the attached FreightLink offer and Rate Confirmation. The Rate Confirmation contains a discrepancy and a corrected copy is required.`, attachmentIds: [`load-offer:${loadId}`, load?.rateConfirmation?.id].filter(Boolean), returnScreen: 'documents' }) }} />}
         <div className="phone-navigation-bar">
           <button type="button" className="phone-home-button" onClick={() => setScreen('home')} aria-label="Phone home">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 10.5 12 4l7.5 6.5v8.75H14v-5.5h-4v5.5H4.5V10.5Z"/></svg>
