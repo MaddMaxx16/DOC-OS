@@ -23,11 +23,6 @@ function EmployeeIdWelcome({ screenRef, playerName, appearance, onEditProfile, o
           </div>
           <span>EMPLOYEE WELCOME</span>
         </div>
-        <span className="employee-welcome-ready" aria-label="Profile ready">
-          <svg viewBox="0 0 20 20" aria-hidden="true">
-            <path d="m5 10 3.2 3.2L15 6.5" />
-          </svg>
-        </span>
       </header>
 
       <main className="employee-welcome-main">

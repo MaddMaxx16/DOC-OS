@@ -93,6 +93,7 @@ DOC002 may become available later the same operating day after DOC001.
   - Implemented: employee badge, exact created portrait/name, edit return, explicit employee identity metadata, and save/resume to the ID.
   - START FIRST DAY remains disabled until the authoritative map handoff is implemented.
   - Verified: production build, focused ESLint, all 165 existing tests, and browser checks for creation, avatar consistency, save/resume, edits, long names, layout, and failed-save recovery.
+  - ENTRY.1.1 visual polish: smaller ID/tighter spacing and removal of the redundant green header check; build, focused lint, and browser checks passed.
   - Pending: physical iPhone acceptance and battery sanity check; live map transition and Jordan conversation remain planned.
 
 - [NEXT AFTER ENTRY.1 ACCEPTANCE] **P2.4-FD.0 — Operations Workspace Remodel**

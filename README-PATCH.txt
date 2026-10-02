@@ -1,7 +1,9 @@
-DOC OS — P2.4-ENTRY.1-TEST — Metroline Employee-ID Welcome
+DOC OS — P2.4-ENTRY.1.1-TEST — Compact Metroline Employee-ID Welcome
 Branch: p2.4-experience-rebuild
 
 What changed
+- Visual polish: slightly smaller ID, tighter internal spacing, and removal of the green header check.
+- Identity, save/resume, and the disabled map handoff are unchanged from ENTRY.1.
 - Replaces the final opening placeholder with the Metroline employee-ID welcome.
 - Shows the created avatar, player name, Junior Dispatcher role, and New York Operations.
 - Continue saves the player identity/appearance to the active save slot.
@@ -24,7 +26,8 @@ The update is pushed to p2.4-experience-rebuild and Vercel deploys automatically
 Open your usual DOC OS link on iPhone and refresh/reopen it after deployment succeeds.
 No terminal commands or Xcode build are required for normal phone testing.
 The employee-ID code commit 6043a4782e5c1e18bb3a4aeca33c287171944ce0
-has a successful Vercel deployment status.
+has a successful Vercel deployment status. The current visual-polish commit
+is verified separately through its own Vercel status before handoff.
 
 ZIP alternative
 This ZIP contains the full source snapshot in DOC-OS/ and no node_modules or build output.
