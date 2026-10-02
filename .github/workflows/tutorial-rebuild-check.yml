@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - tutorial-first-freight-rebuild-20261002
+  pull_request:
+    branches:
+      - main
 
 jobs:
   verify:
