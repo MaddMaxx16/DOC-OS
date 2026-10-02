@@ -34,13 +34,19 @@ export function migrateFirstDayFlow(value, loads = []) {
   if (['lunch', 'shiftEnd'].includes(step) && !first) step = 'freight'
   if (step === 'freight' && first) step = 'restOfDay'
 
-  return {
+  const migrated = {
     ...progress,
     step,
     flowVersion: 3,
-    laneReviewIndex: Math.max(0, Math.min(4, Number(progress.laneReviewIndex || 0))),
+    laneReviewIndex: first ? Math.max(0, Math.min(4, Number(progress.laneReviewIndex || 0))) : 0,
     ...(first ? { firstLaneId: first.id } : {}),
   }
+  if (!first) {
+    delete migrated.laneReviewLoadId
+    delete migrated.reviewLoadId
+    delete migrated.firstLaneId
+  }
+  return migrated
 }
 
 export function shouldTeachFirstDayRest(progress, loads = []) {
