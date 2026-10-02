@@ -1,60 +1,210 @@
-> Current test checkpoint: **CS2.0B.4.1.3.7 — Driver Tab Shape Polish**
-> Frozen Operations baseline remains **CS2.0A.14.1**.
-
-## Current build: CS2.0B.4.1.3.7 — Driver Tab Shape Polish
-**Frozen Operations baseline:** CS2.0A.14.1
-**Frozen Agenda checkpoint:** CS2.0B.0.1
-**Change class:** B — Communications + driver duty foundation
-
 # DOC OS — Build Bible
-Baseline: 2026-09-05
-Current canonical checkpoint: CS2.0B.4.1.3.7
+
+> **Canonical repo state:** P2.4 Experience Rebuild / Performance Architecture  
+> **Last reconciled:** 2026-10-02  
+> **Known-good onboarding checkpoint:** `checkpoint/perf-onboarding-stable-2026-10-02` from commit `6d9bf13`  
+> **Current development branch:** `p2.4-experience-rebuild`  
+> **Protected Operations foundation:** CS2.0B.4.2-STABLE + B.4.3-STABLE + B.4.4-STABLE + B.5 HOS contracts
+
+This file is the design and systems source of truth for DOC OS. The current-state sections at the top describe what the game is **now**. Older Master/CS sections below are retained as historical contracts and regression references; an older heading does not override the current-state layer.
 
 ## 1. Vision
-DOC OS is a realistic dispatcher simulation that looks like a professional operations system but plays like a game. The map is the primary world. The phone/device is a secondary operations tool.
 
-The player loop is:
-FIND -> EVALUATE -> ACCEPT -> ASSIGN -> PLAN -> DISPATCH -> MANAGE -> DELIVER -> CLOSE OUT -> GET PAID -> PROGRESS
+DOC OS is a realistic dispatcher simulation that looks and behaves like a professional operations system while still playing like a game. The player should learn dispatch thinking by doing the work: evaluating freight, planning drivers, communicating, handling facilities and paperwork, closing business loops, and living with the consequences of operational decisions.
 
-## 2. Current Canonical Baseline
-**CS2.0A.14.1 is the frozen Operations baseline.** Its driver movement, itinerary authority, routing, pickup/delivery facility lifecycle, POD closeout, save/resume behavior, and scheduler-planning logic are protected from incidental feature work.
+The core loop remains:
 
-**CS2.0B.0 adds Agenda access only.** Agenda is a first-class DOC OS home app that opens the existing Today’s Plan scheduler directly. The original FreightLink scheduler entry remains intact. No Operations state transition or scheduler-planning rule changed in B.0.
+**FIND → EVALUATE → ACCEPT → ASSIGN → PLAN → DISPATCH → MANAGE → DELIVER → CLOSE OUT → GET PAID → PROGRESS**
 
-**CS2.0B.0.1 is presentation-only polish.** It removes the redundant route-count subtitle from the driver tabs; the route total remains in the plan summary strip directly below. No scheduler-planning or Operations behavior changed.
+### Experience principles
 
-**CS2.0B.1 converts CarrierSource to carrier-driven architecture.** CarrierSource now consumes the full carrier collection plus application and career state keyed by carrier ID, maintains selected-carrier navigation, and renders carrier identity, location, opportunity copy, roster, relationship standing, agreement email identity, and agreement market from carrier data. Metroline remains the only authored carrier in this checkpoint and its existing gameplay path is preserved. No Operations lifecycle, scheduler-planning, route movement, facility, POD, LedgerDesk, or save-state authority changed.
+- **The map is the operational world.** The phone is the dispatcher’s tool, not the world itself.
+- **Professional, not sci-fi.** DOC OS should feel like believable dispatch software with game clarity layered on top.
+- **Player judgment matters.** The system can provide information and warnings, but should not silently make meaningful dispatcher decisions.
+- **Actions have owners.** A UI surface may expose an action, but it must not invent a competing lifecycle authority.
+- **Quiet when nothing needs attention.** Notifications and driver communication should represent meaningful events, decisions, or exceptions rather than narrating every state change.
+- **Mobile-first.** Every primary workflow must be usable and readable on iPhone without relying on desktop hover behavior or oversized scroll surfaces.
+- **Performance is a design requirement.** A visually polished screen that keeps unrelated simulation systems awake is not acceptable.
 
-**CS2.0B.2 upgrades CarrierSource into a visible business workspace.** My Carriers now presents network status, carrier account health, relationship score, agreement metrics, and direct account access. Opportunities adds market-oriented metadata and clearer application/account states. Active carrier detail pages now expose relationship standing, live agreement terms, service standards, account health, and driver roster using existing authoritative CarrierSource/career data. No carrier gameplay rules, progression consequences, Operations lifecycle, scheduler planning, movement, facility, POD, LedgerDesk, or save authority changed.
+## 2. Current Canonical State — 2026-10-02
 
-**CS2.0B.3 activates the Carrier Relationship RPG.** Each Day Close now creates a persistent carrier performance review using the already-authoritative carrier relationship calculation. Reviews award Carrier XP, progress account levels, preserve service-history grades, and can issue service strikes that move active accounts to AT RISK or PROBATION. Clean A-grade reviews remove one prior strike, allowing recovery. CarrierSource surfaces this history and Daily Results reports the career impact. Meaningful career events can generate CarrierSource email. Because Metroline is still the only authored carrier, B.3 deliberately does not terminate the account; termination remains parked until a later multi-carrier career phase. No driver movement, load lifecycle, itinerary, facility, scheduler, POD, or LedgerDesk authority moved into CarrierSource.
+### 2.1 Experience rebuild: title → player creation → First Day boundary
 
-**CarrierSource boundary contract:** CarrierSource may read carrier/account/career data and invoke existing application/agreement actions by carrier ID. It must not become an authority for driver movement, load lifecycle, itinerary, facility state, or scheduling logic.
+The current clean-new-player path is:
 
-**CS2.0B.4 upgrades the communications layer.** Email and Messages now use stronger identity, unread, context, and workflow presentation while continuing to read existing authoritative operational state rather than creating new state transitions. Driver conversation ordering is latest-activity-first. Email replies preserve workflow metadata so communication deep links remain accurate. CarrierSource career-review emails can render structured performance cards and link directly to CarrierSource. No driver movement, scheduling, carrier approval, facility, POD, LedgerDesk, or career-scoring authority moved into communications.
+**DOC OS startup → workstation/login → New Dispatcher → name → Character Creator → First Day placeholder**
 
-**CS2.0B.4.1 adds Driver Communications Intelligence.** Driver communication now follows an event contract instead of mirroring every state change. Proactive driver texts are reserved for relationship start, clock-in, schedule receipt, major departure, meaningful delay/problem, loading/unloading exception, schedule change, and end-of-day sign-off. Routine check-in remains silent unless a facility wait reaches 20 minutes. Routine informational messages do not demand a reply; contextual response choices appear only for active exceptions/decisions. `OPS UPDATE` is replaced by contextual `DISPATCH ACTIONS`, and redundant next-stop reminders are removed because Agenda remains the schedule authority. Driver texts never restate start time, lunch, or end-of-day schedule details that the dispatcher already owns. B.4.1 adds communication metadata only and does not change movement, itinerary, appointment, facility, scheduler, or load-lifecycle authority.
+The former Market Selection / Day-One Entry opening route has been retired and removed. Metroline onboarding is authored for New York; market selection is not part of the rebuilt onboarding path.
 
-**Driver communications contract:** Do not tell the dispatcher information they already entered or can already see in Agenda. Routine state stays quiet. Human communication appears when a driver starts/ends work, receives/revises the plan, begins a meaningful movement leg, or when a change/problem requires dispatcher awareness or judgment.
+The current title is a physical workstation/login presentation over the office backdrop. Save slots are represented as workstation users. Entering a workstation physically pushes into the monitor before handoff. Returning from Career Setup must not replay the branded startup splash during the same app runtime.
 
-**CS2.0B.4.1.1–B.4.1.3 build the driver-duty foundation.** Agenda now stores a per-driver, per-operating-day workday with shift start, movable lunch, lunch duration, and end-of-day. Clock-in messaging fires from the authored start time while Messages never repeats schedule details the dispatcher already owns. B.4.1.3 turns lunch into a rotating strategic event using an 18-card pool with three context-aware choices per day. Lunch choices can change driver relationship, scheduled break duration, stored afternoon recovery, and a one-use next-facility early-check benefit. Recent offers are deprioritized to prevent repetitive daily sets. Lunch does not add proactive driver chatter and does not become a new authority for itinerary, movement, booking, or facility lifecycle.
+Character Creator is the approved player-identity system. Its current categories are Skin, Hair, Hair Color, Brows, Eyes, Eye Color, Mouth, Facial Hair, Glasses, Accessories, Headwear, Outfit, and Outfit Color. The avatar is a composited local renderer; appearance work must preserve the established layer order and must not reintroduce live DiceBear network rendering.
 
-**Driver duty contract:** Agenda owns the planned workday. Driver communication confirms real events rather than restating the plan. Driver-duty events may influence relationship, recovery, or bounded facility timing, but HOS/legal-duty enforcement remains a future dedicated phase.
+**Current onboarding boundary:** First Day is not yet implemented. A clean new save intentionally cannot enter Operations until the rebuilt onboarding/First Day experience provides that handoff. Do not create a permanent bypass around this boundary merely for testing.
 
-**CS2.0B.4.1.3.1 refines lunch UX without changing lunch gameplay.** Lunch becomes a manually opened ready task rather than an automatic interrupt. When a driver reaches the lunch window at a safe operational moment, DOC OS surfaces LUNCH READY through Operations, Agenda, and the driver card. The dispatcher chooses when to open the full-screen decision. The selected lunch summary sits directly beneath Driver Workday, and redundant timing/helper copy is removed. The 18-card pool, three-choice selection, anti-repeat rules, and all lunch effects remain unchanged.
+### 2.2 Performance architecture — LOCKED
 
-**CS2.0B.4.1.3.2 refines lunch into a live-operation decision.** The dispatcher still opens lunch manually after LUNCH READY, but the choice UI is now a compact sheet over the live map instead of a full-screen takeover. Opening the sheet slows the global simulation to 0.75× while leaving Pause/Play/Fast Forward available; closing or choosing restores the prior clock state. After selection, only the chosen driver enters ON LUNCH and becomes operationally unavailable for that break duration. That driver cannot begin a movement leg, new booking/assignment, loading/unloading, or schedule dispatch while on lunch; other drivers and the world continue normally. Existing lunch option/effect logic is unchanged and full HOS enforcement remains parked for the dedicated duty-management phase.
+The October 2 performance investigation established a hard architecture rule:
 
-**Lunch availability contract:** lunch is a driver-specific duty state, never a global pause. The dispatcher can continue managing the operation while a driver is on break. Actionable facility/driver controls for that driver wait until the lunch window ends.
+> **Nothing in the Operations simulation runtime may mount or execute until the player actually enters Operations.**
 
-**CS2.0B.4.1.3.3 polishes communications and Agenda workday authoring.** Email defaults to the Unread inbox. Messages removes the redundant no-route Driver Status context card because status already lives beneath the driver name. Agenda separates shift hours from lunch: Set Time / Edit Day owns only start and end-of-day, while Set Lunch owns lunch start and duration. Native iOS time/select menus are replaced with DOC OS stepper and segmented controls. No lunch event, HOS, communication, Operations, itinerary, facility, or load-lifecycle authority changes in this checkpoint.
+Before this split, the old top-level App mounted the dispatch simulation architecture while the player was still on title/onboarding. Controlled iPhone tests showed severe displayed battery loss even after the avatar and then the entire Character Creator were removed. Bypassing the old App sharply reduced the drain. The rebuilt lightweight startup runtime subsequently completed a five-minute on-device onboarding test from 100% to 100% displayed battery.
 
-**Workday authoring contract:** shift time and lunch are separate dispatcher inputs. The workday header summarizes scheduled start/end; lunch is configured through Set Lunch and visualized independently on the timeline. DOC OS should not rely on platform-native picker styling for these core simulation controls.
+Battery percentage is coarse and does not prove zero energy use. The result is treated as a strong regression signal, not a laboratory power measurement.
 
+**Protected implementation boundary:**
+- `main.jsx` mounts the lightweight `StartupApp.jsx` for the currently reachable experience.
+- Startup/onboarding may own save-slot identity, title presentation, player profile/appearance, and native keyboard presentation.
+- Routing, freight-market simulation, HOS, driver movement, facility lifecycle, LedgerDesk reconciliation, day-loop simulation, Operations maps, and dev scenario tooling must remain dormant until Operations is entered.
+- When First Day is connected to Operations, the simulator runtime must be loaded at that handoff rather than moved back into the startup shell.
+- Operations CSS must remain outside the startup bundle. `AppShell.css` owns the lightweight shell; `App.css` is Operations-owned.
+- Do not solve a future cross-boundary need by statically importing the entire Operations runtime into `StartupApp`.
 
-**CS2.0B.4.1.3.4 fixes Agenda driver-tab presentation only.** The active-driver indicator is rendered at the bottom edge of the tab instead of through the driver label on iPhone. No scheduler, workday, lunch, communications, Operations, itinerary, routing, or save authority changes.
+**Known-good recovery point:** branch `checkpoint/perf-onboarding-stable-2026-10-02`, commit `6d9bf13`.
 
-Historical sections below remain useful as lifecycle contracts and regression references even where older build names appear.
+### 2.3 Loading and bundle ownership
+
+The app now follows staged loading rather than preparing the whole game at launch:
+
+1. **Startup layer:** title, office backdrop, save-slot UI, Career Setup, Character Creator.
+2. **Operations layer:** the dispatch runtime and core Operations UI load only when the experience legitimately enters Operations.
+3. **Phone layer:** the phone ecosystem loads only when the phone is opened.
+4. **Phone-app layer:** secondary apps/workspaces load on demand rather than all being prepared with Phone Home.
+
+The phone split is deliberate. Email, Documents, LedgerDesk, FreightLink, schedulers, POD/RC/invoice workspaces, filing views, Messages, Settings, and other secondary phone surfaces must not be made eager again without a measured reason.
+
+### 2.4 Current Operations systems — protected
+
+The existing Operations runtime remains the protected gameplay foundation while First Day is rebuilt around it.
+
+**Multi-Day Operations — B.4.2-STABLE**
+- Agenda uses real calendar dates and full-day views.
+- Midnight changes calendar identity but does not independently complete freight, move drivers, reset HOS, or post revenue.
+- Open freight, driver position, route progress, and assignments persist across date changes.
+- Shift End owns post-work staging.
+- FreightLink supports a rolling seven-day market and future-dated freight.
+
+**Compact Email Workflow — B.4.2.6-STABLE**
+- Required operational email uses locked **Review → Send**.
+- Opening/reviewing an email is not the authoritative business-state transition.
+- Workflow-generated recipient, subject, body, and required attachments remain locked where the business process requires them.
+
+**Documents & Rate Confirmation — B.4.3-STABLE**
+- Operational documents have lifecycle/version authority.
+- Corrected documents create a new current version and preserve superseded history.
+- Rate Confirmations require player verification.
+- DOC OS may allow the player to approve bad paperwork; future consequences may respond to that decision rather than the UI silently correcting it.
+
+**LedgerDesk Banking — B.4.4-STABLE**
+- Operating Account starts with $2,500 opening capital.
+- Revenue, receivables, collected accounting totals, and spendable bank cash are distinct concepts.
+- Payment completion and bank-deposit posting are related but separate records.
+- Global CASH reads the authoritative Operating Account balance.
+- End Operations advances the live world toward the next 07:00 operating start rather than using midnight as a reset.
+
+**Driver Duty & HOS — B.5**
+- HOS is driver-scoped.
+- Scheduled clock-in begins the duty session; a started session cannot have its historical start edited away.
+- Driving consumes Drive + Duty; other on-duty activity consumes Duty.
+- Ten continuous hours OFF DUTY are required for the modeled 11/14 reset.
+- Midnight, Daily Closeout, and the 07:00 dispatcher handoff are not HOS resets.
+- FreightLink load evaluation includes HOS as a separate operational signal rather than hiding it inside a generic fit label.
+
+### 2.5 Communications and driver identity
+
+Marcus remains the tutorial driver and Metroline remains the authored tutorial carrier. Driver communication follows the event contract established in B.4.1: human communication is for relationship starts, clock-in, schedule receipt/change, meaningful movement, delays/exceptions, and end-of-day sign-off. Routine visible state should not be redundantly narrated.
+
+Jordan remains the mentor identity for onboarding/tutorial communication. New First Day work should use Jordan to teach context and intent without turning every click into a text tutorial.
+
+### 2.6 UI / design language
+
+DOC OS should feel like a coherent operating system rather than a collection of unrelated game menus.
+
+- Dark, restrained operations surfaces.
+- Clear hierarchy before decoration.
+- Compact, scannable cards and fixed actions where the workflow requires them.
+- Plum/purple is an attention/accent language, not a glow effect applied everywhere.
+- Green communicates legitimate positive/ready states; warnings/errors must remain semantically distinct.
+- Paperwork should look like paperwork when document identity matters.
+- Phone apps may have their own workspace character, but navigation, typography hierarchy, action ownership, and status language should remain recognizably DOC OS.
+- Avoid platform-native controls when their presentation breaks the simulation language; use DOC OS controls for core authored workflows.
+- Notification badges belong on app icons when unread/actionable state exists.
+- The Home control remains stable and predictable.
+- Full-screen or heavy visual systems must not continue rendering underneath an opaque surface when they can be suspended.
+
+### 2.7 Character Creator visual contract
+
+The Character Creator is functionally locked unless a real regression or an explicitly planned polish pass reopens it.
+
+- Appearance changes must remain local and responsive.
+- Full headwear suppresses scalp hair except intentionally compatible pieces such as the headband.
+- Wearable stack is **body → clothes → facial hair → glasses/accessories → headwear**.
+- Outfit recoloring must continue to work across supported AVA/Toon assets.
+- Glasses retain the approved frame-color control.
+- Do not restore removed “big ears,” “big smile,” or rejected appearance candidates simply because donor assets still exist.
+- Asset/audition filenames are not proof that a file is dead; dependency-check before deleting them.
+
+### 2.8 Current development objective
+
+**Next objective: build the rebuilt First Day/onboarding experience and connect it to Operations without violating the performance boundary.**
+
+The intended tutorial arc remains:
+
+**Phone → Email from Jordan → CarrierSource application → approval email → accept Metroline agreement → Marcus activates → FreightLink DOC001 → assign Marcus → evaluate/confirm fit → accept → plan route → dispatch to pickup → pickup check-in → facility cycle → delivery → POD/closeout → payment**
+
+DOC002 may become available later the same operating day after DOC001.
+
+First Day must teach the player through the real systems rather than through a parallel tutorial-only imitation. Tutorial pacing may accelerate waits, but it must not create competing authorities for freight, driver movement, documents, payment, or HOS.
+
+### 2.9 First Day build guardrails
+
+Before coding a First Day slice:
+1. Define what the player is learning in that slice.
+2. Identify the existing authoritative system/action that performs the work.
+3. Design the smallest mobile-first presentation that exposes that action.
+4. Keep unrelated Operations systems unloaded until the Operations handoff.
+5. Do not resurrect deleted Market Selection / Day-One Entry components or their old CSS.
+6. Do not make tutorial screens permanent owners of gameplay state.
+7. Test the clean-save path on iPhone.
+8. After the Operations handoff exists, run the full DOC001 regression path before promotion.
+
+### 2.10 Development rules — current
+
+1. **One canonical branch/build at a time.**
+2. **Checkpoint every verified win.**
+3. **Root cause before edit.**
+4. **One system per change package whenever practical.**
+5. **Logic before polish.**
+6. **Design before code for significant interface changes.**
+7. **Lock finished systems; do not touch them incidentally.**
+8. **A successful build is not the same as a successful on-device regression test.**
+9. **Performance regressions are functional regressions.**
+10. **No hidden work:** if a screen is not using a heavy subsystem, suspend it, lazy-load it, or do not mount it.
+11. **Bug report format:** What I did / What happened / What should happen.
+12. **Regression-test before promotion.**
+
+### 2.11 Change classes
+
+**A — Visual only:** typography, spacing, card density, labels, color, layout. Must not alter gameplay state.
+
+**B — Workflow/UI behavior:** opening panels, navigation, notification destinations, focus, modal behavior. Must not alter lifecycle except through an explicit existing action.
+
+**C — State/Simulation:** trip status, routes, assignment, clock, movement, arrival/check-in, facility lifecycle, HOS, money authority, completion. Requires the relevant full regression path.
+
+**D — New feature:** progression, events, expanded carrier systems, new tutorial mechanics, or other new game capability. Requires stable Class C foundations.
+
+**P — Performance/Architecture:** loading boundaries, rendering ownership, bundle splitting, timer/animation ownership, simulation mounting. Requires functional regression plus an on-device performance/battery sanity check.
+
+### 2.12 Historical contract policy
+
+Sections below preserve the development history that produced the current game. They remain binding where they define an authority or regression rule that has not been explicitly superseded above.
+
+When a historical section conflicts with the current canonical state:
+1. the **current canonical state** wins;
+2. the newer stable system contract wins over an older IN TEST note;
+3. implementation must be checked before assuming an old parking-lot or “future phase” statement is still true.
+
+---
 
 ## 3. Core Load Lifecycle — Locked Contract
 AVAILABLE
