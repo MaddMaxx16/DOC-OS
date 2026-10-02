@@ -1,81 +1,172 @@
 # DOC OS ROADMAP
 
-Canonical roadmap introduced with CS2.0B.4.2. This file is the source of truth for phase order and status.
+> **Roadmap reconciled:** 2026-10-02  
+> **Current branch:** `p2.4-experience-rebuild`  
+> **Known-good onboarding/performance checkpoint:** `checkpoint/perf-onboarding-stable-2026-10-02` / `6d9bf13`  
+> **Current active phase:** P2.4 Experience Rebuild — First Day Onboarding
 
-## CURRENT STABLE CHECKPOINT
-**CS2.0B.4.4-STABLE — LedgerDesk Banking**
+This file is the source of truth for **phase order and status**. `DOC_OS_BUILD_BIBLE.md` is the source of truth for system behavior, ownership contracts, design rules, and protected regression behavior.
 
-## COMPLETE — STABLE
-### CS2.0B.4.2 — Multi-Day Planning & Shift End Operations
-All B.4.2 implementation slices passed user testing through `CS2.0B.4.2.5-TEST`, the stable candidate passed final on-device smoke testing, and the promoted source passed in the real repository.
+Historical test notes remain below for traceability. Their old IN TEST/NEXT labels do not override this current status map.
 
-- [COMPLETE] Actual calendar dates and rolling seven-day Agenda navigation.
-- [COMPLETE] Full 24-hour Day View with cross-midnight/carryover continuity.
-- [COMPLETE] Per-driver/per-date workday, lunch, Shift End planning, availability context, and routes.
-- [COMPLETE] FreightLink real pickup/delivery dates and rolling seven-day future freight market, including midnight/early-morning pickups.
-- [COMPLETE] Cross-midnight loads remain active through calendar rollover.
-- [COMPLETE] Daily Closeout is a business-day report; it does not reset the world.
-- [COMPLETE] Open freight, driver position, assignments, appointments, and routes persist into the next date.
-- [COMPLETE] Revenue/payment eligibility remains tied to completed freight/approved POD rather than midnight.
-- [COMPLETE] Shift End staging executes only after active freight releases authority, preserves physical location, and cannot be stolen by future scheduled freight.
-- [COMPLETE] Shift End map presentation: 💤 while repositioning, 🌙 while staged, then normal blue active presentation when the next workday begins.
+## CURRENT STABLE FOUNDATION
 
-**Stable checkpoint:** `CS2.0B.4.2-STABLE — Multi-Day Operations`
+### Operations systems — COMPLETE / PROTECTED
 
-**Protected at this checkpoint:** Operations/core lifecycle, explicit dispatch authority, midnight calendar-only behavior, payment/document closure rules, and B.4.1.3.7-established gameplay.
+- [COMPLETE] **CS2.0B.4.2-STABLE — Multi-Day Operations**
+  - Real calendar dates and rolling seven-day Agenda.
+  - Full 24-hour Day View and cross-midnight continuity.
+  - Per-driver/per-date workday, lunch, routes, and Shift End.
+  - Future-dated FreightLink market.
+  - Midnight is calendar-only; it does not reset the world.
+  - Open freight, physical driver state, assignments, and routes persist across dates.
+  - Shift End owns post-work staging.
 
-## COMPLETE — STABLE
-### CS2.0B.4.2.x — Compact Email Workflow Polish
-Operational workflow Email is now a locked Review → Send experience with conventional email presentation. Schedule Approval, POD Correction, pickup-exception correction, and Invoice Submission were acceptance-tested on device. Required attachments fit the fixed review surface, and formal workflow state changes occur only on explicit SEND.
+- [COMPLETE] **CS2.0B.4.2.6-STABLE — Compact Email Workflow**
+  - Required operational Email uses locked Review → Send.
+  - Schedule Approval, correction workflows, and Invoice Submission use explicit SEND authority.
+  - Fixed mobile review surfaces passed on-device testing.
 
-**Stable checkpoint:** `CS2.0B.4.2.6-STABLE — Compact Email Workflow`
+- [COMPLETE] **CS2.0B.4.3-STABLE — Documents & Rate Confirmation**
+  - Versioned/current-authority document lifecycle.
+  - Rate Confirmation receipt, manual compare/verify, correction request, and corrected version.
+  - Permanent load/settlement packet foundation.
+  - Player verification remains authoritative; bad approval may be allowed for future consequence systems.
 
-**Protected at this checkpoint:** `CS2.0B.4.2-STABLE` multi-day operations plus the approved locked workflow Email contract and presentation.
+- [COMPLETE] **CS2.0B.4.4-STABLE — LedgerDesk Banking**
+  - Operating Account and receivables are distinct.
+  - Opening capital: $2,500.
+  - Payment and bank-deposit records remain separate.
+  - Global CASH reads authoritative bank balance.
+  - End Operations advances the live world to the next 07:00 operating start.
 
-## NEXT
-### CS2.0B.4.3 — Documents & Rate Confirmation Workflow
-Rate Confirmation compare/verify/correction workflow; permanent load packet; Documents becomes archive/review/settlement hub. Corrected-document lifecycle must establish one authoritative current POD so superseded PODs do not continue offering `Request Correction` or leak stale exception details into downstream invoice/settlement views.
+- [COMPLETE] **CS2.0B.5.3 — Driver Duty / HOS + HOS-Aware Load Evaluation**
+  - Driver-scoped Drive/Duty clocks.
+  - Started duty-session time is historical/locked.
+  - Rest recovery follows continuous OFF DUTY rather than midnight/day-close resets.
+  - FreightLink exposes HOS as an operational evaluation signal.
+  - Existing Agenda midnight-first presentation remains a polish item, not a data-model defect.
 
-### CS2.0B.4.4 — LedgerDesk Banking
-Available Cash, Pending Deposits, Accounts Receivable, transaction feed, and dispatcher-fee-only banking.
+### Player experience foundation — COMPLETE / PROTECTED
 
-### CS2.0B.5 — Driver Duty & HOS
-**CURRENT PHASE — B.5.1 IN TEST**
-Per-driver duty state, HOS across midnight, schedule-vs-legal-hours evaluation, and HOS operational communication.
+- [COMPLETE] Rebuilt DOC OS workstation/title experience.
+- [COMPLETE] New Dispatcher name flow.
+- [COMPLETE] Character Creator foundation and approved appearance library.
+- [COMPLETE] Local avatar rendering; no live DiceBear dependency for the Toon Head base.
+- [COMPLETE] Character layer/recolor/headwear/facial-hair fixes.
+- [COMPLETE] Phone ecosystem lazy loading.
+- [COMPLETE] Secondary phone-app/workspace code splitting.
+- [COMPLETE] Startup/Operations runtime separation.
+- [COMPLETE] Removal of obsolete Market Selection / old Day-One Entry route.
+- [COMPLETE] Performance cleanup checkpoint: five-minute reachable onboarding test showed 100% → 100% displayed iPhone battery on the known-good build.
 
-- [IN TEST] B.5.1 Driver Duty Clock Foundation — scheduled clock-in starts duty; Driving and Duty clocks become live and visible in driver surfaces.
-- [PLANNED] B.5.2 Rest & HOS Recovery.
-- [PLANNED] B.5.3 HOS-Aware Dispatch Planning.
-- [PLANNED] B.5.4 HOS Operations Polish & Regression.
+Battery percentage is a coarse signal; the result is used as a strong regression check rather than a claim of zero power consumption.
 
-**Protected stable checkpoint:** `CS2.0B.4.4-STABLE — LedgerDesk Banking`.
+## ACTIVE NOW — P2.4 EXPERIENCE REBUILD
+
+### First Day Onboarding
+
+**Goal:** turn the current First Day placeholder into the real bridge between player creation and the protected Operations simulation.
+
+Current reachable clean-save flow:
+
+**Startup → Workstation/Login → New Dispatcher → Name → Character Creator → First Day**
+
+Target tutorial arc:
+
+**First Day → Phone → Jordan Email → CarrierSource → Apply to Metroline → Approval Email → Accept Agreement → Marcus activates → FreightLink DOC001 → evaluate/assign/accept → plan → dispatch → pickup → facility cycle → delivery → paperwork → payment**
+
+DOC002 may become available later the same operating day after DOC001.
+
+### First Day implementation slices
+
+- [NEXT] **P2.4-FD.1 — First Day Arrival / Orientation**
+  - Establish the player at the workstation after Character Creator.
+  - Teach the phone/home surface and establish Jordan as mentor.
+  - No fake simulation state and no full Operations runtime before required.
+
+- [PLANNED] **P2.4-FD.2 — CarrierSource / Metroline Application**
+  - Guide the player into the real CarrierSource system.
+  - Submit the real application.
+  - Approval pacing may be tutorial-accelerated without creating a second carrier-state authority.
+
+- [PLANNED] **P2.4-FD.3 — Agreement / Marcus Activation**
+  - Receive the real approval communication.
+  - Review/accept Metroline agreement.
+  - Marcus becomes available through the real career/carrier rules.
+
+- [PLANNED] **P2.4-FD.4 — FreightLink / DOC001**
+  - Introduce the real FreightLink board and DOC001.
+  - Teach load evaluation, driver fit/HOS signal, assignment, and acceptance.
+
+- [PLANNED] **P2.4-FD.5 — First Dispatch**
+  - Enter the protected Operations runtime at the legitimate handoff.
+  - Plan the real route.
+  - Explicit dispatch remains separate from planning.
+
+- [PLANNED] **P2.4-FD.6 — Pickup / Facility Operations**
+  - Teach arrival, check-in, waiting/loading, and meaningful exceptions using existing facility authority.
+
+- [PLANNED] **P2.4-FD.7 — Delivery / POD / Closeout**
+  - Complete delivery, document review, correction if applicable, invoice/payment loop, and first-job completion feedback.
+
+- [PLANNED] **P2.4-FD.8 — First Day Regression & Promotion**
+  - Clean-save iPhone run from startup through DOC001 completion.
+  - Verify save/resume at meaningful tutorial boundaries.
+  - Verify no startup battery regression.
+  - Verify Operations still passes its protected lifecycle regression.
+  - Promote First Day only after the full path passes.
+
+### P2.4 performance gate
+
+The Operations engine must remain dormant until the tutorial legitimately enters Operations. Do not move routing, movement, HOS simulation, LedgerDesk reconciliation, facility runtime, map runtime, or dev-scenario systems back into the startup bundle to make onboarding implementation easier.
+
+Performance regressions block promotion just like lifecycle regressions.
+
+## AFTER FIRST DAY — CORE EXPANSION
 
 ### CS2.0C.0 — Second Carrier + Second Driver
-Add one meaningfully different carrier and second driver to prove generic multi-driver architecture.
+Add one meaningfully different carrier and a second driver to prove that the architecture is genuinely generic rather than Metroline/Marcus-specific.
 
 ### CS2.0C.1 — Multi-Driver Operations Polish
-Stress-test simultaneous driver needs; improve readability, alerts, badges, Driver Hub, and Agenda only where play reveals pressure.
+Stress-test simultaneous driver needs. Improve readability, alerts, badges, Driver Hub, and Agenda only where real play pressure demonstrates the need.
 
 ### CS2.0C.2 — Carrier Progression & Unlocks
-Carrier XP/levels unlock real operating privileges and career resources.
+Carrier XP/levels should unlock real operating privileges, access, and career resources rather than acting as decorative score.
 
 ### CS2.0C.3 — Dispatcher Skill Tree
-Route Optimization, Driver Management, Carrier Capacity, Operations Intelligence, Negotiation; skills must alter decisions.
+Route Optimization, Driver Management, Carrier Capacity, Operations Intelligence, and Negotiation. Skills must change decisions or operating capability.
 
 ### CS2.0C.4 — Carrier Negotiation
 Milestone-based career negotiation through CarrierSource/Documents with meaningful tradeoffs.
 
+## LATER SYSTEM / CONTENT PASSES
+
 ### Dedicated Visual Pass
-Polish closeout, level-ups, reviews, document folders, and LedgerDesk without changing core gameplay.
+Polish closeout, level-ups, reviews, document folders, LedgerDesk, remaining Agenda presentation debt, and other proven workflows without changing their underlying authority.
 
 ### Communications Phase 2
-Email threading, differentiated driver personality, varied phrasing, exception-driven communications.
+Email threading, differentiated driver personality, varied phrasing, and richer exception-driven communication while preserving the quiet-when-routine contract.
 
 ### Dynamic Events
-Traffic, delays, cancellations, paperwork mismatches, detention, equipment, driver issues, weather, and receiver problems integrated into existing systems.
+Traffic, delays, cancellations, paperwork mismatches, detention, equipment, driver issues, weather, and receiver problems integrated into existing systems rather than as detached minigames.
 
 ### Additional Markets
-Add markets only when the core simulation is deep; each market must materially differ in geography, traffic, freight, carriers, facilities, and operating style.
+Add markets only after the core simulation has sufficient depth. Each market must materially differ in geography, traffic, freight, carriers, facilities, or operating style.
+
+## ROADMAP RULES
+
+1. First Day is the active feature phase; do not skip ahead to C.0 systems while the clean-new-player path ends at a placeholder.
+2. Build tutorial slices through the real authoritative systems.
+3. Keep the startup/Operations performance boundary intact.
+4. Preserve the known-good performance checkpoint before architecture changes.
+5. Stable Operations contracts are not rewritten merely to make tutorial scripting easier.
+6. On-device acceptance is required before promotion.
+7. Historical notes below are evidence/history, not the current priority list.
+
+---
+
+## HISTORICAL IMPLEMENTATION / TEST LOG
 
 > **B.4.2 test infrastructure note — CS2.0B.4.2.2.1-TEST:** Existing hidden iPhone Dev Tools now include clock-jump controls for midnight/multi-day validation. This is testing support only and does not add or reorder roadmap gameplay scope.
 
