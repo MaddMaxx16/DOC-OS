@@ -437,7 +437,7 @@ function App() {
     }
 
     if (pending.workflowType === 'ratecon-correction') {
-      senderOverride = `${carrierName} · Documentation`
+      senderOverride = 'FreightLink · Booking Desk'
       if (pending.workflowValid && load?.rateConfirmation) {
         const prior = load.rateConfirmation
         const nextVersion = Number(prior.version || 1) + 1
