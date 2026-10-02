@@ -39,73 +39,6 @@
   text-align: center;
 }
 
-.entry-screen h1 {
-  margin: 0;
-  font-size: 32px;
-}
-
-.start-screen p {
-  margin: 12px 0 32px;
-  color: #b5b5ba;
-}
-
-.entry-button,
-.market-card {
-  border: 0;
-  border-radius: 12px;
-  background: #343438;
-  color: white;
-  font: inherit;
-  cursor: pointer;
-}
-
-.market-card.selected {
-  background: #4a4a50;
-  box-shadow: 0 0 0 2px #8d8d93;
-}
-
-.entry-button {
-  padding: 12px 24px;
-}
-
-.market-selection-screen h1 {
-  margin-bottom: 28px;
-}
-
-.market-list {
-  width: 100%;
-  display: grid;
-  gap: 12px;
-}
-
-.market-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  text-align: left;
-}
-
-.market-card small {
-  color: #8d8d93;
-}
-
-.market-card.unavailable {
-  cursor: default;
-  opacity: 0.65;
-}
-
-.confirm-button {
-  margin-top: 28px;
-  padding: 10px 20px;
-  border: 0;
-  border-radius: 10px;
-  background: #343438;
-  color: white;
-  font: inherit;
-  cursor: pointer;
-}
-
 .confirm-button:disabled {
   cursor: default;
   opacity: 0.45;
@@ -8376,7 +8309,6 @@
 }
 
 /* Selected/open surfaces get a quiet plum edge, not a glowing fill. */
-.start-save-slot.active,
 .freight-card.selected,
 .freight-load-card.selected,
 .driver-select-compact-card.selected,
