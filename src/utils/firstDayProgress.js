@@ -1,13 +1,34 @@
-import { isRateConfirmationConfirmed } from './rateConfirmation.js'
+const FIRST_DAY_STEPS = [
+  'welcome',
+  'schedule',
+  'freight',
+  'restOfDay',
+  'lunch',
+  'thirdLoad',
+  'staging',
+  'ready',
+  // Legacy v1-v3 steps kept only so older saves can migrate forward.
+  'secondLane',
+  'shiftEnd',
+]
+
+function loadOrder(load) {
+  if (Number.isFinite(Number(load?.queuePosition))) return Number(load.queuePosition)
+  const pickupDay = Number.isFinite(Number(load?.pickupDayIndex)) ? Number(load.pickupDayIndex) : 0
+  const pickupMinute = Number.isFinite(Number(load?.pickupWindowStartMinutes)) ? Number(load.pickupWindowStartMinutes) : 0
+  return pickupDay * 1440 + pickupMinute
+}
 
 export function normalizeFirstDayProgress(value) {
-  if (!value || !['welcome', 'schedule', 'lunch', 'freight', 'restOfDay', 'secondLane', 'shiftEnd', 'ready'].includes(value.step)) return null
+  if (!value || !FIRST_DAY_STEPS.includes(value.step)) return null
   return {
     step: value.step,
     messageIndex: Math.max(0, Math.min(2, Number.isInteger(value.messageIndex) ? value.messageIndex : 0)),
     ...(value.workdayLessonComplete === true ? { workdayLessonComplete: true } : {}),
     ...(Number(value.flowVersion) >= 2 ? { flowVersion: Number(value.flowVersion) } : {}),
     ...(typeof value.firstLaneId === 'string' ? { firstLaneId: value.firstLaneId } : {}),
+    ...(typeof value.secondLaneId === 'string' ? { secondLaneId: value.secondLaneId } : {}),
+    ...(typeof value.thirdLaneId === 'string' ? { thirdLaneId: value.thirdLaneId } : {}),
     ...(typeof value.laneReviewLoadId === 'string'
       ? { laneReviewLoadId: value.laneReviewLoadId, laneReviewIndex: Math.max(0, Math.min(4, Number.isInteger(value.laneReviewIndex) ? value.laneReviewIndex : 0)) }
       : {}),
@@ -16,53 +37,80 @@ export function normalizeFirstDayProgress(value) {
 }
 
 export function getFirstDayBookedLanes(loads = []) {
-  return loads.filter((load) => (load.assignedDriverId === 'marcus' || load.completedDriverId === 'marcus')
-    && !['available', 'cancelled', 'expired'].includes(String(load.status || '').toLowerCase()))
+  return loads
+    .filter((load) => (load.assignedDriverId === 'marcus' || load.completedDriverId === 'marcus')
+      && !['available', 'cancelled', 'expired'].includes(String(load.status || '').toLowerCase()))
+    .sort((a, b) => loadOrder(a) - loadOrder(b))
 }
 
 export function migrateFirstDayFlow(value, loads = []) {
   const progress = normalizeFirstDayProgress(value)
   if (!progress) return null
-  if (progress.flowVersion >= 3) return progress
+  if (progress.flowVersion >= 4) return progress
 
-  const first = getFirstDayBookedLanes(loads)[0]
-  let step = progress.step
+  const booked = getFirstDayBookedLanes(loads)
+  const [first, second, third] = booked
 
-  // Flow v3 removes the opening Driver Scheduler detour. The shift is a
-  // briefing constraint, then the player goes directly to FreightLink.
-  if (step === 'schedule') step = first ? 'restOfDay' : 'freight'
-  if (['lunch', 'shiftEnd'].includes(step) && !first) step = 'freight'
-  if (step === 'freight' && first) step = 'restOfDay'
+  if (progress.step === 'welcome') {
+    return { ...progress, flowVersion: 4 }
+  }
+
+  if (progress.workdayLessonComplete || progress.step === 'ready') {
+    return {
+      ...progress,
+      step: 'ready',
+      flowVersion: 4,
+      workdayLessonComplete: progress.workdayLessonComplete === true,
+      ...(first ? { firstLaneId: first.id } : {}),
+      ...(second ? { secondLaneId: second.id } : {}),
+      ...(third ? { thirdLaneId: third.id } : {}),
+    }
+  }
+
+  let step = 'freight'
+  if (booked.length === 1) step = 'restOfDay'
+  else if (booked.length === 2) step = 'lunch'
+  else if (booked.length >= 3) step = 'staging'
 
   const migrated = {
     ...progress,
     step,
-    flowVersion: 3,
-    laneReviewIndex: first ? Math.max(0, Math.min(4, Number(progress.laneReviewIndex || 0))) : 0,
+    flowVersion: 4,
+    laneReviewIndex: booked.length ? Math.max(0, Math.min(4, Number(progress.laneReviewIndex || 0))) : 0,
     ...(first ? { firstLaneId: first.id } : {}),
+    ...(second ? { secondLaneId: second.id } : {}),
+    ...(third ? { thirdLaneId: third.id } : {}),
   }
-  if (!first) {
+
+  if (!booked.length) {
     delete migrated.laneReviewLoadId
     delete migrated.reviewLoadId
     delete migrated.firstLaneId
+    delete migrated.secondLaneId
+    delete migrated.thirdLaneId
+  } else if (booked.length >= 2) {
+    delete migrated.reviewLoadId
   }
+
   return migrated
 }
 
 export function shouldTeachFirstDayRest(progress, loads = []) {
-  return progress?.step === 'freight' && isRateConfirmationConfirmed(getFirstDayBookedLanes(loads)[0])
+  return progress?.step === 'freight' && getFirstDayBookedLanes(loads).length >= 1
 }
 
-export function shouldTeachFirstDayShiftEnd(progress, loads = []) {
-  if (progress?.step !== 'secondLane' || !progress.reviewLoadId) return false
-  const booked = getFirstDayBookedLanes(loads)
-  if (!booked.some((load) => load.id === progress.firstLaneId)) return false
-  return booked.some((load) => load.id === progress.reviewLoadId && load.id !== progress.firstLaneId
-    && (load.tripPlan?.legs?.loaded?.routeGeometry?.length >= 2 || load.plannedLoadedRouteGeometry?.length >= 2))
+export function shouldTeachFirstDayLunch(progress, loads = []) {
+  return progress?.step === 'restOfDay' && getFirstDayBookedLanes(loads).length >= 2
+}
+
+export function shouldTeachFirstDayStaging(progress, loads = []) {
+  return progress?.step === 'thirdLoad' && getFirstDayBookedLanes(loads).length >= 3
 }
 
 export function isFirstDayTeachingPaused(progress, loads = []) {
-  return ['welcome', 'lunch', 'shiftEnd'].includes(progress?.step)
-    || (Number(progress?.flowVersion || 0) >= 2 && ['freight', 'restOfDay', 'secondLane'].includes(progress.step))
-    || shouldTeachFirstDayRest(progress, loads) || shouldTeachFirstDayShiftEnd(progress, loads)
+  return ['welcome', 'lunch', 'staging'].includes(progress?.step)
+    || (Number(progress?.flowVersion || 0) >= 4 && ['freight', 'restOfDay', 'thirdLoad'].includes(progress.step))
+    || shouldTeachFirstDayRest(progress, loads)
+    || shouldTeachFirstDayLunch(progress, loads)
+    || shouldTeachFirstDayStaging(progress, loads)
 }
