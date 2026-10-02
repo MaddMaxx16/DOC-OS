@@ -1,13 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import mapLocations from '../data/mapLocations.js'
 import { formatAppointment, formatCompactDate, formatTime, getCalendarDate } from '../utils/gameTime.js'
 import { getFreightRouteName } from '../utils/freightIdentity.js'
 import { formatPlanningMinutes, getPlanQuality } from '../utils/planningIntelligence.js'
-import { getRouteLifecycleLabel, getRouteLifecycleTone } from '../utils/routeLifecycle.js'
+import { getRouteLifecycleLabel } from '../utils/routeLifecycle.js'
 import { isDriverOnLunch, isLunchDecisionReady } from '../utils/lunchDecisionEvents.js'
 
-const DAY_START = 6 * 60
-const DAY_END = 22 * 60
 const OVERNIGHT_TIMELINE_CAP = 36 * 60
 const PX_PER_MINUTE = 0.86
 
@@ -48,12 +46,6 @@ function getWorkdayEndOffset(workday) {
   if (Number.isFinite(Number(workday.endDayOffset))) return Number(workday.endDayOffset)
   return Number(workday.endMinutes) <= Number(workday.startMinutes) ? 1 : 0
 }
-function getWorkdayEndAbsolute(dayIndex, workday) {
-  if (!workday) return null
-  const end = Number(workday.endMinutes)
-  if (!Number.isFinite(end)) return null
-  return Number(dayIndex) * 1440 + end + getWorkdayEndOffset(workday) * 1440
-}
 function timeInputToMinutes(value) {
   const match = /^(\d{1,2}):(\d{2})$/.exec(String(value || ''))
   if (!match) return null
@@ -89,11 +81,10 @@ function minuteFor(load, side) {
   return Number(day || 0) * 1440 + Number(minute || 0)
 }
 function statusFor(load) { return getRouteLifecycleLabel(load) }
-function toneFor(load) { return getRouteLifecycleTone(load) }
 
 function FleetSchedulerScreen({
   loads = [], drivers = [], carriers = [], gameTime, focusLoadId = null, initialDriverId = null,
-  onBackToFreightLink, onRequestScheduleApproval, onRemoveFromPlan, onSendDriverSchedule, onUpdateDriverWorkday, onOpenLunchDecision, onDriverContextChange, autoOpenLunch = false,
+  onBackToFreightLink, onRequestScheduleApproval, onRemoveFromPlan, onSendDriverSchedule, onUpdateDriverWorkday, onDriverContextChange, autoOpenLunch = false,
 }) {
   const focusLoad = loads.find((load) => load.id === focusLoadId)
   const firstDriverId = initialDriverId || focusLoad?.candidateDriverId || focusLoad?.assignedDriverId || drivers.find((driver) => driver.carrierId)?.id || drivers[0]?.id || null
@@ -125,12 +116,18 @@ function FleetSchedulerScreen({
   const carryoverWorkday = priorWorkday && getWorkdayEndOffset(priorWorkday) === 1 ? priorWorkday : null
   const lunchDecisionReady = isLunchDecisionReady({ driver, loads, gameTime })
   const driverOnLunch = isDriverOnLunch(driver, gameTime)
-  const [workdayEditorOpen, setWorkdayEditorOpen] = useState(false)
-  const [workdayEditorMode, setWorkdayEditorMode] = useState('full')
+  const [workdayEditorOpen, setWorkdayEditorOpen] = useState(Boolean(autoOpenLunch && workday && hasConfirmedFreight))
+  const [workdayEditorMode, setWorkdayEditorMode] = useState(autoOpenLunch ? 'lunch' : 'full')
   const [workdayError, setWorkdayError] = useState('')
   const [pendingLunchChange, setPendingLunchChange] = useState(null)
-  const autoLunchOpenedRef = useRef(false)
-  const [workdayDraft, setWorkdayDraft] = useState({ start: '', lunchStart: '12:00', lunchDuration: '30', end: '', overnightMode: '', overnightTargetLocationId: '' })
+  const [workdayDraft, setWorkdayDraft] = useState(() => ({
+    start: Number.isFinite(Number(workday?.startMinutes)) ? minutesToTimeInput(workday.startMinutes) : '',
+    lunchStart: minutesToTimeInput(workday?.lunchStartMinutes ?? 720),
+    lunchDuration: String(workday?.lunchDurationMinutes ?? 30),
+    end: Number.isFinite(Number(workday?.endMinutes)) ? minutesToTimeInput(workday.endMinutes) : '',
+    overnightMode: workday?.overnightMode || '',
+    overnightTargetLocationId: workday?.overnightTargetLocationId || '',
+  }))
   useEffect(() => {
     setWorkdayEditorOpen(false)
     setWorkdayError('')
@@ -148,12 +145,6 @@ function FleetSchedulerScreen({
     setWorkdayError('')
     setWorkdayEditorOpen(true)
   }
-  useEffect(() => {
-    if (!autoOpenLunch || autoLunchOpenedRef.current || !workday || !hasConfirmedFreight) return
-    autoLunchOpenedRef.current = true
-    openWorkdayEditor('lunch')
-  }, [autoOpenLunch, driver?.id, currentDay, Boolean(workday), hasConfirmedFreight])
-
   const saveWorkday = () => {
     const startMinutes = dutyStartLocked && Number.isFinite(Number(workday?.startMinutes)) ? Number(workday.startMinutes) : timeInputToMinutes(workdayDraft.start)
     const endMinutes = timeInputToMinutes(workdayDraft.end)
