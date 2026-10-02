@@ -2941,8 +2941,6 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             setEmailMessages={setEmailMessages}
             runtimePositions={runtimePositions}
             setDrivers={setDrivers}
-            plannedRoute={plannedRoute}
-            setPlannedRoute={setPlannedRoute}
             gameTime={gameTime}
             setGameTime={setGameTime}
             initialScreen={phoneInitialScreen}
@@ -2975,9 +2973,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}
             ledgerBanking={ledgerBanking}
             setLedgerWorkflowByLoadId={setLedgerWorkflowByLoadId}
-            onEvaluateFit={startEvaluation} onAddToSchedule={addLoadToSchedule}
+            onAddToSchedule={addLoadToSchedule}
             onAcceptCandidateAssignment={acceptCandidateAssignment}
-            onPlanTrip={(loadId, driverId) => { setIsPhoneOpen(false); startPlanning(loadId, driverId) }}
             onResetGame={onResetGame}
             onSetupOvernightDevScenario={onSetupOvernightDevScenario}
             onResetDayAfterCarrierApproval={onResetDayAfterCarrierApproval}
