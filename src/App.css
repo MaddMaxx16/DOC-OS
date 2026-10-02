@@ -13470,3 +13470,11 @@
   .freight-booking-progress>div{grid-template-columns:16px 1fr;padding:6px}
   .freight-booking-progress>div>span{width:16px;height:16px}
 }
+
+.freight-eval-day-check{display:grid;gap:4px;padding:11px 12px;border-radius:13px;border:1px solid rgba(132,156,184,.2);background:#10161e}
+.freight-eval-day-check>span{font-size:6.5px;font-weight:950;letter-spacing:.14em;color:#8b9caf}
+.freight-eval-day-check>strong{font-size:10px;line-height:1.3;color:#edf2f8}
+.freight-eval-day-check>p{margin:0;font-size:7.5px;line-height:1.4;color:#7f90a3}
+.freight-eval-day-check.attention{border-color:rgba(196,151,81,.42);background:rgba(132,88,34,.09)}
+.freight-eval-day-check.attention>span{color:#d3aa70}
+.freight-eval-day-check.good{border-color:rgba(79,164,115,.34);background:rgba(48,123,81,.07)}
