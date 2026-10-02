@@ -1518,7 +1518,7 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     return true
   }
 
-  const acceptCandidateAssignment = (loadId) => {
+  const acceptCandidateAssignment = (loadId, bookingProof = false) => {
     const currentLoad = loads.find((item) => item.id === loadId)
     const driverId = currentLoad?.candidateDriverId
     if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFitVerified || !driverId) return false
@@ -1526,6 +1526,9 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     if (!selectedDriver || isDriverOnLunch(selectedDriver, gameTime)) return false
     const carrier = carriers.find((item) => item.id === selectedDriver.carrierId)
     if (carrier?.dispatchAgreement?.loadApprovalRequired && currentLoad.carrierApprovalStatus !== 'APPROVED') return false
+    // A carrier approval is permission to pursue freight, not a booking. The only
+    // valid assignment handoff is a confirmed Rate Con review.
+    if (!bookingProof && (currentLoad.bookingStatus !== 'CONFIRMED' || currentLoad.rateConfirmation?.status !== 'CONFIRMED')) return false
 
     const existingActive = getDriverActiveLoad(loads, driverId)
 
@@ -2144,87 +2147,6 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
     return true
   }
 
-  const bookApprovedScheduleLoads = (driverId) => {
-    const bookingDriver = drivers.find((item) => item.id === driverId)
-    if (isDriverOnLunch(bookingDriver, gameTime)) return false
-    const approvedLoads = loads
-      .filter((load) => load.status === 'available' && load.candidateDriverId === driverId && load.driverFitVerified && load.carrierApprovalStatus === 'APPROVED')
-      .sort((a, b) => ((a.pickupDayIndex || 0) * 1440 + (a.pickupWindowStartMinutes || 0)) - ((b.pickupDayIndex || 0) * 1440 + (b.pickupWindowStartMinutes || 0)))
-    if (!approvedLoads.length) return false
-
-    const approvedIds = new Set(approvedLoads.map((load) => load.id))
-    const approvedOrder = new Map(approvedLoads.map((load, index) => [load.id, index]))
-    const bookedMinute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-
-    setLoads((current) => {
-      const activeAtCommit = getDriverActiveLoad(current, driverId)
-      const firstActiveId = activeAtCommit?.id || approvedLoads[0].id
-      const existingQueueStart = activeAtCommit ? getNextQueuePosition(current, driverId) : 1
-
-      return current.map((load) => {
-        if (!approvedIds.has(load.id) || load.status !== 'available') return load
-        const scheduleOrderIndex = approvedOrder.get(load.id) ?? 0
-        const isActive = load.id === firstActiveId
-        // AW1.6.3: queue order is derived once from the approved Today’s Plan and
-        // is never rebuilt from array order while booking. Booking changes state,
-        // not sequence.
-        const queuePosition = isActive ? 0 : existingQueueStart + (activeAtCommit ? scheduleOrderIndex : Math.max(0, scheduleOrderIndex - 1))
-        const nextTripStatus = isActive ? 'assigned' : 'queued'
-        return {
-          ...load,
-          status: nextTripStatus,
-          tripStatus: nextTripStatus,
-          assignedDriverId: driverId,
-          candidateDriverId: null,
-          driverFitVerified: true,
-          queuePosition,
-          scheduleOrderIndex,
-          scheduleBookedGameMinute: bookedMinute,
-          itineraryInsertion: load.tripPlan?.insertionPlan || load.assignmentProjection?.insertionPlan || null,
-          scheduleApprovalQueued: false,
-          tripPlan: load.tripPlan ? { ...load.tripPlan, status: 'booked', bookedGameMinute: bookedMinute } : load.tripPlan,
-          planningStatus: load.tripPlan?.legs?.deadhead?.routeGeometry ? 'route-ready' : null,
-          plannedDeadheadMiles: load.tripPlan?.legs?.deadhead?.miles ?? load.plannedDeadheadMiles ?? null,
-          plannedDeadheadDriveTimeMinutes: load.tripPlan?.legs?.deadhead?.minutes ?? load.plannedDeadheadDriveTimeMinutes ?? null,
-          plannedDeadheadRouteGeometry: load.tripPlan?.legs?.deadhead?.routeGeometry ?? load.plannedDeadheadRouteGeometry ?? null,
-          plannedDeadheadRouteSource: load.tripPlan?.legs?.deadhead?.routeSource ?? load.plannedDeadheadRouteSource ?? null,
-          selectedDeadheadRouteId: load.tripPlan?.legs?.deadhead?.routeGeometry ? 'recommended' : load.selectedDeadheadRouteId ?? null,
-          deliveryPlanningStatus: load.tripPlan?.legs?.loaded?.routeGeometry ? 'route-ready' : null,
-          plannedLoadedMiles: load.tripPlan?.legs?.loaded?.miles ?? load.plannedLoadedMiles ?? null,
-          plannedLoadedDriveTimeMinutes: load.tripPlan?.legs?.loaded?.minutes ?? load.plannedLoadedDriveTimeMinutes ?? null,
-          plannedLoadedRouteGeometry: load.tripPlan?.legs?.loaded?.routeGeometry ?? load.plannedLoadedRouteGeometry ?? null,
-          plannedLoadedRouteSource: load.tripPlan?.legs?.loaded?.routeSource ?? load.plannedLoadedRouteSource ?? null,
-          selectedLoadedRouteId: load.tripPlan?.legs?.loaded?.routeGeometry ? 'recommended' : load.selectedLoadedRouteId ?? null,
-          loadingChallengeState: null,
-          unloadChallengeState: null,
-        }
-      })
-    })
-
-    const existingActive = getDriverActiveLoad(loads, driverId)
-    const queueIds = existingActive ? approvedLoads.map((load) => load.id) : approvedLoads.slice(1).map((load) => load.id)
-    setDrivers((current) => current.map((driver) => driver.id === driverId ? {
-      ...driver,
-      status: 'unavailable',
-      assignedLoadId: existingActive?.id || approvedLoads[0].id,
-      queuedLoadIds: Array.from(new Set([...(driver.queuedLoadIds || []), ...queueIds])),
-      idleSinceGameMinute: null,
-      idleTargetLocationId: null,
-      idleRouteStatus: null,
-      idleRouteGeometry: null,
-      idleRouteStartGameMinute: null,
-      idleRouteDurationMinutes: null,
-    } : driver))
-
-    approvedLoads.forEach((load, index) => {
-      const fitStatus = String(load.assignmentProjection?.status || '').toUpperCase()
-      const deadheadMiles = Number(load.assignmentProjection?.deadheadMiles)
-      const queued = Boolean(existingActive) || index > 0
-      const relationshipDelta = fitStatus.includes('AT RISK') ? -2 : fitStatus.includes('TIGHT') ? 0 : (queued && Number.isFinite(deadheadMiles) && deadheadMiles <= 15 ? 2 : 1)
-      adjustDriverRelationship(driverId, relationshipDelta, `assignment-quality:${load.id}`)
-    })
-    return true
-  }
 
   const sendDriverLoadUpdate = async (loadId, driverIdArg = null) => {
     const load = loads.find((item) => item.id === loadId)
@@ -2505,7 +2427,6 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
         onNotificationAction={openOperationNotification}
         onSendSchedule={sendDriverSchedule}
         onRequestScheduleApproval={requestScheduleApproval}
-        onBookApprovedSchedule={bookApprovedScheduleLoads}
         onRemoveScheduleLoad={removeScheduleLoad}
         scheduleCommunicationByDriver={Object.fromEntries(drivers.map((driver) => {
           const itinerary = buildDriverItinerary(loads, driver.id).filter((stop) => !stop.completed)
@@ -3062,7 +2983,6 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             onResetDayAfterCarrierApproval={onResetDayAfterCarrierApproval}
             onOpenDriverSchedule={(driverId) => { setIsPhoneOpen(false); setDriverHubOpen(true); if (driverId) { setDriverFocusId(driverId); setDriverFocusRequest((value) => value + 1) } }}
             onRequestScheduleApproval={requestScheduleApproval}
-            onBookApprovedSchedule={bookApprovedScheduleLoads}
             onRemoveScheduleLoad={removeScheduleLoad}
             onOpenLunchDecision={openLunchDecisionForDriver}
             onClose={() => setIsPhoneOpen(false)}
