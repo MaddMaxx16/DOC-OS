@@ -16,7 +16,7 @@ function OperationalDocumentViewer({ attachment, loads = [], workflows = {}, bus
   const businessDocument = attachment.sourceId ? businessDocuments.find((item) => item.id === attachment.sourceId) : null
 
   let title = attachment.title || 'Document'
-  let body = null
+  let body
 
   if (attachment.type === 'load-offer' && load) {
     body = <article className="docos-document-surface operational-document-paper">
