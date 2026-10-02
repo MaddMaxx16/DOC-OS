@@ -1019,7 +1019,7 @@ useEffect(() => {
   const persistFirstDayProgress = (nextProgress) => {
     const snapshot = latestAutosaveRef.current
     if (!snapshot || snapshot.slotId !== activeSaveSlotId) return false
-    const next = normalizeFirstDayProgress({ ...snapshot.state.firstDay, ...nextProgress, flowVersion: 3 })
+    const next = normalizeFirstDayProgress({ ...snapshot.state.firstDay, ...nextProgress, flowVersion: 4 })
     if (!next) return false
     const state = { ...snapshot.state, firstDay: next }
     if (!persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, state, activeSaveSlotId)) return false
