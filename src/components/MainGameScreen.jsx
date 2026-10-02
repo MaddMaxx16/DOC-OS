@@ -1588,7 +1588,7 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
     return true
   }
 
-  const acceptCandidateAssignment = (loadId) => {
+  const acceptCandidateAssignment = (loadId, bookingProof = false) => {
     const currentLoad = loads.find((item) => item.id === loadId)
     const driverId = currentLoad?.candidateDriverId
     
@@ -1612,7 +1612,7 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
       )))
       return false
     }
-if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFitVerified || !driverId || !isRateConfirmationConfirmed(currentLoad)) return false
+if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFitVerified || !driverId || (!bookingProof && !isRateConfirmationConfirmed(currentLoad))) return false
     const selectedDriver = drivers.find((driver) => driver.id === driverId)
     if (!selectedDriver || isDriverOnLunch(selectedDriver, gameTime)) return false
     const carrier = carriers.find((item) => item.id === selectedDriver.carrierId)
@@ -1624,10 +1624,11 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       const activeAtCommit = getDriverActiveLoad(current, driverId)
       const queuePosition = activeAtCommit ? getNextQueuePosition(current, driverId) : 0
       const nextTripStatus = activeAtCommit ? 'queued' : 'assigned'
-      return current.map((load) => load.id === loadId && load.status === 'available' && isRateConfirmationConfirmed(load) ? {
+      return current.map((load) => load.id === loadId && load.status === 'available' && (bookingProof || isRateConfirmationConfirmed(load)) ? {
         ...load,
         status: nextTripStatus,
         tripStatus: nextTripStatus,
+        bookingStatus: 'CONFIRMED',
         assignedDriverId: driverId,
         candidateDriverId: null,
         driverFitVerified: true,
