@@ -38,7 +38,7 @@ import { sampleRoutePoint } from './utils/routeSampler.js'
 import { anchorMovementRoute, reconcileIdleMovement, reconcileFreightMovement, restoreMovementOwnerContinuity } from './utils/runtimeMovement.js'
 import { createLegacyIndependentCareer, normalizeCareerState } from './utils/careerState.js'
 import { establishCarrierOperationalContext } from './utils/carrierOperationalContext.js'
-import { normalizeFirstDayProgress } from './utils/firstDayProgress.js'
+import { normalizeFirstDayProgress, isFirstDayTeachingPaused } from './utils/firstDayProgress.js'
 import { initializeMetrolineEmployeeOperation } from './utils/employeeCareerInitializer.js'
 
 
@@ -1547,8 +1547,10 @@ Dispatch Mentor`,
     })
   }, [hydrated, stage, gameTime.gameDayIndex, gameTime.totalMinutesOfDay, loads, carriers])
 
+  const firstDayTeachingPaused = isFirstDayTeachingPaused(firstDay, loads)
+
   useEffect(() => {
-    if (stage !== 'game' || isGameClockPaused || firstDay?.step === 'welcome') return undefined
+    if (stage !== 'game' || isGameClockPaused || firstDayTeachingPaused) return undefined
     const timer = setInterval(() => setGameTime((time) => {
       const nextMinutes = time.totalMinutesOfDay + 1
       return nextMinutes >= 1440
@@ -1556,7 +1558,7 @@ Dispatch Mentor`,
         : { ...time, totalMinutesOfDay: nextMinutes }
     }), 3000 / simulationSpeed)
     return () => clearInterval(timer)
-  }, [stage, isGameClockPaused, simulationSpeed, firstDay?.step])
+  }, [stage, isGameClockPaused, simulationSpeed, firstDayTeachingPaused])
 
 
   // B.4.2.2: operation-day identity follows the calendar after midnight without
@@ -1886,7 +1888,7 @@ Open CarrierSource to review your full account history.`
             setDrivers={setDrivers}
             plannedRoute={plannedRoute}
             setPlannedRoute={setPlannedRoute}
-            isGameClockPaused={isGameClockPaused || firstDay?.step === 'welcome'}
+            isGameClockPaused={isGameClockPaused || firstDayTeachingPaused}
             setGameClockPaused={setIsGameClockPaused}
             runtimePositions={runtimePositions}
             setRuntimePositions={setRuntimePositions}

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { prepareFirstDayOperation } from '../src/utils/firstDayOperation.js'
-import { normalizeFirstDayProgress } from '../src/utils/firstDayProgress.js'
+import { normalizeFirstDayProgress, isFirstDayTeachingPaused, shouldTeachFirstDayShiftEnd } from '../src/utils/firstDayProgress.js'
 
 const identity = {
   stage: 'careerSetup', careerSetupStep: 'employeeWelcome',
@@ -49,4 +49,32 @@ test('welcome resume normalizes malformed message indexes without inventing onbo
   assert.deepEqual(normalizeFirstDayProgress({ step: 'welcome', messageIndex: 900 }), { step: 'welcome', messageIndex: 2 })
   assert.deepEqual(normalizeFirstDayProgress({ step: 'welcome', messageIndex: -5 }), { step: 'welcome', messageIndex: 0 })
   assert.deepEqual(normalizeFirstDayProgress({ step: 'schedule', messageIndex: 2 }), { step: 'schedule', messageIndex: 2 })
+})
+
+
+test('workday lessons persist and pause teaching without blocking live carrier approval', () => {
+  for (const step of ['schedule', 'lunch', 'shiftEnd']) {
+    assert.equal(normalizeFirstDayProgress({ step }).step, step)
+    assert.equal(isFirstDayTeachingPaused({ step }), true)
+  }
+  assert.equal(isFirstDayTeachingPaused({ step: 'freight' }), false)
+  assert.deepEqual(normalizeFirstDayProgress({ step: 'ready', workdayLessonComplete: true }), { step: 'ready', messageIndex: 0, workdayLessonComplete: true })
+  assert.deepEqual(normalizeFirstDayProgress({ step: 'ready' }), { step: 'ready', messageIndex: 0 })
+})
+
+test('shift-end teaching waits for Marcus’s actual first assignment and delivery route', () => {
+  const progress = { step: 'freight' }
+  const route = [[-74.1, 40.6], [-74, 40.7]]
+  const load = { id: 'DOC001', status: 'assigned', assignedDriverId: 'marcus', tripPlan: { legs: { loaded: { routeGeometry: route } } } }
+  assert.equal(shouldTeachFirstDayShiftEnd(progress, [load]), true)
+  assert.equal(isFirstDayTeachingPaused(progress, [load]), true)
+  for (const changed of [
+    { ...load, assignedDriverId: null, candidateDriverId: 'marcus' },
+    { ...load, assignedDriverId: 'someone-else' },
+    { ...load, tripPlan: null },
+    { ...load, status: 'completed' },
+    { ...load, id: 'DOC002' },
+  ]) assert.equal(shouldTeachFirstDayShiftEnd(progress, [changed]), false)
+  assert.equal(shouldTeachFirstDayShiftEnd({ step: 'ready' }, [load]), false)
+  assert.equal(shouldTeachFirstDayShiftEnd(progress, [{ ...load, tripPlan: null, plannedLoadedRouteGeometry: route }]), true)
 })

@@ -1,19 +1,25 @@
-DOC OS — P2.4-FD.1.5-TEST — Jordan Schedule Destination
+DOC OS — P2.4-FD.3.1-TEST — Jordan Workday Preparation
 Branch: p2.4-experience-rebuild
 
 Direct repository edits → automatic Vercel → refresh DOC OS on iPhone.
 
-Jordan's final welcome action now opens the SCHEDULE tab, with Marcus's existing
-selected context, instead of the TODAY overview. It shows the real confirmed
-workweek and 7 AM–5 PM shift. Saved schedule-boundary resume opens the same tab.
-Ordinary Scheduler entry still defaults to TODAY; shift-end prompts retain DRIVER.
-No shift, plan, HOS, game-time, or saved-operation changes.
-Build Bible and Roadmap updated. Maxx accepted the previous entry transition.
+Jordan teaches Marcus’s confirmed shift, then lunch in the real Driver view.
+Save a lunch window before the guided FreightLink/DOC001 handoff. The window
+is planning intent; actual lunch-stop/return teaching follows at the live event.
+Review real appointments, travel, HOS, and exact-load carrier approval.
+After DOC001 is actually assigned to Marcus and its delivery route exists,
+Jordan introduces the real passive yard/staging finish-position planner.
+Actual shift-end movement/off-duty teaching remains a later live-event slice.
 
-Build and 169 tests passed; no new runtime lint diagnostics.
-Browser handoff, schedule resume, and ordinary TODAY entry passed with no page errors.
+Lesson progress persists. Closing Console keeps the current lesson; reload
+returns to the matching screen/tab. Teaching pauses time, while FreightLink’s
+live approval workflow can still use the clock. Existing welcome-complete saves
+can tap CONTINUE WITH JORDAN on the Day 1 map without resetting their operation.
+No fake approvals, assignments, dispatches, HOS, truck moves, or shift edits.
+Build Bible and Roadmap updated. Maxx accepted the schedule destination.
 
-Phone check: complete Jordan's welcome (or resume at the schedule boundary).
-Confirm SCHEDULE is selected and Marcus's actual confirmed shifts are visible.
-After closing Console, ordinary Scheduler navigation should still open TODAY.
-Revised destination acceptance and full visual/battery/DOC001 checks remain pending.
+Build and 171 tests passed. Runtime lint counts remain at the existing baseline;
+new lesson/progress files are clean. Browser real lunch/FreightLink persistence
+and passive shift-end saving were checked; the contextual shift-end handoff
+uses a booked-route fixture, not an end-to-end booking acceptance claim.
+Phone acceptance/full DOC001/visual/battery checks remain pending.

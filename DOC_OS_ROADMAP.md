@@ -132,15 +132,15 @@ DOC002 may become available later the same operating day after DOC001.
   - No CarrierSource application, approval, or agreement dependency.
   - Implemented through the existing employee initializer; saved atomically before runtime mount. Marcus starts off duty at 6 AM with the confirmed 7 AM–5 PM shift; no early operational message. Existing financial baseline is retained pending employee-era money design.
 
-- [NEXT / INITIAL CONTEXT IMPLEMENTED] **P2.4-FD.3 — Marcus / First Workday Context**
+- [IN TEST / WORKDAY PREPARATION IMPLEMENTED] **P2.4-FD.3 — Marcus / First Workday Context**
   - Introduce Marcus as the player's assigned Metroline driver without an artificial activation event.
   - Surface the real schedule/HOS context the player needs for the first assignment.
   - Marcus's first operational communication occurs at actual clock-in through the real workday/HOS system.
   - Roster presence at the Yard does not itself put Marcus on duty or send an introduction.
-  - Initial context is exposed by the real scheduler. Browser clock advancement verified silence/off-duty before 7 AM, one clock-in message and on-duty HOS at 7 AM, and no duplicate message afterward. Further authored first-workday guidance remains planned.
+  - Initial context is exposed by the real scheduler. Browser clock advancement verified silence/off-duty before 7 AM, one clock-in message and on-duty HOS at 7 AM, and no duplicate message afterward. FD.3.1 adds Jordan’s real shift/lunch preparation and saved resume boundaries. Plan lunch before freight; introduce passive yard/staging finish planning after an actual booked DOC001 delivery route exists. Actual lunch-stop and shift-end/off-duty lessons remain planned at their live events. Existing ready saves can opt in without reseeding.
 
-- [PLANNED] **P2.4-FD.4 — FreightLink / DOC001**
-  - Introduce the real FreightLink board and DOC001.
+- [NEXT / BOARD INTRODUCTION IMPLEMENTED] **P2.4-FD.4 — FreightLink / DOC001**
+  - FD.3.1 now hands off to the real FreightLink board and DOC001 details after a valid saved lunch window. Detailed authored fit/approval/acceptance guidance remains next.
   - Teach load evaluation, driver fit/HOS signal, written Metroline approval for the exact load, and acceptance/assignment under the real Metroline workflow.
 
 - [PLANNED] **P2.4-FD.5 — First Dispatch**

@@ -1,3 +1,4 @@
+import FirstDayLesson from './FirstDayLesson.jsx'
 import { lazy, useRef, useState } from 'react'
 import HomeScreen from './HomeScreen.jsx'
 const LoadDetailsScreen = lazy(() => import('./LoadDetailsScreen.jsx'))
@@ -56,7 +57,7 @@ import { hasActiveCarrierRoster } from '../utils/carrierOperationalContext.js'
 function getReceivable(loads, carriers, workflows, id) { return getReceivables(loads, carriers, workflows).find((item) => item.loadId === id) }
 
 // B.5.4D.4.3.1B — Legacy Route + Diagnostic Cleanup Final
-function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, gameTime, setGameTime, setGameClockPaused, onEvaluateFit, onAddToSchedule, onAcceptCandidateAssignment, initialScreen = 'home', initialAgendaView = 'today', initialLoadId = null, initialDriverId = null, initialShiftEndPromptDriverId = null, onShiftEndPromptConsumed, onShiftEndAlertFlowExit, initialEmailComposeContext = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, ledgerBanking, setLedgerWorkflowByLoadId, onResetGame, onReturnToTitle, onRequestScheduleApproval, onBookApprovedSchedule, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onPickupCorrectionSent, onSetupOvernightDevScenario, onInitializeEmployeeCareer, onClose, onCarrierSourceOpened }) {
+function PhoneOverlay({ firstDay, onFirstDayProgress, loads, setLoads, drivers, setDrivers, carriers = [], operationDay = 1, dispatcherProfile, onSaveDispatcherProfile, carrierApplicationsById = {}, carrierCareerById = {}, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages = [], setEmailMessages, driverMessages = [], businessDocuments = [], driverMessageUnreadCount = 0, onReadDriverMessage, onSendDriverLoadUpdate, onSendDriverQuickReply, onPlanDeliveryRoute, runtimePositions = {}, gameTime, setGameTime, setGameClockPaused, onEvaluateFit, onAddToSchedule, onAcceptCandidateAssignment, initialScreen = 'home', initialAgendaView = 'today', initialLoadId = null, initialDriverId = null, initialShiftEndPromptDriverId = null, onShiftEndPromptConsumed, onShiftEndAlertFlowExit, initialEmailComposeContext = null, documentsBadgeCount = 0, ledgerUnreadCount = 0, emailUnreadCount = 0, onOpenLedger, ledgerWorkflowByLoadId = {}, ledgerBanking, setLedgerWorkflowByLoadId, onResetGame, onReturnToTitle, onRequestScheduleApproval, onBookApprovedSchedule, onRemoveScheduleLoad, onSendDriverSchedule, onOpenLunchDecision, onPickupCorrectionSent, onSetupOvernightDevScenario, onInitializeEmployeeCareer, onClose, onCarrierSourceOpened }) {
   // B.5.4D.4.2.5A — Flexible Plan Return Navigation
   const [driverOpsReturnScreen, setDriverOpsReturnScreen] = useState('home')
 
@@ -598,6 +599,9 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
         />
       ) : screen === 'agenda' ? (
         <DriverSchedulerScreen
+          firstDay={firstDay}
+          onFirstDayProgress={onFirstDayProgress}
+          onFirstDayComplete={onClose}
           drivers={drivers}
           carriers={carriers}
           loads={loads}
@@ -1131,6 +1135,9 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
           onHome={() => setScreen('browser')}
           showSiteBranding={false}
         >
+          {screen === 'loadBoard' && firstDay?.step === 'freight' && <FirstDayLesson title="Find Marcus’s first load" timePaused={false} actionLabel="REVIEW DOC001" onAction={() => openLoadDetails('DOC001', null)}>
+            Start with DOC001. Check pickup and delivery appointments, travel time, Marcus’s lunch window, and his available driving and duty hours. Use the real fit review and carrier approval before booking. Once the booked route is known, we’ll plan where he finishes his shift.
+          </FirstDayLesson>}
           {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => openLoadDetails(loadId, null)} onOpenScheduler={() => {
             setSelectedLoadId(null)
             setSelectedDriverId((current) => current || drivers.find((driver) => driver.carrierId)?.id || null)

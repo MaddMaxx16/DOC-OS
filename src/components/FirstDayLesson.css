@@ -1,0 +1,11 @@
+.first-day-lesson { flex: 0 0 auto; margin: 10px 12px; padding: 12px; border: 1px solid #566174; border-radius: 13px; background: #1c2531; color: #eff3f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.first-day-lesson header { display: flex; align-items: center; gap: 10px; }
+.first-day-lesson-portrait { flex: 0 0 36px; height: 42px; overflow: hidden; border-radius: 8px; background: #d9dce0; }
+.first-day-lesson-portrait .player-avatar { width: 36px; height: 42px; }
+.first-day-lesson small { display: block; font-size: 8px; letter-spacing: .06em; color: #c3b4d3; }
+.first-day-lesson h2 { font-size: 14px; margin: 4px 0 0; }
+.first-day-lesson p { font-size: 12px; line-height: 1.5; margin: 10px 0; }
+.first-day-lesson button, .first-day-resume { min-height: 44px; padding: 10px 12px; border: 1px solid #9484ab; border-radius: 9px; background: #756780; color: #fff; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
+.first-day-lesson button { width: 100%; display: flex; justify-content: space-between; gap: 8px; }
+.first-day-lesson button:focus-visible, .first-day-resume:focus-visible { outline: 2px solid #cda8e6; outline-offset: 3px; }
+.first-day-resume { position: absolute; z-index: 5; left: 50%; transform: translateX(-50%); bottom: calc(98px + env(safe-area-inset-bottom, 0px)); white-space: nowrap; }

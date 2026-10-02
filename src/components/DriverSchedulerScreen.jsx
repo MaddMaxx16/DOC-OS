@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { formatCompactDate, formatTime } from '../utils/gameTime.js'
 import { getDriverTimeView } from '../utils/driverTimeInterpreter.js'
 import { hasValidLunchWindow, resolveDriverWorkdayOwnership } from '../utils/driverWorkdayOwnership.js'
+import FirstDayLesson from './FirstDayLesson.jsx'
 import mapLocations from '../data/mapLocations.js'
 
 const WEEKDAYS = ['TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN', 'MON']
@@ -504,6 +505,9 @@ function ShiftEndPlannerSheet({ driver, carrier, loads, currentDay, committedLoa
 // B.5.4D.4.2.12 — Per-Driver Plan Access Cleanup
 // B.5.4D.4.2.13A — Schedule-Owned Driver Movement Repair
 function DriverSchedulerScreen({
+  firstDay,
+  onFirstDayProgress,
+  onFirstDayComplete,
   drivers = [],
   carriers = [],
   loads = [],
@@ -571,6 +575,15 @@ function DriverSchedulerScreen({
     setView('driver')
   }
 
+  const marcus = drivers.find((driver) => driver.id === 'marcus')
+  const marcusWorkday = marcus ? ownedWorkday(marcus).workday : null
+  const lunchPlanned = hasValidLunchWindow(marcusWorkday)
+  const shiftEndPlanned = marcus?.shiftEndPlanDayIndex !== null
+    && marcus?.shiftEndPlanDayIndex !== undefined
+    && Number(marcus.shiftEndPlanDayIndex) === currentDay
+    && mapLocations.some((location) => location.id === marcus?.shiftEndLocationId)
+  const continueLesson = (step) => onFirstDayProgress?.({ step, messageIndex: 2 }) !== false
+
   return (
     <div className="driver-scheduler-screen carrier-owned-scheduler">
       <header className="driver-scheduler-header">
@@ -589,6 +602,30 @@ function DriverSchedulerScreen({
       </nav>
 
             
+
+      {firstDay?.step === 'schedule' && marcus && <FirstDayLesson title="Start with the shift" actionLabel={view === 'schedule' ? 'PLAN MARCUS’S LUNCH' : 'VIEW MARCUS’S SCHEDULE'} onAction={() => {
+        if (view !== 'schedule') { setView('schedule'); return }
+        if (continueLesson('lunch')) chooseDriver('marcus')
+      }}>
+        {marcusWorkday ? `Metroline has confirmed Marcus’s shift: ${formatTime(marcusWorkday.startMinutes)}–${formatTime(marcusWorkday.endMinutes)}. ` : 'Check Marcus’s carrier-confirmed availability. '}
+        The carrier owns these hours. We need freight, lunch, travel, and his finish position to fit inside them. Let’s plan his lunch before looking for a load.
+      </FirstDayLesson>}
+      {firstDay?.step === 'lunch' && marcus && <FirstDayLesson title={lunchPlanned ? 'Lunch window saved' : 'Protect time for lunch'} actionLabel={view !== 'driver' || selectedDriver?.id !== 'marcus' ? 'VIEW MARCUS' : lunchPlanned ? 'OPEN FREIGHTLINK' : 'SET MARCUS’S LUNCH WINDOW'} onAction={() => {
+        if (view !== 'driver' || selectedDriver?.id !== 'marcus') { chooseDriver('marcus'); return }
+        if (!lunchPlanned) { setLunchDriverId('marcus'); return }
+        if (continueLesson('freight')) onFindFreight?.('marcus')
+      }}>
+        {lunchPlanned ? `Marcus’s window is ${formatTime(marcusWorkday.lunchWindowStartMinutes)}–${formatTime(marcusWorkday.lunchWindowEndMinutes)}. We’ll check freight against it next. ` : 'Set a lunch window in Marcus’s real workday. Leave enough room around appointments and travel. '}
+        This reserves planning time; it does not start a break. When lunch comes due, we’ll teach the actual stop and return to work.
+      </FirstDayLesson>}
+      {firstDay?.step === 'shiftEnd' && marcus && <FirstDayLesson title={shiftEndPlanned ? 'Finish position saved' : 'Where should Marcus finish?'} actionLabel={view !== 'driver' || selectedDriver?.id !== 'marcus' ? 'VIEW MARCUS' : shiftEndPlanned ? 'RETURN TO DISPATCH' : 'PLAN MARCUS’S SHIFT END'} onAction={() => {
+        if (view !== 'driver' || selectedDriver?.id !== 'marcus') { chooseDriver('marcus'); return }
+        if (!shiftEndPlanned) { setShiftEndDriverId('marcus'); return }
+        if (onFirstDayProgress?.({ step: 'ready', messageIndex: 2, workdayLessonComplete: true }) !== false) onFirstDayComplete?.()
+      }}>
+        {shiftEndPlanned ? `Marcus is planned to finish at ${marcus.shiftEndLocationName || 'his selected location'}. ` : 'Compare the available yard and staging options with his delivery destination and remaining shift time. '}
+        The plan stays passive while freight owns the truck. His actual shift-end event will guide the final move and off-duty handoff. Now you can return to the real dispatch workflow.
+      </FirstDayLesson>}
 
       {view === 'today' && (
         <div className="driver-scheduler-today-view">

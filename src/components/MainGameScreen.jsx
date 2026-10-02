@@ -12,6 +12,8 @@ import { getShiftEndAlert } from '../utils/shiftEndDecision.js'
 const PhoneOverlay = lazy(() => import('./PhoneOverlay.jsx'))
 import StatusBar from './StatusBar.jsx'
 import FirstDayWelcome from './FirstDayWelcome.jsx'
+import './FirstDayLesson.css'
+import { shouldTeachFirstDayShiftEnd, isFirstDayTeachingPaused } from '../utils/firstDayProgress.js'
 import OperationsBar from './OperationsBar.jsx'
 import EndDaySheet from './EndDaySheet.jsx'
 import LunchDecisionOverlay from './LunchDecisionOverlay.jsx'
@@ -275,8 +277,10 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
     onWorkstationReady?.()
   }, [onWorkstationReady])
   const welcomeActive = firstDay?.step === 'welcome'
-  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen || firstDay?.step === 'schedule'))
-  const [phoneInitialScreen, setPhoneInitialScreen] = useState(firstDay?.step === 'schedule' ? 'agenda' : initialPhoneScreen || 'home')
+  const shiftEndIntroActive = shouldTeachFirstDayShiftEnd(firstDay, loads)
+  const guidedWorkdayActive = ['schedule', 'lunch', 'shiftEnd'].includes(firstDay?.step)
+  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen || ['schedule', 'lunch', 'freight', 'shiftEnd'].includes(firstDay?.step)))
+  const [phoneInitialScreen, setPhoneInitialScreen] = useState(guidedWorkdayActive ? 'agenda' : firstDay?.step === 'freight' ? 'loadBoard' : initialPhoneScreen || 'home')
   // B.5.4D.1.1 — Opening Guidance + CarrierSource Clock Gate
   const [dayOneCarrierSourceGateActive, setDayOneCarrierSourceGateActive] = useState(
     Boolean(initialPhoneOpen && initialPhoneScreen === 'email')
@@ -296,7 +300,7 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
 
   const [driverFitEvaluation, setDriverFitEvaluation] = useState(null)
   const [phoneLoadId, setPhoneLoadId] = useState(null)
-  const [phoneInitialDriverId, setPhoneInitialDriverId] = useState(firstDay?.step === 'schedule' ? 'marcus' : null)
+  const [phoneInitialDriverId, setPhoneInitialDriverId] = useState(firstDay && firstDay.step !== 'ready' ? 'marcus' : null)
   const [phoneInitialEmailContext, setPhoneInitialEmailContext] = useState(null)
   const [phoneInitialShiftEndPromptDriverId, setPhoneInitialShiftEndPromptDriverId] = useState(null)
   const [planningMode, setPlanningMode] = useState(null)
@@ -2495,7 +2499,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
   const deliveryPlanningRoute = deliveryPlanning && deliveryPlanning.route && typeof deliveryPlanning.route === 'object' ? deliveryPlanning.route : null
   const deliveryPlanningArrivalAbsoluteMinutes = deliveryPlanningRoute ? (gameTime.gameDayIndex * 1440) + gameTime.totalMinutesOfDay + deliveryPlanningRoute.durationMinutes : null
   const deliveryPlanningBufferMinutes = deliveryPlanningLoad && deliveryPlanningRoute ? getDeliveryPlanningBufferMinutes(deliveryPlanningLoad, deliveryPlanningRoute, gameTime) : null
-  const timeControlsLocked = Boolean(welcomeActive || endDayOpen || dayLoopOverlayActive)
+  const timeControlsLocked = Boolean(isFirstDayTeachingPaused(firstDay, loads) || endDayOpen || dayLoopOverlayActive)
   const pauseActive = isGameClockPaused
   const playActive = !isGameClockPaused && simulationSpeed === 1
   const fastForwardActive = !isGameClockPaused && [2, 5, 10].includes(simulationSpeed)
@@ -2589,7 +2593,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
 
   return (
     <div className="main-game-screen">
-      <div className="operations-scene" inert={welcomeActive}>
+      <div className="operations-scene" inert={welcomeActive || shiftEndIntroActive}>
       <StatusBar career={career} selectedMarket={selectedMarket} gameTime={gameTime} operationDay={operationDay} />
       <div className="operations-toolbar">
       <OperationsBar
@@ -3065,6 +3069,19 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           )
         })()}
 
+        {!isPhoneOpen && !planningMode && !deliveryPlanning && firstDay && !welcomeActive
+          && !firstDay.workdayLessonComplete && Number(gameTime?.gameDayIndex || 0) === 0
+          && !loads.some((load) => load.id === 'DOC001' && ['completed', 'paid', 'delivered'].includes(load.status)) && (
+          <button type="button" className="first-day-resume" onClick={() => {
+            const step = firstDay.step === 'ready' ? 'schedule' : firstDay.step
+            if (onFirstDayProgress?.({ step, messageIndex: 2 }) === false) return
+            setDriverHubOpen(false)
+            setPhoneInitialScreen(step === 'freight' ? 'loadBoard' : 'agenda')
+            setPhoneInitialDriverId('marcus')
+            setPhoneLoadId(null)
+            setIsPhoneOpen(true)
+          }}>CONTINUE WITH JORDAN</button>
+        )}
         {!isPhoneOpen && !planningMode && !deliveryPlanning && (
           <nav className="operations-map-dock" aria-label="Workstation">
             {!driverFitEvaluation && !freightBrowseMode && (
@@ -3101,6 +3118,9 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         {isPhoneOpen && (
           <Suspense fallback={null}>
           <PhoneOverlay
+            key={firstDay?.step === 'shiftEnd' ? 'shift-end-lesson' : 'workspace'}
+            firstDay={firstDay}
+            onFirstDayProgress={onFirstDayProgress}
             onCarrierSourceOpened={completeDayOneCarrierSourceHandoff}
             loads={loads}
             setLoads={setLoads}
@@ -3131,7 +3151,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
             setGameTime={setGameTime}
             setGameClockPaused={setGameClockPaused}
             initialScreen={phoneInitialScreen}
-            initialAgendaView={firstDay?.step === 'schedule' ? 'schedule' : 'today'}
+            initialAgendaView={firstDay?.step === 'schedule' ? 'schedule' : ['lunch', 'shiftEnd'].includes(firstDay?.step) ? 'driver' : 'today'}
             initialLoadId={phoneLoadId}
             initialDriverId={phoneInitialDriverId}
             initialShiftEndPromptDriverId={phoneInitialShiftEndPromptDriverId}
@@ -3190,7 +3210,6 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
             onRemoveScheduleLoad={removeScheduleLoad}
             onOpenLunchDecision={openLunchDecisionForDriver}
             onClose={() => {
-              if (firstDay?.step === 'schedule' && onFirstDayProgress?.({ step: 'ready', messageIndex: 2 }) === false) return
               setIsPhoneOpen(false)
             }}
           />
@@ -3218,6 +3237,13 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         />
       )}
       </div>
+      {shiftEndIntroActive && <FirstDayWelcome lessonMessage="Now we know Marcus’s delivery route. Before dispatching, decide where he should finish his shift: return to the Metroline Yard or use an available staging location. Compare that position with the delivery destination and the time left in his shift. Saving this plan does not move the truck; we’ll revisit it when his shift actually ends." actionLabel="PLAN SHIFT END" onContinue={() => {
+        if (onFirstDayProgress?.({ step: 'shiftEnd', messageIndex: 2 }) === false) return
+        setPhoneInitialScreen('agenda')
+        setPhoneInitialDriverId('marcus')
+        setPhoneLoadId(null)
+        setIsPhoneOpen(true)
+      }} />}
       {welcomeActive && <FirstDayWelcome playerName={dispatcherProfile?.displayName} messageIndex={firstDay.messageIndex} onContinue={() => {
         const next = firstDay.messageIndex < 2
           ? { step: 'welcome', messageIndex: firstDay.messageIndex + 1 }
