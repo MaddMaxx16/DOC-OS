@@ -782,7 +782,7 @@ useEffect(() => {
       receivedGameMinute: now,
       read: false,
     }])
-  }, [hydrated, stage, gameTime, emailMessages, loads, carriers, businessResponseTick])
+  }, [hydrated, stage, gameTime, emailMessages, loads, drivers, carriers, businessResponseTick])
 
 
   useEffect(() => {
