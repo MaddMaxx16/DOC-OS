@@ -22,7 +22,7 @@ function OperationalDocumentViewer({ attachment, loads = [], workflows = {}, bus
     body = <article className="docos-document-surface operational-document-paper">
       <div className="operational-document-masthead"><span>DOC OS · FREIGHTLINK LOAD OFFER</span><h2>{getFreightRouteName(load)}</h2><p>Load offer snapshot</p></div>
       <div className="operational-document-grid"><div><span>PICKUP</span><strong>{pickup?.name || 'Pickup'}</strong></div><div><span>DELIVERY</span><strong>{delivery?.name || 'Delivery'}</strong></div><div><span>RATE</span><strong>{money(load.rate)}</strong></div><div><span>STATUS</span><strong>{load.carrierApprovalStatus || load.status || 'AVAILABLE'}</strong></div></div>
-      <div className="operational-document-note"><span>RELATED WORKFLOW</span><strong>{load.carrierApprovalStatus === 'PENDING' ? 'Awaiting carrier approval' : load.carrierApprovalStatus === 'APPROVED' ? 'Approved to book' : 'FreightLink record'}</strong></div>
+      <div className="operational-document-note"><span>RELATED WORKFLOW</span><strong>{load.carrierApprovalStatus === 'PENDING' ? 'Awaiting carrier approval' : load.carrierApprovalStatus === 'APPROVED' ? 'Approved to pursue' : 'FreightLink record'}</strong></div>
     </article>
   } else if (attachment.type === 'rate-confirmation' && load && load.rateConfirmation) {
     const rc = load.rateConfirmation
