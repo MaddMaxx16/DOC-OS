@@ -22,7 +22,6 @@ import { applyCarrierPerformanceReview, buildCarrierCareerById, getCarrierRelati
 import { getAgreementRules } from './utils/carrierAgreement.js'
 import { calculateRoute } from './services/routingService.js'
 import { refreshFreightMarket } from './utils/freightMarket.js'
-import { getAuthoritativeDriverTravelLoad } from './utils/driverItinerary.js'
 import { getFreightRouteName } from './utils/freightIdentity.js'
 import { getClockInMessage, getEndOfDayMessage, getRelationshipStartMessage } from './utils/driverCommunications.js'
 import { createCorrectedPodVersion, normalizePodDocument } from './utils/documentLifecycle.js'
@@ -32,7 +31,6 @@ import { resolveDriverMovementOwner } from './utils/driverMovementOwner.js'
 import { sampleRoutePoint } from './utils/routeSampler.js'
 
 
-const IDLE_DWELL_MINUTES = 20
 
 function getOvernightTruckStopId(origin) {
   const truckStops = mapLocations.filter((location) => ['queens-staging-area', 'newark-fuel-stop'].includes(location.id))
@@ -133,7 +131,6 @@ function App() {
       if (seed.loadNumber) merged.loadNumber = seed.loadNumber
       // Unified market-flow migration: progression/operation-day gates never control freight visibility.
       delete merged.unlockAfterLoadId
-      const hadLegacyOperationGate = Number.isFinite(load.scheduledOperationDay)
       delete merged.scheduledOperationDay
       if (Number.isFinite(seed.postedGameMinute) && !Number.isFinite(merged.postedGameMinute)) merged.postedGameMinute = seed.postedGameMinute
       // Market Refresh V2 migration: untouched available freight adopts the latest
