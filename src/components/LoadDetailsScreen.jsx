@@ -1,7 +1,7 @@
 import mapLocations from '../data/mapLocations.js'
 import { formatAppointment, formatTime } from '../utils/gameTime.js'
 import { getAgreementRules } from '../utils/carrierAgreement.js'
-import { getFreightCommodity, getFreightRouteName } from '../utils/freightIdentity.js'
+import { getFreightCommodity } from '../utils/freightIdentity.js'
 import { getFreightHaulClass } from '../utils/planningIntelligence.js'
 import { getLoadHosEvaluation } from '../utils/hosPlanning.js'
 import { formatHosClock, getDriverHosSummary } from '../utils/driverHOS.js'
