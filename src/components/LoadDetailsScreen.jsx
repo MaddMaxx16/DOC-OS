@@ -148,11 +148,40 @@ function LoadDetailsScreen({
   const lunchDuration = Number(workday?.lunchDurationMinutes)
   const lunchPlanned = Number.isFinite(lunchStart)
     && (Number.isFinite(lunchEnd) || Number.isFinite(lunchDuration))
-  const secondLaneNeedsLunch = isAvailable
-    && firstDay?.step === 'restOfDay'
-    && firstDay?.firstLaneId
-    && load.id !== firstDay.firstLaneId
+  const confirmedDayLoads = loads
+    .filter((item) => item.id !== load.id
+      && (item.assignedDriverId === planningDriver?.id || item.completedDriverId === planningDriver?.id)
+      && !['available', 'cancelled', 'expired'].includes(String(item.status || '').toLowerCase()))
+    .sort((a, b) => {
+      const aOrder = Number.isFinite(Number(a.queuePosition))
+        ? Number(a.queuePosition)
+        : Number(a.pickupDayIndex || 0) * 1440 + Number(a.pickupWindowStartMinutes || 0)
+      const bOrder = Number.isFinite(Number(b.queuePosition))
+        ? Number(b.queuePosition)
+        : Number(b.pickupDayIndex || 0) * 1440 + Number(b.pickupWindowStartMinutes || 0)
+      return aOrder - bOrder
+    })
+  const proposedLoadNumber = confirmedDayLoads.length + 1
+  const buildingLaterLoad = isAvailable
+    && planningDriver?.id === 'marcus'
+    && ['restOfDay', 'thirdLoad'].includes(firstDay?.step)
+  const thirdLoadNeedsLunch = isAvailable
+    && firstDay?.step === 'thirdLoad'
     && !lunchPlanned
+  const daySoFarItems = [
+    ...confirmedDayLoads.map((item, index) => ({
+      type: 'load',
+      id: item.id,
+      sortMinute: Number(item.pickupDayIndex || 0) * 1440 + Number(item.pickupWindowStartMinutes || 0),
+      index: index + 1,
+      load: item,
+    })),
+    ...(lunchPlanned ? [{
+      type: 'lunch',
+      id: 'lunch',
+      sortMinute: Number(load.pickupDayIndex || 0) * 1440 + lunchStart,
+    }] : []),
+  ].sort((a, b) => a.sortMinute - b.sortMinute)
 
   const coachSteps = [
     {
@@ -230,7 +259,7 @@ function LoadDetailsScreen({
     if (guidedFirstLane && reviewIndex < coachSteps.length - 1) return { label: 'FOLLOW JORDAN’S CHECKS ABOVE', disabled: true }
     if (!evaluated) return { label: evaluating ? 'CHECKING THE ROUTE…' : 'RUN FINAL LOAD CHECK', action: runEvaluation, disabled: evaluating }
     if (!goodCandidate) return { label: 'REVIEW FAILED CHECKS', disabled: true }
-    if (secondLaneNeedsLunch) return { label: 'PLAN MARCUS’S LUNCH', action: () => onPlanFirstDayLunch?.(load.id), disabled: false }
+    if (thirdLoadNeedsLunch) return { label: 'RETURN TO LUNCH PLANNING', action: () => onPlanFirstDayLunch?.(load.id), disabled: false }
     if (approvalRequired && !['PENDING', 'APPROVED'].includes(approvalStatus)) {
       return {
         label: approvalStatus === 'NEEDS_INFO' ? 'RESEND METROLINE APPROVAL' : 'REQUEST METROLINE APPROVAL',
@@ -246,7 +275,7 @@ function LoadDetailsScreen({
     return { label: 'LOAD CHECK COMPLETE', disabled: true }
   })()
 
-  const activeCoachKey = guidedFirstLane ? coach.key : secondLaneNeedsLunch ? 'lunch' : null
+  const activeCoachKey = guidedFirstLane ? coach.key : thirdLoadNeedsLunch ? 'lunch' : null
   const freight = load.freight || {}
   const pallets = Number(freight.pallets)
   const weight = Number(freight.weightLbs)
@@ -301,25 +330,53 @@ function LoadDetailsScreen({
           </FirstDayLesson>
         )}
 
-        {secondLaneNeedsLunch && (
-          <FirstDayLesson compact tone="attention" title="Now build around the first load">
-            Marcus already has confirmed freight. Before we pursue another lane, protect a lunch window inside the day he already has.
+        {buildingLaterLoad && (
+          <FirstDayLesson compact title={firstDay?.step === 'thirdLoad' ? 'Fit the final load around the day' : 'Build onto the confirmed day'}>
+            {firstDay?.step === 'thirdLoad'
+              ? 'Two loads and lunch are already locked in. This final lane has to fit around all three before we pursue it.'
+              : 'Load 1 is already confirmed. This lane starts from where Marcus becomes available after that work. Secure Load 2 first; then we’ll plan lunch.'}
           </FirstDayLesson>
         )}
 
         <section className="lane-timeline" aria-label="Projected load timeline">
           <header className="lane-timeline-head">
             <div>
-              <span>PROJECTED DAY</span>
-              <strong>Marcus’s load timeline</strong>
+              <span>{proposedLoadNumber > 1 ? `PROPOSED LOAD ${proposedLoadNumber}` : 'PROJECTED DAY'}</span>
+              <strong>{proposedLoadNumber > 1 ? `Does Load ${proposedLoadNumber} fit the day?` : 'Marcus’s load timeline'}</strong>
             </div>
             <small>{evaluated ? 'ROUTE CHECKED' : 'MARKET ESTIMATE'}</small>
           </header>
 
+          {daySoFarItems.length > 0 && (
+            <div className="lane-day-so-far">
+              <header><span>CONFIRMED DAY SO FAR</span><strong>{confirmedDayLoads.length} LOAD{confirmedDayLoads.length === 1 ? '' : 'S'} BOOKED{lunchPlanned ? ' · LUNCH PROTECTED' : ''}</strong></header>
+              {daySoFarItems.map((item) => {
+                if (item.type === 'lunch') {
+                  return (
+                    <div className="lane-day-item lunch" key={item.id}>
+                      <span>LUNCH</span>
+                      <strong>{Number.isFinite(lunchEnd) ? `${absoluteTime(lunchStart)}–${absoluteTime(lunchEnd)}` : `${Math.round(lunchDuration)} min protected`}</strong>
+                      <small>Protected before the final load is added.</small>
+                    </div>
+                  )
+                }
+                const itemPickup = mapLocations.find((location) => location.id === item.load.pickupLocationId)
+                const itemDelivery = mapLocations.find((location) => location.id === item.load.deliveryLocationId)
+                return (
+                  <div className="lane-day-item confirmed" key={item.id}>
+                    <span>LOAD {item.index} · CONFIRMED</span>
+                    <strong>{itemPickup?.name || 'Pickup'} → {itemDelivery?.name || 'Delivery'}</strong>
+                    <small>{formatTime(item.load.pickupWindowStartMinutes)} pickup · {formatTime(item.load.deliveryWindowStartMinutes)} delivery · {item.load.loadNumber || 'Booked load'}</small>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           <div className={`lane-timeline-stop shift ${activeCoachKey === 'pickup' ? 'coach-focus' : ''}`}>
             <time>{absoluteTime(projectedStart)}</time>
             <i />
-            <div><span>SHIFT START</span><strong>{load.assignmentProjection?.projectedOriginName || 'Metroline Yard'}</strong></div>
+            <div><span>{confirmedDayLoads.length ? `AVAILABLE AFTER LOAD ${confirmedDayLoads.length}` : 'SHIFT START'}</span><strong>{load.assignmentProjection?.projectedOriginName || 'Metroline Yard'}</strong></div>
           </div>
 
           <div className={`lane-timeline-leg ${activeCoachKey === 'pickup' ? 'coach-focus' : ''}`}>
