@@ -4,7 +4,7 @@ import './LaneReview.css'
 import mapLocations from '../data/mapLocations.js'
 import { formatAppointment, formatTime } from '../utils/gameTime.js'
 import { getAgreementRules } from '../utils/carrierAgreement.js'
-import { getFreightCommodity, getFreightRouteName } from '../utils/freightIdentity.js'
+import { getFreightCommodity } from '../utils/freightIdentity.js'
 import { getFreightHaulClass } from '../utils/planningIntelligence.js'
 import { getLoadHosEvaluation } from '../utils/hosPlanning.js'
 import { formatHosClock, getDriverHosSummary } from '../utils/driverHOS.js'
@@ -257,15 +257,38 @@ function LoadDetailsScreen({
     <div className="phone-page load-details-screen lane-review-v3">
       <header className="lane-review-header">
         <button type="button" onClick={onBack} aria-label="Back to FreightLink">‹</button>
-        <div>
-          <span>FREIGHTLINK · LANE REVIEW</span>
-          <h2>{getFreightRouteName(load)}</h2>
-          <p>{getFreightCommodity(load)} · {load.loadNumber || 'LOAD OFFER'}</p>
+        <div className="lane-review-title">
+          <span className="lane-review-eyebrow">FREIGHTLINK · LANE REVIEW</span>
+          <h2>{pickup.name} <i>→</i> {delivery.name}</h2>
+          <div className="lane-review-meta">
+            <em className={`freight-haul-tag ${haulClass.tone}`}>{haulClass.label}</em>
+            <span>{load.loadNumber || 'LOAD OFFER'}</span>
+            <span>{getFreightCommodity(load)}</span>
+          </div>
         </div>
-        <em className={`freight-haul-tag ${haulClass.tone}`}>{haulClass.label}</em>
       </header>
 
       <div className="lane-review-scroll">
+        <section className="lane-driver-strip">
+          <div className="lane-driver-identity">
+            <span>DRIVER</span>
+            <strong>{planningDriver?.fullName || planningDriver?.name || 'No driver selected'}</strong>
+            <small>{load.assignmentProjection?.projectedOriginName || 'Metroline Yard'}</small>
+          </div>
+          <div>
+            <span>SHIFT</span>
+            <strong>{workday ? `${formatTime(workday.startMinutes)}–${formatTime(workday.endMinutes)}` : '—'}</strong>
+          </div>
+          <div>
+            <span>DRIVE</span>
+            <strong>{planningHos?.driving || '—'}</strong>
+          </div>
+          <div>
+            <span>DUTY</span>
+            <strong>{planningHos?.duty || '—'}</strong>
+          </div>
+        </section>
+
         {guidedFirstLane && (
           <FirstDayLesson
             compact
@@ -284,23 +307,13 @@ function LoadDetailsScreen({
           </FirstDayLesson>
         )}
 
-        <section className="lane-driver-card">
-          <div>
-            <span>DRIVER</span>
-            <strong>{planningDriver?.fullName || planningDriver?.name || 'No driver selected'}</strong>
-            <small>{load.assignmentProjection?.projectedOriginName || 'Metroline Yard'} · shift {workday ? `${formatTime(workday.startMinutes)}–${formatTime(workday.endMinutes)}` : 'not listed'}</small>
-          </div>
-          <div className="lane-driver-hos">
-            <span><b>DRIVE</b><strong>{planningHos?.driving || '—'}</strong></span>
-            <span><b>DUTY</b><strong>{planningHos?.duty || '—'}</strong></span>
-          </div>
-        </section>
-
         <section className="lane-timeline" aria-label="Projected load timeline">
-          <header>
-            <span>PROJECTED DAY</span>
-            <strong>Does this lane fit Marcus?</strong>
-            <small>{evaluated ? 'ROUTE CHECKED' : 'MARKET ESTIMATE · final route check required'}</small>
+          <header className="lane-timeline-head">
+            <div>
+              <span>PROJECTED DAY</span>
+              <strong>Marcus’s load timeline</strong>
+            </div>
+            <small>{evaluated ? 'ROUTE CHECKED' : 'MARKET ESTIMATE'}</small>
           </header>
 
           <div className={`lane-timeline-stop shift ${activeCoachKey === 'pickup' ? 'coach-focus' : ''}`}>
