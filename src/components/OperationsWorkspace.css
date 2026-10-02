@@ -1,5 +1,11 @@
 /* P2.4-FD.0: map workspace chrome. Existing apps retain their workflow owners. */
-.main-game-screen { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.main-game-screen {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Keep the dark basemap, lift detail instead of dimming it a second time. */
+  --docos-map-softness: saturate(.9) brightness(1.14) contrast(.94);
+}
+.main-game-screen .game-map { background: #151c25; }
+.main-game-screen .game-map .maplibregl-canvas { opacity: .94; }
 .main-game-screen .operations-status-header, .main-game-screen .operations-toolbar,
 .main-game-screen .board-view-control { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 

@@ -224,6 +224,12 @@ Validation: production build and 169 system tests pass; GameMap/MainGameScreen r
 
 The earlier FD.1.1 spread-launcher presentation is superseded by this grouped dock. Revised physical iPhone acceptance, the full visual pass, battery check, and protected DOC001 regression remain pending.
 
+### 2.8.6 Map palette continuity — IN TEST
+
+October 2 phone feedback: Maxx likes the refined workstation layout, but the map feels too dark compared with the beginning screens. Preserve the deep dark palette and improve the transition between those screens.
+
+The Operations map now overrides its inherited extra-dimming filter locally: saturate(.9), brightness(1.14), contrast(.94), replacing the existing .86/.88/.98 values only inside the Operations shell. The existing dark map style remains. A #151c25 canvas backing and .94 canvas opacity introduce a subtle cool charcoal undertone; land, roads, and labels gain definition. DOM markers and the header/dock retain their existing opacity, including the muted off-duty driver state. This is a presentation change to the existing canvas compositor, with no new loop, map style fetch, camera movement, or simulation/save change. Production build and browser checks confirm the scoped canvas filter/backing/opacity and retain the existing off-duty marker opacity through the real startup handoff. The QA map uses an empty local style, so revised real-map color acceptance remains pending on iPhone.
+
 ### 2.9 First Day build guardrails
 
 Before coding a First Day slice:
