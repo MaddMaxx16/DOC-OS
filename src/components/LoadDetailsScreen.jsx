@@ -89,7 +89,7 @@ function LoadDetailsScreen({
     && (item.assignedDriverId === planningDriver?.id || item.completedDriverId === planningDriver?.id)
     && (item.bookingStatus === 'CONFIRMED' || item.rateConfirmation?.status === 'CONFIRMED'))
   const lunchProtected = Number.isFinite(Number(planningWorkday?.lunchStartMinutes)) && Number.isFinite(Number(planningWorkday?.lunchDurationMinutes))
-  const needsLunchPlan = Boolean(isAvailable && evaluated && hasEarlierBookedFreight && !lunchProtected)
+  const needsLunchPlan = Boolean(isAvailable && evaluated && goodCandidate && hasEarlierBookedFreight && !lunchProtected)
 
   const primaryAction = (() => {
     if (!isAvailable) return { label: 'VIEW TODAY\'S PLAN', action: () => onOpenScheduler?.(load.id), disabled: false }
