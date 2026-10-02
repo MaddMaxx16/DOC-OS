@@ -36,6 +36,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
   const [emailReturnScreen, setEmailReturnScreen] = useState('email')
   const [emailComposeContext, setEmailComposeContext] = useState(() => initialEmailComposeContext || {})
   const [selectedDriverId, setSelectedDriverId] = useState(initialDriverId)
+  const [schedulerAutoLunch, setSchedulerAutoLunch] = useState(false)
   const [messageLoadContextId, setMessageLoadContextId] = useState(null)
   const [selectedBusinessDocumentId, setSelectedBusinessDocumentId] = useState(null)
   const [previewAttachment, setPreviewAttachment] = useState(null)
@@ -469,9 +470,9 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
             if (screen === 'browser') setScreen('home')
             else if (screen === 'loadBoard') setScreen('browser')
             else if (screen === 'loadDetails') setScreen('loadBoard')
-            else if (screen === 'scheduler') setScreen('loadBoard')
+            else if (screen === 'scheduler') { setSchedulerAutoLunch(false); setScreen('loadBoard') }
           }}
-          onHome={() => setScreen('browser')}
+          onHome={() => { setSchedulerAutoLunch(false); setScreen('browser') }}
           showSiteBranding={false}
         >
           {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => { setSelectedLoadId(loadId); setScreen('loadDetails') }} onOpenScheduler={() => { setSelectedLoadId(null); setSelectedDriverId((current) => current || drivers.find((driver) => driver.carrierId)?.id || null); setScreen('scheduler') }} />}
@@ -491,6 +492,12 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
             onRequestApproval={(loadId, driverId) => openLoadApprovalReview(loadId, driverId)}
             onRequestBooking={(loadId) => requestLoadBooking(loadId)}
             onOpenRateConfirmation={(loadId) => openRateConfirmation(loadId)}
+            onPlanLunch={(loadId, driverId) => {
+              setSelectedLoadId(loadId)
+              setSelectedDriverId(driverId)
+              setSchedulerAutoLunch(true)
+              setScreen('scheduler')
+            }}
             onOpenScheduler={(loadId) => {
               const target = loads.find((item) => item.id === loadId)
               setSelectedLoadId(loadId)
@@ -507,7 +514,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
             }}
             onBack={() => setScreen('loadBoard')}
           />}
-          {screen === 'scheduler' && <FleetSchedulerScreen loads={loads} drivers={drivers} carriers={carriers} gameTime={gameTime} focusLoadId={selectedLoadId} initialDriverId={selectedDriverId} onBackToFreightLink={() => setScreen('loadBoard')} onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)} onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)} onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)} onUpdateDriverWorkday={updateDriverWorkday} onOpenLunchDecision={onOpenLunchDecision} onDriverContextChange={setSelectedDriverId} />}
+          {screen === 'scheduler' && <FleetSchedulerScreen loads={loads} drivers={drivers} carriers={carriers} gameTime={gameTime} focusLoadId={selectedLoadId} initialDriverId={selectedDriverId} autoOpenLunch={schedulerAutoLunch} onBackToFreightLink={() => { setSchedulerAutoLunch(false); setScreen('loadBoard') }} onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)} onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)} onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)} onUpdateDriverWorkday={updateDriverWorkday} onOpenLunchDecision={onOpenLunchDecision} onDriverContextChange={setSelectedDriverId} />}
 
         </BrowserScreen>
       ) : null}
