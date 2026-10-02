@@ -281,8 +281,8 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
   const restIntroActive = shouldTeachFirstDayRest(firstDay, loads)
   const [phoneLessonEntry, setPhoneLessonEntry] = useState(0)
   const shiftEndIntroActive = shouldTeachFirstDayShiftEnd(firstDay, loads)
-  const guidedWorkdayActive = ['schedule', 'lunch', 'shiftEnd'].includes(firstDay?.step)
-  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen || ['schedule', 'lunch', 'freight', 'restOfDay', 'secondLane', 'shiftEnd'].includes(firstDay?.step)))
+  const guidedWorkdayActive = ['lunch', 'shiftEnd'].includes(firstDay?.step)
+  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen || ['lunch', 'freight', 'restOfDay', 'secondLane', 'shiftEnd'].includes(firstDay?.step)))
   const [phoneInitialScreen, setPhoneInitialScreen] = useState(guidedWorkdayActive ? 'agenda' : firstDay?.step === 'secondLane' ? 'loadDetails' : ['freight', 'restOfDay'].includes(firstDay?.step) ? 'loadBoard' : initialPhoneScreen || 'home')
   // B.5.4D.1.1 — Opening Guidance + CarrierSource Clock Gate
   const [dayOneCarrierSourceGateActive, setDayOneCarrierSourceGateActive] = useState(
@@ -3080,7 +3080,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           && !firstDay.workdayLessonComplete && Number(gameTime?.gameDayIndex || 0) === 0
           && !loads.some((load) => load.id === 'DOC001' && ['completed', 'paid', 'delivered'].includes(load.status)) && (
           <button type="button" className="first-day-resume" onClick={() => {
-            const step = firstDay.step === 'ready' ? 'schedule' : firstDay.step
+            const step = ['ready', 'schedule'].includes(firstDay.step) ? 'freight' : firstDay.step
             if (onFirstDayProgress?.({ step, messageIndex: 2, flowVersion: 2 }) === false) return
             setDriverHubOpen(false)
             setPhoneInitialScreen(step === 'secondLane' ? 'loadDetails' : ['freight', 'restOfDay'].includes(step) ? 'loadBoard' : 'agenda')
@@ -3263,10 +3263,10 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       {welcomeActive && <FirstDayWelcome playerName={dispatcherProfile?.displayName} messageIndex={firstDay.messageIndex} onContinue={() => {
         const next = firstDay.messageIndex < 2
           ? { step: 'welcome', messageIndex: firstDay.messageIndex + 1 }
-          : { step: 'schedule', messageIndex: 2 }
+          : { step: 'freight', messageIndex: 2, flowVersion: 3 }
         if (onFirstDayProgress?.(next) === false) return
-        if (next.step === 'schedule') {
-          setPhoneInitialScreen('agenda')
+        if (next.step === 'freight') {
+          setPhoneInitialScreen('loadBoard')
           setPhoneInitialDriverId('marcus')
           setPhoneLoadId(null)
           setIsPhoneOpen(true)
