@@ -185,6 +185,31 @@ function PhoneOverlay({ firstDay, onFirstDayProgress, loads, setLoads, drivers, 
     ]),
     ...drivers.map((driver) => ({ id: `${driver.id}-driver`, label: `${driver.fullName || driver.name} · Driver`, driverId: driver.id, role: 'driver' })),
   ]
+  const sendDriverScheduleWithTutorial = (driverId) => {
+    const tutorialActive = Boolean(firstDay && !firstDay.workdayLessonComplete && driverId === 'marcus')
+    const driver = drivers.find((item) => item.id === driverId)
+    const stagingReady = Boolean(
+      driver?.shiftEndPlanDayIndex !== null
+      && driver?.shiftEndPlanDayIndex !== undefined
+      && Number(driver.shiftEndPlanDayIndex) === Number(gameTime?.gameDayIndex || 0)
+      && driver?.shiftEndLocationId
+    )
+    if (tutorialActive && (firstDay.step !== 'staging' || !stagingReady)) return false
+
+    const sent = onSendDriverSchedule?.(driverId)
+    if (sent === false) return false
+
+    if (tutorialActive) {
+      onFirstDayProgress?.({
+        step: 'ready',
+        messageIndex: 2,
+        flowVersion: 4,
+        workdayLessonComplete: true,
+      })
+    }
+    return true
+  }
+
   const emailAttachments = [
     ...businessDocuments.map((document) => ({ id: `business:${document.id}`, type: document.type, title: document.title, meta: document.status || 'Document', sourceId: document.id })),
     ...loads.filter((load) => load.rateConfirmation?.id).map((load) => ({ id: load.rateConfirmation.id, type: 'rate-confirmation', title: `Rate Confirmation · ${getFreightRouteName(load)}`, meta: load.rateConfirmation.reference, loadId: load.id })),
@@ -723,7 +748,7 @@ function PhoneOverlay({ firstDay, onFirstDayProgress, loads, setLoads, drivers, 
             setSelectedLoadId(null)
             setScreen('scheduler')
           }}
-          onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)}
+          onSendDriverSchedule={(driverId) => sendDriverScheduleWithTutorial(driverId)}
           onDriverContextChange={setSelectedDriverId}
           onFindFreight={(driverId) => {
             setSelectedLoadId(null)
@@ -1204,12 +1229,17 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
           onHome={() => setScreen('browser')}
           showSiteBranding={false}
         >
-          {screen === 'loadBoard' && ['freight', 'restOfDay'].includes(firstDay?.step) && <FirstDayLesson compact title={firstDay.step === 'freight' ? 'Find Marcus’s first load' : 'Build the rest of Marcus’s day'}>
+          {screen === 'loadBoard' && ['freight', 'restOfDay', 'thirdLoad'].includes(firstDay?.step) && <FirstDayLesson compact title={firstDay.step === 'freight' ? 'Find Marcus’s first load' : firstDay.step === 'restOfDay' ? 'Find Load 2' : 'Find Load 3'}>
             {firstDay.step === 'freight'
               ? 'Marcus works 7:00 AM–5:00 PM. Pick a lane and we’ll read the projected day together before we pursue anything.'
-              : 'Marcus already has confirmed freight. Pick a second lane and we’ll see how it fits around the work already on his truck and his lunch window.'}
+              : firstDay.step === 'restOfDay'
+                ? 'Load 1 is confirmed. Find a second lane that starts from where Marcus becomes available after it. We’ll book Load 2 before planning lunch.'
+                : 'Two loads and lunch are locked in. Find one final lane that fits the day we already built.'}
           </FirstDayLesson>}
-          {screen === 'loadBoard' && <LoadBoardScreen embedded hidePlanShortcut={firstDay?.step === 'freight'} initialPickupDay={['freight', 'restOfDay'].includes(firstDay?.step) ? gameTime?.gameDayIndex || 0 : null} loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => openLoadDetails(loadId, null)} onOpenScheduler={() => {
+          {screen === 'loadBoard' && <LoadBoardScreen embedded hidePlanShortcut={['freight', 'restOfDay', 'thirdLoad'].includes(firstDay?.step)} initialPickupDay={['freight', 'restOfDay', 'thirdLoad'].includes(firstDay?.step) ? gameTime?.gameDayIndex || 0 : null} loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => {
+            if (['restOfDay', 'thirdLoad'].includes(firstDay?.step)) onFirstDayProgress?.({ reviewLoadId: loadId, flowVersion: 4 })
+            openLoadDetails(loadId, null)
+          }} onOpenScheduler={() => {
             setSelectedLoadId(null)
             setSelectedDriverId((current) => current || drivers.find((driver) => driver.carrierId)?.id || null)
             setScreen('scheduler')
@@ -1218,7 +1248,7 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
             firstDay={firstDay}
             onFirstDayProgress={onFirstDayProgress}
             onPlanFirstDayLunch={(loadId) => {
-              if (onFirstDayProgress?.({ step: 'lunch', reviewLoadId: loadId, flowVersion: 3 }) === false) return
+              if (onFirstDayProgress?.({ step: 'lunch', reviewLoadId: loadId, flowVersion: 4 }) === false) return
               setSelectedDriverId('marcus')
               setScreen('agenda')
             }}
@@ -1253,7 +1283,7 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
             onBack={() => setScreen('loadBoard')}
           />}
           {/* B.5.4D.4.2.3 — One Scheduler Authority: freight-plan only */}
-          {screen === 'scheduler' && <FleetSchedulerScreen loads={loads} drivers={drivers} carriers={carriers} gameTime={gameTime} focusLoadId={selectedLoadId} initialDriverId={selectedDriverId} onBackToFreightLink={() => setScreen('loadBoard')} onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)} onReviewRateCon={(loadId) => { const load = loads.find((item) => item.id === loadId); if (load?.rateConfirmation) setPreviewAttachment({ id: load.rateConfirmation.id, type: 'rate-confirmation', loadId }) }} onBookRoute={(loadId) => onAcceptCandidateAssignment?.(loadId)} onBookApprovedSchedule={(driverId) => onBookApprovedSchedule?.(driverId)} onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)} onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)} onOpenDriverOperations={(driverId) => { if (driverId) setSelectedDriverId(driverId); setDriverOpsReturnScreen('scheduler'); setScreen('agenda') }} onDriverContextChange={setSelectedDriverId} />}
+          {screen === 'scheduler' && <FleetSchedulerScreen loads={loads} drivers={drivers} carriers={carriers} gameTime={gameTime} focusLoadId={selectedLoadId} initialDriverId={selectedDriverId} onBackToFreightLink={() => setScreen('loadBoard')} onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)} onReviewRateCon={(loadId) => { const load = loads.find((item) => item.id === loadId); if (load?.rateConfirmation) setPreviewAttachment({ id: load.rateConfirmation.id, type: 'rate-confirmation', loadId }) }} onBookRoute={(loadId) => onAcceptCandidateAssignment?.(loadId)} onBookApprovedSchedule={(driverId) => onBookApprovedSchedule?.(driverId)} onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)} onSendDriverSchedule={(driverId) => sendDriverScheduleWithTutorial(driverId)} onOpenDriverOperations={(driverId) => { if (driverId) setSelectedDriverId(driverId); setDriverOpsReturnScreen('scheduler'); setScreen('agenda') }} onDriverContextChange={setSelectedDriverId} />}
           {screen === 'driverFit' && <DriverFitScreen load={loads.find((load) => load.id === selectedLoadId)} loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} candidateDriverId={loads.find((load) => load.id === selectedLoadId)?.candidateDriverId} onEvaluate={(driverId, fit) => {
             onEvaluateFit(selectedLoadId, driverId, fit)
             setScreen('tripPlan')
