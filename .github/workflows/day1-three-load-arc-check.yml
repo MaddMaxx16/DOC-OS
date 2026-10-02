@@ -1,0 +1,22 @@
+name: Day 1 Three Load Arc Check
+
+on:
+  push:
+    branches:
+      - p2.4-day1-three-load-arc
+  pull_request:
+    branches:
+      - p2.4-experience-rebuild
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
