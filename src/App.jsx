@@ -22,7 +22,6 @@ import { applyCarrierPerformanceReview, buildCarrierCareerById, getCarrierRelati
 import { getAgreementRules } from './utils/carrierAgreement.js'
 import { calculateRoute } from './services/routingService.js'
 import { refreshFreightMarket } from './utils/freightMarket.js'
-import { getAuthoritativeDriverTravelLoad } from './utils/driverItinerary.js'
 import { getFreightRouteName } from './utils/freightIdentity.js'
 import { getClockInMessage, getEndOfDayMessage, getRelationshipStartMessage } from './utils/driverCommunications.js'
 import { createCorrectedPodVersion, normalizePodDocument } from './utils/documentLifecycle.js'
@@ -32,7 +31,6 @@ import { resolveDriverMovementOwner } from './utils/driverMovementOwner.js'
 import { sampleRoutePoint } from './utils/routeSampler.js'
 
 
-const IDLE_DWELL_MINUTES = 20
 
 function getOvernightTruckStopId(origin) {
   const truckStops = mapLocations.filter((location) => ['queens-staging-area', 'newark-fuel-stop'].includes(location.id))
@@ -80,7 +78,6 @@ function App() {
   const [loads, setLoads] = useState(() => seedLoads)
   const [drivers, setDrivers] = useState([])
   const [carriers, setCarriers] = useState(() => seedCarriers.map((carrier) => ({ ...carrier })))
-  const [plannedRoute, setPlannedRoute] = useState(null)
   const [isGameClockPaused, setIsGameClockPaused] = useState(true)
   const [simulationSpeed, setSimulationSpeed] = useState(1)
   const [runtimePositions, setRuntimePositions] = useState({})
@@ -134,7 +131,6 @@ function App() {
       if (seed.loadNumber) merged.loadNumber = seed.loadNumber
       // Unified market-flow migration: progression/operation-day gates never control freight visibility.
       delete merged.unlockAfterLoadId
-      const hadLegacyOperationGate = Number.isFinite(load.scheduledOperationDay)
       delete merged.scheduledOperationDay
       if (Number.isFinite(seed.postedGameMinute) && !Number.isFinite(merged.postedGameMinute)) merged.postedGameMinute = seed.postedGameMinute
       // Market Refresh V2 migration: untouched available freight adopts the latest
@@ -252,7 +248,6 @@ function App() {
     setLoads(seedLoads.map((load) => ({ ...load })))
     setDrivers([])
     setCarriers(seedCarriers.map((carrier) => ({ ...carrier })))
-    setPlannedRoute(null)
     setIsGameClockPaused(true)
     setSimulationSpeed(1)
     setRuntimePositions({})
@@ -398,39 +393,24 @@ function App() {
       const activeRequestedLoads = requestedLoads.filter((item) => item.carrierApprovalStatus === 'PENDING' && item.scheduleApprovalQueued)
       const activeRequestedIds = activeRequestedLoads.map((item) => item.id)
       if (!activeRequestedIds.length) {
-        bodyOverride = `Understood — the approval request was withdrawn. No action taken.`
+        bodyOverride = 'Understood — the approval request was withdrawn. No action taken.'
       } else if (pending.workflowValid) {
-        const lines = activeRequestedLoads.map((item) => { const pickupName = mapLocations.find((location) => location.id === item.pickupLocationId)?.name || 'Pickup'; const deliveryName = mapLocations.find((location) => location.id === item.deliveryLocationId)?.name || 'Delivery'; return `Approved — ${pickupName} → ${deliveryName}` })
+        const lines = activeRequestedLoads.map((item) => {
+          const pickupName = mapLocations.find((location) => location.id === item.pickupLocationId)?.name || 'Pickup'
+          const deliveryName = mapLocations.find((location) => location.id === item.deliveryLocationId)?.name || 'Delivery'
+          return `Approved to pursue — ${pickupName} → ${deliveryName}`
+        })
         bodyOverride = activeRequestedLoads.length > 1
-          ? `Approved for today's plan:\n\n${lines.join('\n')}\n\nGo ahead and book the approved freight. Keep us posted if the schedule or rate changes.`
-          : `Approved. Go ahead and book ${loadNumber}. Keep us posted if the schedule or rate changes.`
+          ? `Approved to pursue:\n\n${lines.join('\n')}\n\nReturn to FreightLink and request the booking. Approval does not secure the freight; the load is not confirmed until booking is accepted and the Rate Confirmation is reviewed.`
+          : `Approved to pursue ${loadNumber}. Return to FreightLink and request the booking. This approval does not secure the freight; the load is not confirmed until booking is accepted and the Rate Confirmation is reviewed.`
         const idSet = new Set(activeRequestedIds)
-        setLoads((current) => current.map((item) => idSet.has(item.id) ? { ...item, carrierApprovalStatus: 'APPROVED', carrierApprovedGameMinute: now, rateConfirmation: createRateConfirmation(item, now, carrierName) } : item))
-        const rateConfirmationEmails = activeRequestedLoads.map((approvedLoad) => {
-          const rateConfirmation = createRateConfirmation(approvedLoad, now, carrierName)
-          const routeName = getFreightRouteName(approvedLoad)
-          return {
-            id: `ratecon-email:${approvedLoad.id}:v${rateConfirmation.version || 1}`,
-            type: 'rate-confirmation-delivery',
-            direction: 'inbound',
-            senderOverride: `${carrierName} · Documentation`,
-            carrierId: pending.carrierId || pendingCarrier?.id || null,
-            workflowType: 'rate-confirmation',
-            subject: `Rate Confirmation · ${routeName}`,
-            bodyOverride: `Rate Confirmation for ${routeName} is attached. Please review the document against the FreightLink offer.`,
-            attachments: [{ id: rateConfirmation.id, type: 'rate-confirmation', title: `Rate Confirmation · ${routeName}`, meta: rateConfirmation.reference, loadId: approvedLoad.id }],
-            loadId: approvedLoad.id,
-            receivedGameMinute: now,
-            read: false,
-          }
-        })
-        setEmailMessages((current) => {
-          const existingIds = new Set(current.map((entry) => entry.id))
-          const fresh = rateConfirmationEmails.filter((entry) => !existingIds.has(entry.id))
-          return fresh.length ? [...current, ...fresh] : current
-        })
+        setLoads((current) => current.map((item) => idSet.has(item.id) ? {
+          ...item,
+          carrierApprovalStatus: 'APPROVED',
+          carrierApprovedGameMinute: now,
+        } : item))
       } else {
-        bodyOverride = `We can’t approve this plan yet. Please resend the request to Operations with the FreightLink offers attached.`
+        bodyOverride = `We can’t approve this plan yet. Please resend the request to Operations with the FreightLink offer attached.`
         const idSet = new Set(activeRequestedIds)
         setLoads((current) => current.map((item) => idSet.has(item.id) ? { ...item, carrierApprovalStatus: 'NEEDS_INFO' } : item))
       }
@@ -452,7 +432,7 @@ function App() {
     }
 
     if (pending.workflowType === 'ratecon-correction') {
-      senderOverride = `${carrierName} · Documentation`
+      senderOverride = 'FreightLink · Booking Desk'
       if (pending.workflowValid && load?.rateConfirmation) {
         const prior = load.rateConfirmation
         const nextVersion = Number(prior.version || 1) + 1
@@ -492,6 +472,52 @@ function App() {
       read: false,
     }])
   }, [hydrated, stage, gameTime, emailMessages, loads, carriers])
+
+  // First secure the freight, then receive the paperwork. Carrier approval only
+  // authorizes the dispatcher to pursue a lane; it never creates a Rate Con.
+  useEffect(() => {
+    if (!hydrated || stage !== 'game') return
+    const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
+    const pendingBooking = loads.find((item) => item.status === 'available'
+      && item.driverFitVerified
+      && item.candidateDriverId
+      && item.bookingStatus === 'REQUESTED'
+      && Number.isFinite(item.bookingResponseGameMinute)
+      && now >= item.bookingResponseGameMinute)
+    if (!pendingBooking) return
+
+    const bookingDriver = drivers.find((driver) => driver.id === pendingBooking.candidateDriverId)
+    const bookingCarrier = carriers.find((carrier) => carrier.id === (bookingDriver?.carrierId || pendingBooking.carrierId)) || carriers[0] || null
+    if (bookingCarrier?.dispatchAgreement?.loadApprovalRequired && pendingBooking.carrierApprovalStatus !== 'APPROVED') return
+
+    const carrierName = bookingCarrier?.name || 'Carrier'
+    const rateConfirmation = createRateConfirmation(pendingBooking, now, carrierName)
+    if (!rateConfirmation) return
+    const routeName = getFreightRouteName(pendingBooking)
+    const emailId = `ratecon-email:${pendingBooking.id}:v${rateConfirmation.version || 1}`
+
+    setLoads((current) => current.map((item) => item.id === pendingBooking.id ? {
+      ...item,
+      bookingStatus: 'RATE_CON_RECEIVED',
+      bookingAcceptedGameMinute: now,
+      rateConfirmation: createRateConfirmation(item, now, carrierName),
+    } : item))
+
+    setEmailMessages((current) => current.some((entry) => entry.id === emailId) ? current : [...current, {
+      id: emailId,
+      type: 'rate-confirmation-delivery',
+      direction: 'inbound',
+      senderOverride: 'FreightLink · Booking Desk',
+      carrierId: bookingCarrier?.id || null,
+      workflowType: 'rate-confirmation',
+      subject: `Booking accepted · ${routeName}`,
+      bodyOverride: `The booking request for ${routeName} was accepted. The Rate Confirmation is attached. Review it against the FreightLink offer before confirming the load or dispatching the driver.`,
+      attachments: [{ id: rateConfirmation.id, type: 'rate-confirmation', title: `Rate Confirmation · ${routeName}`, meta: rateConfirmation.reference, loadId: pendingBooking.id }],
+      loadId: pendingBooking.id,
+      receivedGameMinute: now,
+      read: false,
+    }])
+  }, [hydrated, stage, gameTime, loads, drivers, carriers, emailMessages])
 
 
   useEffect(() => {
@@ -582,51 +608,6 @@ function App() {
   }
   const resetGame = () => { clearSave(activeSaveSlotId); window.location.reload() }
 
-  // AV2.18.1 dev shortcut: restart Day 1 planning at 6:00 AM while
-  // preserving the accepted carrier relationship, signed agreement, profile,
-  // and carrier-provided driver roster. This is intentionally test-only state.
-  const resetDayAfterCarrierApproval = () => {
-    const activeCarriers = carriers.filter((carrier) => carrier.status === 'active')
-    if (!activeCarriers.length) return false
-
-    const nextLoads = seedLoads.map((load) => ({ ...load }))
-    const nextDrivers = reconcileActiveCarrierDrivers([], carriers).map((driver) => ({
-      ...driver,
-      status: 'available',
-      assignedLoadId: null,
-      queuedLoadIds: [],
-      idleSinceGameMinute: null,
-      idleTargetLocationId: null,
-      idleRouteStatus: null,
-      idleRouteGeometry: null,
-      idleRouteStartGameMinute: null,
-      idleRouteDurationMinutes: null,
-    }))
-    const nextPositions = {}
-    nextDrivers.forEach((driver) => {
-      const home = mapLocations.find((location) => location.id === driver.homeBaseLocationId)
-      if (home) nextPositions[driver.id] = { longitude: home.longitude, latitude: home.latitude }
-    })
-
-    setGameTime({ gameDayIndex: 0, totalMinutesOfDay: 360 })
-    setLoads(nextLoads)
-    setDrivers(nextDrivers)
-    setRuntimePositions(nextPositions)
-    setRuntimeProgressByDriver({})
-    setPlannedRoute(null)
-    setSimulationSpeed(1)
-    setIsGameClockPaused(false)
-    setSeenLedgerReceivableIds([])
-    setSeenLedgerPaymentReceivedIds([])
-    setLedgerWorkflowByLoadId({})
-    setLedgerBanking(createInitialLedgerBanking())
-    setEmailMessages((current) => current.filter((message) => /application approved|agreement/i.test(`${message.subject || ''} ${message.body || ''}`)))
-    setDriverMessages((current) => current.filter((message) => message.id === 'marcus-intro' || String(message.id || '').startsWith('marcus-intro-')))
-    setBusinessDocuments((current) => current.filter((document) => document.type === 'dispatch-agreement'))
-    setDayLoop({ ...DEFAULT_DAY_LOOP_STATE, operationDay: 1, phase: 'operating', currentStartGameDayIndex: 0, report: null, history: [] })
-    setPlayerProgression({ ...DEFAULT_PLAYER_PROGRESSION })
-    return true
-  }
   const activateCarrier = (carrierId = 'metroline') => {
     const wasActive = carriers.some((carrier) => carrier.id === carrierId && carrier.status === 'active')
     const nextCarriers = carriers.map((carrier) => carrier.id === carrierId ? { ...carrier, status: 'active' } : carrier)
@@ -1429,8 +1410,6 @@ Open CarrierSource to review your full account history.`
             onBeginOperations={beginNextOperationDay}
             setEmailMessages={setEmailMessages}
             setDrivers={setDrivers}
-            plannedRoute={plannedRoute}
-            setPlannedRoute={setPlannedRoute}
             isGameClockPaused={isGameClockPaused}
             setGameClockPaused={setIsGameClockPaused}
             runtimePositions={runtimePositions}
@@ -1443,7 +1422,6 @@ Open CarrierSource to review your full account history.`
             onApplyDevPreset={applySelectedDevPreset}
             onSetupOvernightDevScenario={setupOvernightDevScenario}
             onResetGame={resetGame}
-            onResetDayAfterCarrierApproval={resetDayAfterCarrierApproval}
             seenLedgerReceivableIds={seenLedgerReceivableIds}
             onOpenLedger={() => { const records = getReceivables(loads, carriers, ledgerWorkflowByLoadId); setSeenLedgerReceivableIds((current) => Array.from(new Set([...current, ...records.map((item) => item.loadId)]))); setSeenLedgerPaymentReceivedIds((current) => Array.from(new Set([...current, ...records.filter((item) => item.financialStatus === 'PAID').map((item) => item.loadId)]))) }}
             ledgerWorkflowByLoadId={ledgerWorkflowByLoadId}
