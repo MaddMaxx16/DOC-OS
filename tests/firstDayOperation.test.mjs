@@ -14,7 +14,7 @@ test('first-day handoff creates one real employee operation without an early dri
   assert.equal(state.stage, 'game')
   assert.equal(state.selectedMarket, 'new-york')
   assert.deepEqual(state.dispatcherProfile, identity.dispatcherProfile)
-  assert.deepEqual(state.firstDay, { step: 'welcome', messageIndex: 0 })
+  assert.deepEqual(state.firstDay, { step: 'welcome', messageIndex: 0, flowVersion: 3 })
   assert.equal(state.carriers.find((c) => c.id === 'metroline').status, 'active')
   assert.equal(state.drivers.length, 1)
   assert.equal(state.drivers[0].id, 'marcus')
@@ -52,11 +52,14 @@ test('welcome resume normalizes malformed message indexes without inventing onbo
 })
 
 
-test('workday lessons persist and pause teaching without blocking live carrier approval', () => {
-  for (const step of ['schedule', 'lunch', 'shiftEnd']) {
+test('Day 1 v3 teaches in FreightLink instead of pausing on the opening scheduler', () => {
+  assert.equal(normalizeFirstDayProgress({ step: 'schedule' }).step, 'schedule')
+  assert.equal(isFirstDayTeachingPaused({ step: 'schedule' }), false)
+  for (const step of ['lunch', 'shiftEnd']) {
     assert.equal(normalizeFirstDayProgress({ step }).step, step)
     assert.equal(isFirstDayTeachingPaused({ step }), true)
   }
+  assert.equal(isFirstDayTeachingPaused({ step: 'freight', flowVersion: 3 }), true)
   assert.equal(isFirstDayTeachingPaused({ step: 'freight' }), false)
   assert.deepEqual(normalizeFirstDayProgress({ step: 'ready', workdayLessonComplete: true }), { step: 'ready', messageIndex: 0, workdayLessonComplete: true })
   assert.deepEqual(normalizeFirstDayProgress({ step: 'ready' }), { step: 'ready', messageIndex: 0 })
@@ -74,19 +77,27 @@ test('shift-end teaching waits for the second booked lane and its actual deliver
   assert.equal(shouldTeachFirstDayShiftEnd({ step: 'freight' }, [first, second]), false)
 })
 
-test('legacy lunch-first saves migrate without deleting a real lunch window or booking data', () => {
-  assert.deepEqual(migrateFirstDayFlow({ step: 'lunch', messageIndex: 2 }, []), { step: 'freight', messageIndex: 2, flowVersion: 2 })
+test('legacy Day 1 saves migrate to v3 without deleting real booked work', () => {
+  assert.deepEqual(
+    migrateFirstDayFlow({ step: 'lunch', messageIndex: 2 }, []),
+    { step: 'freight', messageIndex: 2, flowVersion: 3, laneReviewIndex: 0 }
+  )
+  assert.equal(migrateFirstDayFlow({ step: 'schedule', messageIndex: 2 }, []).step, 'freight')
   const loads = [{ id: 'booked', status: 'assigned', assignedDriverId: 'marcus' }]
   const before = JSON.stringify(loads)
-  assert.equal(migrateFirstDayFlow({ step: 'lunch' }, loads).step, 'restOfDay')
+  assert.equal(migrateFirstDayFlow({ step: 'lunch' }, loads).step, 'lunch')
+  assert.equal(migrateFirstDayFlow({ step: 'schedule' }, loads).step, 'restOfDay')
   assert.equal(JSON.stringify(loads), before)
-  assert.equal(migrateFirstDayFlow({ step: 'lunch', flowVersion: 2, firstLaneId: 'booked', reviewLoadId: 'second' }, loads).step, 'lunch')
+  const migratedBooked = migrateFirstDayFlow({ step: 'lunch', flowVersion: 2, firstLaneId: 'booked', reviewLoadId: 'second' }, loads)
+  assert.equal(migratedBooked.step, 'lunch')
+  assert.equal(migratedBooked.flowVersion, 3)
+  assert.equal(migratedBooked.firstLaneId, 'booked')
   assert.equal(migrateFirstDayFlow(null), null)
   assert.equal(migrateFirstDayFlow({ step: 'ready', workdayLessonComplete: true }, loads).step, 'ready')
 })
 
 test('only the first actual confirmed booking introduces shopping for the rest of the day', () => {
-  const progress = { step: 'freight', flowVersion: 2 }
+  const progress = { step: 'freight', flowVersion: 3 }
   const load = { id: 'chosen', status: 'assigned', assignedDriverId: 'marcus', rateConfirmation: { status: 'CONFIRMED' } }
   assert.equal(shouldTeachFirstDayRest(progress, [load]), true)
   assert.equal(shouldTeachFirstDayRest(progress, [{ ...load, assignedDriverId: null, candidateDriverId: 'marcus', status: 'available' }]), false)
