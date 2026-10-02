@@ -46,6 +46,7 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
   if (!Number.isFinite(deadheadMinutes) || !Number.isFinite(loadedMinutes)) return null
 
   const pickupStart = finite(load.pickupDayIndex) * 1440 + finite(load.pickupWindowStartMinutes)
+  const deliveryStart = finite(load.deliveryDayIndex) * 1440 + finite(load.deliveryWindowStartMinutes)
   const scheduleWindow = getDriverScheduleWindow(driver, finite(load.pickupDayIndex))
   const projectedStart = Math.max(
     finite(projection.availableAbsoluteMinute),
@@ -55,7 +56,10 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
   const pickupService = 10 + Math.max(0, Number(load?.facilityOps?.pickup?.loadingDelayMinutes || 0))
   const deliveryService = 8 + Math.max(0, Number(load?.facilityOps?.delivery?.unloadingDelayMinutes || 0))
   const pickupServiceStart = Math.max(pickupArrival, pickupStart)
-  const deliveryComplete = pickupServiceStart + pickupService + loadedMinutes + deliveryService
+  const pickupDepart = pickupServiceStart + pickupService
+  const deliveryArrival = pickupDepart + loadedMinutes
+  const deliveryServiceStart = Math.max(deliveryArrival, deliveryStart)
+  const deliveryComplete = deliveryServiceStart + deliveryService
 
   const driveRequiredMinutes = deadheadMinutes + loadedMinutes
   const dutyRequiredMinutes = Math.max(0, deliveryComplete - projectedStart)
@@ -92,7 +96,16 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
     projectedStartMinute: projectedStart,
     projectedPickupArrivalMinute: pickupArrival,
     projectedPickupServiceStartMinute: pickupServiceStart,
+    projectedPickupDepartMinute: pickupDepart,
+    projectedDeliveryArrivalMinute: deliveryArrival,
+    projectedDeliveryServiceStartMinute: deliveryServiceStart,
     projectedDeliveryCompleteMinute: deliveryComplete,
+    pickupServiceMinutes: pickupService,
+    deliveryServiceMinutes: deliveryService,
+    deadheadMiles: Number.isFinite(Number(load?.tripPlan?.legs?.deadhead?.miles ?? load?.plannedDeadheadMiles ?? load?.assignmentProjection?.deadheadMiles))
+    ? Number(load?.tripPlan?.legs?.deadhead?.miles ?? load?.plannedDeadheadMiles ?? load?.assignmentProjection?.deadheadMiles)
+    : getLocationDistanceMiles(projection.location, pickup) * 1.18,
+    loadedMiles: Number.isFinite(Number(load?.listedMiles)) ? Number(load.listedMiles) : null,
     deadheadMinutes,
     loadedMinutes,
   }
