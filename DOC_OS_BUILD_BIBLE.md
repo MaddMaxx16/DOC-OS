@@ -34,7 +34,9 @@ The current clean-new-player path is:
 
 **DOC OS startup → workstation/login → New Dispatcher → name → Character Creator → First Day placeholder**
 
-The former Market Selection / Day-One Entry opening route has been retired and removed. Metroline onboarding is authored for New York; market selection is not part of the rebuilt onboarding path.
+The former Market Selection / Day-One Entry opening route has been retired and removed. The player begins the game as a **Metroline employee in New York**; market selection and CarrierSource application are not part of the rebuilt onboarding path.
+
+**Employee-career start contract:** a clean new operation uses the Metroline employee career model. Metroline is already active as the employer, Marcus is already on the Metroline roster, and onboarding must not require a carrier application or signed carrier agreement to create that state.
 
 The current title is a physical workstation/login presentation over the office backdrop. Save slots are represented as workstation users. Entering a workstation physically pushes into the monitor before handoff. Returning from Career Setup must not replay the branded startup splash during the same app runtime.
 
@@ -110,11 +112,13 @@ The existing Operations runtime remains the protected gameplay foundation while 
 - Midnight, Daily Closeout, and the 07:00 dispatcher handoff are not HOS resets.
 - FreightLink load evaluation includes HOS as a separate operational signal rather than hiding it inside a generic fit label.
 
-### 2.5 Communications and driver identity
+### 2.5 Employee career, communications, and driver identity
 
-Marcus remains the tutorial driver and Metroline remains the authored tutorial carrier. Driver communication follows the event contract established in B.4.1: human communication is for relationship starts, clock-in, schedule receipt/change, meaningful movement, delays/exceptions, and end-of-day sign-off. Routine visible state should not be redundantly narrated.
+Metroline is the player's **employer at career start**, not a carrier the player applies to during First Day. Marcus remains the first authored driver and is already part of Metroline's operational roster when the employee operation is initialized. His physical starting position is the Metroline Yard and his schedule/HOS state comes from the real driver/workday systems.
 
-Jordan remains the mentor identity for onboarding/tutorial communication. New First Day work should use Jordan to teach context and intent without turning every click into a text tutorial.
+Marcus must not be "activated" by reading an email or accepting a carrier agreement. His first driver communication should follow an actual work event such as clock-in, schedule receipt/change, meaningful movement, delay/exception, or end-of-day sign-off.
+
+Jordan is the player's **Metroline trainer/supervisor** for First Day. Jordan teaches context, expectations, and the reasoning behind the work without becoming a tutorial notification system or narrating every click.
 
 ### 2.6 UI / design language
 
@@ -148,13 +152,15 @@ The Character Creator is functionally locked unless a real regression or an expl
 
 **Next objective: build the rebuilt First Day/onboarding experience and connect it to Operations without violating the performance boundary.**
 
-The intended tutorial arc remains:
+The intended tutorial arc is:
 
-**Phone → Email from Jordan → CarrierSource application → approval email → accept Metroline agreement → Marcus activates → FreightLink DOC001 → assign Marcus → evaluate/confirm fit → accept → plan route → dispatch to pickup → pickup check-in → facility cycle → delivery → POD/closeout → payment**
+**First Day at Metroline → Jordan orientation/training → employee workstation/phone → Marcus already present on the Metroline roster → FreightLink DOC001 → evaluate/confirm fit → assign Marcus → accept/book through the real Metroline workflow → plan route → dispatch to pickup → pickup check-in → facility cycle → delivery → POD/closeout → payment**
 
 DOC002 may become available later the same operating day after DOC001.
 
 First Day must teach the player through the real systems rather than through a parallel tutorial-only imitation. Tutorial pacing may accelerate waits, but it must not create competing authorities for freight, driver movement, documents, payment, or HOS.
+
+**CarrierSource boundary:** CarrierSource is a later-career system associated with progression beyond the starting Metroline employee role. It must not appear as an application gate, agreement gate, or Marcus-activation gate during First Day.
 
 ### 2.9 First Day build guardrails
 
@@ -163,10 +169,11 @@ Before coding a First Day slice:
 2. Identify the existing authoritative system/action that performs the work.
 3. Design the smallest mobile-first presentation that exposes that action.
 4. Keep unrelated Operations systems unloaded until the Operations handoff.
-5. Do not resurrect deleted Market Selection / Day-One Entry components or their old CSS.
-6. Do not make tutorial screens permanent owners of gameplay state.
-7. Test the clean-save path on iPhone.
-8. After the Operations handoff exists, run the full DOC001 regression path before promotion.
+5. Initialize the clean new career as a Metroline employee; Metroline and Marcus must not depend on CarrierSource application/agreement state.
+6. Do not resurrect deleted Market Selection / Day-One Entry components or their old CSS.
+7. Do not make tutorial screens permanent owners of gameplay state.
+8. Test the clean-save path on iPhone.
+9. After the Operations handoff exists, run the full DOC001 regression path before promotion.
 
 ### 2.10 Development rules — current
 
@@ -462,16 +469,16 @@ The market opens with a full morning board at 7:00 AM. Later waves add freight a
 - Formal agreement acceptance may change the carrier relationship only through the explicit signed agreement workflow.
 
 ### Jordan Blake
-- Jordan is the player's Dispatch Mentor, not the tutorial notification system.
-- His first email is `A good place to start` and points the player toward CarrierSource.
+- Jordan is the player's Metroline trainer/supervisor, not the tutorial notification system.
+- **Superseded onboarding note:** the earlier design in which Jordan's first email pointed the player toward CarrierSource is no longer part of First Day.
 - Jordan appears at meaningful milestones, teachable moments, mistakes worth explaining, progression moments, and occasional strategic moments—not after every action.
-- Reading Jordan email never unlocks normal gameplay.
+- Reading a Jordan email or message never creates carrier status, activates Marcus, or silently advances normal gameplay.
 
-### CarrierSource + Metroline Agreement
-- CarrierSource owns formal carrier-application responses.
-- The Metroline agreement is a compact operating-goals document, not several screens of legal copy.
-- The dispatcher signs and explicitly submits the agreement.
-- The signed record is permanently archived in Documents and is read-only after acceptance.
+### CarrierSource + Metroline Agreement — LATER CAREER / HISTORICAL CONTRACT
+- **Superseded for First Day:** the player does not apply to Metroline or sign a Metroline carrier agreement to begin the game.
+- CarrierSource remains available for a later career stage when the player progresses beyond the starting Metroline employee role.
+- When a future independent-career carrier application/agreement workflow is used, CarrierSource owns the formal response and the explicit signed agreement remains the authoritative relationship action.
+- Signed carrier agreements may be archived in Documents and remain read-only after acceptance.
 - Carrier goals and individual driver preferences remain separate concepts.
 
 ### Marcus Reed Message Style
