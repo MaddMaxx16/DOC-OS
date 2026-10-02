@@ -2983,11 +2983,8 @@ function MainGameScreen({ selectedMarket, gameTime, loads, setLoads, drivers, se
             onAcceptCandidateAssignment={acceptCandidateAssignment}
             onResetGame={onResetGame}
             onSetupOvernightDevScenario={onSetupOvernightDevScenario}
-            onResetDayAfterCarrierApproval={onResetDayAfterCarrierApproval}
-            onOpenDriverSchedule={(driverId) => { setIsPhoneOpen(false); setDriverHubOpen(true); if (driverId) { setDriverFocusId(driverId); setDriverFocusRequest((value) => value + 1) } }}
             onRequestScheduleApproval={requestScheduleApproval}
             onRemoveScheduleLoad={removeScheduleLoad}
-            onOpenLunchDecision={openLunchDecisionForDriver}
             onClose={() => setIsPhoneOpen(false)}
           />
         )}
