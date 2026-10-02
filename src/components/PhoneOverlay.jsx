@@ -66,6 +66,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
   const hasActiveCarrier = carriers.some((carrier) => carrier.status === 'active') && drivers.length > 0
   const lunchReadyCount = drivers.filter((driver) => isLunchDecisionReady({ driver, loads, gameTime })).length
   const emailContacts = [
+    { id: 'freightlink-booking', label: 'FreightLink · Booking Desk', role: 'booking' },
     ...carriers.filter((carrier) => carrier.status === 'active').flatMap((carrier) => [
       { id: `${carrier.id}-operations`, label: `${carrier.name} · Operations`, carrierId: carrier.id, role: 'operations' },
       { id: `${carrier.id}-documents`, label: `${carrier.name} · Documentation`, carrierId: carrier.id, role: 'documents' },
@@ -530,7 +531,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
           } : load))
           onAcceptCandidateAssignment?.(loadId, true)
           return true
-        } onRequestRateConCorrection={(loadId) => { const load = loads.find((item) => item.id === loadId); const carrier = carriers.find((item) => item.id === load?.carrierId) || carriers[0]; setPreviewAttachment(null); openComposer({ workflowType: 'ratecon-correction', label: 'RATE CONFIRMATION CORRECTION', loadId, loadNumber: load ? getFreightRouteName(load) : 'Route', suggestedRecipientId: `${carrier?.id || 'metroline'}-documents`, subject: `Rate Confirmation correction required · ${load ? getFreightRouteName(load) : 'Route'}`, body: `Please review the attached FreightLink offer and Rate Confirmation. The Rate Confirmation contains a discrepancy and a corrected copy is required.`, attachmentIds: [`load-offer:${loadId}`, load?.rateConfirmation?.id].filter(Boolean), returnScreen: 'documents' }) }} />}
+        } onRequestRateConCorrection={(loadId) => { const load = loads.find((item) => item.id === loadId); const carrier = carriers.find((item) => item.id === load?.carrierId) || carriers[0]; setPreviewAttachment(null); openComposer({ workflowType: 'ratecon-correction', label: 'RATE CONFIRMATION CORRECTION', loadId, loadNumber: load ? getFreightRouteName(load) : 'Route', suggestedRecipientId: 'freightlink-booking', subject: `Rate Confirmation correction required · ${load ? getFreightRouteName(load) : 'Route'}`, body: `Please review the attached FreightLink offer and Rate Confirmation. The Rate Confirmation contains a discrepancy and a corrected copy is required.`, attachmentIds: [`load-offer:${loadId}`, load?.rateConfirmation?.id].filter(Boolean), returnScreen: 'documents' }) }} />}
         <div className="phone-navigation-bar">
           <button type="button" className="phone-home-button" onClick={() => setScreen('home')} aria-label="Phone home">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 10.5 12 4l7.5 6.5v8.75H14v-5.5h-4v5.5H4.5V10.5Z"/></svg>
