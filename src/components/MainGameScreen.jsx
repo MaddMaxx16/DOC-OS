@@ -3131,6 +3131,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
             setGameTime={setGameTime}
             setGameClockPaused={setGameClockPaused}
             initialScreen={phoneInitialScreen}
+            initialAgendaView={firstDay?.step === 'schedule' ? 'schedule' : 'today'}
             initialLoadId={phoneLoadId}
             initialDriverId={phoneInitialDriverId}
             initialShiftEndPromptDriverId={phoneInitialShiftEndPromptDriverId}

@@ -510,6 +510,7 @@ function DriverSchedulerScreen({
   runtimePositions = {},
   gameTime,
   initialDriverId = null,
+  initialView = 'today',
   onBack,
   onOpenLunchDecision,
   onSetLunchWindow,
@@ -524,7 +525,7 @@ function DriverSchedulerScreen({
 }) {
   const currentDay = Number(gameTime?.gameDayIndex || 0)
   const ownedWorkday = (driver) => resolveDriverWorkdayOwnership({ driver, loads, gameTime })
-  const [view, setView] = useState('today')
+  const [view, setView] = useState(['schedule', 'driver'].includes(initialView) ? initialView : 'today')
   const [weekStart, setWeekStart] = useState(currentDay)
   const [selectedDriverId, setSelectedDriverId] = useState(initialDriverId)
   const [lunchDriverId, setLunchDriverId] = useState(null)

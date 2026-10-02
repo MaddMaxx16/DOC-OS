@@ -1,28 +1,19 @@
-DOC OS — P2.4-FD.1.4-TEST — Continuous Workstation Entry
+DOC OS — P2.4-FD.1.5-TEST — Jordan Schedule Destination
 Branch: p2.4-experience-rebuild
 
-Direct repository edits → automatic Vercel → refresh the usual DOC OS link on iPhone.
+Direct repository edits → automatic Vercel → refresh DOC OS on iPhone.
 
-One persistent Opening your workstation screen now spans loading and hydration.
-It holds for at least one second, then fades once the real workstation mounts.
-This replaces repeated opening messages and removes the blank lazy-scene gap.
-Reduced motion skips the fade. Slow imports keep the same loading screen.
-Both START FIRST DAY and saved-player ENTER/resume use this handoff.
-Failed saves/imports restore the prior screen, and new operations still save before mount.
-Cold startup still loads no Operations chunks. Simulation/progress owners remain.
-Build Bible and Roadmap updated.
+Jordan's final welcome action now opens the SCHEDULE tab, with Marcus's existing
+selected context, instead of the TODAY overview. It shows the real confirmed
+workweek and 7 AM–5 PM shift. Saved schedule-boundary resume opens the same tab.
+Ordinary Scheduler entry still defaults to TODAY; shift-end prompts retain DRIVER.
+No shift, plan, HOS, game-time, or saved-operation changes.
+Build Bible and Roadmap updated. Maxx accepted the previous entry transition.
 
-Validation
-Build and 169 tests passed. StartupApp focused lint passed; no new runtime diagnostics.
-Browser checks passed for one persistent cover, minimum hold, normal/reduced-motion
-entry, save failures, welcome/schedule/ready resume, runtime exit, and clock-in/HOS.
-A delayed-import check verifies continuity; an aborted import restores the ID.
+Build and 169 tests passed; no new runtime lint diagnostics.
+Browser handoff, schedule resume, and ordinary TODAY entry passed with no page errors.
 
-Phone check
-1. Refresh DOC OS and enter your saved operation; watch for one continuous handoff.
-2. Check START FIRST DAY with a completed employee ID if testing a new slot.
-3. Confirm no repeated loading message, blank flash, or giant/cropped text.
-4. Confirm Jordan/schedule or saved map appears as appropriate.
-
-Revised physical transition acceptance remains pending.
-Full visual pass, battery check, and protected DOC001 regression remain required.
+Phone check: complete Jordan's welcome (or resume at the schedule boundary).
+Confirm SCHEDULE is selected and Marcus's actual confirmed shifts are visible.
+After closing Console, ordinary Scheduler navigation should still open TODAY.
+Revised destination acceptance and full visual/battery/DOC001 checks remain pending.
