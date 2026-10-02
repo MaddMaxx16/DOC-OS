@@ -185,7 +185,7 @@ function PhoneOverlay({ loads, setLoads, drivers, setDrivers, carriers = [], ope
       const hasException = Number(load?.pod?.freightCondition?.damagedAtPickup || 0) > 0 || Number(load?.pod?.freightCondition?.missingAtPickup || 0) > 0
       if (hasException) workflowValid = workflowValid && hasAttachment('exception-report')
     }
-    if (workflowType === 'ratecon-correction') workflowValid = recipient.role === 'documents' && hasAttachment('rate-confirmation') && hasAttachment('load-offer')
+    if (workflowType === 'ratecon-correction') workflowValid = recipient.role === 'booking' && hasAttachment('rate-confirmation') && hasAttachment('load-offer')
     if (workflowType === 'invoice-submission') workflowValid = recipient.role === 'accounting' && hasAttachment('invoice') && hasAttachment('pod')
     if (workflowType === 'pickup-correction') workflowValid = recipient.role === 'documents' && hasAttachment('exception-report')
 
