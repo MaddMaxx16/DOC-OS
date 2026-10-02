@@ -3,7 +3,7 @@
 > **Roadmap reconciled:** 2026-10-02  
 > **Current branch:** `p2.4-experience-rebuild`  
 > **Known-good onboarding/performance checkpoint:** `checkpoint/perf-onboarding-stable-2026-10-02` / `6d9bf13`  
-> **Current active phase:** P2.4 Experience Rebuild — Operations Workspace Remodel → First Day Onboarding
+> **Current active phase:** P2.4 Experience Rebuild — Employee-ID Welcome → Operations Workspace Remodel → First Day Onboarding
 
 This file is the source of truth for **phase order and status**. `DOC_OS_BUILD_BIBLE.md` is the source of truth for system behavior, ownership contracts, design rules, and protected regression behavior.
 
@@ -82,7 +82,16 @@ DOC002 may become available later the same operating day after DOC001.
 
 ### First Day implementation slices
 
-- [NEXT] **P2.4-FD.0 — Operations Workspace Remodel**
+- [NEXT] **P2.4-ENTRY.1 — Metroline Employee-ID Welcome**
+  - Replace the final First Day placeholder after Character Creator with a Metroline employee-ID welcome.
+  - Show Metroline branding, the created avatar, player name, and Junior Dispatcher · New York Operations.
+  - Welcome the player and establish that the workstation is ready and Jordan will help them get started.
+  - Primary action: START FIRST DAY.
+  - Target handoff: ID fades → brief Opening your workstation transition → real Operations map → Jordan welcome conversation, with game time paused during that conversation.
+  - Build this presentation first; enable the live handoff only after the workspace and authoritative employee initializer are ready.
+  - Keep Operations runtime dormant on the welcome screen; no fake map or permanent bypass.
+
+- [PLANNED] **P2.4-FD.0 — Operations Workspace Remodel**
   - Replace BOARD with CONSOLE; retain camera-fit as a separate map utility.
   - Console contains Email, Browser/FreightLink, Scheduler/Agenda, Documents, and LedgerDesk.
   - Resize Phone as the smaller Contacts/Messages surface.
@@ -180,7 +189,7 @@ Add markets only after the core simulation has sufficient depth. Each market mus
 
 ## ROADMAP RULES
 
-1. The Operations workspace remodel precedes First Day teaching/navigation; do not skip ahead to C.0 systems while the clean-new-player path ends at a placeholder.
+1. Finish the employee-ID welcome presentation first; prepare the Operations workspace before enabling the map handoff and Jordan's First Day teaching/navigation. Do not skip ahead to C.0 systems while the clean-new-player path ends at a placeholder.
 2. The player starts as a Metroline employee; CarrierSource is not an onboarding gate.
 3. Build tutorial slices through the real authoritative systems.
 4. Keep the startup/Operations performance boundary intact.
@@ -188,6 +197,7 @@ Add markets only after the core simulation has sufficient depth. Each market mus
 6. Stable Operations contracts are not rewritten merely to make tutorial scripting easier.
 7. On-device acceptance is required before promotion.
 8. Historical notes below are evidence/history, not the current priority list.
+9. Keep this Roadmap and the Build Bible aligned with each approved decision and implementation change; planned work is not marked tested or complete before evidence exists.
 
 ---
 

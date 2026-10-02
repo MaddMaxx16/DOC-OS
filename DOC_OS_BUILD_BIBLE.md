@@ -156,7 +156,7 @@ The Character Creator is functionally locked unless a real regression or an expl
 
 ### 2.8 Current development objective
 
-**Next objective: remodel the Operations workspace (Console, smaller communications Phone, separate Driver Hub, and top bars), then build First Day/onboarding against that workspace and connect it to Operations without violating the performance boundary.**
+**Next objective: finish the final opening screen as the Metroline employee-ID welcome, then remodel the Operations workspace (Console, smaller communications Phone, separate Driver Hub, and top bars), and connect the welcome to the real employee operation and Jordan's First Day training without violating the performance boundary.**
 
 The intended tutorial arc is:
 
@@ -169,6 +169,14 @@ DOC002 may become available later the same operating day after DOC001.
 First Day must teach the player through the real systems rather than through a parallel tutorial-only imitation. Tutorial pacing may accelerate waits, but it must not create competing authorities for freight, driver movement, documents, payment, or HOS.
 
 **CarrierSource boundary:** CarrierSource is a later-career system associated with progression beyond the starting Metroline employee role. It must not appear as an application gate, agreement gate, or Marcus-activation gate during First Day.
+
+### 2.8.1 Approved employee-ID welcome / Operations transition — PLANNED
+
+Replace the current First Day placeholder after Character Creator with a Metroline employee-ID welcome. The ID is the centerpiece: Metroline branding, the created player avatar as the employee photo, player name, and **Junior Dispatcher · New York Operations**. Welcome copy establishes that the workstation is ready and Jordan will help the player get started. The primary action is **START FIRST DAY**.
+
+Target transition: **Character Creator → employee-ID welcome → START FIRST DAY → brief “Opening your workstation…” transition → operational map → Jordan welcome conversation**. Jordan's compact conversation shows his portrait, name/trainer role, one short message at a time, and Continue; the final welcome action opens Marcus's real schedule. Game time pauses during the authored welcome conversation. This does not redefine ordinary communications or global simulation pause behavior.
+
+Build the welcome presentation first; prepare the Operations workspace before enabling its live-map handoff. The button must ultimately enter the real Metroline employee operation, with Marcus already rostered at the Yard and schedule/HOS initialized through authoritative systems. Do not use a fake map or a permanent Operations bypass. Operations loads only at the deliberate handoff; no simulation runtime is added to the employee-ID screen. This design is approved but not yet implemented or tested.
 
 ### 2.9 First Day build guardrails
 
@@ -197,6 +205,7 @@ Before coding a First Day slice:
 10. **No hidden work:** if a screen is not using a heavy subsystem, suspend it, lazy-load it, or do not mount it.
 11. **Bug report format:** What I did / What happened / What should happen.
 12. **Regression-test before promotion.**
+13. **Keep docs current with each change.** Update the Build Bible for approved behavior/design contracts and the Roadmap for order/status as decisions and implementation change. Distinguish approved/planned, implemented, tested, and promoted work; record the active branch/checkpoint so a new chat can resume from repository evidence.
 
 ### 2.11 Change classes
 
