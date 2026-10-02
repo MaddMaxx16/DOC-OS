@@ -1,5 +1,6 @@
 
 .lane-review-v3{
+  position:relative;
   display:flex;
   flex-direction:column;
   min-height:0;
@@ -91,7 +92,7 @@
   overflow-y:auto;
   overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;
-  padding:7px 10px 12px;
+  padding:7px 10px 112px;
 }
 
 /* Driver context is a strip, not a standalone card. */
@@ -116,7 +117,7 @@
 .lane-driver-strip>div:last-child{border-right:0}
 .lane-driver-strip span{
   color:#75879b;
-  font-size:5.8px;
+  font-size:6.5px;
   font-weight:900;
   letter-spacing:.11em;
 }
@@ -160,21 +161,21 @@
 .lane-review-v3 .first-day-lesson.compact small{font-size:6px}
 .lane-review-v3 .first-day-lesson.compact h2{
   margin-top:1px;
-  font-size:10.5px;
+  font-size:11px;
   line-height:1.18;
 }
 .lane-review-v3 .first-day-lesson.compact p{
   margin:5px 0 0;
   color:#bfcbd7;
-  font-size:8.2px;
-  line-height:1.38;
+  font-size:8.8px;
+  line-height:1.4;
 }
 .lane-review-v3 .first-day-lesson.compact button{
   min-height:34px;
   margin-top:6px;
   padding:7px 9px;
   border-radius:8px;
-  font-size:7.5px;
+  font-size:8px;
 }
 
 /* Timeline is the visual center of the page. */
@@ -201,13 +202,13 @@
 }
 .lane-timeline-head span{
   color:#788a9e;
-  font-size:6px;
+  font-size:6.6px;
   font-weight:900;
   letter-spacing:.12em;
 }
 .lane-timeline-head strong{
   color:#e8eef5!important;
-  font-size:10.5px!important;
+  font-size:11.2px!important;
   line-height:1.15;
 }
 .lane-timeline-head>small{
@@ -216,7 +217,7 @@
   border:1px solid #324151;
   border-radius:999px;
   color:#8294a8!important;
-  font-size:5.8px!important;
+  font-size:6.4px!important;
   font-weight:800;
   letter-spacing:.06em;
 }
@@ -242,7 +243,7 @@
 .lane-timeline-stop time{
   padding-top:1px;
   color:#d9e2eb;
-  font-size:8.4px;
+  font-size:9.5px;
   font-weight:800;
   text-align:right;
   font-variant-numeric:tabular-nums;
@@ -265,20 +266,20 @@
 }
 .lane-timeline-stop>div>span{
   color:#75879a;
-  font-size:5.8px;
+  font-size:6.4px;
   font-weight:900;
   letter-spacing:.1em;
 }
 .lane-timeline-stop>div>strong{
   overflow-wrap:anywhere;
   color:#edf2f7;
-  font-size:9.6px;
-  line-height:1.2;
+  font-size:10.5px;
+  line-height:1.22;
 }
 .lane-timeline-stop>div>small{
   color:#8292a4;
-  font-size:6.8px;
-  line-height:1.22;
+  font-size:7.4px;
+  line-height:1.28;
 }
 .lane-timeline-stop>div>em{
   justify-self:start;
@@ -287,7 +288,7 @@
   border:1px solid #3a4857;
   border-radius:999px;
   color:#99a8b7;
-  font-size:5.6px;
+  font-size:6.3px;
   font-style:normal;
   font-weight:900;
   letter-spacing:.05em;
@@ -323,13 +324,13 @@
 }
 .lane-timeline-leg span{
   color:#6f8297;
-  font-size:5.5px;
+  font-size:6.2px;
   font-weight:900;
   letter-spacing:.08em;
 }
 .lane-timeline-leg strong{
   color:#b6c3d0;
-  font-size:6.7px;
+  font-size:7.5px;
   font-variant-numeric:tabular-nums;
 }
 .lane-timeline-leg.loaded{border-left-color:#5c748d}
@@ -367,12 +368,12 @@
 }
 .lane-check>strong{
   color:#e6edf4;
-  font-size:8.5px;
+  font-size:9.4px;
 }
 .lane-check>small{
   color:#7f90a2;
-  font-size:6.5px;
-  line-height:1.28;
+  font-size:7.2px;
+  line-height:1.3;
 }
 .lane-check.good{border-color:rgba(79,151,105,.3)}
 .lane-check.tight{border-color:rgba(181,139,70,.34)}
@@ -400,7 +401,7 @@
 .lane-freight-card header strong,
 .lane-money-card header strong{
   color:#edf2f7;
-  font-size:9.5px;
+  font-size:10.2px;
 }
 .lane-freight-card>div,
 .lane-money-card>div{
@@ -420,21 +421,21 @@
 .lane-freight-card b,
 .lane-money-card b{
   color:#718397;
-  font-size:5.4px;
+  font-size:6px;
   letter-spacing:.07em;
 }
 .lane-freight-card strong,
 .lane-money-card strong{
   overflow-wrap:anywhere;
   color:#e2eaf2;
-  font-size:8.3px;
+  font-size:9px;
 }
 .lane-freight-card>small{
   display:block;
   padding:6px 8px;
   color:#7d8fa1;
-  font-size:6.3px;
-  line-height:1.28;
+  font-size:7.1px;
+  line-height:1.3;
 }
 
 .lane-verdict{
@@ -444,14 +445,14 @@
 }
 .lane-verdict>strong{
   color:#eef4f8;
-  font-size:9.8px;
-  line-height:1.25;
+  font-size:10.5px;
+  line-height:1.28;
 }
 .lane-verdict>p{
   margin:0;
   color:#8d9dad;
-  font-size:7px;
-  line-height:1.35;
+  font-size:7.7px;
+  line-height:1.38;
 }
 .lane-verdict.good{
   border-color:rgba(73,150,101,.38);
@@ -491,14 +492,14 @@
 }
 .lane-booking-progress b{
   color:#aab7c5;
-  font-size:5.4px;
+  font-size:6px;
   letter-spacing:.05em;
 }
 .lane-booking-progress small{
   overflow:hidden;
   color:#718397;
-  font-size:5.3px;
-  line-height:1.15;
+  font-size:5.9px;
+  line-height:1.2;
 }
 .lane-booking-progress>div.active>span{background:#334963;color:#d5e8fb}
 .lane-booking-progress>div.done>span{background:#2b573b;color:#a7dfbb}
@@ -539,43 +540,52 @@
   font-size:7.5px;
 }
 
-/* Sticky action remains obvious without overpowering the work surface. */
+/* Bottom action floats in the unused lower space so the work surface stays visible. */
 .lane-review-footer{
-  flex:0 0 auto;
-  padding:6px 10px calc(7px + env(safe-area-inset-bottom,0px));
-  border-top:1px solid #27323d;
-  background:#0b1015;
+  position:absolute;
+  z-index:8;
+  left:50%;
+  bottom:10px;
+  transform:translateX(-50%);
+  width:min(76%,430px);
+  padding:0;
+  border:0;
+  background:transparent;
+  pointer-events:none;
 }
 .lane-review-footer>button{
   width:100%;
-  min-height:39px;
-  padding:7px 10px;
+  min-height:42px;
+  padding:8px 12px;
   border:1px solid #816f8c;
-  border-radius:10px;
+  border-radius:11px;
   background:#6e6078;
   color:#fff;
-  font-size:8.4px;
+  font-size:9px;
   font-weight:900;
   letter-spacing:.025em;
+  box-shadow:0 8px 22px rgba(0,0,0,.32);
+  pointer-events:auto;
 }
 .lane-review-footer>button:disabled{
   border-color:#34414e;
   background:#182029;
   color:#728294;
-  opacity:.78;
+  opacity:.82;
 }
 .lane-review-footer>small{
   display:block;
-  margin:4px 3px 0;
-  color:#75879a;
-  font-size:6.3px;
-  line-height:1.25;
+  margin:5px -18px 0;
+  color:#8294a7;
+  font-size:7.1px;
+  line-height:1.3;
   text-align:center;
+  text-shadow:0 1px 3px #0b1015,0 0 8px #0b1015;
 }
 
 @media (max-width:390px){
   .lane-review-header{padding-left:9px;padding-right:9px}
-  .lane-review-scroll{padding-left:8px;padding-right:8px}
+  .lane-review-scroll{padding-left:8px;padding-right:8px;padding-bottom:108px}
   .lane-driver-strip{
     grid-template-columns:minmax(0,1.35fr) minmax(58px,.85fr) minmax(48px,.68fr) minmax(48px,.68fr);
   }
@@ -588,4 +598,5 @@
   }
   .lane-timeline-stop:not(:last-child)::after{left:54px}
   .lane-timeline-leg{margin-left:64px}
+  .lane-review-footer{width:min(78%,360px);bottom:9px}
 }
