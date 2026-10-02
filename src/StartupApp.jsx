@@ -5,6 +5,7 @@ import './AppShell.css'
 import StartScreen from './components/StartScreen.jsx'
 import StartOfficeBackdrop from './components/StartOfficeBackdrop.jsx'
 import CareerSetupScreen from './components/CareerSetupScreen.jsx'
+import { createMetrolineEmployeeCareer } from './utils/careerState.js'
 import {
   SAVE_SLOT_IDS,
   clearActiveSaveSlot,
@@ -25,6 +26,7 @@ function StartupApp() {
   const [saveSlots, setSaveSlots] = useState(() => getSaveSlots())
   const [activeSaveSlotId, setActiveSaveSlotId] = useState(() => getActiveSaveSlot())
   const [dispatcherProfile, setDispatcherProfile] = useState(null)
+  const [careerSetupPhase, setCareerSetupPhase] = useState('name')
   const [saveFailureMessage, setSaveFailureMessage] = useState('')
 
   useEffect(() => {
@@ -69,11 +71,16 @@ function StartupApp() {
     setActiveSaveSlot(slotId)
     setActiveSaveSlotId(slotId)
     setDispatcherProfile(null)
+    setCareerSetupPhase('name')
 
     // The current onboarding experience stops before Operations. Persist only
     // its lightweight boundary state; the Operations runtime will own gameplay
     // state once First Day is connected.
-    saveGame({ stage: 'careerSetup', dispatcherProfile: null }, slotId)
+    saveGame({
+      stage: 'careerSetup',
+      dispatcherProfile: null,
+      career: createMetrolineEmployeeCareer(),
+    }, slotId)
     refreshSaveSlots()
     setStage('careerSetup')
   }
@@ -85,6 +92,7 @@ function StartupApp() {
     setActiveSaveSlot(slotId)
     setActiveSaveSlotId(slotId)
     setDispatcherProfile(saved.dispatcherProfile || null)
+    setCareerSetupPhase(saved.careerSetupStep === 'employeeWelcome' ? 'employeeWelcome' : 'name')
 
     // Current saves created by the rebuilt experience resume at onboarding.
     // Legacy Operations saves are intentionally not part of this startup path;
@@ -102,6 +110,22 @@ function StartupApp() {
       else clearActiveSaveSlot()
       setActiveSaveSlotId(nextSlotId)
     }
+  }
+
+  const saveEmployeeProfile = (nextProfile) => {
+    if (!activeSaveSlotId) return false
+    const saved = saveGame({
+      ...(loadGame(activeSaveSlotId) || {}),
+      stage: 'careerSetup',
+      dispatcherProfile: nextProfile,
+      career: createMetrolineEmployeeCareer(),
+      careerSetupStep: 'employeeWelcome',
+    }, activeSaveSlotId)
+    if (!saved) return false
+    setDispatcherProfile(nextProfile)
+    setCareerSetupPhase('employeeWelcome')
+    refreshSaveSlots()
+    return true
   }
 
   return (
@@ -130,6 +154,8 @@ function StartupApp() {
         {stage === 'careerSetup' && (
           <CareerSetupScreen
             profile={dispatcherProfile}
+            initialPhase={careerSetupPhase}
+            onSaveProfile={saveEmployeeProfile}
             onBack={() => setStage('start')}
           />
         )}

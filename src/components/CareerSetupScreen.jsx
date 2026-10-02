@@ -6,6 +6,7 @@ import PlayerAvatar, {
 } from './PlayerAvatar'
 import './CareerSetupScreen.css'
 import './CareerLookCreator.css'
+import EmployeeIdWelcome from './EmployeeIdWelcome.jsx'
 
 const HAIR_OPTIONS_PER_PAGE = 8
 const HAIR_COLOR_OPTIONS_PER_PAGE = 6
@@ -27,11 +28,15 @@ const ACCESSORY_SIDE_OPTIONS = [
 // P2.4.4.3A/B — Create Player
 // Step 01 owns player-facing identity. Step 02 owns appearance.
 // Metroline is fixed to the New York market; market selection is not part of onboarding.
-function CareerSetupScreen({ profile = null, onBack }) {
+function CareerSetupScreen({ profile = null, initialPhase = 'name', onSaveProfile, onBack }) {
   const [displayName, setDisplayName] = useState(profile?.displayName || '')
   const [keyboardOpen, setKeyboardOpen] = useState(false)
   const [nameFocused, setNameFocused] = useState(false)
-  const [phase, setPhase] = useState('name')
+  const [phase, setPhase] = useState(() => (
+    initialPhase === 'employeeWelcome' && profile?.displayName?.trim().length >= 2
+      ? 'employeeWelcome'
+      : 'name'
+  ))
   const [appearance, setAppearance] = useState(() => ({
     ...DEFAULT_APPEARANCE,
     ...(profile?.appearance || {}),
@@ -354,39 +359,27 @@ function CareerSetupScreen({ profile = null, onBack }) {
     ))
   }
 
-  if (phase === 'firstDayPending') {
+  const finishEmployeeProfile = () => {
+    if (!ready) return
+    const saved = onSaveProfile?.({
+      ...(profile || {}),
+      displayName: playerName,
+      appearance: { ...appearance },
+      homeMarket: 'New York Metro',
+      created: true,
+    })
+    if (saved === false) return
+    setPhase('employeeWelcome')
+  }
+
+  if (phase === 'employeeWelcome') {
     return (
-      <div ref={screenRef} className="career-setup-d434c career-look-handoff-d434c">
-        <header className="career-systembar-d434c">
-          <button
-            className="career-back-d434c"
-            type="button"
-            onClick={() => setPhase('look')}
-            aria-label="Back to your look"
-          >
-            <span aria-hidden="true">‹</span>
-          </button>
-
-          <div className="career-system-id-d434c">
-            <div className="career-mini-mark-d434c" aria-label="DOC OS">
-              <b>DOC</b><i>OS</i>
-            </div>
-            <span>EMPLOYEE ONBOARDING</span>
-          </div>
-
-          <div className="career-step-d434c" aria-label="Onboarding complete">
-            <span>02 / 02</span>
-            <div aria-hidden="true"><i /><i className="active" /></div>
-          </div>
-        </header>
-
-        <main className="career-look-handoff-main-d434c">
-          <span>ONBOARDING COMPLETE</span>
-          <h1>First Day</h1>
-          <p>{playerName}, your Metroline employee profile is ready. Your first shift comes next.</p>
-          <small>NEXT EXPERIENCE · NOT BUILT YET</small>
-        </main>
-      </div>
+      <EmployeeIdWelcome
+        screenRef={screenRef}
+        playerName={playerName}
+        appearance={appearance}
+        onEditProfile={() => setPhase('look')}
+      />
     )
   }
 
@@ -677,9 +670,9 @@ function CareerSetupScreen({ profile = null, onBack }) {
             <div className="career-look-action-d434c">
               <div>
                 <span>NEXT</span>
-                <strong>First Day</strong>
+                <strong>Employee ID</strong>
               </div>
-              <button type="button" onClick={() => setPhase('firstDayPending')}>
+              <button type="button" onClick={finishEmployeeProfile}>
                 <span>CONTINUE</span>
                 <b aria-hidden="true">→</b>
               </button>

@@ -32,7 +32,7 @@ The core loop remains:
 
 The current clean-new-player path is:
 
-**DOC OS startup → workstation/login → New Dispatcher → name → Character Creator → First Day placeholder**
+**DOC OS startup → workstation/login → New Dispatcher → name → Character Creator → Metroline employee-ID welcome**
 
 The former Market Selection / Day-One Entry opening route has been retired and removed. The player begins the game as a **Metroline employee in New York**; market selection and CarrierSource application are not part of the rebuilt onboarding path.
 
@@ -42,7 +42,7 @@ The current title is a physical workstation/login presentation over the office b
 
 Character Creator is the approved player-identity system. Its current categories are Skin, Hair, Hair Color, Brows, Eyes, Eye Color, Mouth, Facial Hair, Glasses, Accessories, Headwear, Outfit, and Outfit Color. The avatar is a composited local renderer; appearance work must preserve the established layer order and must not reintroduce live DiceBear network rendering.
 
-**Current onboarding boundary:** First Day is not yet implemented. A clean new save intentionally cannot enter Operations until the rebuilt onboarding/First Day experience provides that handoff. Do not create a permanent bypass around this boundary merely for testing.
+**Current onboarding boundary:** the employee-ID welcome is implemented as P2.4-ENTRY.1-TEST, pending on-device acceptance. START FIRST DAY is visibly disabled until the workspace remodel and real Operations handoff are ready. A clean new save intentionally cannot enter Operations until the rebuilt onboarding/First Day experience provides that handoff. Do not create a permanent bypass around this boundary merely for testing.
 
 ### 2.2 Performance architecture — LOCKED
 
@@ -156,7 +156,7 @@ The Character Creator is functionally locked unless a real regression or an expl
 
 ### 2.8 Current development objective
 
-**Next objective: finish the final opening screen as the Metroline employee-ID welcome, then remodel the Operations workspace (Console, smaller communications Phone, separate Driver Hub, and top bars), and connect the welcome to the real employee operation and Jordan's First Day training without violating the performance boundary.**
+**Next objective: validate P2.4-ENTRY.1-TEST on iPhone, then remodel the Operations workspace (Console, smaller communications Phone, separate Driver Hub, and top bars), and connect the employee-ID welcome to the real employee operation and Jordan's First Day training without violating the performance boundary.**
 
 The intended tutorial arc is:
 
@@ -170,13 +170,17 @@ First Day must teach the player through the real systems rather than through a p
 
 **CarrierSource boundary:** CarrierSource is a later-career system associated with progression beyond the starting Metroline employee role. It must not appear as an application gate, agreement gate, or Marcus-activation gate during First Day.
 
-### 2.8.1 Approved employee-ID welcome / Operations transition — PLANNED
+### 2.8.1 Employee-ID welcome — P2.4-ENTRY.1-TEST / Operations transition — PLANNED
 
 Replace the current First Day placeholder after Character Creator with a Metroline employee-ID welcome. The ID is the centerpiece: Metroline branding, the created player avatar as the employee photo, player name, and **Junior Dispatcher · New York Operations**. Welcome copy establishes that the workstation is ready and Jordan will help the player get started. The primary action is **START FIRST DAY**.
 
 Target transition: **Character Creator → employee-ID welcome → START FIRST DAY → brief “Opening your workstation…” transition → operational map → Jordan welcome conversation**. Jordan's compact conversation shows his portrait, name/trainer role, one short message at a time, and Continue; the final welcome action opens Marcus's real schedule. Game time pauses during the authored welcome conversation. This does not redefine ordinary communications or global simulation pause behavior.
 
-Build the welcome presentation first; prepare the Operations workspace before enabling its live-map handoff. The button must ultimately enter the real Metroline employee operation, with Marcus already rostered at the Yard and schedule/HOS initialized through authoritative systems. Do not use a fake map or a permanent Operations bypass. Operations loads only at the deliberate handoff; no simulation runtime is added to the employee-ID screen. This design is approved but not yet implemented or tested.
+Build the welcome presentation first; prepare the Operations workspace before enabling its live-map handoff. The button must ultimately enter the real Metroline employee operation, with Marcus already rostered at the Yard and schedule/HOS initialized through authoritative systems. Do not use a fake map or a permanent Operations bypass. Operations loads only at the deliberate handoff; no simulation runtime is added to the employee-ID screen. The welcome presentation and identity save/resume are implemented; the live transition and Jordan conversation remain planned. START FIRST DAY is disabled with “Your first shift is coming next.” until an authoritative handoff exists.
+
+**Implemented identity boundary:** Continue from Character Creator saves the trimmed player name, full appearance, and Metroline employee career metadata in the active slot, with `careerSetupStep: employeeWelcome`. Resume opens the saved ID directly. Back/Edit returns to the existing creator; a subsequent Continue updates the ID and save. A failed save keeps the player in the creator and displays the existing save-failure alert rather than presenting an unsaved ID. New onboarding slots receive explicit employee career metadata without creating roster, freight, clock, or simulation state.
+
+**Validation:** production build and focused ESLint passed; all 165 existing tests passed. Browser checks covered the clean path, avatar consistency, identity save/reload, edit/resave, long names, smaller viewports, simulated safe areas, disabled handoff, and failed-save recovery with no page errors. Physical iPhone appearance, resume, and battery checks remain required before promotion.
 
 ### 2.9 First Day build guardrails
 
