@@ -1,3 +1,4 @@
+import { needsRateConfirmationBeforeDeparture, getRateConfirmationHoldReason } from '../utils/rateConfirmation.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatTime } from '../utils/gameTime.js'
 import { getDriverItineraryState } from '../utils/driverItinerary.js'
@@ -10,7 +11,7 @@ function formatMessageTime(value) {
   return formatTime(((value % 1440) + 1440) % 1440)
 }
 
-function DriverMessageThreadScreen({ driver, carrier = null, messages = [], activeLoads = [], gameTime, onBack, onRead, onSendLoadUpdate, onSendQuickReply }) {
+function DriverMessageThreadScreen({ driver, carrier = null, messages = [], activeLoads = [], gameTime, onReviewRateCon, onBack, onRead, onSendLoadUpdate, onSendQuickReply }) {
   const [replyOpen, setReplyOpen] = useState(false)
   const [updateOpen, setUpdateOpen] = useState(false)
   const historyRef = useRef(null)
@@ -85,6 +86,11 @@ function DriverMessageThreadScreen({ driver, carrier = null, messages = [], acti
           <strong>{getFreightRouteName(currentLoad)}</strong>
         </div>
         {nextStopLabel && <small>{nextStopLabel}</small>}
+      </section>}
+
+      {needsRateConfirmationBeforeDeparture(currentLoad) && <section className="ratecon-dispatch-hold" aria-label="Dispatch held for rate confirmation">
+        <strong>DISPATCH HELD</strong><p>{getRateConfirmationHoldReason(currentLoad)}</p>
+        {currentLoad.rateConfirmation && <button type="button" onClick={() => onReviewRateCon?.(currentLoad.id)}>REVIEW RATE CON</button>}
       </section>}
 
       <div className="driver-thread-history" ref={historyRef}>

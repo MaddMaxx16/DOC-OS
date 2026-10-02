@@ -142,6 +142,9 @@ DOC002 may become available later the same operating day after DOC001.
 - [NEXT / BOARD INTRODUCTION IMPLEMENTED] **P2.4-FD.4 — FreightLink / DOC001**
   - FD.3.1 now hands off to the real FreightLink board and DOC001 details after a valid saved lunch window. Detailed authored fit/approval/acceptance guidance remains next.
   - Teach load evaluation, driver fit/HOS signal, written Metroline approval for the exact load, and acceptance/assignment under the real Metroline workflow.
+  - FD.4.1 IN TEST: current rate confirmation must be explicitly confirmed before new freight departure, including automatic and queued departures. Today’s Plan, Driver conversation, Trip Plan, and map panel explain the hold and lead to the real review.
+  - Lane terminology: Jordan identifies freight by shipper → receiver; internal DOC001 references stay out of his player-facing lesson.
+  - NEXT: redesign Lane Review around “Does this shipment work for Marcus?” Explain full names, projected stop/travel timeline, appointments/lunch/shift/HOS checks with reasons, and loaded versus unpaid mileage/rate context. Teach approval, booking, document comparison/correction, briefing, and dispatch as distinct steps.
 
 - [PLANNED] **P2.4-FD.5 — First Dispatch**
   - Runtime entry already occurs at the FD.1/FD.2 legitimate handoff; this slice teaches first dispatch.

@@ -1,3 +1,4 @@
+import { needsRateConfirmationBeforeDeparture } from './rateConfirmation.js'
 import { getAuthoritativeDriverTravelLoad } from './driverItinerary.js'
 import { hasLunchMovementAuthority } from './lunchDecisionEvents.js'
 import { getDriverActiveLoad } from './driverQueue.js'
@@ -48,6 +49,8 @@ export function resolveDriverMovementOwner({ driver, gameTime, loads = [] }) {
 export function canAcquireDriverMovement(context, subsystem, loadId = null) {
   const owner = resolveDriverMovementOwner(context)
   if (subsystem === 'freight') {
+    const load = context.loads?.find((item) => item.id === loadId)
+    if (needsRateConfirmationBeforeDeparture(load)) return false
     return owner.type === 'runtime-hold'
       || (['freight', 'freight-hold'].includes(owner.type) && owner.load.id === loadId)
   }

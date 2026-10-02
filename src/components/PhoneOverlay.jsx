@@ -1,3 +1,4 @@
+import './RateConDispatchHold.css'
 import FirstDayLesson from './FirstDayLesson.jsx'
 import { lazy, useRef, useState } from 'react'
 import HomeScreen from './HomeScreen.jsx'
@@ -61,7 +62,7 @@ function PhoneOverlay({ firstDay, onFirstDayProgress, loads, setLoads, drivers, 
   // B.5.4D.4.2.5A — Flexible Plan Return Navigation
   const [driverOpsReturnScreen, setDriverOpsReturnScreen] = useState('home')
 
-  const [screen, setScreenState] = useState(initialScreen)
+  const [screen, setScreenState] = useState(initialScreen === 'rateConReview' ? 'documents' : initialScreen)
 // =========================================================
   // B.5.4C.2 — Directional Phone Navigation
   // =========================================================
@@ -146,7 +147,10 @@ function PhoneOverlay({ firstDay, onFirstDayProgress, loads, setLoads, drivers, 
   const [selectedDriverId, setSelectedDriverId] = useState(initialDriverId)
   const [messageLoadContextId, setMessageLoadContextId] = useState(null)
   const [selectedBusinessDocumentId, setSelectedBusinessDocumentId] = useState(null)
-  const [previewAttachment, setPreviewAttachment] = useState(null)
+  const [previewAttachment, setPreviewAttachment] = useState(() => {
+    const load = initialScreen === 'rateConReview' ? loads.find((item) => item.id === initialLoadId) : null
+    return load?.rateConfirmation ? { id: load.rateConfirmation.id, type: 'rate-confirmation', loadId: load.id } : null
+  })
   const [documentReturnScreen, setDocumentReturnScreen] = useState('documents')
   const [devToolsOpen, setDevToolsOpen] = useState(false)
   const [devConfirm, setDevConfirm] = useState(null)
@@ -688,6 +692,7 @@ function PhoneOverlay({ firstDay, onFirstDayProgress, loads, setLoads, drivers, 
           onBack={() => { setMessageLoadContextId(null); setScreen('messages') }}
           onRead={onReadDriverMessage}
           onSendLoadUpdate={(loadId) => selectedDriverId && onSendDriverLoadUpdate?.(loadId, selectedDriverId)}
+          onReviewRateCon={(loadId) => { const load = loads.find((item) => item.id === loadId); if (load?.rateConfirmation) setPreviewAttachment({ id: load.rateConfirmation.id, type: 'rate-confirmation', loadId }) }}
           onSendQuickReply={(body, meta) => selectedDriverId && onSendDriverQuickReply?.(body, selectedDriverId, meta)}
           onPlanDeliveryRoute={(loadId) => selectedDriverId && onPlanDeliveryRoute?.(loadId, selectedDriverId)}
         />
@@ -1135,8 +1140,8 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
           onHome={() => setScreen('browser')}
           showSiteBranding={false}
         >
-          {screen === 'loadBoard' && firstDay?.step === 'freight' && <FirstDayLesson title="Find Marcus’s first load" timePaused={false} actionLabel="REVIEW DOC001" onAction={() => openLoadDetails('DOC001', null)}>
-            Start with DOC001. Check pickup and delivery appointments, travel time, Marcus’s lunch window, and his available driving and duty hours. Use the real fit review and carrier approval before booking. Once the booked route is known, we’ll plan where he finishes his shift.
+          {screen === 'loadBoard' && firstDay?.step === 'freight' && <FirstDayLesson title="Find Marcus’s first load" timePaused={false} actionLabel="REVIEW THE LANE" onAction={() => openLoadDetails('DOC001', null)}>
+            Start with the Empire-to-Harborline lane. Check pickup and delivery appointments, travel time, Marcus’s lunch window, and his available driving and duty hours. Check the fit and get Metroline’s approval before booking. Then compare and confirm the rate confirmation; Marcus cannot depart without it. Once the booked route is known, we’ll plan where he finishes his shift.
           </FirstDayLesson>}
           {screen === 'loadBoard' && <LoadBoardScreen embedded loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => openLoadDetails(loadId, null)} onOpenScheduler={() => {
             setSelectedLoadId(null)
@@ -1145,12 +1150,12 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
           }} />}
           {screen === 'loadDetails' && <LoadDetailsScreen loads={loads} drivers={drivers} carriers={carriers} loadId={selectedLoadId} planningDriverId={selectedDriverId} runtimePositions={runtimePositions} gameTime={gameTime} onAddToSchedule={(loadId, driverId) => onAddToSchedule?.(loadId, driverId)} onOpenScheduler={async (loadId) => { const target = loads.find((item) => item.id === loadId); if (target?.status === 'available' && !target.scheduleApprovalQueued) { const ok = target.candidateDriverId ? true : await onAddToSchedule?.(loadId); if (ok === false) return; setLoads((current) => current.map((item) => item.id === loadId ? { ...item, scheduleApprovalQueued: true } : item)); } setSelectedLoadId(loadId); setSelectedDriverId(target?.candidateDriverId || target?.assignedDriverId || selectedDriverId || drivers.find((driver) => driver.carrierId)?.id || null); setScreen('scheduler') }} onSendLoadDetails={(loadId, driverId) => { const targetLoad = loads.find((item) => item.id === loadId); if (!Number.isFinite(targetLoad?.pickupDriverBriefedGameMinute)) onSendDriverLoadUpdate?.(loadId, driverId); setSelectedLoadId(loadId); setSelectedDriverId(driverId); setMessageLoadContextId(loadId); setScreen('messageThread') }} onBack={() => setScreen('loadBoard')} />}
           {/* B.5.4D.4.2.3 — One Scheduler Authority: freight-plan only */}
-          {screen === 'scheduler' && <FleetSchedulerScreen loads={loads} drivers={drivers} carriers={carriers} gameTime={gameTime} focusLoadId={selectedLoadId} initialDriverId={selectedDriverId} onBackToFreightLink={() => setScreen('loadBoard')} onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)} onBookRoute={(loadId) => onAcceptCandidateAssignment?.(loadId)} onBookApprovedSchedule={(driverId) => onBookApprovedSchedule?.(driverId)} onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)} onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)} onOpenDriverOperations={(driverId) => { if (driverId) setSelectedDriverId(driverId); setDriverOpsReturnScreen('scheduler'); setScreen('agenda') }} onDriverContextChange={setSelectedDriverId} />}
+          {screen === 'scheduler' && <FleetSchedulerScreen loads={loads} drivers={drivers} carriers={carriers} gameTime={gameTime} focusLoadId={selectedLoadId} initialDriverId={selectedDriverId} onBackToFreightLink={() => setScreen('loadBoard')} onRequestScheduleApproval={(driverId) => openScheduleApprovalReview(driverId)} onReviewRateCon={(loadId) => { const load = loads.find((item) => item.id === loadId); if (load?.rateConfirmation) setPreviewAttachment({ id: load.rateConfirmation.id, type: 'rate-confirmation', loadId }) }} onBookRoute={(loadId) => onAcceptCandidateAssignment?.(loadId)} onBookApprovedSchedule={(driverId) => onBookApprovedSchedule?.(driverId)} onRemoveFromPlan={(loadId) => onRemoveScheduleLoad?.(loadId)} onSendDriverSchedule={(driverId) => onSendDriverSchedule?.(driverId)} onOpenDriverOperations={(driverId) => { if (driverId) setSelectedDriverId(driverId); setDriverOpsReturnScreen('scheduler'); setScreen('agenda') }} onDriverContextChange={setSelectedDriverId} />}
           {screen === 'driverFit' && <DriverFitScreen load={loads.find((load) => load.id === selectedLoadId)} loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} candidateDriverId={loads.find((load) => load.id === selectedLoadId)?.candidateDriverId} onEvaluate={(driverId, fit) => {
             onEvaluateFit(selectedLoadId, driverId, fit)
             setScreen('tripPlan')
           }} />}
-          {screen === 'tripPlan' && <TripPlanScreen loads={loads} drivers={drivers} carriers={carriers} loadId={selectedLoadId} onChangeDriver={() => setScreen('driverFit')} onRequestCarrierApproval={(loadId, sendApproval = false) => { setLoads((current) => current.map((load) => load.id === loadId ? { ...load, scheduleApprovalQueued: true, carrierApprovalStatus: sendApproval ? (load.carrierApprovalStatus || null) : load.carrierApprovalStatus } : load)); if (sendApproval) setScreen('loadBoard') }} onViewCarrierApproval={(loadId) => { const load = loads.find((item) => item.id === loadId); const emailId = load?.carrierApprovalEmailId; if (emailId && emailMessages.some((message) => message.id === emailId)) { setSelectedEmailId(emailId); setEmailReturnScreen('tripPlan'); setScreen('emailDetail') } else { const fallback = [...emailMessages].reverse().find((message) => message.loadId === loadId && message.workflowType === 'carrier-approval'); if (fallback) { setSelectedEmailId(fallback.id); setEmailReturnScreen('tripPlan'); setScreen('emailDetail') } else setScreen('email') } }} onBook={(loadId) => { const accepted = onAcceptCandidateAssignment?.(loadId); if (accepted !== false) setScreen('tripPlan') }} onOpenDriverThread={(loadId, driverId) => { setSelectedLoadId(loadId); setSelectedDriverId(driverId); setMessageLoadContextId(loadId); setScreen('messageThread') }} onBack={() => setScreen('loadDetails')} />}
+          {screen === 'tripPlan' && <TripPlanScreen loads={loads} drivers={drivers} carriers={carriers} loadId={selectedLoadId} onChangeDriver={() => setScreen('driverFit')} onRequestCarrierApproval={(loadId, sendApproval = false) => { setLoads((current) => current.map((load) => load.id === loadId ? { ...load, scheduleApprovalQueued: true, carrierApprovalStatus: sendApproval ? (load.carrierApprovalStatus || null) : load.carrierApprovalStatus } : load)); if (sendApproval) setScreen('loadBoard') }} onViewCarrierApproval={(loadId) => { const load = loads.find((item) => item.id === loadId); const emailId = load?.carrierApprovalEmailId; if (emailId && emailMessages.some((message) => message.id === emailId)) { setSelectedEmailId(emailId); setEmailReturnScreen('tripPlan'); setScreen('emailDetail') } else { const fallback = [...emailMessages].reverse().find((message) => message.loadId === loadId && message.workflowType === 'carrier-approval'); if (fallback) { setSelectedEmailId(fallback.id); setEmailReturnScreen('tripPlan'); setScreen('emailDetail') } else setScreen('email') } }} onBook={(loadId) => { const accepted = onAcceptCandidateAssignment?.(loadId); if (accepted !== false) setScreen('tripPlan') }} onReviewRateCon={(loadId) => { const load = loads.find((item) => item.id === loadId); if (load?.rateConfirmation) setPreviewAttachment({ id: load.rateConfirmation.id, type: 'rate-confirmation', loadId }) }} onOpenDriverThread={(loadId, driverId) => { setSelectedLoadId(loadId); setSelectedDriverId(driverId); setMessageLoadContextId(loadId); setScreen('messageThread') }} onBack={() => setScreen('loadDetails')} />}
         </BrowserScreen>
       ) : null}
         </div>
@@ -1159,10 +1164,11 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
             attachment={previewAttachment}
             loads={loads}
             onClose={() => setPreviewAttachment(null)}
-            onRateConCheck={(loadId, key, value) =>
+            onRateConCheck={(loadId, key, value, reviewedDocumentId) =>
               setLoads((current) =>
                 current.map((load) =>
-                  load.id === loadId && load.rateConfirmation
+                  load.id === loadId && load.rateConfirmation?.id === reviewedDocumentId
+                    && !['CONFIRMED', 'CORRECTION_REQUESTED'].includes(load.rateConfirmation.status)
                     ? {
                         ...load,
                         rateConfirmation: {
@@ -1178,10 +1184,12 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
                 )
               )
             }
-            onConfirmRateCon={(loadId) =>
+            onConfirmRateCon={(loadId, reviewedDocumentId) =>
               setLoads((current) =>
                 current.map((load) =>
-                  load.id === loadId && load.rateConfirmation
+                  load.id === loadId && load.rateConfirmation?.id === reviewedDocumentId
+                    && load.rateConfirmation.status !== 'CORRECTION_REQUESTED'
+                    && ['pickup', 'delivery', 'rate', 'miles'].every((key) => load.rateConfirmation.reviewChecks?.[key] === 'match')
                     ? {
                         ...load,
                         rateConfirmation: {

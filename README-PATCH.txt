@@ -1,25 +1,25 @@
-DOC OS — P2.4-FD.3.1-TEST — Jordan Workday Preparation
+DOC OS — P2.4-FD.4.1-TEST — Rate Confirmation Departure Gate
 Branch: p2.4-experience-rebuild
 
 Direct repository edits → automatic Vercel → refresh DOC OS on iPhone.
 
-Jordan teaches Marcus’s confirmed shift, then lunch in the real Driver view.
-Save a lunch window before the guided FreightLink/DOC001 handoff. The window
-is planning intent; actual lunch-stop/return teaching follows at the live event.
-Review real appointments, travel, HOS, and exact-load carrier approval.
-After DOC001 is actually assigned to Marcus and its delivery route exists,
-Jordan introduces the real passive yard/staging finish-position planner.
-Actual shift-end movement/off-duty teaching remains a later live-event slice.
+A driver cannot start a new freight leg until the current rate con is CONFIRMED.
+Carrier approval and schedule acknowledgement do not bypass this requirement.
+Automatic departures, queued promotion, itinerary handoff, and manual route sends
+use the gate. Missing, pending, correction-requested, superseded, and wrong-load
+documents cannot authorize departure. A corrected current document needs review.
+Already-active travel/facility work is preserved; no mid-route reset or teleport.
 
-Lesson progress persists. Closing Console keeps the current lesson; reload
-returns to the matching screen/tab. Teaching pauses time, while FreightLink’s
-live approval workflow can still use the clock. Existing welcome-complete saves
-can tap CONTINUE WITH JORDAN on the Day 1 map without resetting their operation.
-No fake approvals, assignments, dispatches, HOS, truck moves, or shift edits.
-Build Bible and Roadmap updated. Maxx accepted the schedule destination.
+Today’s Plan and Driver conversations explain DISPATCH HELD with REVIEW RATE CON.
+Trip Plan and map driver panels also lead to the current document. Confirming
+requires the four manual comparison checks on the displayed current document.
+Marking a discrepancy as matched remains a player decision; future penalties
+remain planned. Confirmation saves through the existing operation persistence.
 
-Build and 171 tests passed. Runtime lint counts remain at the existing baseline;
-new lesson/progress files are clean. Browser real lunch/FreightLink persistence
-and passive shift-end saving were checked; the contextual shift-end handoff
-uses a booked-route fixture, not an end-to-end booking acceptance claim.
-Phone acceptance/full DOC001/visual/battery checks remain pending.
+Jordan now uses the Empire-to-Harborline lane name and REVIEW THE LANE instead
+of DOC001 in his lesson. The fuller Lane Review redesign is the next UI slice.
+Build Bible and Roadmap record the gameplay rule and lane-review requirements.
+
+Build and 176 tests passed; no added runtime lint diagnostics. Browser checks
+use a booked/acknowledged fixture with real document review, departure, and save
+controls. Physical iPhone/full approval-booking/lane-redesign checks remain pending.

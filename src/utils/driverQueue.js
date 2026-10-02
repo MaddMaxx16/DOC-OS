@@ -1,3 +1,4 @@
+import { isRateConfirmationConfirmed } from './rateConfirmation.js'
 import mapLocations from '../data/mapLocations.js'
 import { buildDriverItinerary, getNextActionableDriverStop } from './driverItinerary.js'
 
@@ -114,7 +115,7 @@ export function getProjectedDriverOrigin({ driver, loads = [], runtimePositions 
 export function sanitizePromotedLoad(load, currentGameMinute = null) {
   const wasBriefed = Number.isFinite(load?.pickupDriverBriefedGameMinute)
   const wasAcknowledged = Number.isFinite(load?.driverAcknowledgedGameMinute)
-  const canAutoDepart = wasBriefed && wasAcknowledged && Number.isFinite(currentGameMinute)
+  const canAutoDepart = wasBriefed && wasAcknowledged && isRateConfirmationConfirmed(load) && Number.isFinite(currentGameMinute)
   return {
     ...load,
     tripStatus: canAutoDepart ? 'en-route-pickup' : 'assigned',

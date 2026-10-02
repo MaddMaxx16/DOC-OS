@@ -313,7 +313,7 @@ function RateConfirmationWorkspace({
                             disabled={readOnly}
                             className={check === 'match' ? 'selected match' : 'match'}
                             onClick={() =>
-                              onRateConCheck?.(load.id, field.key, 'match')
+                              onRateConCheck?.(load.id, field.key, 'match', rc.id)
                             }
                             aria-label={`${field.label} matches`}
                           >
@@ -325,7 +325,7 @@ function RateConfirmationWorkspace({
                             disabled={readOnly}
                             className={check === 'flag' ? 'selected flag' : 'flag'}
                             onClick={() =>
-                              onRateConCheck?.(load.id, field.key, 'flag')
+                              onRateConCheck?.(load.id, field.key, 'flag', rc.id)
                             }
                             aria-label={`${field.label} does not match`}
                           >
@@ -362,7 +362,7 @@ function RateConfirmationWorkspace({
                     type="button"
                     className="ratecon-primary-action"
                     disabled={!allMatched}
-                    onClick={() => onConfirmRateCon?.(load.id)}
+                    onClick={() => onConfirmRateCon?.(load.id, rc.id)}
                   >
                     {allMatched
                       ? 'CONFIRM RATE CON'

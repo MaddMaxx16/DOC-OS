@@ -1,3 +1,4 @@
+import { isRateConfirmationConfirmed } from '../utils/rateConfirmation.js'
 import './OperationsWorkspace.css'
 import { canAcquireDriverMovement, resolveDriverMovementOwner } from '../utils/driverMovementOwner.js'
 import { anchorMovementRoute, getLunchMovementFrame } from '../utils/runtimeMovement.js'
@@ -1214,7 +1215,7 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
             if (liveLoad && item.id === liveLoad.id && item.id !== nextLoad.id && ['loaded','en-route-delivery','onboard-hold'].includes(item.tripStatus)) return {
               ...item, tripStatus: 'onboard-hold', status: 'onboard', waitingReason: 'itinerary-next-stop', deliveryDepartureGameMinute: null,
             }
-            if (item.id !== nextLoad.id) return item
+            if (item.id !== nextLoad.id || !isRateConfirmationConfirmed(item)) return item
             if (nextStop.type === 'pickup') return {
               ...item, tripStatus: 'en-route-pickup', status: 'en-route-pickup', queuePosition: 0,
               plannedDeadheadMiles: route.distanceMiles, plannedDeadheadDriveTimeMinutes: route.durationMinutes,
@@ -1700,7 +1701,11 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
     const actionDriver = drivers.find((item) => item.id === (driverId || load.assignedDriverId))
     if (actionType !== 'MESSAGE_DRIVER' && isDriverOnLunch(actionDriver, gameTime)) return
     const now = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    if (actionType === 'MESSAGE_DRIVER') {
+    if (actionType === 'REVIEW_RATE_CON') {
+      setPhoneInitialScreen('rateConReview')
+      setPhoneLoadId(load.id)
+      setIsPhoneOpen(true)
+    } else if (actionType === 'MESSAGE_DRIVER') {
       setPhoneInitialScreen('messageThread')
       setPhoneInitialDriverId(driverId || load.assignedDriverId || null)
       setIsPhoneOpen(true)
@@ -2364,7 +2369,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
     const isRouteSend = meta?.operationalAction === 'route-sent' && meta?.loadId && ['pickup', 'delivery'].includes(meta?.phase)
     const contextLoad = meta?.loadId ? loads.find((item) => item.id === meta.loadId) : null
     const routeLoad = isRouteSend ? contextLoad : null
-    if (isRouteSend && !canMoveFreight(driverId, routeLoad?.id)) return
+    if (isRouteSend && (!isRateConfirmationConfirmed(routeLoad) || !canMoveFreight(driverId, routeLoad?.id))) return
     const routeDriver = drivers.find((item) => item.id === driverId)
     const currentOrigin = isRouteSend
       ? (runtimePositions?.[driverId]
@@ -2458,7 +2463,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
     })
     if (isRouteSend) {
       setDriverRuntimeProgress(driverId, 0)
-      setLoads((current) => current.map((load) => load.id !== meta.loadId ? load : meta.phase === 'delivery' ? {
+      setLoads((current) => current.map((load) => load.id !== meta.loadId || !isRateConfirmationConfirmed(load) ? load : meta.phase === 'delivery' ? {
         ...load,
         plannedLoadedRouteGeometry: anchorMovementRoute(normalizedDepartureGeometry, currentOrigin),
         plannedLoadedDriveTimeMinutes: isNearZeroDeparture ? Math.max(1, Number(load.plannedLoadedDriveTimeMinutes) || 1) : load.plannedLoadedDriveTimeMinutes,

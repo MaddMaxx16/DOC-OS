@@ -1,3 +1,4 @@
+import { needsRateConfirmationBeforeDeparture, getRateConfirmationHoldReason } from '../utils/rateConfirmation.js'
 import { useEffect, useMemo, useState } from 'react'
 import mapLocations from '../data/mapLocations.js'
 import { formatAppointment, formatCompactDate, formatTime, getCalendarDate } from '../utils/gameTime.js'
@@ -97,7 +98,7 @@ function toneFor(load) { return getRouteLifecycleTone(load) }
 function FleetSchedulerScreen({
   loads = [], drivers = [], carriers = [], gameTime, focusLoadId = null, initialDriverId = null,
   onBackToFreightLink, onRequestScheduleApproval, onBookRoute, onBookApprovedSchedule, onRemoveFromPlan, onSendDriverSchedule, onUpdateDriverWorkday, onOpenLunchDecision, onDriverContextChange,
-  onOpenDriverOperations,
+  onOpenDriverOperations, onReviewRateCon,
 }) {
   const focusLoad = loads.find((load) => load.id === focusLoadId)
   const firstDriverId = initialDriverId || focusLoad?.candidateDriverId || focusLoad?.assignedDriverId || drivers.find((driver) => driver.carrierId)?.id || drivers[0]?.id || null
@@ -501,7 +502,7 @@ function FleetSchedulerScreen({
               const approvalQueued = Boolean(load.scheduleApprovalQueued)
               const approvalPending = approval === 'PENDING'
               const statusLabel = booked
-                ? 'BOOKED'
+                ? (needsRateConfirmationBeforeDeparture(load) ? 'RATE CON REQUIRED' : 'BOOKED')
                 : approval === 'APPROVED'
                   ? 'APPROVED TO BOOK'
                   : approvalPending
@@ -537,6 +538,11 @@ function FleetSchedulerScreen({
                     <span>{load.rate ? `$${Number(load.rate).toLocaleString()}` : 'RATE TBD'}</span>
                     <span>{String(load.tripStatus || load.status || 'planned').replace(/[-_]+/g, ' ').toUpperCase()}</span>
                   </div>
+
+                  {needsRateConfirmationBeforeDeparture(load) && <section className="ratecon-dispatch-hold" aria-label="Dispatch held for rate confirmation">
+                    <strong>DISPATCH HELD</strong><p>{getRateConfirmationHoldReason(load)}</p>
+                    {load.rateConfirmation && <button type="button" onClick={() => onReviewRateCon?.(load.id)}>REVIEW RATE CON</button>}
+                  </section>}
 
                   {!booked && (
                     <footer>

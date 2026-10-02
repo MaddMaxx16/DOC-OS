@@ -246,7 +246,7 @@ test('automatic freight departure cannot acquire an active lunch or staging owne
   for (const owner of ['lunch', 'idle']) {
     const f = fixture({ [owner]: true })
     f.state.loads[0].tripStatus = 'assigned'
-    Object.assign(f.state.loads[0], { driverAcknowledgedGameMinute: 100, pickupDayIndex: 0, pickupWindowStartMinutes: 110 })
+    Object.assign(f.state.loads[0], { rateConfirmation: { status: 'CONFIRMED' }, driverAcknowledgedGameMinute: 100, pickupDayIndex: 0, pickupWindowStartMinutes: 110 })
     f.tickDepartures()
     assert.deepEqual(f.writes, [])
     assert.equal(f.state.loads[0].tripStatus, 'assigned')
@@ -256,7 +256,7 @@ test('automatic freight departure cannot acquire an active lunch or staging owne
 test('automatic departure anchors acquired freight route at current runtime position', () => {
   const f = fixture()
   f.state.loads[0].tripStatus = 'assigned'
-  Object.assign(f.state.loads[0], { driverAcknowledgedGameMinute: 100, pickupDayIndex: 0, pickupWindowStartMinutes: 110 })
+  Object.assign(f.state.loads[0], { rateConfirmation: { status: 'CONFIRMED' }, driverAcknowledgedGameMinute: 100, pickupDayIndex: 0, pickupWindowStartMinutes: 110 })
   f.tickDepartures()
   assert.equal(f.state.loads[0].tripStatus, 'en-route-pickup')
   assert.deepEqual(f.state.loads[0].plannedDeadheadRouteGeometry[0], [1, 1])
@@ -315,9 +315,25 @@ test('late staging route is rejected when freight acquired the driver during rou
 
 test('one automatic departure cannot launch two freight loads for the same driver', () => {
   const f = fixture()
-  const load = { ...f.state.loads[0], tripStatus: 'assigned', driverAcknowledgedGameMinute: 100,
+  const load = { ...f.state.loads[0], rateConfirmation: { status: 'CONFIRMED' }, tripStatus: 'assigned', driverAcknowledgedGameMinute: 100,
     pickupDayIndex: 0, pickupWindowStartMinutes: 110 }
   f.state.loads = [load, { ...load, id: 'second-freight' }]
   f.tickDepartures()
   assert.equal(f.state.loads.filter((item) => item.tripStatus === 'en-route-pickup').length, 1)
+})
+
+
+test('real automatic departure holds an acknowledged schedule until the current rate con is confirmed', () => {
+  const f = fixture()
+  Object.assign(f.state.loads[0], { tripStatus: 'assigned', driverAcknowledgedGameMinute: 100, pickupDayIndex: 0, pickupWindowStartMinutes: 110 })
+  for (const document of [null, { status: 'RECEIVED' }, { status: 'CORRECTION_REQUESTED' }, { status: 'CONFIRMED', isCurrent: false }]) {
+    f.state.loads[0].rateConfirmation = document
+    f.writes.length = 0
+    f.tickDepartures()
+    assert.equal(f.state.loads[0].tripStatus, 'assigned')
+    assert.deepEqual(f.writes, [])
+  }
+  f.state.loads[0].rateConfirmation = { status: 'CONFIRMED', isCurrent: true }
+  f.tickDepartures()
+  assert.equal(f.state.loads[0].tripStatus, 'en-route-pickup')
 })

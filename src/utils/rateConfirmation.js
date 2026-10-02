@@ -29,3 +29,23 @@ export function createRateConfirmation(load, issuedGameMinute, carrierName = 'Ca
     history: [],
   }
 }
+
+
+export function isRateConfirmationConfirmed(load) {
+  const document = load?.rateConfirmation
+  return Boolean(document && document.status === 'CONFIRMED' && document.isCurrent !== false
+    && (!document.loadId || document.loadId === load.id))
+}
+
+export function needsRateConfirmationBeforeDeparture(load) {
+  return Boolean(load?.assignedDriverId
+    && ['assigned', 'queued', 'route-ready', 'loaded', 'onboard-hold'].includes(load.tripStatus || load.status)
+    && !isRateConfirmationConfirmed(load))
+}
+
+export function getRateConfirmationHoldReason(load) {
+  if (isRateConfirmationConfirmed(load)) return null
+  if (!load?.rateConfirmation) return 'Awaiting the rate confirmation. The driver must hold until it arrives and you confirm it.'
+  if (load.rateConfirmation.status === 'CORRECTION_REQUESTED') return 'Awaiting a corrected rate confirmation. Review and confirm the new copy before the driver departs.'
+  return 'Review and confirm the current rate confirmation before the driver departs.'
+}
