@@ -481,7 +481,6 @@ function FleetSchedulerScreen({
 
           <div className="scheduler-route-column">
             {currentDayLoads.flatMap((load) => {
-              const pickupMinute = load.pickupWindowStartMinutes ?? startMinute
               const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
               const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
               const selected = load.id === selectedLoadId
