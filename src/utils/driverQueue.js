@@ -2,6 +2,7 @@ import { isRateConfirmationConfirmed } from './rateConfirmation.js'
 import mapLocations from '../data/mapLocations.js'
 import { buildDriverItinerary, getNextActionableDriverStop } from './driverItinerary.js'
 import { isLoadOnboard } from './driverManifest.js'
+import { getLocationDistanceMiles } from '../services/routingService.js'
 
 const TERMINAL_STATUSES = new Set(['completed', 'delivered'])
 const PICKUP_SERVICE_MINUTES = 10
@@ -54,6 +55,14 @@ function duration(load, key, fallback = 0) {
   return Number.isFinite(value) && value >= 0 ? value : fallback
 }
 
+function estimateManifestTravelMinutes(origin, destination, mph = 40) {
+  if (!origin || !destination) return 0
+  if (origin.id && destination.id && origin.id === destination.id) return 0
+  const straightMiles = getLocationDistanceMiles(origin, destination)
+  if (!Number.isFinite(straightMiles)) return 0
+  return Math.max(1, Math.round(((straightMiles * 1.18) / mph) * 60))
+}
+
 function pickupServiceMinutes(load) {
   return PICKUP_SERVICE_MINUTES + Math.max(0, Number(load?.facilityOps?.pickup?.loadingDelayMinutes || 0))
 }
@@ -86,11 +95,15 @@ export function getProjectedDriverOrigin({ driver, loads = [], runtimePositions 
     const status = load?.tripStatus || load?.status
     const windowStart = Number(stop.dayIndex || 0) * 1440 + Number(stop.windowStartMinutes || 0)
     const service = stop.type === 'pickup' ? pickupServiceMinutes(load) : deliveryServiceMinutes(load)
-    const plannedTravel = stop.type === 'pickup'
+    const destination = mapLocations.find((item) => item.id === stop.locationId) || null
+    const storedTravel = stop.type === 'pickup'
       ? duration(load, 'plannedDeadheadDriveTimeMinutes', Number(load.assignmentProjection?.deadheadMinutes || 0))
       : duration(load, 'plannedLoadedDriveTimeMinutes', Number(load.assignmentProjection?.loadedMinutes || 0))
 
-    let travel = plannedTravel
+    // Manifest projection is stop-to-stop. Stored deadhead/loaded durations describe
+    // the original load lane and are only authoritative while that exact road leg
+    // is physically in progress.
+    let travel = estimateManifestTravelMinutes(location, destination)
     if (index === 0) {
       const activelyAtStop = stop.type === 'pickup'
         ? ['at-pickup', 'checking-in-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'pickup-issue'].includes(status)
@@ -100,13 +113,13 @@ export function getProjectedDriverOrigin({ driver, loads = [], runtimePositions 
       const departure = stop.type === 'pickup' ? Number(load?.departureGameMinute) : Number(load?.deliveryDepartureGameMinute)
       const activelyDriving = stop.type === 'pickup' ? status === 'en-route-pickup' : status === 'en-route-delivery'
       if (activelyDriving && Number.isFinite(departure)) {
-        travel = Math.max(0, departure + plannedTravel - cursor)
+        travel = Math.max(0, departure + storedTravel - cursor)
       }
     }
 
     const arrival = Math.max(cursor + Math.max(0, travel), windowStart)
     cursor = arrival + service
-    location = mapLocations.find((item) => item.id === stop.locationId) || location
+    location = destination || location
   })
 
   const lastStop = itinerary[itinerary.length - 1]
