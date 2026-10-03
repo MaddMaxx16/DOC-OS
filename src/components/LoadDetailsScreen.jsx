@@ -422,8 +422,8 @@ function LoadDetailsScreen({
         {buildingLaterLoad && (
           <FirstDayLesson compact title={firstDay?.step === 'thirdLoad' ? 'Fit the final load around the day' : 'Build onto the confirmed day'}>
             {firstDay?.step === 'thirdLoad'
-              ? 'Two loads and lunch are already locked in. This final lane has to fit around all three before we pursue it.'
-              : 'Load 1 is already confirmed. This lane starts from where Marcus becomes available after that work. Secure Load 2 first; then we’ll plan lunch.'}
+              ? 'Two loads and lunch are already locked in. This final lane has to fit the existing stop order and the trailer space that opens after the first delivery.'
+              : 'Load 1 is already confirmed and remains onboard. We’re checking whether this pickup can be inserted before Load 1’s delivery without breaking appointments or trailer capacity.'}
           </FirstDayLesson>
         )}
 
@@ -437,7 +437,7 @@ function LoadDetailsScreen({
           </header>
           <div className="lane-day-check-flow">
             <div>
-              <span>{confirmedDayLoads.length ? `FREE AFTER LOAD ${confirmedDayLoads.length}` : 'SHIFT START'}</span>
+              <span>{confirmedDayLoads.length ? 'MANIFEST START POINT' : 'SHIFT START'}</span>
               <strong>{absoluteTime(projectedStart)}</strong>
               <small>{originName}</small>
             </div>
@@ -544,7 +544,7 @@ function LoadDetailsScreen({
           <div className={`lane-timeline-stop shift ${activeCoachKey === 'pickup' ? 'coach-focus' : ''}`}>
             <time>{absoluteTime(projectedStart)}</time>
             <i />
-            <div><span>{confirmedDayLoads.length ? `AVAILABLE AFTER LOAD ${confirmedDayLoads.length}` : 'SHIFT START'}</span><strong>{originName}</strong></div>
+            <div><span>{confirmedDayLoads.length ? 'NEXT MANIFEST LEG' : 'SHIFT START'}</span><strong>{originName}</strong></div>
           </div>
 
           <div className={`lane-timeline-leg ${activeCoachKey === 'pickup' ? 'coach-focus' : ''}`}>
