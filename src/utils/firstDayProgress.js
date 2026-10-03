@@ -115,10 +115,9 @@ export function shouldTeachFirstDayStaging(progress, loads = []) {
   return progress?.step === 'thirdLoad' && getFirstDayBookedLanes(loads).length >= 3
 }
 
-export function isFirstDayTeachingPaused(progress, loads = []) {
-  return ['welcome', 'lunch', 'staging'].includes(progress?.step)
-    || (Number(progress?.flowVersion || 0) >= 5 && ['freight', 'restOfDay', 'thirdLoad'].includes(progress.step))
-    || shouldTeachFirstDayRest(progress, loads)
-    || shouldTeachFirstDayLunch(progress, loads)
-    || shouldTeachFirstDayStaging(progress, loads)
+// Desktop Experience V2 defers the guided Day 1 lesson until V2.11.
+// Keep the progression model intact for save compatibility, but it no longer
+// owns the simulation clock while the real workstation systems are rebuilt.
+export function isFirstDayTeachingPaused() {
+  return false
 }
