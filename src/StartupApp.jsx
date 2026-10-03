@@ -6,6 +6,7 @@ import CareerSetupScreen from './components/CareerSetupScreen.jsx'
 import DesktopTitleScreen from './components/DesktopTitleScreen.jsx'
 import DesktopCareerWorkspace from './components/DesktopCareerWorkspace.jsx'
 import './components/DesktopExperience.css'
+import './components/DesktopWorkstation.css'
 import { createMetrolineEmployeeCareer } from './utils/careerState.js'
 import {
   SAVE_SLOT_IDS,
@@ -36,14 +37,6 @@ function StartupApp() {
   const [dispatcherProfile, setDispatcherProfile] = useState(null)
   const [careerSetupPhase, setCareerSetupPhase] = useState('name')
   const [saveFailureMessage, setSaveFailureMessage] = useState('')
-
-  useEffect(() => {
-    if (Capacitor.getPlatform() !== 'web') return
-    // Desktop Experience V2 is a deliberate runtime mode on web/Steam-style
-    // builds. Load its workstation chrome explicitly instead of depending on
-    // hover/pointer media queries that vary across browsers and display setups.
-    void import('./components/DesktopWorkstation.css')
-  }, [])
 
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'ios') return
@@ -217,9 +210,17 @@ function StartupApp() {
   return (
     <>
     {stage === 'operations' ? (
-      <Suspense fallback={null}>
-        <OperationsApp onReturnToStartup={returnToStartup} onWorkstationReady={revealWorkstation} />
-      </Suspense>
+      Capacitor.getPlatform() === 'web' ? (
+        <div className="desktop-operations-root">
+          <Suspense fallback={null}>
+            <OperationsApp onReturnToStartup={returnToStartup} onWorkstationReady={revealWorkstation} />
+          </Suspense>
+        </div>
+      ) : (
+        <Suspense fallback={null}>
+          <OperationsApp onReturnToStartup={returnToStartup} onWorkstationReady={revealWorkstation} />
+        </Suspense>
+      )
     ) : (
     <main className="app desktop-startup-app">
       {saveFailureMessage && (

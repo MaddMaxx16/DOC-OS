@@ -1,5 +1,6 @@
 import { isRateConfirmationConfirmed } from '../utils/rateConfirmation.js'
 import './OperationsWorkspace.css'
+import { Capacitor } from '@capacitor/core'
 import { canAcquireDriverMovement, resolveDriverMovementOwner } from '../utils/driverMovementOwner.js'
 import { anchorMovementRoute, getLunchMovementFrame } from '../utils/runtimeMovement.js'
 import { beginPickupLoading, completePickupLoading, getPickupLoadingChallengeRequest } from '../utils/loadLifecycle.js'
@@ -271,22 +272,23 @@ function getAuthoritativeScheduleConstraint(load, driver) {
 }
 
 function MainGameScreen({ onWorkstationReady, career, selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario, onInitializeEmployeeCareer, initialPhoneOpen = false, initialPhoneScreen = 'home', onInitialPhoneEntryConsumed }) {
+  const desktopRuntime = Capacitor.getPlatform() === 'web'
   useEffect(() => {
     onWorkstationReady?.()
   }, [onWorkstationReady])
   const [phoneLessonEntry, setPhoneLessonEntry] = useState(0)
-  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen))
+  const [isPhoneOpen, setIsPhoneOpen] = useState(desktopRuntime ? false : Boolean(initialPhoneOpen))
   const [phoneInitialScreen, setPhoneInitialScreen] = useState(initialPhoneScreen || 'home')
   // B.5.4D.1.1 — Opening Guidance + CarrierSource Clock Gate
   const [dayOneCarrierSourceGateActive, setDayOneCarrierSourceGateActive] = useState(
-    Boolean(initialPhoneOpen && initialPhoneScreen === 'email')
+    Boolean(!desktopRuntime && initialPhoneOpen && initialPhoneScreen === 'email')
   )
 
   // B.5.4D.1 — consume the one-shot Day 1 launch into Email.
   useEffect(() => {
-    if (!initialPhoneOpen) return
+    if (desktopRuntime || !initialPhoneOpen) return
     onInitialPhoneEntryConsumed?.()
-  }, [initialPhoneOpen, onInitialPhoneEntryConsumed])
+  }, [desktopRuntime, initialPhoneOpen, onInitialPhoneEntryConsumed])
 
   const completeDayOneCarrierSourceHandoff = () => {
     if (!dayOneCarrierSourceGateActive) return
@@ -2781,7 +2783,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       </div>
       <div className={`map-area ${operationsOpen ? 'operations-open' : ''}`}>
         <></>
-        {!isPhoneOpen && !freightBrowseMode && !planningMode && !deliveryPlanning && (
+        {!desktopRuntime && !isPhoneOpen && !freightBrowseMode && !planningMode && !deliveryPlanning && (
           <button type="button" className="board-view-control" onClick={() => setBoardViewRequest((value) => value + 1)} aria-label="Fit all active operations on map">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="2.4"/></svg>
             <span>FIT MAP</span>
@@ -2818,7 +2820,8 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           />
         )}
         <GameMap initialDriverId={null} boardViewRequest={boardViewRequest} driverFocusRequest={driverFocusRequest} driverFocusId={driverFocusId} facilityFocusRequest={facilityFocusRequest} facilityFocusRole={facilityFocusRole} loads={loads} activeRouteGeometry={freightBrowseMode ? freightBrowseRouteGeometry : activeRouteGeometry} routeFocusMode={freightBrowseMode && freightBrowseRouteGeometry ? 'freight-browse' : planningMode || deliveryPlanning ? 'planning' : null} routeReviewLoad={planningLoad || deliveryPlanningLoad} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgressByDriver={runtimeProgressByDriver} simulationSpeed={simulationSpeed} isGameClockPaused={isGameClockPaused} assignedLoad={assignedLoad} evaluationLoad={null} isDriverFitEvaluation={false} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} freightBrowseMode={freightBrowseMode} freightBrowseLoads={freightBrowseLoads} freightBrowseSelectedLoadId={freightBrowseLoadId} onFreightBrowseSelect={selectFreightBrowseLoad} lunchCandidateLocations={lunchMapLocations} visualSuspended={Boolean(isPhoneOpen || endDayOpen || loadingChallengeLoadId || unloadSequenceLoadId || completionResultLoadId || driverHubOpen || dayLoopOverlayActive)} />
-        <DesktopWorkstationChrome
+        {desktopRuntime && (
+          <DesktopWorkstationChrome
           drivers={drivers}
           loads={loads}
           selectedDriverId={desktopDriverId || drivers[0]?.id || null}
@@ -2845,8 +2848,9 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
             messages: driverMessageUnreadCount,
             banking: loads.filter((load) => load.tripStatus === 'completed' && load.pod?.approved && !seenLedgerReceivableIds.includes(load.id)).length,
           }}
-          isGameClockPaused={isGameClockPaused}
-        />
+            isGameClockPaused={isGameClockPaused}
+          />
+        )}
         {freightBrowseMode && (
           <>
             <div className="freight-browse-mode-bar">
@@ -3088,7 +3092,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
 
         {!isPhoneOpen && !planningMode && !deliveryPlanning && (
           <>
-            {driverHubOpen && (
+            {!desktopRuntime && driverHubOpen && (
               <section className="driver-hub-sheet" aria-label="Drivers">
                 <header>
                   <div><small>FLEET</small><strong>Drivers</strong></div>
@@ -3220,7 +3224,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           )
         })()}
 
-        {!isPhoneOpen && !planningMode && !deliveryPlanning && (
+        {!desktopRuntime && !isPhoneOpen && !planningMode && !deliveryPlanning && (
           <nav className="operations-map-dock" aria-label="Workstation">
             {!driverFitEvaluation && !freightBrowseMode && (
               <button type="button" className="console-launcher" aria-label="Open operations console" title="Operations console" onClick={() => { setDriverHubOpen(false); setPhoneInitialScreen('home'); setPhoneLoadId(null); setPhoneInitialDriverId(null); setPhoneInitialEmailContext(null); setIsPhoneOpen(true) }}>

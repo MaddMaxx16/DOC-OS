@@ -1,21 +1,58 @@
-/* Desktop workstation runtime styles.
-   Loaded explicitly by StartupApp only on the web/desktop runtime so the
-   workstation no longer depends on CSS input-device media-query detection. */
-.app { width:100vw; height:100vh; max-height:none; background:#05080d; }
-  .app>.phone-shell:not(.legacy-career-frame) { width:100vw; height:100vh; max-height:none; aspect-ratio:auto; border-radius:0; box-shadow:none; }
-  .app>.phone-shell.legacy-career-frame { width:min(430px,92vw,calc(92vh * 390 / 844)); max-height:92vh; border-radius:32px; }
+/* V2.1 desktop runtime boundary.
+   This stylesheet is imported for every operations bundle, but every workstation
+   rule is structurally scoped to .desktop-operations-root. Native/mobile never mounts
+   that boundary, so desktop presentation cannot leak into the phone runtime. */
+.desktop-operations-root {
+  position:fixed;
+  inset:0;
+  z-index:0;
+  isolation:isolate;
+  width:100vw;
+  height:100vh;
+  min-width:0;
+  min-height:0;
+  display:flex;
+  overflow:hidden;
+  border-radius:0;
+  background:#05080d;
+}
+.desktop-operations-root > .app {
+  width:100%;
+  height:100%;
+  max-height:none;
+  min-width:0;
+  min-height:0;
+  justify-content:stretch;
+  align-items:stretch;
+  background:#05080d;
+}
+.desktop-operations-root > .app > .phone-shell {
+  position:relative;
+  isolation:isolate;
+  width:100%;
+  height:100%;
+  max-height:none;
+  min-width:0;
+  min-height:0;
+  aspect-ratio:auto;
+  overflow:hidden;
+  display:flex;
+  border-radius:0;
+  background:#070c12;
+  box-shadow:none;
+}
 
-  .main-game-screen {
+.desktop-operations-root .main-game-screen {
     --desktop-dock:54px;
     --desktop-dock-gap:74px;
     --desktop-driver-drawer:300px;
     --desktop-operation-drawer:390px;
     background:#070c12;
   }
-  .main-game-screen .status-bar { height:36px; padding:0 16px; background:rgba(8,13,19,.96); }
-  .main-game-screen .operations-toolbar { min-height:40px; background:rgba(9,15,22,.96); border-bottom:1px solid #1c2833; }
-  .main-game-screen .map-area { overflow:hidden; background:#071019; }
-  .main-game-screen .game-map {
+  .desktop-operations-root .main-game-screen .status-bar { height:36px; padding:0 16px; background:rgba(8,13,19,.96); }
+  .desktop-operations-root .main-game-screen .operations-toolbar { min-height:40px; background:rgba(9,15,22,.96); border-bottom:1px solid #1c2833; }
+  .desktop-operations-root .main-game-screen .map-area { overflow:hidden; background:#071019; }
+  .desktop-operations-root .main-game-screen .game-map {
     left:0;
     right:0;
     bottom:0;
@@ -23,20 +60,20 @@
     height:auto;
     transition:bottom .28s cubic-bezier(.2,.8,.2,1), opacity .22s ease, filter .22s ease;
   }
-  .main-game-screen.desktop-workspace-working .game-map { bottom:calc(40% + var(--desktop-dock-gap)); }
-  .main-game-screen.desktop-workspace-focused .game-map { opacity:.24; filter:saturate(.55) brightness(.65); }
-  .main-game-screen .operations-map-dock { display:none!important; }
-  .main-game-screen .board-view-control { left:72px; bottom:82px; }
+  .desktop-operations-root .main-game-screen.desktop-workspace-working .game-map { bottom:calc(40% + var(--desktop-dock-gap)); }
+  .desktop-operations-root .main-game-screen.desktop-workspace-focused .game-map { opacity:.24; filter:saturate(.55) brightness(.65); }
+  .desktop-operations-root .main-game-screen .operations-map-dock { display:none!important; }
+  .desktop-operations-root .main-game-screen .board-view-control { left:72px; bottom:82px; }
 
-  .desktop-workstation-chrome { display:block; position:absolute; inset:0; z-index:22; pointer-events:none; }
-  .desktop-drawer-handle,
-  .desktop-driver-drawer,
-  .desktop-operation-drawer,
-  .desktop-app-dock,
-  .desktop-focused-summary,
-  .desktop-shop-placeholder { pointer-events:auto; }
+  .desktop-operations-root .desktop-workstation-chrome { display:block!important; position:absolute; inset:0; z-index:22; pointer-events:none; }
+  .desktop-operations-root .desktop-drawer-handle,
+.desktop-operations-root .desktop-driver-drawer,
+.desktop-operations-root .desktop-operation-drawer,
+.desktop-operations-root .desktop-app-dock,
+.desktop-operations-root .desktop-focused-summary,
+.desktop-operations-root .desktop-shop-placeholder { pointer-events:auto; }
 
-  .desktop-drawer-handle {
+  .desktop-operations-root .desktop-drawer-handle {
     position:absolute;
     z-index:34;
     top:50%;
@@ -57,16 +94,16 @@
     cursor:pointer;
     transition:background .18s ease, border-color .18s ease, color .18s ease;
   }
-  .desktop-drawer-handle:hover,
-  .desktop-drawer-handle.open { background:rgba(15,27,37,.98); border-color:#3b586d; color:#d9e5ee; }
-  .desktop-drawer-handle svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; }
-  .desktop-drawer-handle span { font-size:7px; font-weight:900; letter-spacing:.12em; }
-  .desktop-drawer-handle b { min-width:20px; height:20px; padding:0 4px; display:grid; place-items:center; box-sizing:border-box; border-radius:999px; background:#152431; color:#9fb8cb; font-size:8px; }
-  .desktop-drawer-handle-left { left:10px; border-radius:0 10px 10px 0; }
-  .desktop-drawer-handle-right { right:10px; border-radius:10px 0 0 10px; }
+  .desktop-operations-root .desktop-drawer-handle:hover,
+.desktop-operations-root .desktop-drawer-handle.open { background:rgba(15,27,37,.98); border-color:#3b586d; color:#d9e5ee; }
+  .desktop-operations-root .desktop-drawer-handle svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; }
+  .desktop-operations-root .desktop-drawer-handle span { font-size:7px; font-weight:900; letter-spacing:.12em; }
+  .desktop-operations-root .desktop-drawer-handle b { min-width:20px; height:20px; padding:0 4px; display:grid; place-items:center; box-sizing:border-box; border-radius:999px; background:#152431; color:#9fb8cb; font-size:8px; }
+  .desktop-operations-root .desktop-drawer-handle-left { left:10px; border-radius:0 10px 10px 0; }
+  .desktop-operations-root .desktop-drawer-handle-right { right:10px; border-radius:10px 0 0 10px; }
 
-  .desktop-driver-drawer,
-  .desktop-operation-drawer {
+  .desktop-operations-root .desktop-driver-drawer,
+.desktop-operations-root .desktop-operation-drawer {
     position:absolute;
     z-index:33;
     top:10px;
@@ -79,74 +116,77 @@
     backdrop-filter:blur(18px);
     transition:transform .24s cubic-bezier(.2,.8,.2,1), opacity .18s ease;
   }
-  .desktop-driver-drawer {
+  .desktop-operations-root .desktop-driver-drawer {
     left:10px;
     width:var(--desktop-driver-drawer);
     transform:translateX(calc(-100% - 24px));
     opacity:0;
   }
-  .desktop-driver-drawer.open { transform:translateX(0); opacity:1; }
-  .desktop-driver-drawer:not(.open) { pointer-events:none; }
-  .desktop-operation-drawer {
+  .desktop-operations-root .desktop-driver-drawer.open { transform:translateX(0); opacity:1; }
+  .desktop-operations-root .desktop-driver-drawer:not(.open) { pointer-events:none; }
+  .desktop-operations-root .desktop-operation-drawer {
     right:10px;
     width:var(--desktop-operation-drawer);
     padding:16px;
     transform:translateX(calc(100% + 24px));
     opacity:0;
   }
-  .desktop-operation-drawer.open { transform:translateX(0); opacity:1; }
-  .desktop-operation-drawer:not(.open) { pointer-events:none; }
+  .desktop-operations-root .desktop-operation-drawer.open { transform:translateX(0); opacity:1; }
+  .desktop-operations-root .desktop-operation-drawer:not(.open) { pointer-events:none; }
 
-  .desktop-driver-drawer>header,
-  .desktop-operation-drawer>header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; border-bottom:1px solid #1d2c37; }
-  .desktop-driver-drawer>header { min-height:64px; padding:14px 14px 12px; box-sizing:border-box; }
-  .desktop-operation-drawer>header { padding:0 0 14px; }
-  .desktop-driver-drawer>header>div,
-  .desktop-operation-drawer>header>div { display:flex; flex-direction:column; gap:3px; min-width:0; }
-  .desktop-driver-drawer>header span,
-  .desktop-operation-drawer>header span { color:#71879a; font-size:8px; font-weight:900; letter-spacing:.17em; }
-  .desktop-driver-drawer>header strong { font-size:17px; }
-  .desktop-operation-drawer>header strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:19px; }
-  .desktop-driver-drawer>header small,
-  .desktop-operation-drawer>header small { color:#778a9a; font-size:9px; }
-  .desktop-driver-drawer>header button,
-  .desktop-operation-drawer>header button { flex:0 0 auto; width:28px; height:28px; border:1px solid #293b49; background:#0e171f; color:#a9b7c3; font-size:18px; cursor:pointer; }
+  .desktop-operations-root .desktop-driver-drawer>header,
+.desktop-operations-root .desktop-operation-drawer>header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; border-bottom:1px solid #1d2c37; }
+  .desktop-operations-root .desktop-driver-drawer>header { min-height:64px; padding:14px 14px 12px; box-sizing:border-box; }
+  .desktop-operations-root .desktop-operation-drawer>header { padding:0 0 14px; }
+  .desktop-operations-root .desktop-driver-drawer>header>div,
+.desktop-operations-root .desktop-operation-drawer>header>div { display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .desktop-operations-root .desktop-driver-drawer>header span,
+.desktop-operations-root .desktop-operation-drawer>header span { color:#71879a; font-size:8px; font-weight:900; letter-spacing:.17em; }
+  .desktop-operations-root .desktop-driver-drawer>header strong { font-size:17px; }
+  .desktop-operations-root .desktop-operation-drawer>header strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:19px; }
+  .desktop-operations-root .desktop-driver-drawer>header small,
+.desktop-operations-root .desktop-operation-drawer>header small { color:#778a9a; font-size:9px; }
+  .desktop-operations-root .desktop-driver-drawer>header button,
+.desktop-operations-root .desktop-operation-drawer>header button { flex:0 0 auto; width:28px; height:28px; border:1px solid #293b49; background:#0e171f; color:#a9b7c3; font-size:18px; cursor:pointer; }
 
-  .desktop-driver-list { padding:8px; display:grid; gap:6px; overflow:auto; max-height:calc(100% - 64px); }
-  .desktop-driver-list button { display:grid; grid-template-columns:36px 1fr; gap:9px; align-items:center; min-height:62px; padding:9px; border:1px solid transparent; background:transparent; color:#dbe4ec; text-align:left; cursor:pointer; }
-  .desktop-driver-list button:hover,.desktop-driver-list button.active { background:#111c26; border-color:#263b4d; }
-  .desktop-driver-list button.active { box-shadow:inset 2px 0 #7298b8; }
-  .desktop-driver-list i { width:32px; height:32px; display:grid; place-items:center; border-radius:8px; background:#29445b; color:#d8e8f5; font-style:normal; font-weight:900; }
-  .desktop-driver-list button>span { min-width:0; display:flex; flex-direction:column; gap:2px; }
-  .desktop-driver-list strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
-  .desktop-driver-list small { color:#8192a1; font-size:8px; font-weight:850; letter-spacing:.06em; }
-  .desktop-driver-list em { color:#627383; font-size:8px; font-style:normal; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .desktop-driver-list p { padding:18px 10px; color:#718291; font-size:10px; }
+  .desktop-operations-root .desktop-driver-list { padding:8px; display:grid; gap:6px; overflow:auto; max-height:calc(100% - 64px); }
+  .desktop-operations-root .desktop-driver-list button { display:grid; grid-template-columns:36px 1fr; gap:9px; align-items:center; min-height:62px; padding:9px; border:1px solid transparent; background:transparent; color:#dbe4ec; text-align:left; cursor:pointer; }
+  .desktop-operations-root .desktop-driver-list button:hover,
+.desktop-operations-root .desktop-driver-list button.active { background:#111c26; border-color:#263b4d; }
+  .desktop-operations-root .desktop-driver-list button.active { box-shadow:inset 2px 0 #7298b8; }
+  .desktop-operations-root .desktop-driver-list i { width:32px; height:32px; display:grid; place-items:center; border-radius:8px; background:#29445b; color:#d8e8f5; font-style:normal; font-weight:900; }
+  .desktop-operations-root .desktop-driver-list button>span { min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .desktop-operations-root .desktop-driver-list strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
+  .desktop-operations-root .desktop-driver-list small { color:#8192a1; font-size:8px; font-weight:850; letter-spacing:.06em; }
+  .desktop-operations-root .desktop-driver-list em { color:#627383; font-size:8px; font-style:normal; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .desktop-operations-root .desktop-driver-list p { padding:18px 10px; color:#718291; font-size:10px; }
 
-  .desktop-operation-metrics { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0; }
-  .desktop-operation-metrics>div { padding:11px; border:1px solid #1d303e; background:#0f1821; display:flex; flex-direction:column; gap:5px; }
-  .desktop-operation-metrics span,.desktop-operation-trailer span,.desktop-manifest-panel>header span { color:#728697; font-size:8px; font-weight:900; letter-spacing:.13em; }
-  .desktop-operation-metrics strong { font-size:15px; }
-  .desktop-operation-trailer { padding:12px; border:1px solid #1d303e; background:#0f1821; }
-  .desktop-operation-trailer>div:first-child { display:flex; justify-content:space-between; gap:12px; }
-  .desktop-operation-trailer strong { font-size:10px; }
-  .desktop-operation-trailer small { display:block; margin-top:6px; color:#718292; font-size:8px; }
-  .desktop-trailer-track { height:5px; margin-top:10px; background:#1b2833; overflow:hidden; }
-  .desktop-trailer-track i { display:block; height:100%; background:#668faf; }
-  .desktop-manifest-panel { margin-top:14px; }
-  .desktop-manifest-panel>header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-  .desktop-manifest-panel>header small { color:#657585; font-size:8px; }
-  .desktop-manifest-panel>div { display:grid; }
-  .desktop-manifest-panel button { display:grid; grid-template-columns:30px 1fr auto; align-items:center; gap:8px; min-height:48px; padding:6px 4px; border:0; border-bottom:1px solid #16252f; background:transparent; color:#d7e0e8; text-align:left; }
-  .desktop-manifest-panel button>b { width:26px; height:26px; display:grid; place-items:center; background:#1c3141; color:#9fbcd2; font-size:8px; }
-  .desktop-manifest-panel button>span { display:flex; flex-direction:column; gap:2px; min-width:0; }
-  .desktop-manifest-panel button strong { font-size:9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .desktop-manifest-panel button small { color:#738291; font-size:8px; }
-  .desktop-manifest-panel button em { color:#8fb1cc; font-size:7px; font-style:normal; font-weight:900; letter-spacing:.08em; }
-  .desktop-manifest-panel button.next { background:#101d27; box-shadow:inset 2px 0 #7196b5; }
-  .desktop-manifest-panel p { color:#718291; font-size:10px; }
+  .desktop-operations-root .desktop-operation-metrics { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0; }
+  .desktop-operations-root .desktop-operation-metrics>div { padding:11px; border:1px solid #1d303e; background:#0f1821; display:flex; flex-direction:column; gap:5px; }
+  .desktop-operations-root .desktop-operation-metrics span,
+.desktop-operations-root .desktop-operation-trailer span,
+.desktop-operations-root .desktop-manifest-panel>header span { color:#728697; font-size:8px; font-weight:900; letter-spacing:.13em; }
+  .desktop-operations-root .desktop-operation-metrics strong { font-size:15px; }
+  .desktop-operations-root .desktop-operation-trailer { padding:12px; border:1px solid #1d303e; background:#0f1821; }
+  .desktop-operations-root .desktop-operation-trailer>div:first-child { display:flex; justify-content:space-between; gap:12px; }
+  .desktop-operations-root .desktop-operation-trailer strong { font-size:10px; }
+  .desktop-operations-root .desktop-operation-trailer small { display:block; margin-top:6px; color:#718292; font-size:8px; }
+  .desktop-operations-root .desktop-trailer-track { height:5px; margin-top:10px; background:#1b2833; overflow:hidden; }
+  .desktop-operations-root .desktop-trailer-track i { display:block; height:100%; background:#668faf; }
+  .desktop-operations-root .desktop-manifest-panel { margin-top:14px; }
+  .desktop-operations-root .desktop-manifest-panel>header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .desktop-operations-root .desktop-manifest-panel>header small { color:#657585; font-size:8px; }
+  .desktop-operations-root .desktop-manifest-panel>div { display:grid; }
+  .desktop-operations-root .desktop-manifest-panel button { display:grid; grid-template-columns:30px 1fr auto; align-items:center; gap:8px; min-height:48px; padding:6px 4px; border:0; border-bottom:1px solid #16252f; background:transparent; color:#d7e0e8; text-align:left; }
+  .desktop-operations-root .desktop-manifest-panel button>b { width:26px; height:26px; display:grid; place-items:center; background:#1c3141; color:#9fbcd2; font-size:8px; }
+  .desktop-operations-root .desktop-manifest-panel button>span { display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .desktop-operations-root .desktop-manifest-panel button strong { font-size:9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .desktop-operations-root .desktop-manifest-panel button small { color:#738291; font-size:8px; }
+  .desktop-operations-root .desktop-manifest-panel button em { color:#8fb1cc; font-size:7px; font-style:normal; font-weight:900; letter-spacing:.08em; }
+  .desktop-operations-root .desktop-manifest-panel button.next { background:#101d27; box-shadow:inset 2px 0 #7196b5; }
+  .desktop-operations-root .desktop-manifest-panel p { color:#718291; font-size:10px; }
 
-  .desktop-app-dock {
+  .desktop-operations-root .desktop-app-dock {
     position:absolute;
     z-index:35;
     left:50%;
@@ -164,34 +204,35 @@
     box-shadow:0 18px 48px rgba(0,0,0,.4);
     backdrop-filter:blur(16px);
   }
-  .desktop-dock-brand { flex:0 0 74px; display:flex; align-items:center; justify-content:center; gap:4px; color:#8799aa; font-size:10px; font-weight:900; letter-spacing:.11em; border-right:1px solid #192731; }
-  .desktop-dock-brand b { color:#688baa; }
-  .desktop-app-dock button { position:relative; flex:1 1 84px; min-width:76px; padding:0 10px; border:0; border-right:1px solid #18252f; background:transparent; color:#788b9c; font-size:8px; font-weight:850; letter-spacing:.03em; cursor:pointer; }
-  .desktop-app-dock button:hover:not(:disabled),.desktop-app-dock button.active { background:#111c25; color:#e5edf4; box-shadow:inset 0 2px #688fad; }
-  .desktop-app-dock button:disabled { opacity:.38; cursor:default; }
-  .desktop-app-dock button small { display:block; margin-top:2px; color:#6d6175; font-size:6px; letter-spacing:.12em; }
-  .desktop-app-dock button i { position:absolute; top:7px; right:7px; min-width:15px; height:15px; padding:0 3px; display:grid; place-items:center; border-radius:999px; background:#8f63ad; color:#fff; font-size:7px; font-style:normal; }
-  .desktop-dock-clock { flex:0 0 78px; display:flex; align-items:center; justify-content:center; color:#7990a3; font-size:8px; font-weight:900; letter-spacing:.08em; }
-  .desktop-dock-clock.paused { color:#b994c7; }
+  .desktop-operations-root .desktop-dock-brand { flex:0 0 74px; display:flex; align-items:center; justify-content:center; gap:4px; color:#8799aa; font-size:10px; font-weight:900; letter-spacing:.11em; border-right:1px solid #192731; }
+  .desktop-operations-root .desktop-dock-brand b { color:#688baa; }
+  .desktop-operations-root .desktop-app-dock button { position:relative; flex:1 1 84px; min-width:76px; padding:0 10px; border:0; border-right:1px solid #18252f; background:transparent; color:#788b9c; font-size:8px; font-weight:850; letter-spacing:.03em; cursor:pointer; }
+  .desktop-operations-root .desktop-app-dock button:hover:not(:disabled),
+.desktop-operations-root .desktop-app-dock button.active { background:#111c25; color:#e5edf4; box-shadow:inset 0 2px #688fad; }
+  .desktop-operations-root .desktop-app-dock button:disabled { opacity:.38; cursor:default; }
+  .desktop-operations-root .desktop-app-dock button small { display:block; margin-top:2px; color:#6d6175; font-size:6px; letter-spacing:.12em; }
+  .desktop-operations-root .desktop-app-dock button i { position:absolute; top:7px; right:7px; min-width:15px; height:15px; padding:0 3px; display:grid; place-items:center; border-radius:999px; background:#8f63ad; color:#fff; font-size:7px; font-style:normal; }
+  .desktop-operations-root .desktop-dock-clock { flex:0 0 78px; display:flex; align-items:center; justify-content:center; color:#7990a3; font-size:8px; font-weight:900; letter-spacing:.08em; }
+  .desktop-operations-root .desktop-dock-clock.paused { color:#b994c7; }
 
-  .desktop-focused-summary { position:absolute; z-index:34; right:12px; top:12px; width:190px; box-sizing:border-box; padding:12px; display:grid; gap:5px; border:1px solid #324656; background:rgba(8,15,21,.94); box-shadow:0 16px 40px rgba(0,0,0,.4); }
-  .desktop-focused-summary strong { font-size:12px; }
-  .desktop-focused-summary>span { width:max-content; padding:3px 6px; background:#6f4f7c; color:#f5ecf9; font-size:7px; font-weight:900; letter-spacing:.11em; }
-  .desktop-focused-summary small { color:#8193a2; font-size:8px; }
+  .desktop-operations-root .desktop-focused-summary { position:absolute; z-index:34; right:12px; top:12px; width:190px; box-sizing:border-box; padding:12px; display:grid; gap:5px; border:1px solid #324656; background:rgba(8,15,21,.94); box-shadow:0 16px 40px rgba(0,0,0,.4); }
+  .desktop-operations-root .desktop-focused-summary strong { font-size:12px; }
+  .desktop-operations-root .desktop-focused-summary>span { width:max-content; padding:3px 6px; background:#6f4f7c; color:#f5ecf9; font-size:7px; font-weight:900; letter-spacing:.11em; }
+  .desktop-operations-root .desktop-focused-summary small { color:#8193a2; font-size:8px; }
 
-  .desktop-shop-placeholder { position:absolute; z-index:24; left:24px; right:24px; bottom:var(--desktop-dock-gap); height:40%; box-sizing:border-box; padding:20px; background:rgba(9,15,22,.98); border:1px solid #253846; box-shadow:0 -18px 50px rgba(0,0,0,.36); }
-  .desktop-shop-placeholder header { display:flex; align-items:flex-start; justify-content:space-between; padding-bottom:14px; border-bottom:1px solid #1b2a35; }
-  .desktop-shop-placeholder header div { display:flex; flex-direction:column; gap:3px; }
-  .desktop-shop-placeholder header span { color:#758ca0; font-size:8px; font-weight:900; letter-spacing:.16em; }
-  .desktop-shop-placeholder header strong { font-size:18px; }
-  .desktop-shop-placeholder header small { color:#6e8090; font-size:8px; }
-  .desktop-shop-preview-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:16px; }
-  .desktop-shop-preview-grid>div { min-height:110px; padding:16px; border:1px solid #203341; background:#0e1821; display:flex; flex-direction:column; gap:6px; }
-  .desktop-shop-preview-grid span { color:#6f879a; font-size:8px; font-weight:900; letter-spacing:.12em; }
-  .desktop-shop-preview-grid strong { font-size:13px; }
-  .desktop-shop-preview-grid small { color:#738494; font-size:9px; line-height:1.45; }
+  .desktop-operations-root .desktop-shop-placeholder { position:absolute; z-index:24; left:24px; right:24px; bottom:var(--desktop-dock-gap); height:40%; box-sizing:border-box; padding:20px; background:rgba(9,15,22,.98); border:1px solid #253846; box-shadow:0 -18px 50px rgba(0,0,0,.36); }
+  .desktop-operations-root .desktop-shop-placeholder header { display:flex; align-items:flex-start; justify-content:space-between; padding-bottom:14px; border-bottom:1px solid #1b2a35; }
+  .desktop-operations-root .desktop-shop-placeholder header div { display:flex; flex-direction:column; gap:3px; }
+  .desktop-operations-root .desktop-shop-placeholder header span { color:#758ca0; font-size:8px; font-weight:900; letter-spacing:.16em; }
+  .desktop-operations-root .desktop-shop-placeholder header strong { font-size:18px; }
+  .desktop-operations-root .desktop-shop-placeholder header small { color:#6e8090; font-size:8px; }
+  .desktop-operations-root .desktop-shop-preview-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:16px; }
+  .desktop-operations-root .desktop-shop-preview-grid>div { min-height:110px; padding:16px; border:1px solid #203341; background:#0e1821; display:flex; flex-direction:column; gap:6px; }
+  .desktop-operations-root .desktop-shop-preview-grid span { color:#6f879a; font-size:8px; font-weight:900; letter-spacing:.12em; }
+  .desktop-operations-root .desktop-shop-preview-grid strong { font-size:13px; }
+  .desktop-operations-root .desktop-shop-preview-grid small { color:#738494; font-size:9px; line-height:1.45; }
 
-  .phone-overlay.desktop-workspace-overlay {
+  .desktop-operations-root .phone-overlay.desktop-workspace-overlay {
     position:absolute!important;
     z-index:26!important;
     left:24px!important;
@@ -207,20 +248,20 @@
     box-shadow:0 -20px 50px rgba(0,0,0,.35)!important;
     transform:none!important;
   }
-  .phone-overlay.desktop-workspace-overlay .device-sheet-handle { display:none; }
-  .phone-overlay.desktop-workspace-overlay .phone-device-screen { border-radius:0!important; }
-  .desktop-workspace-focused .phone-overlay.desktop-workspace-overlay { left:24px!important; right:220px!important; top:18px!important; bottom:18px!important; height:auto!important; border:1px solid #314858!important; box-shadow:0 30px 90px rgba(0,0,0,.6)!important; }
-  .desktop-workspace-focused .desktop-app-dock { opacity:.22; pointer-events:none; }
-  .desktop-workspace-focused .desktop-drawer-handle,
-  .desktop-workspace-focused .desktop-driver-drawer,
-  .desktop-workspace-focused .desktop-operation-drawer { display:none; }
-  .desktop-workspace-focused .phone-overlay.desktop-workspace-overlay .phone-status-bar { background:#0a1118; }
+  .desktop-operations-root .phone-overlay.desktop-workspace-overlay .device-sheet-handle { display:none; }
+  .desktop-operations-root .phone-overlay.desktop-workspace-overlay .phone-device-screen { border-radius:0!important; }
+  .desktop-operations-root .desktop-workspace-focused .phone-overlay.desktop-workspace-overlay { left:24px!important; right:220px!important; top:18px!important; bottom:18px!important; height:auto!important; border:1px solid #314858!important; box-shadow:0 30px 90px rgba(0,0,0,.6)!important; }
+  .desktop-operations-root .desktop-workspace-focused .desktop-app-dock { opacity:.22; pointer-events:none; }
+  .desktop-operations-root .desktop-workspace-focused .desktop-drawer-handle,
+.desktop-operations-root .desktop-workspace-focused .desktop-driver-drawer,
+.desktop-operations-root .desktop-workspace-focused .desktop-operation-drawer { display:none; }
+  .desktop-operations-root .desktop-workspace-focused .phone-overlay.desktop-workspace-overlay .phone-status-bar { background:#0a1118; }
 
-  .desktop-driver-map-peek { min-width:170px; display:flex; flex-direction:column; gap:4px; }
-  .desktop-driver-map-peek span { color:#7f91a1; font-size:8px; font-weight:900; letter-spacing:.12em; }
-  .desktop-driver-map-peek strong { color:#eef3f7; font-size:12px; }
-  .desktop-driver-map-peek small { color:#91a1af; font-size:9px; }
-  .desktop-facility-map-peek { min-width:180px; display:grid; gap:5px; }
-  .desktop-facility-map-peek span { color:#7f91a1; font-size:8px; font-weight:900; letter-spacing:.1em; }
-  .desktop-facility-map-peek strong { font-size:11px; }
-  .desktop-facility-map-peek small { color:#8999a7; font-size:9px; }
+  .desktop-operations-root .desktop-driver-map-peek { min-width:170px; display:flex; flex-direction:column; gap:4px; }
+  .desktop-operations-root .desktop-driver-map-peek span { color:#7f91a1; font-size:8px; font-weight:900; letter-spacing:.12em; }
+  .desktop-operations-root .desktop-driver-map-peek strong { color:#eef3f7; font-size:12px; }
+  .desktop-operations-root .desktop-driver-map-peek small { color:#91a1af; font-size:9px; }
+  .desktop-operations-root .desktop-facility-map-peek { min-width:180px; display:grid; gap:5px; }
+  .desktop-operations-root .desktop-facility-map-peek span { color:#7f91a1; font-size:8px; font-weight:900; letter-spacing:.1em; }
+  .desktop-operations-root .desktop-facility-map-peek strong { font-size:11px; }
+  .desktop-operations-root .desktop-facility-map-peek small { color:#8999a7; font-size:9px; }
