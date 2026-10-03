@@ -54,20 +54,20 @@ export function getFirstDayBookedLanes(loads = []) {
 export function migrateFirstDayFlow(value, loads = []) {
   const progress = normalizeFirstDayProgress(value)
   if (!progress) return null
-  if (progress.flowVersion >= 4) return progress
+  if (progress.flowVersion >= 5) return progress
 
   const booked = getFirstDayBookedLanes(loads)
   const [first, second, third] = booked
 
   if (progress.step === 'welcome') {
-    return { ...progress, flowVersion: 4 }
+    return { ...progress, flowVersion: 5 }
   }
 
   if (progress.workdayLessonComplete || progress.step === 'ready') {
     return {
       ...progress,
       step: 'ready',
-      flowVersion: 4,
+      flowVersion: 5,
       workdayLessonComplete: progress.workdayLessonComplete === true,
       ...(first ? { firstLaneId: first.id } : {}),
       ...(second ? { secondLaneId: second.id } : {}),
@@ -83,7 +83,7 @@ export function migrateFirstDayFlow(value, loads = []) {
   const migrated = {
     ...progress,
     step,
-    flowVersion: 4,
+    flowVersion: 5,
     laneReviewIndex: booked.length ? Math.max(0, Math.min(4, Number(progress.laneReviewIndex || 0))) : 0,
     ...(first ? { firstLaneId: first.id } : {}),
     ...(second ? { secondLaneId: second.id } : {}),
@@ -117,7 +117,7 @@ export function shouldTeachFirstDayStaging(progress, loads = []) {
 
 export function isFirstDayTeachingPaused(progress, loads = []) {
   return ['welcome', 'lunch', 'staging'].includes(progress?.step)
-    || (Number(progress?.flowVersion || 0) >= 4 && ['freight', 'restOfDay', 'thirdLoad'].includes(progress.step))
+    || (Number(progress?.flowVersion || 0) >= 5 && ['freight', 'restOfDay', 'thirdLoad'].includes(progress.step))
     || shouldTeachFirstDayRest(progress, loads)
     || shouldTeachFirstDayLunch(progress, loads)
     || shouldTeachFirstDayStaging(progress, loads)
