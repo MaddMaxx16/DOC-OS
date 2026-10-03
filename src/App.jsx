@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { Keyboard, KeyboardResize, KeyboardStyle } from '@capacitor/keyboard'
 import './AppShell.css'
+import './components/DesktopWorkstation.css'
 import seedLoads from './data/loads.js'
 import seedCarriers from './data/carriers.js'
 import seedDrivers from './data/drivers.js'
@@ -1996,9 +1997,11 @@ Open CarrierSource to review your full account history.`
     // The freight market continues from its own posting/expiration state across operation days.
   }
 
+  const desktopRuntime = Capacitor.getPlatform() === 'web'
+
   return (
-    <main className="app">
-      <section className="phone-shell">
+    <main className={desktopRuntime ? 'app desktop-runtime' : 'app'}>
+      <section className={desktopRuntime ? 'desktop-app-shell' : 'phone-shell'}>
         {saveFailureMessage && (
           <div className="save-failure-banner" role="alert">
             <span>{saveFailureMessage}</span>
@@ -2038,6 +2041,7 @@ Open CarrierSource to review your full account history.`
             fallback={onWorkstationReady ? null : <div className="workstation-opening" role="status"><span>METROLINE</span><strong>Opening your workstation…</strong></div>}
           >
             <MainGameScreen
+            desktopRuntime={desktopRuntime}
             onWorkstationReady={onWorkstationReady}
             career={career}
             firstDay={firstDay}
