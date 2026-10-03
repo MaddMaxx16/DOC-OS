@@ -191,6 +191,53 @@ function LoadDetailsScreen({
     }] : []),
   ].sort((a, b) => a.sortMinute - b.sortMinute)
 
+  const manifestPlan = hosEvaluation?.manifestPlan || load.tripPlan?.manifestPlan || load.assignmentProjection?.manifestPlan || null
+  const manifestSequenceSteps = Array.isArray(manifestPlan?.sequenceSteps) ? manifestPlan.sequenceSteps : []
+  const manifestScheduleByStop = new Map((manifestPlan?.schedule || []).map((item) => [item.stopId, item]))
+  const manifestCapacityByStop = new Map((manifestPlan?.capacitySnapshots || []).map((item) => [item.stopId, item]))
+  const manifestLoadNumbers = new Map()
+  let manifestLoadCounter = 0
+  manifestSequenceSteps.forEach((step) => {
+    if (String(step.action || '').toUpperCase() !== 'PICKUP' || manifestLoadNumbers.has(step.loadId)) return
+    manifestLoadCounter += 1
+    manifestLoadNumbers.set(step.loadId, manifestLoadCounter)
+  })
+  const manifestTimelineItems = manifestSequenceSteps.map((step, index) => {
+    const type = String(step.type || step.action || '').toLowerCase() === 'delivery' ? 'delivery' : 'pickup'
+    const stopId = `${step.loadId}:${type}`
+    const timing = manifestScheduleByStop.get(stopId) || null
+    const capacityState = manifestCapacityByStop.get(stopId) || null
+    const stepLoad = loads.find((item) => item.id === step.loadId)
+    const locationId = step.locationId || (type === 'pickup' ? stepLoad?.pickupLocationId : stepLoad?.deliveryLocationId)
+    return {
+      id: stopId,
+      type,
+      loadId: step.loadId,
+      loadRef: step.loadRef || stepLoad?.loadNumber || step.loadId,
+      loadNumber: manifestLoadNumbers.get(step.loadId) || index + 1,
+      location: mapLocations.find((location) => location.id === locationId) || null,
+      timing,
+      capacityState,
+      currentLoad: step.loadId === load.id,
+      sortMinute: Number(timing?.serviceStartAbsoluteMinute ?? timing?.arrivalAbsoluteMinute ?? index * 100000),
+    }
+  })
+  if (lunchPlanned && manifestTimelineItems.length > 2) {
+    manifestTimelineItems.push({
+      id: 'manifest:lunch',
+      type: 'lunch',
+      loadId: null,
+      loadRef: 'LUNCH',
+      loadNumber: null,
+      location: null,
+      timing: { serviceStartAbsoluteMinute: Number(load.pickupDayIndex || 0) * 1440 + lunchStart },
+      capacityState: null,
+      currentLoad: false,
+      sortMinute: Number(load.pickupDayIndex || 0) * 1440 + lunchStart,
+    })
+    manifestTimelineItems.sort((a, b) => a.sortMinute - b.sortMinute)
+  }
+
   const loadPosition = confirmedDayLoads.length + 1
   const originName = load.assignmentProjection?.projectedOriginName
     || mapLocations.find((location) => location.id === confirmedDayLoads.at(-1)?.deliveryLocationId)?.name
@@ -416,6 +463,49 @@ function LoadDetailsScreen({
           <p>{decisionNote}</p>
         </section>
 
+        {manifestTimelineItems.length > 2 && (
+          <section className="lane-manifest-plan" aria-label="Driver manifest stop order">
+            <header>
+              <div>
+                <span>DRIVER MANIFEST</span>
+                <strong>Stop order</strong>
+              </div>
+              <em>{manifestPlan?.status === 'AT RISK' ? 'AT RISK' : 'PLANNED'}</em>
+            </header>
+            <div className="lane-manifest-list">
+              {manifestTimelineItems.map((item) => {
+                if (item.type === 'lunch') {
+                  return (
+                    <div className="lane-manifest-stop lunch" key={item.id}>
+                      <time>{absoluteTime(item.sortMinute)}</time>
+                      <b>LUNCH</b>
+                      <div><strong>Protected lunch window</strong><small>{Number.isFinite(lunchEnd) ? `${absoluteTime(lunchStart)}–${absoluteTime(lunchEnd)}` : `${Math.round(lunchDuration)} min`}</small></div>
+                    </div>
+                  )
+                }
+                const onboardCount = item.capacityState?.onboardLoadIds?.length || 0
+                const palletsUsed = item.capacityState?.palletsUsed
+                const palletCapacity = manifestPlan?.capacity?.palletCapacity
+                return (
+                  <div className={`lane-manifest-stop ${item.type} ${item.currentLoad ? 'current' : ''}`} key={item.id}>
+                    <time>{absoluteTime(item.timing?.serviceStartAbsoluteMinute ?? item.timing?.arrivalAbsoluteMinute)}</time>
+                    <b>{item.type === 'pickup' ? 'P' : 'D'}{item.loadNumber}</b>
+                    <div>
+                      <strong>{item.location?.name || item.loadRef}</strong>
+                      <small>
+                        {item.type === 'pickup' ? 'PICKUP' : 'DELIVERY'} · {item.loadRef}
+                        {Number.isFinite(palletsUsed) && Number.isFinite(palletCapacity) ? ` · TRAILER ${palletsUsed}/${palletCapacity} PALLETS` : ''}
+                        {onboardCount > 1 ? ` · ${onboardCount} LOADS ONBOARD` : ''}
+                      </small>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {manifestTimelineItems.length <= 2 && (
         <section className="lane-timeline" aria-label="Projected load timeline">
           <header className="lane-timeline-head">
             <div>
@@ -515,6 +605,7 @@ function LoadDetailsScreen({
             <div><span>AVAILABLE AGAIN</span><strong>{delivery.name}</strong></div>
           </div>
         </section>
+        )}
 
         <section className="lane-check-grid">
           <div className={`lane-check ${pickupTiming.tone} ${activeCoachKey === 'pickup' ? 'coach-focus' : ''}`}>
