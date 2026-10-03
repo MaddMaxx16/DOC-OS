@@ -17,6 +17,31 @@ import { sampleRoutePosition } from '../utils/routeSampler.js'
 setWorkerUrl(workerUrl)
 
 const DOC_DRIVER_COLOR_FAMILY = ['#8CB9D8', '#6F9DBD', '#557F9D', '#3F647F']
+const DOC_OS_PRIMARY_MAP_STYLE = 'https://tiles.openfreemap.org/styles/dark'
+const DOC_OS_FALLBACK_MAP_STYLE = {
+  version: 8,
+  sources: {
+    'osm-raster': {
+      type: 'raster',
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '© OpenStreetMap contributors',
+    },
+  },
+  layers: [{
+    id: 'osm-raster-dark',
+    type: 'raster',
+    source: 'osm-raster',
+    minzoom: 0,
+    maxzoom: 19,
+    paint: {
+      'raster-saturation': -0.78,
+      'raster-contrast': 0.24,
+      'raster-brightness-min': 0.04,
+      'raster-brightness-max': 0.42,
+    },
+  }],
+}
 
 function getDriverColorFamily() {
   return DOC_DRIVER_COLOR_FAMILY
@@ -289,7 +314,7 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
 
     const map = new MapLibreMap({
       container: mapContainer.current,
-      style: 'https://tiles.openfreemap.org/styles/dark',
+      style: DOC_OS_PRIMARY_MAP_STYLE,
       ...initialCamera,
       attributionControl: false,
       // PERF 1 — a 3x iPhone otherwise renders nine physical map pixels for
@@ -301,6 +326,29 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
       validateStyle: false,
     })
     mapRef.current = map
+
+    let fallbackApplied = false
+    const activateFallbackMap = (reason = 'primary-style-error') => {
+      if (fallbackApplied || !mapRef.current) return
+      fallbackApplied = true
+      console.warn('[MAP] FALLBACK_STYLE', { reason })
+      setMapReady(false)
+      map.setStyle(DOC_OS_FALLBACK_MAP_STYLE)
+      map.once('style.load', () => {
+        if (mapRef.current !== map) return
+        map.resize()
+        setMapReady(true)
+      })
+    }
+    const handleMapError = (event) => {
+      const message = String(event?.error?.message || event?.error || '')
+      const sourceId = String(event?.sourceId || '')
+      const detail = `${message} ${sourceId}`
+      if (/openfreemap|planet|cors|403|failed to fetch|networkerror/i.test(detail)) {
+        activateFallbackMap(detail.slice(0, 180))
+      }
+    }
+    map.on('error', handleMapError)
 
     map.on('movestart', (event) => {
       console.debug('[CAMERA] MOVE_START', { source: event.originalEvent ? 'USER_GESTURE' : 'PROGRAMMATIC' })
@@ -335,6 +383,7 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
     })
 
     return () => {
+      map.off('error', handleMapError)
       driverMarkerRefs.current.forEach((marker) => marker.remove())
       driverMarkerRefs.current.clear()
       freightBrowseMarkerRefs.current.forEach((marker) => marker.remove())
