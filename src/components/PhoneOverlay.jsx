@@ -1236,7 +1236,7 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
                 ? 'Load 1 is confirmed. Find a second lane that starts from where Marcus becomes available after it. We’ll book Load 2 before planning lunch.'
                 : 'Two loads and lunch are locked in. Find one final lane that fits the day we already built.'}
           </FirstDayLesson>}
-          {screen === 'loadBoard' && <LoadBoardScreen embedded hidePlanShortcut={['freight', 'restOfDay', 'thirdLoad'].includes(firstDay?.step)} initialPickupDay={['freight', 'restOfDay', 'thirdLoad'].includes(firstDay?.step) ? gameTime?.gameDayIndex || 0 : null} loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => {
+          {screen === 'loadBoard' && <LoadBoardScreen embedded recommendedLoadOrder={firstDay?.step === 'freight' ? 1 : firstDay?.step === 'restOfDay' ? 2 : firstDay?.step === 'thirdLoad' ? 3 : null} hidePlanShortcut={['freight', 'restOfDay', 'thirdLoad'].includes(firstDay?.step)} initialPickupDay={['freight', 'restOfDay', 'thirdLoad'].includes(firstDay?.step) ? gameTime?.gameDayIndex || 0 : null} loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => {
             if (['restOfDay', 'thirdLoad'].includes(firstDay?.step)) onFirstDayProgress?.({ reviewLoadId: loadId, flowVersion: 4 })
             openLoadDetails(loadId, null)
           }} onOpenScheduler={() => {
