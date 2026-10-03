@@ -1210,7 +1210,7 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
           }}
         />
       ) : screen === 'businessDocumentDetail' ? (
-        <BusinessDocumentDetailScreen document={businessDocuments.find((document) => document.id === selectedBusinessDocumentId)} onBack={() => { if (documentReturnScreen === 'documents') setDocumentsTab('archive'); setScreen(documentReturnScreen || 'documents') }} />
+        <BusinessDocumentDetailScreen document={businessDocuments.find((document) => document.id === selectedBusinessDocumentId)} onBack={() => setScreen(documentReturnScreen || 'documents')} />
       ) : screen === 'podDetail' ? (
         <PodReviewWorkspace
           load={loads.find((load) => load.id === selectedLoadId)}
