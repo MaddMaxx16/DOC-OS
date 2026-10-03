@@ -2,9 +2,10 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { Keyboard, KeyboardResize, KeyboardStyle } from '@capacitor/keyboard'
 import './AppShell.css'
-import StartScreen from './components/StartScreen.jsx'
-import StartOfficeBackdrop from './components/StartOfficeBackdrop.jsx'
 import CareerSetupScreen from './components/CareerSetupScreen.jsx'
+import DesktopTitleScreen from './components/DesktopTitleScreen.jsx'
+import DesktopCareerWorkspace from './components/DesktopCareerWorkspace.jsx'
+import './components/DesktopExperience.css'
 import { createMetrolineEmployeeCareer } from './utils/careerState.js'
 import {
   SAVE_SLOT_IDS,
@@ -28,7 +29,7 @@ function OpeningWorkstation() {
 // remains outside this module so routing, freight, HOS, movement, ledger, maps,
 // and dev tooling are not loaded while the player is still onboarding.
 function StartupApp() {
-  const [stage, setStage] = useState('start')
+  const [stage, setStage] = useState('title')
   const [entryPhase, setEntryPhase] = useState(null)
   const [saveSlots, setSaveSlots] = useState(() => getSaveSlots())
   const [activeSaveSlotId, setActiveSaveSlotId] = useState(() => getActiveSaveSlot())
@@ -109,11 +110,11 @@ function StartupApp() {
     setDispatcherProfile(saved.dispatcherProfile || null)
     setCareerSetupPhase(saved.careerSetupStep === 'employeeWelcome' ? 'employeeWelcome' : 'name')
 
-    if (saved.stage === 'game') {
-      openOperations(false)
+    if (saved.stage === 'careerSetup') {
+      setStage('careerSetup')
       return
     }
-    setStage('careerSetup')
+    setStage('workspace')
   }
 
   const deleteSaveSlot = (slotId) => {
@@ -144,6 +145,28 @@ function StartupApp() {
     return true
   }
 
+  const finishCareerSetupToWorkspace = () => {
+    if (!activeSaveSlotId) return false
+    const current = loadGame(activeSaveSlotId) || {}
+    const saved = saveGame({
+      ...current,
+      stage: 'workspace',
+      firstDayPendingInitialization: true,
+      dispatcherProfile: current.dispatcherProfile || dispatcherProfile,
+      career: current.career || createMetrolineEmployeeCareer(),
+    }, activeSaveSlotId)
+    if (!saved) return false
+    refreshSaveSlots()
+    setStage('workspace')
+    return true
+  }
+
+  const enterWorkspaceComputer = () => {
+    const saved = loadGame(activeSaveSlotId)
+    if (!saved) return
+    openOperations(Boolean(saved.firstDayPendingInitialization))
+  }
+
   const openOperations = async (initializeFirstDay) => {
     setSaveFailureMessage('')
     setEntryPhase('opening')
@@ -158,7 +181,10 @@ function StartupApp() {
       ])
       if (initializeFirstDay) {
         const saved = loadGame(getActiveSaveSlot())
-        const operation = initializer.prepareFirstDayOperation(saved)
+        const operation = {
+          ...initializer.prepareFirstDayOperation(saved),
+          firstDayPendingInitialization: false,
+        }
         if (!saveGame(operation, getActiveSaveSlot())) {
           setEntryPhase(null)
           setStage('careerSetup')
@@ -169,11 +195,16 @@ function StartupApp() {
     } catch (error) {
       setEntryPhase(null)
       setSaveFailureMessage(error?.message || 'Your workstation could not open. Please try again.')
-      setStage(initializeFirstDay ? 'careerSetup' : 'start')
+      setStage(initializeFirstDay ? 'careerSetup' : 'workspace')
     }
   }
 
-  const returnToStartup = useCallback(() => { setSaveSlots(getSaveSlots()); setStage('start') }, [])
+  const returnToStartup = useCallback(() => {
+    setSaveSlots(getSaveSlots())
+    const saved = loadGame(activeSaveSlotId)
+    setDispatcherProfile(saved?.dispatcherProfile || null)
+    setStage('workspace')
+  }, [activeSaveSlotId])
 
   return (
     <>
@@ -182,39 +213,45 @@ function StartupApp() {
         <OperationsApp onReturnToStartup={returnToStartup} onWorkstationReady={revealWorkstation} />
       </Suspense>
     ) : (
-    <main className="app">
-      <section className="phone-shell">
-        {saveFailureMessage && (
-          <div className="save-failure-banner" role="alert">
-            <span>{saveFailureMessage}</span>
-            <button type="button" onClick={() => setSaveFailureMessage('')} aria-label="Dismiss save warning">×</button>
-          </div>
-        )}
+    <main className="app desktop-startup-app">
+      {saveFailureMessage && (
+        <div className="save-failure-banner" role="alert">
+          <span>{saveFailureMessage}</span>
+          <button type="button" onClick={() => setSaveFailureMessage('')} aria-label="Dismiss save warning">×</button>
+        </div>
+      )}
 
-        {stage === 'start' && <StartOfficeBackdrop />}
+      {stage === 'title' && (
+        <DesktopTitleScreen
+          saveSlots={saveSlots}
+          activeSaveSlotId={activeSaveSlotId}
+          onContinue={resumeSave}
+          onLoadCareer={resumeSave}
+          onDeleteCareer={deleteSaveSlot}
+          onNewCareer={() => startNewOperation()}
+        />
+      )}
 
-        {stage === 'start' && (
-          <StartScreen
-            saveSlots={saveSlots}
-            saveSlotIds={SAVE_SLOT_IDS}
-            activeSaveSlotId={activeSaveSlotId}
-            onResumeSave={resumeSave}
-            onDeleteSave={deleteSaveSlot}
-            onStartNew={startNewOperation}
-          />
-        )}
-
-
-        {stage === 'careerSetup' && (
+      {stage === 'careerSetup' && (
+        <section className="phone-shell legacy-career-frame">
           <CareerSetupScreen
             profile={dispatcherProfile}
             initialPhase={careerSetupPhase}
             onSaveProfile={saveEmployeeProfile}
-            onStartFirstDay={() => openOperations(true)}
-            onBack={() => setStage('start')}
+            onStartFirstDay={finishCareerSetupToWorkspace}
+            onBack={() => setStage('title')}
           />
-        )}
-      </section>
+        </section>
+      )}
+
+      {stage === 'workspace' && (
+        <DesktopCareerWorkspace
+          profile={dispatcherProfile}
+          saveState={loadGame(activeSaveSlotId)}
+          onEnterComputer={enterWorkspaceComputer}
+          onBackToTitle={() => { setSaveSlots(getSaveSlots()); setStage('title') }}
+        />
+      )}
     </main>
     )}
     {entryPhase && (
