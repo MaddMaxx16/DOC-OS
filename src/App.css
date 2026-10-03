@@ -23559,3 +23559,28 @@ button.ledger-transaction.linked .ledger-transaction-amount.credit {
 }
 /* END P2.4.2 Driver detail natural-flow repair */
 
+
+
+/* P2.5 Day 1 manifest teaching lane */
+.freight-decision-row.tutorial-recommended{
+  position:relative;
+  border-color:rgba(139,119,153,.72);
+  background:linear-gradient(180deg,rgba(112,92,125,.13),rgba(15,21,28,.96));
+  padding-top:24px;
+}
+.freight-tutorial-recommended{
+  position:absolute;
+  top:6px;
+  left:10px;
+  display:inline-flex;
+  align-items:center;
+  min-height:15px;
+  padding:2px 6px;
+  border:1px solid rgba(150,129,164,.55);
+  border-radius:999px;
+  background:rgba(109,90,121,.22);
+  color:#cdbed7;
+  font-size:6px;
+  font-weight:900;
+  letter-spacing:.08em;
+}
