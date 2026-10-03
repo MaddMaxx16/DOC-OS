@@ -12,9 +12,6 @@ import UnloadSequencingChallenge from './UnloadSequencingChallenge.jsx'
 import { getShiftEndAlert } from '../utils/shiftEndDecision.js'
 const PhoneOverlay = lazy(() => import('./PhoneOverlay.jsx'))
 import StatusBar from './StatusBar.jsx'
-import FirstDayWelcome from './FirstDayWelcome.jsx'
-import './FirstDayLesson.css'
-import { shouldTeachFirstDayLunch, shouldTeachFirstDayStaging, shouldTeachFirstDayRest, getFirstDayBookedLanes, isFirstDayTeachingPaused } from '../utils/firstDayProgress.js'
 import OperationsBar from './OperationsBar.jsx'
 import DesktopWorkstationChrome from './DesktopWorkstationChrome.jsx'
 import EndDaySheet from './EndDaySheet.jsx'
@@ -273,18 +270,13 @@ function getAuthoritativeScheduleConstraint(load, driver) {
   return getDriverScheduleConstraint(load, driver)
 }
 
-function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, career, selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario, onInitializeEmployeeCareer, initialPhoneOpen = false, initialPhoneScreen = 'home', onInitialPhoneEntryConsumed }) {
+function MainGameScreen({ onWorkstationReady, career, selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario, onInitializeEmployeeCareer, initialPhoneOpen = false, initialPhoneScreen = 'home', onInitialPhoneEntryConsumed }) {
   useEffect(() => {
     onWorkstationReady?.()
   }, [onWorkstationReady])
-  const welcomeActive = firstDay?.step === 'welcome'
-  const restIntroActive = shouldTeachFirstDayRest(firstDay, loads)
-  const lunchIntroActive = shouldTeachFirstDayLunch(firstDay, loads)
-  const stagingIntroActive = shouldTeachFirstDayStaging(firstDay, loads)
   const [phoneLessonEntry, setPhoneLessonEntry] = useState(0)
-  const guidedWorkdayActive = ['lunch', 'staging'].includes(firstDay?.step)
-  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen || ['lunch', 'freight', 'restOfDay', 'thirdLoad', 'staging'].includes(firstDay?.step)))
-  const [phoneInitialScreen, setPhoneInitialScreen] = useState(guidedWorkdayActive ? 'agenda' : ['freight', 'restOfDay', 'thirdLoad'].includes(firstDay?.step) ? 'loadBoard' : initialPhoneScreen || 'home')
+  const [isPhoneOpen, setIsPhoneOpen] = useState(Boolean(initialPhoneOpen))
+  const [phoneInitialScreen, setPhoneInitialScreen] = useState(initialPhoneScreen || 'home')
   // B.5.4D.1.1 — Opening Guidance + CarrierSource Clock Gate
   const [dayOneCarrierSourceGateActive, setDayOneCarrierSourceGateActive] = useState(
     Boolean(initialPhoneOpen && initialPhoneScreen === 'email')
@@ -304,7 +296,7 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
 
   const [driverFitEvaluation] = useState(null)
   const [phoneLoadId, setPhoneLoadId] = useState(null)
-  const [phoneInitialDriverId, setPhoneInitialDriverId] = useState(firstDay && firstDay.step !== 'ready' ? 'marcus' : null)
+  const [phoneInitialDriverId, setPhoneInitialDriverId] = useState(null)
   const [phoneInitialEmailContext, setPhoneInitialEmailContext] = useState(null)
   const [phoneInitialShiftEndPromptDriverId, setPhoneInitialShiftEndPromptDriverId] = useState(null)
   const [planningMode, setPlanningMode] = useState(null)
@@ -332,8 +324,9 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
   const [freightBrowseRouteStatus, setFreightBrowseRouteStatus] = useState('idle')
   const [lunchDecisionDriverId, setLunchDecisionDriverId] = useState(null)
   const [lunchDecisionChoicesSnapshot, setLunchDecisionChoicesSnapshot] = useState([])
-  const [desktopDriverId, setDesktopDriverId] = useState(firstDay ? 'marcus' : null)
-  const [desktopDriverPanelOpen, setDesktopDriverPanelOpen] = useState(false)
+  const [desktopDriverId, setDesktopDriverId] = useState(null)
+  const [desktopDriverDrawerOpen, setDesktopDriverDrawerOpen] = useState(false)
+  const [desktopOperationsDrawerOpen, setDesktopOperationsDrawerOpen] = useState(false)
   const [desktopActiveApp, setDesktopActiveApp] = useState(null)
   const [desktopFocused, setDesktopFocused] = useState(false)
   const desktopFocusWasPausedRef = useRef(false)
@@ -2521,7 +2514,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
   const deliveryPlanningRoute = deliveryPlanning && deliveryPlanning.route && typeof deliveryPlanning.route === 'object' ? deliveryPlanning.route : null
   const deliveryPlanningArrivalAbsoluteMinutes = deliveryPlanningRoute ? (gameTime.gameDayIndex * 1440) + gameTime.totalMinutesOfDay + deliveryPlanningRoute.durationMinutes : null
   const deliveryPlanningBufferMinutes = deliveryPlanningLoad && deliveryPlanningRoute ? getDeliveryPlanningBufferMinutes(deliveryPlanningLoad, deliveryPlanningRoute, gameTime) : null
-  const timeControlsLocked = Boolean(isFirstDayTeachingPaused(firstDay, loads) || endDayOpen || dayLoopOverlayActive)
+  const timeControlsLocked = Boolean(endDayOpen || dayLoopOverlayActive)
   const pauseActive = isGameClockPaused
   const playActive = !isGameClockPaused && simulationSpeed === 1
   const fastForwardActive = !isGameClockPaused && [2, 5, 10].includes(simulationSpeed)
@@ -2621,9 +2614,14 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         closeDesktopWorkspace()
         return
       }
-      if (desktopDriverPanelOpen) {
+      if (desktopOperationsDrawerOpen) {
         event.preventDefault()
-        setDesktopDriverPanelOpen(false)
+        setDesktopOperationsDrawerOpen(false)
+        return
+      }
+      if (desktopDriverDrawerOpen) {
+        event.preventDefault()
+        setDesktopDriverDrawerOpen(false)
         return
       }
       event.preventDefault()
@@ -2635,7 +2633,8 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
     desktopFocused,
     isPhoneOpen,
     desktopActiveApp,
-    desktopDriverPanelOpen,
+    desktopDriverDrawerOpen,
+    desktopOperationsDrawerOpen,
     endDayOpen,
     loadingChallengeLoadId,
     unloadSequenceLoadId,
@@ -2716,7 +2715,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
 
   return (
     <div className={`main-game-screen desktop-workspace-${desktopWorkspaceState}`}>
-      <div className="operations-scene" inert={welcomeActive || restIntroActive || lunchIntroActive || stagingIntroActive}>
+      <div className="operations-scene">
       <StatusBar career={career} selectedMarket={selectedMarket} gameTime={gameTime} operationDay={operationDay} />
       <div className="operations-toolbar">
       <OperationsBar
@@ -2818,19 +2817,24 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
             onComplete={completeUnloadSequence}
           />
         )}
-        <GameMap initialDriverId={firstDay ? 'marcus' : null} boardViewRequest={boardViewRequest} driverFocusRequest={driverFocusRequest} driverFocusId={driverFocusId} facilityFocusRequest={facilityFocusRequest} facilityFocusRole={facilityFocusRole} loads={loads} activeRouteGeometry={freightBrowseMode ? freightBrowseRouteGeometry : activeRouteGeometry} routeFocusMode={freightBrowseMode && freightBrowseRouteGeometry ? 'freight-browse' : planningMode || deliveryPlanning ? 'planning' : null} routeReviewLoad={planningLoad || deliveryPlanningLoad} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgressByDriver={runtimeProgressByDriver} simulationSpeed={simulationSpeed} isGameClockPaused={isGameClockPaused} assignedLoad={assignedLoad} evaluationLoad={null} isDriverFitEvaluation={false} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} freightBrowseMode={freightBrowseMode} freightBrowseLoads={freightBrowseLoads} freightBrowseSelectedLoadId={freightBrowseLoadId} onFreightBrowseSelect={selectFreightBrowseLoad} lunchCandidateLocations={lunchMapLocations} visualSuspended={Boolean(isPhoneOpen || endDayOpen || loadingChallengeLoadId || unloadSequenceLoadId || completionResultLoadId || driverHubOpen || dayLoopOverlayActive)} />
+        <GameMap initialDriverId={null} boardViewRequest={boardViewRequest} driverFocusRequest={driverFocusRequest} driverFocusId={driverFocusId} facilityFocusRequest={facilityFocusRequest} facilityFocusRole={facilityFocusRole} loads={loads} activeRouteGeometry={freightBrowseMode ? freightBrowseRouteGeometry : activeRouteGeometry} routeFocusMode={freightBrowseMode && freightBrowseRouteGeometry ? 'freight-browse' : planningMode || deliveryPlanning ? 'planning' : null} routeReviewLoad={planningLoad || deliveryPlanningLoad} tripStatus={assignedLoad?.tripStatus} drivers={drivers} carriers={carriers} runtimePositions={runtimePositions} runtimeProgressByDriver={runtimeProgressByDriver} simulationSpeed={simulationSpeed} isGameClockPaused={isGameClockPaused} assignedLoad={assignedLoad} evaluationLoad={null} isDriverFitEvaluation={false} suppressAttention={Boolean(deliveryPlanning)} gameTime={gameTime} onDriverAction={handleDriverAction} freightBrowseMode={freightBrowseMode} freightBrowseLoads={freightBrowseLoads} freightBrowseSelectedLoadId={freightBrowseLoadId} onFreightBrowseSelect={selectFreightBrowseLoad} lunchCandidateLocations={lunchMapLocations} visualSuspended={Boolean(isPhoneOpen || endDayOpen || loadingChallengeLoadId || unloadSequenceLoadId || completionResultLoadId || driverHubOpen || dayLoopOverlayActive)} />
         <DesktopWorkstationChrome
           drivers={drivers}
           loads={loads}
           selectedDriverId={desktopDriverId || drivers[0]?.id || null}
-          driverPanelOpen={desktopDriverPanelOpen}
+          driverDrawerOpen={desktopDriverDrawerOpen}
+          operationsDrawerOpen={desktopOperationsDrawerOpen}
+          onToggleDriverDrawer={() => setDesktopDriverDrawerOpen((open) => !open)}
+          onCloseDriverDrawer={() => setDesktopDriverDrawerOpen(false)}
+          onToggleOperationsDrawer={() => setDesktopOperationsDrawerOpen((open) => !open)}
+          onCloseOperationsDrawer={() => setDesktopOperationsDrawerOpen(false)}
           onSelectDriver={(driverId) => {
             setDesktopDriverId(driverId)
-            setDesktopDriverPanelOpen(true)
+            setDesktopDriverDrawerOpen(false)
+            setDesktopOperationsDrawerOpen(true)
             setDriverFocusId(driverId)
             setDriverFocusRequest((value) => value + 1)
           }}
-          onCloseDriverPanel={() => setDesktopDriverPanelOpen(false)}
           gameTime={gameTime}
           workspaceState={desktopWorkspaceState}
           activeApp={desktopActiveApp}
@@ -3216,19 +3220,6 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           )
         })()}
 
-        {!isPhoneOpen && !planningMode && !deliveryPlanning && firstDay && !welcomeActive
-          && !firstDay.workdayLessonComplete && Number(gameTime?.gameDayIndex || 0) === 0
-          && !loads.some((load) => (load.assignedDriverId === 'marcus' || load.completedDriverId === 'marcus') && ['completed', 'paid', 'delivered'].includes(load.status)) && (
-          <button type="button" className="first-day-resume" onClick={() => {
-            const step = ['ready', 'schedule', 'secondLane'].includes(firstDay.step) ? 'freight' : firstDay.step === 'shiftEnd' ? 'staging' : firstDay.step
-            if (onFirstDayProgress?.({ step, messageIndex: 2, flowVersion: 5 }) === false) return
-            setDriverHubOpen(false)
-            setPhoneInitialScreen(['freight', 'restOfDay', 'thirdLoad'].includes(step) ? 'loadBoard' : 'agenda')
-            setPhoneInitialDriverId('marcus')
-            setPhoneLoadId(null)
-            setIsPhoneOpen(true)
-          }}>CONTINUE WITH JORDAN</button>
-        )}
         {!isPhoneOpen && !planningMode && !deliveryPlanning && (
           <nav className="operations-map-dock" aria-label="Workstation">
             {!driverFitEvaluation && !freightBrowseMode && (
@@ -3265,9 +3256,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         {isPhoneOpen && (
           <Suspense fallback={null}>
           <PhoneOverlay
-            key={`${phoneLessonEntry}-${firstDay?.step === 'shiftEnd' ? 'shift-end-lesson' : 'workspace'}`}
-            firstDay={firstDay}
-            onFirstDayProgress={onFirstDayProgress}
+            key={`${phoneLessonEntry}-workspace`}
             onCarrierSourceOpened={completeDayOneCarrierSourceHandoff}
             desktopWorkspace
             onWorkspaceModeChange={handleDesktopWorkspaceModeChange}
@@ -3300,7 +3289,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
             setGameTime={setGameTime}
             setGameClockPaused={setGameClockPaused}
             initialScreen={phoneInitialScreen}
-            initialAgendaView={firstDay?.step === 'schedule' ? 'schedule' : ['lunch', 'shiftEnd'].includes(firstDay?.step) ? 'driver' : 'today'}
+            initialAgendaView="today"
             initialLoadId={phoneLoadId}
             initialDriverId={phoneInitialDriverId}
             initialShiftEndPromptDriverId={phoneInitialShiftEndPromptDriverId}
@@ -3384,44 +3373,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         />
       )}
       </div>
-      {restIntroActive && <FirstDayWelcome lessonMessage="Load 1 is booked, but that does not mean Marcus has to deliver it before picking up more freight. The trailer still has room. Go back to FreightLink and find Load 2 with a pickup that fits before Load 1’s delivery. We’ll check stop order, appointments, and trailer capacity together." actionLabel="FIND LOAD 2" onContinue={() => {
-        const booked = getFirstDayBookedLanes(loads)
-        const first = booked[0]
-        if (onFirstDayProgress?.({ step: 'restOfDay', firstLaneId: first?.id, flowVersion: 5, messageIndex: 2 }) === false) return
-        setPhoneInitialScreen('loadBoard')
-        setPhoneInitialDriverId('marcus')
-        setPhoneLoadId(null)
-        setPhoneLessonEntry((value) => value + 1)
-        setIsPhoneOpen(true)
-      }} />}
-      {lunchIntroActive && <FirstDayWelcome lessonMessage="Good — Marcus now has two confirmed loads in one manifest. Before the first delivery, protect a realistic lunch window around those pickups. Then we’ll use the delivery that frees trailer space, plus lunch, as real constraints when we choose Load 3." actionLabel="PLAN MARCUS’S LUNCH" onContinue={() => {
-        const booked = getFirstDayBookedLanes(loads)
-        if (onFirstDayProgress?.({ step: 'lunch', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, flowVersion: 5, messageIndex: 2 }) === false) return
-        setPhoneInitialScreen('agenda')
-        setPhoneInitialDriverId('marcus')
-        setPhoneLoadId(null)
-        setIsPhoneOpen(true)
-      }} />}
-      {stagingIntroActive && <FirstDayWelcome lessonMessage="That’s three confirmed loads in one stop sequence, and lunch is protected. One planning decision remains before Marcus gets the schedule: where should the truck finish after the final delivery? Compare the yard and staging options, save the best finish position, then we’ll send Marcus the complete manifest." actionLabel="PLAN STAGING" onContinue={() => {
-        const booked = getFirstDayBookedLanes(loads)
-        if (onFirstDayProgress?.({ step: 'staging', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, thirdLaneId: booked[2]?.id, flowVersion: 5, messageIndex: 2 }) === false) return
-        setPhoneInitialScreen('agenda')
-        setPhoneInitialDriverId('marcus')
-        setPhoneLoadId(null)
-        setIsPhoneOpen(true)
-      }} />}
-      {welcomeActive && <FirstDayWelcome playerName={dispatcherProfile?.displayName} messageIndex={firstDay.messageIndex} onContinue={() => {
-        const next = firstDay.messageIndex < 2
-          ? { step: 'welcome', messageIndex: firstDay.messageIndex + 1 }
-          : { step: 'freight', messageIndex: 2, flowVersion: 5 }
-        if (onFirstDayProgress?.(next) === false) return
-        if (next.step === 'freight') {
-          setPhoneInitialScreen('loadBoard')
-          setPhoneInitialDriverId('marcus')
-          setPhoneLoadId(null)
-          setIsPhoneOpen(true)
-        }
-      }} />}
+
     </div>
   )
 }

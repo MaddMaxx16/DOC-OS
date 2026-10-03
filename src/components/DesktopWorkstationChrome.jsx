@@ -29,13 +29,37 @@ function stopLabel(stop) {
   return location?.name || (stop.type === 'pickup' ? 'Pickup' : 'Delivery')
 }
 
+function DriversIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="7.5" r="3.2" />
+      <path d="M5.5 20v-1.4c0-3.5 2.9-6.4 6.5-6.4s6.5 2.9 6.5 6.4V20" />
+    </svg>
+  )
+}
+
+function OperationsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 6.5h14M5 12h14M5 17.5h14" />
+      <circle cx="8" cy="6.5" r="1.5" />
+      <circle cx="15" cy="12" r="1.5" />
+      <circle cx="10.5" cy="17.5" r="1.5" />
+    </svg>
+  )
+}
+
 function DesktopWorkstationChrome({
   drivers = [],
   loads = [],
   selectedDriverId,
-  driverPanelOpen = false,
+  driverDrawerOpen = false,
+  operationsDrawerOpen = false,
+  onToggleDriverDrawer,
+  onCloseDriverDrawer,
+  onToggleOperationsDrawer,
+  onCloseOperationsDrawer,
   onSelectDriver,
-  onCloseDriverPanel,
   gameTime,
   workspaceState = 'collapsed',
   activeApp = null,
@@ -48,79 +72,98 @@ function DesktopWorkstationChrome({
   const nextStop = selectedDriver ? getNextActionableDriverStop(loads, selectedDriver.id) : null
   const hos = selectedDriver ? getDriverHosSummary(selectedDriver) : null
   const trailer = selectedDriver ? getDriverTrailerState(loads, selectedDriver.id, selectedDriver) : null
-  const nextWindow = nextStop ? `${formatTime(nextStop.windowStartMinutes)}–${formatTime(nextStop.windowEndMinutes)}` : '—'
   const selectedName = selectedDriver?.fullName || selectedDriver?.name || 'No driver selected'
 
   return (
     <div className="desktop-workstation-chrome" aria-label="DOC OS desktop workstation">
-      <aside className="desktop-driver-rail" aria-label="Drivers">
-        <header><span>FLEET</span><strong>Drivers</strong><small>{drivers.length} assigned</small></header>
-        <div className="desktop-driver-list">
-          {drivers.map((driver) => {
-            const driverNextStop = getNextActionableDriverStop(loads, driver.id)
-            const active = driver.id === selectedDriver?.id
-            return (
-              <button type="button" className={active ? 'active' : ''} key={driver.id} onClick={() => onSelectDriver?.(driver.id)}>
-                <i>{(driver.name || 'D').charAt(0).toUpperCase()}</i>
-                <span><strong>{driver.fullName || driver.name}</strong><small>{readableStatus(driver)}</small><em>{stopLabel(driverNextStop)}</em></span>
-              </button>
-            )
-          })}
-        </div>
-      </aside>
+      {workspaceState !== 'focused' && (
+        <>
+          <button
+            type="button"
+            className={`desktop-drawer-handle desktop-drawer-handle-left${driverDrawerOpen ? ' open' : ''}`}
+            onClick={onToggleDriverDrawer}
+            aria-expanded={driverDrawerOpen}
+            aria-controls="desktop-driver-drawer"
+            aria-label={driverDrawerOpen ? 'Close drivers' : 'Open drivers'}
+          >
+            <DriversIcon />
+            <span>DRIVERS</span>
+            <b>{drivers.length}</b>
+          </button>
 
-      {driverPanelOpen && selectedDriver && (
-        <aside className="desktop-driver-slide-over" aria-label={`${selectedName} details`}>
-          <header>
-            <div><span>DRIVER STATUS</span><strong>{selectedName}</strong><small>{readableStatus(selectedDriver)}</small></div>
-            <button type="button" onClick={onCloseDriverPanel} aria-label="Close driver details">×</button>
-          </header>
-          <div className="desktop-driver-slide-grid">
-            <div><span>NEXT STOP</span><strong>{stopLabel(nextStop)}</strong><small>{nextWindow}</small></div>
-            <div><span>DRIVING</span><strong>{hos?.driving || '—'}</strong><small>available</small></div>
-            <div><span>DUTY</span><strong>{hos?.duty || '—'}</strong><small>available</small></div>
-            <div><span>TRAILER</span><strong>{trailer?.palletsUsed || 0}/{trailer?.capacity?.palletCapacity || 26}</strong><small>pallets</small></div>
-          </div>
-          <section>
-            <span>UP NEXT</span>
-            {itinerary.slice(0, 4).map((stop, index) => (
-              <div className="desktop-driver-next-row" key={stop.id}>
-                <b>{index + 1}</b>
-                <span><strong>{stop.type === 'pickup' ? 'PICKUP' : 'DELIVERY'} · {stop.loadRef}</strong><small>{stopLabel(stop)} · {formatTime(stop.windowStartMinutes)}</small></span>
+          <aside
+            id="desktop-driver-drawer"
+            className={`desktop-driver-drawer${driverDrawerOpen ? ' open' : ''}`}
+            aria-hidden={!driverDrawerOpen}
+          >
+            <header>
+              <div><span>FLEET</span><strong>Drivers</strong><small>{drivers.length} assigned</small></div>
+              <button type="button" onClick={onCloseDriverDrawer} aria-label="Close drivers">×</button>
+            </header>
+            <div className="desktop-driver-list">
+              {drivers.map((driver) => {
+                const driverNextStop = getNextActionableDriverStop(loads, driver.id)
+                const active = driver.id === selectedDriver?.id
+                return (
+                  <button type="button" className={active ? 'active' : ''} key={driver.id} onClick={() => onSelectDriver?.(driver.id)}>
+                    <i>{(driver.name || 'D').charAt(0).toUpperCase()}</i>
+                    <span><strong>{driver.fullName || driver.name}</strong><small>{readableStatus(driver)}</small><em>{stopLabel(driverNextStop)}</em></span>
+                  </button>
+                )
+              })}
+              {!drivers.length && <p>No drivers assigned.</p>}
+            </div>
+          </aside>
+
+          <button
+            type="button"
+            className={`desktop-drawer-handle desktop-drawer-handle-right${operationsDrawerOpen ? ' open' : ''}`}
+            onClick={onToggleOperationsDrawer}
+            aria-expanded={operationsDrawerOpen}
+            aria-controls="desktop-operations-drawer"
+            aria-label={operationsDrawerOpen ? 'Close operations' : 'Open operations'}
+          >
+            <OperationsIcon />
+            <span>OPS</span>
+            <b>{selectedDriver ? (selectedDriver.name || selectedDriver.fullName || 'D').charAt(0).toUpperCase() : '—'}</b>
+          </button>
+
+          <aside
+            id="desktop-operations-drawer"
+            className={`desktop-operation-drawer${operationsDrawerOpen ? ' open' : ''}`}
+            aria-hidden={!operationsDrawerOpen}
+          >
+            <header>
+              <div><span>ACTIVE DRIVER</span><strong>{selectedName}</strong><small>{readableStatus(selectedDriver)}</small></div>
+              <button type="button" onClick={onCloseOperationsDrawer} aria-label="Close operations">×</button>
+            </header>
+            <section className="desktop-operation-metrics">
+              <div><span>DRIVING</span><strong>{hos?.driving || '—'}</strong></div>
+              <div><span>DUTY</span><strong>{hos?.duty || '—'}</strong></div>
+            </section>
+            <section className="desktop-operation-trailer">
+              <div><span>TRAILER</span><strong>{trailer?.palletsUsed || 0} / {trailer?.capacity?.palletCapacity || 26} pallets</strong></div>
+              <div className="desktop-trailer-track"><i style={{ width: `${Math.min(100, Math.max(0, ((trailer?.palletsUsed || 0) / (trailer?.capacity?.palletCapacity || 26)) * 100))}%` }} /></div>
+              <small>{trailer?.contents?.length || 0} load{trailer?.contents?.length === 1 ? '' : 's'} onboard</small>
+            </section>
+            <section className="desktop-manifest-panel">
+              <header><span>UP NEXT</span><small>{itinerary.length} remaining stops</small></header>
+              <div>
+                {itinerary.slice(0, 7).map((stop, index) => (
+                  <button type="button" key={stop.id} className={nextStop?.id === stop.id ? 'next' : ''}>
+                    <b>{stop.type === 'pickup' ? 'P' : 'D'}{index + 1}</b>
+                    <span><strong>{stopLabel(stop)}</strong><small>{stop.loadRef} · {formatTime(stop.windowStartMinutes)}</small></span>
+                    {nextStop?.id === stop.id && <em>NEXT</em>}
+                  </button>
+                ))}
+                {!itinerary.length && <p>No freight scheduled.</p>}
               </div>
-            ))}
-            {!itinerary.length && <p>No active stops.</p>}
-          </section>
-        </aside>
+            </section>
+          </aside>
+        </>
       )}
 
-      {workspaceState !== 'focused' ? (
-        <aside className="desktop-operation-panel" aria-label="Selected driver operations">
-          <header><span>ACTIVE DRIVER</span><strong>{selectedName}</strong><small>{readableStatus(selectedDriver)}</small></header>
-          <section className="desktop-operation-metrics">
-            <div><span>DRIVING</span><strong>{hos?.driving || '—'}</strong></div>
-            <div><span>DUTY</span><strong>{hos?.duty || '—'}</strong></div>
-          </section>
-          <section className="desktop-operation-trailer">
-            <div><span>TRAILER</span><strong>{trailer?.palletsUsed || 0} / {trailer?.capacity?.palletCapacity || 26} pallets</strong></div>
-            <div className="desktop-trailer-track"><i style={{ width: `${Math.min(100, Math.max(0, ((trailer?.palletsUsed || 0) / (trailer?.capacity?.palletCapacity || 26)) * 100))}%` }} /></div>
-            <small>{trailer?.contents?.length || 0} load{trailer?.contents?.length === 1 ? '' : 's'} onboard</small>
-          </section>
-          <section className="desktop-manifest-panel">
-            <header><span>MANIFEST</span><small>{itinerary.length} remaining stops</small></header>
-            <div>
-              {itinerary.slice(0, 7).map((stop, index) => (
-                <button type="button" key={stop.id} className={nextStop?.id === stop.id ? 'next' : ''}>
-                  <b>{stop.type === 'pickup' ? 'P' : 'D'}{index + 1}</b>
-                  <span><strong>{stopLabel(stop)}</strong><small>{stop.loadRef} · {formatTime(stop.windowStartMinutes)}</small></span>
-                  {nextStop?.id === stop.id && <em>NEXT</em>}
-                </button>
-              ))}
-              {!itinerary.length && <p>No freight scheduled.</p>}
-            </div>
-          </section>
-        </aside>
-      ) : (
+      {workspaceState === 'focused' && (
         <aside className="desktop-focused-summary" aria-label="Paused operation summary">
           <strong>{selectedDriver?.name || 'DRIVER'}</strong>
           <span>PAUSED</span>
