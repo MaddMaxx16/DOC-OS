@@ -224,12 +224,3 @@
   .desktop-facility-map-peek span { color:#7f91a1; font-size:8px; font-weight:900; letter-spacing:.1em; }
   .desktop-facility-map-peek strong { font-size:11px; }
   .desktop-facility-map-peek small { color:#8999a7; font-size:9px; }
-}
-
-@media (max-width:899px) {
-  .docos-title-screen { grid-template-columns:1fr; padding:28px; }
-  .docos-title-menu { grid-column:1; justify-self:center; width:min(100%,430px); padding:26px; }
-  .docos-title-brand { left:28px; top:24px; }
-  .docos-title-footer { left:28px; right:28px; }
-  .docos-title-footer span:last-child { display:none; }
-  .docos-workstation-hotspot { width:42vw; height:25vh; }

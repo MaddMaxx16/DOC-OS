@@ -146,3 +146,12 @@
 .docos-career-workspace.entering .docos-workspace-header,.docos-career-workspace.entering .docos-workspace-career-note { opacity:0; transition:opacity .25s ease; }
 
 .desktop-workstation-chrome { display:none; }
+
+@media (max-width:899px) {
+  .docos-title-screen { grid-template-columns:1fr; padding:28px; }
+  .docos-title-menu { grid-column:1; justify-self:center; width:min(100%,430px); padding:26px; }
+  .docos-title-brand { left:28px; top:24px; }
+  .docos-title-footer { left:28px; right:28px; }
+  .docos-title-footer span:last-child { display:none; }
+  .docos-workstation-hotspot { width:42vw; height:25vh; }
+}
