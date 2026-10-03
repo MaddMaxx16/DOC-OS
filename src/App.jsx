@@ -38,7 +38,7 @@ import { sampleRoutePoint } from './utils/routeSampler.js'
 import { anchorMovementRoute, reconcileIdleMovement, reconcileFreightMovement, restoreMovementOwnerContinuity } from './utils/runtimeMovement.js'
 import { createLegacyIndependentCareer, normalizeCareerState } from './utils/careerState.js'
 import { establishCarrierOperationalContext } from './utils/carrierOperationalContext.js'
-import { migrateFirstDayFlow } from './utils/firstDayProgress.js'
+import { normalizeFirstDayProgress, migrateFirstDayFlow, isFirstDayTeachingPaused } from './utils/firstDayProgress.js'
 import { initializeMetrolineEmployeeOperation } from './utils/employeeCareerInitializer.js'
 
 
@@ -1117,6 +1117,18 @@ useEffect(() => {
     window.location.reload()
   }
 
+  const persistFirstDayProgress = (nextProgress) => {
+    const snapshot = latestAutosaveRef.current
+    if (!snapshot || snapshot.slotId !== activeSaveSlotId) return false
+    const next = normalizeFirstDayProgress({ ...snapshot.state.firstDay, ...nextProgress, flowVersion: 5 })
+    if (!next) return false
+    const state = { ...snapshot.state, firstDay: next }
+    if (!persistIfAuthorized(savePersistenceAuthorityRef.current, saveGame, state, activeSaveSlotId)) return false
+    latestAutosaveRef.current = { slotId: activeSaveSlotId, state }
+    setFirstDay(next)
+    return true
+  }
+
   const returnToTitle = () => {
     if (onReturnToStartup) {
       const snapshot = latestAutosaveRef.current
@@ -1723,9 +1735,10 @@ Dispatch Mentor`,
     })
   }, [hydrated, stage, gameTime.gameDayIndex, gameTime.totalMinutesOfDay, loads, carriers])
 
+  const firstDayTeachingPaused = isFirstDayTeachingPaused(firstDay, loads)
 
   useEffect(() => {
-    if (stage !== 'game' || isGameClockPaused) return undefined
+    if (stage !== 'game' || isGameClockPaused || firstDayTeachingPaused) return undefined
     const timer = setInterval(() => setGameTime((time) => {
       const nextMinutes = time.totalMinutesOfDay + 1
       return nextMinutes >= 1440
@@ -1733,7 +1746,7 @@ Dispatch Mentor`,
         : { ...time, totalMinutesOfDay: nextMinutes }
     }), 3000 / simulationSpeed)
     return () => clearInterval(timer)
-  }, [stage, isGameClockPaused, simulationSpeed])
+  }, [stage, isGameClockPaused, simulationSpeed, firstDayTeachingPaused])
 
 
   // B.4.2.2: operation-day identity follows the calendar after midnight without
@@ -2027,6 +2040,8 @@ Open CarrierSource to review your full account history.`
             <MainGameScreen
             onWorkstationReady={onWorkstationReady}
             career={career}
+            firstDay={firstDay}
+            onFirstDayProgress={persistFirstDayProgress}
             selectedMarket={selectedMarket}
             initialPhoneOpen={Boolean(gameEntryScreen)}
             initialPhoneScreen={gameEntryScreen || 'home'}
@@ -2061,7 +2076,7 @@ Open CarrierSource to review your full account history.`
             setDrivers={setDrivers}
             plannedRoute={plannedRoute}
             setPlannedRoute={setPlannedRoute}
-            isGameClockPaused={isGameClockPaused}
+            isGameClockPaused={isGameClockPaused || firstDayTeachingPaused}
             setGameClockPaused={setIsGameClockPaused}
             runtimePositions={runtimePositions}
             setRuntimePositions={setRuntimePositions}
