@@ -7,6 +7,8 @@ import {
   planDriverManifestInsertion,
 } from '../src/utils/driverManifest.js'
 import { buildDriverItinerary, getNextActionableDriverStop } from '../src/utils/driverItinerary.js'
+import { getProjectedDriverOrigin } from '../src/utils/driverQueue.js'
+import mapLocations from '../src/data/mapLocations.js'
 
 const driver = {
   id: 'marcus',
@@ -274,4 +276,39 @@ test('exclusive full-truckload freight cannot be stacked with another onboard lo
   const pickupIndex = plan.sequenceSteps.findIndex((step) => step.loadId === 'FTL' && step.type === 'pickup')
   const firstDeliveryIndex = plan.sequenceSteps.findIndex((step) => step.loadId === 'L1' && step.type === 'delivery')
   assert.ok(pickupIndex > firstDeliveryIndex)
+})
+
+
+test('availability projection travels from pickup 2 to delivery 1 instead of replaying load 1 original lane', () => {
+  const l1 = load({
+    id: 'L1', number: 'L1', pickup: 'empire-freight-terminal', delivery: 'harborline-logistics',
+    pickupStart: 480, pickupEnd: 540, deliveryStart: 660, deliveryEnd: 720,
+    pallets: 8, weight: 12000, status: 'onboard', tripStatus: 'onboard-hold',
+    order: { pickup: 0, delivery: 2 },
+  })
+  // Make the legacy pickup→delivery duration intentionally absurd. Manifest
+  // projection must ignore this because the truck is now physically at P2.
+  l1.plannedLoadedDriveTimeMinutes = 999
+  l1.loadedGameMinute = 510
+
+  const l2 = load({
+    id: 'L2', number: 'L2', pickup: 'queens-freight-center', delivery: 'freshway-grocery-dc',
+    pickupStart: 570, pickupEnd: 630, deliveryStart: 780, deliveryEnd: 840,
+    pallets: 6, weight: 9000, status: 'onboard', tripStatus: 'onboard-hold',
+    order: { pickup: 1, delivery: 3 },
+  })
+  l2.loadedGameMinute = 580
+
+  const queens = mapLocations.find((location) => location.id === 'queens-freight-center')
+  const result = getProjectedDriverOrigin({
+    driver,
+    loads: [l1, l2],
+    runtimePositions: { marcus: { longitude: queens.longitude, latitude: queens.latitude } },
+    gameTime: { gameDayIndex: 0, totalMinutesOfDay: 580 },
+  })
+
+  assert.equal(result.afterLoadId, 'L2')
+  assert.equal(result.location?.id, 'freshway-grocery-dc')
+  assert.ok(result.availableAbsoluteMinute < 850, 'projection must not replay L1\'s stale 999-minute loaded leg')
+  assert.ok(result.availableAbsoluteMinute >= 788, 'projection must still honor the later D2 appointment')
 })
