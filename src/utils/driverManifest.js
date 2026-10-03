@@ -359,14 +359,17 @@ export function planDriverManifestInsertion({
   if (!driver?.id || !candidateLoad?.id) return null
 
   const baseManifest = buildDriverManifest(loads, driver.id, { driver })
-  const baseStops = baseManifest.stops.filter((stop) => stop.state !== 'completed')
+  const baseStops = baseManifest.stops.filter((stop) => (
+    stop.type === 'pickup'
+      ? !isManifestPickupComplete(stop.load)
+      : !isManifestDeliveryComplete(stop.load)
+  ))
   const candidateStops = buildRawStops([], driver.id, { candidateLoad })
   const pickup = candidateStops.find((stop) => stop.type === 'pickup')
   const delivery = candidateStops.find((stop) => stop.type === 'delivery')
   if (!pickup || !delivery) return null
 
-  const lockedPrefix = baseStops.findIndex((stop) => !isManifestPickupComplete(stop.load) && !isManifestDeliveryComplete(stop.load))
-  const earliestIndex = lockedPrefix < 0 ? baseStops.length : lockedPrefix
+  const earliestIndex = 0
   let best = null
 
   for (let pickupIndex = earliestIndex; pickupIndex <= baseStops.length; pickupIndex += 1) {
