@@ -326,7 +326,7 @@ function LoadDetailsScreen({
       onFirstDayProgress?.({
         laneReviewLoadId: load.id,
         laneReviewIndex: reviewIndex + 1,
-        flowVersion: 4,
+        flowVersion: 5,
       })
       return
     }
