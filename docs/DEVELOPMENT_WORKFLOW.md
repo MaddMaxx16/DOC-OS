@@ -120,13 +120,24 @@ When using GitHub APIs, prefer creating a Git tree containing all related file c
 
 ## 4. Verification
 
-The canonical project verification command is:
+The target full-repository verification command is:
 
 ```bash
 npm run verify
 ```
 
-The current package script runs the repository's lint/tests/build verification chain.
+The current package script runs lint, tests, and the production build.
+
+### Current lint baseline
+
+When the permanent CI workflow was introduced, it exposed pre-existing full-repository lint debt. Until that debt is cleared in a dedicated cleanup packet, CI uses a baseline-safe gate:
+
+- changed JS/JSX lint is **blocking**,
+- the full automated test suite is **blocking**,
+- the production build is **blocking**,
+- full-repository lint is still executed and reported, but is temporarily **non-blocking**.
+
+This is a migration state, not the desired permanent end state. New or edited source files must not add lint failures. Once the legacy lint baseline is clean, restore full `npm run verify` as the blocking CI gate.
 
 ### Merge gate
 
@@ -157,13 +168,16 @@ Do not weaken correct product behavior merely to satisfy a stale test. Update th
 
 DOC OS should have **one permanent verification workflow**, not a new workflow per feature.
 
-Desired permanent workflow behavior:
+Permanent workflow behavior:
 
-- run on pull requests into the phone-test checkpoint branch,
+- run on pull requests into the checkpoint branch,
 - run on pull requests into `main`,
 - allow manual runs,
 - execute `npm ci`,
-- execute `npm run verify`.
+- lint changed JS/JSX as a blocking regression gate,
+- run the full automated test suite,
+- run the production build,
+- report the full-repo lint baseline without blocking until the documented legacy debt is removed.
 
 ### Never
 
