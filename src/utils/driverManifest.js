@@ -238,9 +238,9 @@ function topologicalStops(stops, loads) {
   return ordered
 }
 
-function simulateCapacity(stops, driver) {
-  const capacity = getDriverTrailerCapacity(driver, stops.map((stop) => stop.load))
-  const onboard = new Map()
+function simulateCapacity(stops, driver, { initialOnboardLoads = [] } = {}) {
+  const capacity = getDriverTrailerCapacity(driver, [...initialOnboardLoads, ...stops.map((stop) => stop.load)])
+  const onboard = new Map(initialOnboardLoads.map((load) => [load.id, getLoadFreightFootprint(load)]))
   const snapshots = []
   const violations = []
 
@@ -413,7 +413,9 @@ export function planDriverManifestInsertion({
       sequence.splice(pickupIndex, 0, pickup)
       sequence.splice(deliveryIndex, 0, delivery)
 
-      const capacityResult = simulateCapacity(sequence, driver)
+      const capacityResult = simulateCapacity(sequence, driver, {
+        initialOnboardLoads: loads.filter((item) => item.assignedDriverId === driver.id && isLoadOnboard(item)),
+      })
       if (capacityResult.violations.length) continue
 
       const scheduleResult = simulateSchedule(sequence, {
