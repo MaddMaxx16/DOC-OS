@@ -30,6 +30,6 @@ export function prepareFirstDayOperation(saved) {
     driverMessages: [],
     dayLoop: structuredClone(DEFAULT_DAY_LOOP_STATE),
     playerProgression: { ...DEFAULT_PLAYER_PROGRESSION },
-    firstDay: { step: 'welcome', messageIndex: 0, flowVersion: 4 },
+    firstDay: { step: 'welcome', messageIndex: 0, flowVersion: 5 },
   }
 }
