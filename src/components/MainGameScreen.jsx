@@ -3253,7 +3253,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         />
       )}
       </div>
-      {restIntroActive && <FirstDayWelcome lessonMessage="Load 1 is booked and confirmed. Now build onto it. Go back to FreightLink and find a second load that starts after Marcus finishes the first one. We are not planning lunch yet — secure Load 2 first." actionLabel="FIND LOAD 2" onContinue={() => {
+      {restIntroActive && <FirstDayWelcome lessonMessage="Load 1 is booked, but that does not mean Marcus has to deliver it before picking up more freight. The trailer still has room. Go back to FreightLink and find Load 2 with a pickup that fits before Load 1’s delivery. We’ll check stop order, appointments, and trailer capacity together." actionLabel="FIND LOAD 2" onContinue={() => {
         const booked = getFirstDayBookedLanes(loads)
         const first = booked[0]
         if (onFirstDayProgress?.({ step: 'restOfDay', firstLaneId: first?.id, flowVersion: 4, messageIndex: 2 }) === false) return
@@ -3263,7 +3263,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         setPhoneLessonEntry((value) => value + 1)
         setIsPhoneOpen(true)
       }} />}
-      {lunchIntroActive && <FirstDayWelcome lessonMessage="Good — Marcus now has two confirmed loads. Before we shop the final load, protect a realistic lunch window around the work we already booked. Then we’ll use that lunch window as a real constraint when we choose Load 3." actionLabel="PLAN MARCUS’S LUNCH" onContinue={() => {
+      {lunchIntroActive && <FirstDayWelcome lessonMessage="Good — Marcus now has two confirmed loads in one manifest. Before the first delivery, protect a realistic lunch window around those pickups. Then we’ll use the delivery that frees trailer space, plus lunch, as real constraints when we choose Load 3." actionLabel="PLAN MARCUS’S LUNCH" onContinue={() => {
         const booked = getFirstDayBookedLanes(loads)
         if (onFirstDayProgress?.({ step: 'lunch', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, flowVersion: 4, messageIndex: 2 }) === false) return
         setPhoneInitialScreen('agenda')
@@ -3271,7 +3271,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         setPhoneLoadId(null)
         setIsPhoneOpen(true)
       }} />}
-      {stagingIntroActive && <FirstDayWelcome lessonMessage="That’s three confirmed loads, and lunch is protected. One planning decision remains before Marcus gets the schedule: where should the truck finish after the final delivery? Compare the yard and staging options, save the best finish position, then we’ll send Marcus the complete day." actionLabel="PLAN STAGING" onContinue={() => {
+      {stagingIntroActive && <FirstDayWelcome lessonMessage="That’s three confirmed loads in one stop sequence, and lunch is protected. One planning decision remains before Marcus gets the schedule: where should the truck finish after the final delivery? Compare the yard and staging options, save the best finish position, then we’ll send Marcus the complete manifest." actionLabel="PLAN STAGING" onContinue={() => {
         const booked = getFirstDayBookedLanes(loads)
         if (onFirstDayProgress?.({ step: 'staging', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, thirdLaneId: booked[2]?.id, flowVersion: 4, messageIndex: 2 }) === false) return
         setPhoneInitialScreen('agenda')
