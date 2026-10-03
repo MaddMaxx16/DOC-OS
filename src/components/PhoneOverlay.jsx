@@ -203,7 +203,7 @@ function PhoneOverlay({ firstDay, onFirstDayProgress, loads, setLoads, drivers, 
       onFirstDayProgress?.({
         step: 'ready',
         messageIndex: 2,
-        flowVersion: 4,
+        flowVersion: 5,
         workdayLessonComplete: true,
       })
     }
@@ -1237,7 +1237,7 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
                 : 'Two loads and lunch are locked in. Load 1’s delivery will free trailer space; find one final pickup that fits into the remaining manifest.'}
           </FirstDayLesson>}
           {screen === 'loadBoard' && <LoadBoardScreen embedded recommendedLoadOrder={firstDay?.step === 'freight' ? 1 : firstDay?.step === 'restOfDay' ? 2 : firstDay?.step === 'thirdLoad' ? 3 : null} hidePlanShortcut={['freight', 'restOfDay', 'thirdLoad'].includes(firstDay?.step)} initialPickupDay={['freight', 'restOfDay', 'thirdLoad'].includes(firstDay?.step) ? gameTime?.gameDayIndex || 0 : null} loads={loads} drivers={drivers} runtimePositions={runtimePositions} gameTime={gameTime} operationDay={operationDay} planningDriverId={selectedDriverId} onPlanningDriverChange={setSelectedDriverId} onSelectLoad={(loadId) => {
-            if (['restOfDay', 'thirdLoad'].includes(firstDay?.step)) onFirstDayProgress?.({ reviewLoadId: loadId, flowVersion: 4 })
+            if (['restOfDay', 'thirdLoad'].includes(firstDay?.step)) onFirstDayProgress?.({ reviewLoadId: loadId, flowVersion: 5 })
             openLoadDetails(loadId, null)
           }} onOpenScheduler={() => {
             setSelectedLoadId(null)
@@ -1248,7 +1248,7 @@ ${dispatcherProfile?.businessName || dispatcherProfile?.displayName || 'DOC OS D
             firstDay={firstDay}
             onFirstDayProgress={onFirstDayProgress}
             onPlanFirstDayLunch={(loadId) => {
-              if (onFirstDayProgress?.({ step: 'lunch', reviewLoadId: loadId, flowVersion: 4 }) === false) return
+              if (onFirstDayProgress?.({ step: 'lunch', reviewLoadId: loadId, flowVersion: 5 }) === false) return
               setSelectedDriverId('marcus')
               setScreen('agenda')
             }}
