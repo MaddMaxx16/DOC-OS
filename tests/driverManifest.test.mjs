@@ -184,3 +184,94 @@ test('manifest stop order supports P1 P2 D1 P3 D2 D3', () => {
   ])
   assert.equal(manifest.violations.length, 0)
 })
+
+
+test('planner inserts Load 3 after Delivery 1 and before Delivery 2 when appointments support it', () => {
+  const l1 = load({
+    id: 'L1', number: 'L1', pickup: 'empire-freight-terminal', delivery: 'harborline-logistics',
+    pickupStart: 480, pickupEnd: 540, deliveryStart: 660, deliveryEnd: 720,
+    pallets: 8, weight: 12000, order: { pickup: 0, delivery: 2 },
+  })
+  const l2 = load({
+    id: 'L2', number: 'L2', pickup: 'queens-freight-center', delivery: 'freshway-grocery-dc',
+    pickupStart: 570, pickupEnd: 630, deliveryStart: 780, deliveryEnd: 840,
+    pallets: 6, weight: 9000, status: 'queued', tripStatus: 'queued', order: { pickup: 1, delivery: 3 },
+  })
+  const candidate = {
+    ...load({
+      id: 'L3', number: 'L3', pickup: 'brooklyn-industrial-terminal', delivery: 'bronx-commerce-terminal',
+      pickupStart: 720, pickupEnd: 780, deliveryStart: 900, deliveryEnd: 960,
+      pallets: 10, weight: 14000, status: 'available', tripStatus: 'available',
+    }),
+    assignedDriverId: null,
+    candidateDriverId: 'marcus',
+    manifestStopOrder: null,
+  }
+
+  const lunchDriver = {
+    ...driver,
+    workdayByDay: {
+      '0': {
+        ...driver.workdayByDay['0'],
+        lunchWindowStartMinutes: 630,
+        lunchWindowEndMinutes: 660,
+      },
+    },
+  }
+  const plan = planDriverManifestInsertion({
+    loads: [l1, l2],
+    driver: lunchDriver,
+    candidateLoad: candidate,
+    gameTime: { gameDayIndex: 0, totalMinutesOfDay: 360 },
+    runtimePositions: {},
+  })
+
+  assert.ok(plan)
+  assert.equal(plan.violations.length, 0)
+  assert.deepEqual(plan.sequenceSteps.map((step) => `${step.loadId}:${step.type}`), [
+    'L1:pickup', 'L2:pickup', 'L1:delivery', 'L3:pickup', 'L2:delivery', 'L3:delivery',
+  ])
+})
+
+test('exclusive full-truckload freight cannot be stacked with another onboard load', () => {
+  const l1 = load({
+    id: 'L1', number: 'L1', pickup: 'empire-freight-terminal', delivery: 'harborline-logistics',
+    pickupStart: 480, pickupEnd: 540, deliveryStart: 660, deliveryEnd: 720,
+    pallets: 8, weight: 12000,
+  })
+  const candidate = {
+    ...load({
+      id: 'FTL', number: 'FTL', pickup: 'queens-freight-center', delivery: 'freshway-grocery-dc',
+      pickupStart: 570, pickupEnd: 630, deliveryStart: 780, deliveryEnd: 840,
+      pallets: 24, weight: 32000, status: 'available', tripStatus: 'available',
+    }),
+    assignedDriverId: null,
+    candidateDriverId: 'marcus',
+    freight: {
+      pallets: 24,
+      weightLbs: 32000,
+      equipmentType: 'dry-van',
+      equipmentLabel: "53' Dry Van",
+      trailerCapacityPallets: 26,
+      trailerMaxWeightLbs: 44000,
+      loadClass: 'full-truckload',
+      exclusiveTrailer: true,
+    },
+  }
+
+  const plan = planDriverManifestInsertion({
+    loads: [l1],
+    driver,
+    candidateLoad: candidate,
+    gameTime: { gameDayIndex: 0, totalMinutesOfDay: 360 },
+    runtimePositions: {},
+  })
+
+  // The planner may still find a legal sequence by waiting until L1 is delivered,
+  // but it must never overlap the exclusive load with L1 onboard.
+  assert.ok(plan)
+  assert.equal(plan.violations.length, 0)
+  const pickupIndex = plan.sequenceSteps.findIndex((step) => step.loadId === 'FTL' && step.type === 'pickup')
+  const firstDeliveryIndex = plan.sequenceSteps.findIndex((step) => step.loadId === 'L1' && step.type === 'delivery')
+  assert.ok(pickupIndex > firstDeliveryIndex)
+})
