@@ -356,6 +356,40 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
     }
   }, [initialCamera])
 
+  // V2.1 shell hardening — browser previews can change the actual map container
+  // without changing the simulation state (responsive shell, entry transition,
+  // dock/workspace changes). Keep MapLibre synced to the real container size.
+  useEffect(() => {
+    const container = mapContainer.current
+    const map = mapRef.current
+    if (!container || !map) return undefined
+
+    let resizeFrame = null
+    const requestMapResize = () => {
+      if (resizeFrame) window.cancelAnimationFrame(resizeFrame)
+      resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = null
+        map.resize()
+      })
+    }
+
+    const resizeObserver = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(requestMapResize)
+      : null
+
+    resizeObserver?.observe(container)
+    window.addEventListener('resize', requestMapResize)
+    window.addEventListener('orientationchange', requestMapResize)
+    requestMapResize()
+
+    return () => {
+      resizeObserver?.disconnect()
+      window.removeEventListener('resize', requestMapResize)
+      window.removeEventListener('orientationchange', requestMapResize)
+      if (resizeFrame) window.cancelAnimationFrame(resizeFrame)
+    }
+  }, [])
+
   const continuousMapMotionActive = !visualSuspended && !isGameClockPaused && drivers.some((driver) => {
     const owner = resolveDriverMovementOwner({ driver, gameTime, loads })
     return ['freight', 'lunch-route', 'idle-route'].includes(owner.type)
