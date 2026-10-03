@@ -73,15 +73,10 @@ test('welcome resume normalizes malformed message indexes and legacy tutorial st
   assert.equal(normalizeFirstDayProgress({ step: 'shiftEnd' }).step, 'shiftEnd')
 })
 
-test('Day 1 v5 pauses only at the active teaching steps', () => {
-  for (const step of ['welcome', 'lunch', 'staging']) {
-    assert.equal(isFirstDayTeachingPaused({ step, flowVersion: 5 }), true)
+test('Day 1 teaching state stays dormant during the desktop systems rebuild', () => {
+  for (const step of ['welcome', 'freight', 'restOfDay', 'lunch', 'thirdLoad', 'staging', 'schedule']) {
+    assert.equal(isFirstDayTeachingPaused({ step, flowVersion: 5 }), false)
   }
-  for (const step of ['freight', 'restOfDay', 'thirdLoad']) {
-    assert.equal(isFirstDayTeachingPaused({ step, flowVersion: 5 }), true)
-  }
-  assert.equal(isFirstDayTeachingPaused({ step: 'schedule' }), false)
-  assert.equal(isFirstDayTeachingPaused({ step: 'freight' }), false)
   assert.deepEqual(normalizeFirstDayProgress({ step: 'ready', workdayLessonComplete: true }), { step: 'ready', messageIndex: 0, workdayLessonComplete: true })
 })
 
@@ -150,8 +145,8 @@ test('legacy Day 1 saves migrate into the three-load manifest v5 arc without del
   assert.equal(migrateFirstDayFlow({ step: 'ready', workdayLessonComplete: true, flowVersion: 3 }, [first]).step, 'ready')
 })
 
-test('lane review coaching remains clamped while the three-load lesson owns time', () => {
+test('lane review progress remains normalized while the lesson is dormant', () => {
   const progress = { step: 'freight', flowVersion: 5 }
-  assert.equal(isFirstDayTeachingPaused(progress, []), true)
+  assert.equal(isFirstDayTeachingPaused(progress, []), false)
   assert.equal(normalizeFirstDayProgress({ step: 'freight', laneReviewLoadId: 'chosen', laneReviewIndex: 999 }).laneReviewIndex, 4)
 })
