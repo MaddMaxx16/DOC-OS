@@ -571,7 +571,9 @@ useEffect(() => {
             && message.type !== 'rate-confirmation-delivery'
         })
       : [])
-    const savedDriverMessages = Array.isArray(saved.driverMessages) ? saved.driverMessages : []
+    const savedDriverMessages = Array.isArray(saved.driverMessages)
+      ? saved.driverMessages.filter((message) => !(upgradingManifestTutorialV5 && manifestResetLoadIds.has(message.loadId)))
+      : []
     // CS2.0B.4.1 — collapse the old three-text Marcus tutorial burst into one
     // relationship-start message. Existing saves keep their history without carrying
     // the repetitive onboarding cadence forward.
