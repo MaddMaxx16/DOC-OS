@@ -1,3 +1,4 @@
+import { buildDriverManifest } from './driverManifest.js'
 const TERMINAL = new Set(['completed', 'delivered'])
 const PICKUP_DONE = new Set(['loaded', 'onboard-hold', 'en-route-delivery', 'at-delivery', 'checking-in-delivery', 'waiting-at-delivery', 'checked-in-delivery', 'unloading-delivery', 'awaiting-pod', 'delivered', 'completed'])
 const DELIVERY_DONE = new Set(['awaiting-pod', 'delivered', 'completed'])
@@ -28,47 +29,17 @@ function stopState(load, type) {
 
 export function buildDriverItinerary(loads = [], driverId) {
   if (!driverId) return []
-  const assigned = loads.filter((load) => (load.assignedDriverId === driverId || load.completedDriverId === driverId) && !TERMINAL.has(load.status))
 
-  // CS2.0A.11 — Sequential Load Integrity
-  // Until trailer-capacity / multi-load planning exists, a driver owns exactly
-  // one freight lifecycle at a time. A later pickup may NOT be inserted between
-  // an earlier pickup and that load's delivery. Route order is therefore atomic:
-  // pickup A -> delivery A -> pickup B -> delivery B.
-  //
-  // Prefer the persisted operational ordering created by booking/scheduling.
-  // Fall back to pickup appointment time only for legacy/unordered data.
-  const orderedLoads = [...assigned].sort((a, b) => {
-    const aQueue = Number.isFinite(a.queuePosition) ? a.queuePosition : Number.POSITIVE_INFINITY
-    const bQueue = Number.isFinite(b.queuePosition) ? b.queuePosition : Number.POSITIVE_INFINITY
-    if (aQueue !== bQueue) return aQueue - bQueue
-
-    const aSchedule = Number.isFinite(a.scheduleOrderIndex) ? a.scheduleOrderIndex : Number.POSITIVE_INFINITY
-    const bSchedule = Number.isFinite(b.scheduleOrderIndex) ? b.scheduleOrderIndex : Number.POSITIVE_INFINITY
-    if (aSchedule !== bSchedule) return aSchedule - bSchedule
-
-    const aPickup = abs(a.pickupDayIndex, a.pickupWindowStartMinutes)
-    const bPickup = abs(b.pickupDayIndex, b.pickupWindowStartMinutes)
-    if (aPickup !== bPickup) return aPickup - bPickup
-    return String(a.id || '').localeCompare(String(b.id || ''))
-  })
-
-  const stops = []
-  orderedLoads.forEach((load) => {
-    const ref = load.loadNumber || load.id
-    stops.push({
-      id: `${load.id}:pickup`, loadId: load.id, loadRef: ref, type: 'pickup', locationId: load.pickupLocationId,
-      dayIndex: load.pickupDayIndex || 0, windowStartMinutes: load.pickupWindowStartMinutes || 0, windowEndMinutes: load.pickupWindowEndMinutes || 0,
-      sortMinute: abs(load.pickupDayIndex, load.pickupWindowStartMinutes), state: stopState(load, 'pickup'), load,
-    })
-    stops.push({
-      id: `${load.id}:delivery`, loadId: load.id, loadRef: ref, type: 'delivery', locationId: load.deliveryLocationId,
-      dayIndex: load.deliveryDayIndex || 0, windowStartMinutes: load.deliveryWindowStartMinutes || 0, windowEndMinutes: load.deliveryWindowEndMinutes || 0,
-      sortMinute: abs(load.deliveryDayIndex, load.deliveryWindowStartMinutes), state: stopState(load, 'delivery'), load,
-    })
-  })
-
-  return stops.map((stop, itineraryOrder) => ({ ...stop, itineraryOrder }))
+  // P2.5 — the driver manifest owns stop order. A load is no longer an atomic
+  // pickup→delivery block; pickups and deliveries from different loads may
+  // interleave when the persisted manifest/insertion plan says they should.
+  const manifest = buildDriverManifest(loads, driverId)
+  return manifest.stops.map((stop, itineraryOrder) => ({
+    ...stop,
+    sortMinute: stop.windowStartAbsolute,
+    state: stopState(stop.load, stop.type),
+    itineraryOrder,
+  }))
 }
 
 // CS2.0A.7 — one physical authority for every driver consumer.
