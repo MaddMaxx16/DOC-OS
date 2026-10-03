@@ -1,5 +1,9 @@
 # DOC OS Desktop Experience Architecture v1
 
+> **SUPERSEDED:** This v1 document is retained as a historical record of Desktop Build 1. The active desktop source of truth is now `docs/DESKTOP_EXPERIENCE_ARCHITECTURE_V2.md`.
+>
+> Desktop Build 1 proved the platform direction but also exposed that the shell still behaved too much like an expanded mobile interface. Do not use v1 layout rules or its single-driver-color rule as current implementation guidance.
+
 Status: **Locked design direction for Desktop Build 1**
 
 This document is the source of truth for the first desktop-first DOC OS experience. It records the product, UX, interaction, and implementation boundaries agreed before coding begins.
