@@ -16,22 +16,10 @@ import { sampleRoutePosition } from '../utils/routeSampler.js'
 
 setWorkerUrl(workerUrl)
 
-const DRIVER_COLOR_FAMILIES = [
-  ['#8BB8F7', '#6EA2E8', '#4F86D4', '#3C6DB8'],
-  ['#F0BE69', '#DEA650', '#C98E35', '#A87025'],
-  ['#65C3B2', '#4EAC9C', '#3B9385', '#2D776D'],
-  ['#C99AE7', '#B27BD5', '#975EC0', '#7948A0'],
-  ['#E38EA5', '#CD718C', '#B55375', '#93405E'],
-]
+const DOC_DRIVER_COLOR_FAMILY = ['#8CB9D8', '#6F9DBD', '#557F9D', '#3F647F']
 
-function stableHash(value = '') {
-  let hash = 0
-  for (const char of String(value)) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0
-  return Math.abs(hash)
-}
-
-function getDriverColorFamily(driverId) {
-  return DRIVER_COLOR_FAMILIES[stableHash(driverId) % DRIVER_COLOR_FAMILIES.length]
+function getDriverColorFamily() {
+  return DOC_DRIVER_COLOR_FAMILY
 }
 
 // CS2.0A.1 — facility position authority. While a driver is physically checked
@@ -98,7 +86,7 @@ function routeMatchesEndpoints(route, origin, destination, toleranceMiles = 1.5)
 }
 
 
-function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequest = 0, driverFocusId = null, facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, tripStatus, onDriverAction, assignedLoad, runtimePositions, runtimeProgressByDriver = {}, simulationSpeed = 1, isGameClockPaused = false, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, freightBrowseMode = false, freightBrowseLoads = [], freightBrowseSelectedLoadId = null, onFreightBrowseSelect, lunchCandidateLocations = [], visualSuspended = false }) {
+function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequest = 0, driverFocusId = null, facilityFocusRequest = 0, facilityFocusRole = null, drivers, loads = [], carriers = [], activeRouteGeometry, routeFocusMode = null, routeReviewLoad = null, onDriverAction, assignedLoad, runtimePositions, runtimeProgressByDriver = {}, simulationSpeed = 1, isGameClockPaused = false, gameTime, suppressAttention, isDriverFitEvaluation = false, evaluationLoad, freightBrowseMode = false, freightBrowseLoads = [], freightBrowseSelectedLoadId = null, onFreightBrowseSelect, lunchCandidateLocations = [], visualSuspended = false }) {
   // Resolve only on mount. Status/clock updates must never recenter a map the
   // player has panned. Resume uses Marcus's saved position, not a forced yard reset.
   const [initialCamera] = useState(() => {
@@ -258,12 +246,6 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
         ? activeRouteGeometry
         : (idleRouteGeometry || null)))
   const activeRouteVisualSnapshotRef = useRef(null)
-  activeRouteVisualSnapshotRef.current = {
-    coordinates: Array.isArray(resolvedActiveRouteGeometry) ? resolvedActiveRouteGeometry : [],
-    style: activeRouteLineStyle,
-  }
-
-  const getDriver = (driverId) => drivers.find((driver) => driver.id === driverId)
   const removeLocationMarker = (ref) => {
     const marker = ref.current
     if (!marker) return
@@ -286,6 +268,10 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
       simulationSpeed,
       isGameClockPaused,
       gameTime,
+    }
+    activeRouteVisualSnapshotRef.current = {
+      coordinates: Array.isArray(resolvedActiveRouteGeometry) ? resolvedActiveRouteGeometry : [],
+      style: activeRouteLineStyle,
     }
   }, [
     drivers,
@@ -720,15 +706,64 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
       const lunchOwnsMarker = hasLunchMovementAuthority(driver, gameTime)
       const position = (lunchOwnsMarker ? runtimePositions[driver.id] : getDriverFacilityPosition(loads, driver.id)) || runtimePositions[driver.id] || home
       if (!position) return
-      const element = document.createElement('div'); element.className = 'game-marker driver'; element.textContent = driver.name?.charAt(0)?.toUpperCase() || 'D'; element.style.setProperty('--driver-color', getDriverColorFamily(driver.id)[1])
+      const element = document.createElement('div'); element.className = 'game-marker driver'; element.textContent = driver.name?.charAt(0)?.toUpperCase() || 'D'; element.style.setProperty('--driver-color', getDriverColorFamily()[1])
       element.setAttribute('aria-label', `${driver.fullName || driver.name || 'Driver'} map position`)
       const nameLabel = document.createElement('span')
       nameLabel.className = 'driver-map-name'
       nameLabel.textContent = driver.name || 'Driver'
       element.appendChild(nameLabel)
+
+      const popupNode = document.createElement('div')
+      popupNode.className = 'desktop-driver-map-peek'
+      const driverPopup = new Popup({ offset: 18, closeButton: true, closeOnClick: false, className: 'driver-map-popup' }).setDOMContent(popupNode)
+      let marker = null
+
       element.addEventListener('click', (event) => {
         event.stopPropagation()
         setFocusedDriverId((current) => current === driver.id ? null : driver.id)
+
+        const state = motionStateRef.current || { loads, gameTime, runtimeProgressByDriver }
+        const stateLoads = state.loads || loads
+        const stateGameTime = state.gameTime || gameTime
+        const driverLoad = getAuthoritativeDriverTravelLoad(stateLoads, driver.id)
+          || stateLoads.find((load) => load.assignedDriverId === driver.id && !['completed', 'delivered', 'expired'].includes(load.tripStatus || load.status))
+          || null
+        const pickupLocation = mapLocations.find((location) => location.id === driverLoad?.pickupLocationId)
+        const deliveryLocation = mapLocations.find((location) => location.id === driverLoad?.deliveryLocationId)
+        const panel = driverLoad
+          ? getDriverPanelModel({
+              driver,
+              assignedLoad: driverLoad,
+              gameTime: stateGameTime,
+              runtimeProgress: state.runtimeProgressByDriver?.[driver.id] ?? 0,
+              pickup: pickupLocation,
+              delivery: deliveryLocation,
+            })
+          : null
+        const now = Number(stateGameTime?.gameDayIndex || 0) * 1440 + Number(stateGameTime?.totalMinutesOfDay || 0)
+        const trip = driverLoad?.tripStatus
+        const etaAbsolute = trip === 'en-route-pickup' && Number.isFinite(driverLoad?.departureGameMinute)
+          ? Number(driverLoad.departureGameMinute) + Number(driverLoad.plannedDeadheadDriveTimeMinutes || 0)
+          : trip === 'en-route-delivery' && Number.isFinite(driverLoad?.deliveryDepartureGameMinute)
+            ? Number(driverLoad.deliveryDepartureGameMinute) + Number(driverLoad.plannedLoadedDriveTimeMinutes || 0)
+            : null
+        const minutesRemaining = Number.isFinite(etaAbsolute) ? Math.max(0, Math.ceil(etaAbsolute - now)) : null
+
+        popupNode.replaceChildren()
+        const kicker = document.createElement('span')
+        kicker.textContent = 'DRIVER'
+        const title = document.createElement('strong')
+        title.textContent = driver.fullName || driver.name || 'Driver'
+        const status = document.createElement('small')
+        status.textContent = panel?.statusLabel || String(driver.status || 'Available').replaceAll('-', ' ')
+        const eta = document.createElement('small')
+        eta.textContent = minutesRemaining !== null
+          ? `${minutesRemaining} min est. · ${panel?.nextStopLabel || 'next stop'}`
+          : (panel?.nextStopLabel ? `Next · ${panel.nextStopLabel}` : 'No active route')
+        popupNode.append(kicker, title, status, eta)
+
+        if (marker && !driverPopup.isOpen()) marker.togglePopup()
+
         element.classList.add('status-revealed')
         const existingTimer = driverLabelRevealTimers.current.get(driver.id)
         if (existingTimer) window.clearTimeout(existingTimer)
@@ -742,8 +777,11 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
       })
       // B.5.3.2.6 — drivers always sit above world POIs/facilities.
       element.style.zIndex = '90'
-      const marker = new Marker({ element, offset: getDriverYardOffset(position, yardMarkerRefs.current.has(home?.id) ? home : null) }).setLngLat([position.longitude, position.latitude]).addTo(map)
-      driverMarkerRefs.current.set(driver.id, marker); markerRecords.current.push({ location: { id: driver.id, name: driver.name, type: 'driver' }, marker, markerElement: element, popup: null })
+      marker = new Marker({ element, offset: getDriverYardOffset(position, yardMarkerRefs.current.has(home?.id) ? home : null) })
+        .setLngLat([position.longitude, position.latitude])
+        .setPopup(driverPopup)
+        .addTo(map)
+      driverMarkerRefs.current.set(driver.id, marker); markerRecords.current.push({ location: { id: driver.id, name: driver.name, type: 'driver' }, marker, markerElement: element, popup: driverPopup })
     })
     if (showPickup && pickup) createLocationMarker(pickup, pickupMarkerRef, 'pickup')
     else removeLocationMarker(pickupMarkerRef)
@@ -865,14 +903,37 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
       attentionBadge.hidden = !needsFacilityAttention
       element.append(attentionBadge)
       element.classList.toggle('popup-obscured-stop', isPrimaryStop && facilityPopupOpen)
+      const facilityPeek = document.createElement('div')
+      facilityPeek.className = 'desktop-facility-map-peek'
+      const facilityKicker = document.createElement('span')
+      facilityKicker.textContent = role === 'pickup' ? 'PICKUP FACILITY' : 'DELIVERY FACILITY'
+      const facilityTitle = document.createElement('strong')
+      facilityTitle.textContent = location.name
+      const matchingStops = Array.from(desiredItineraryMarkers.values()).filter((item) => item.location.id === location.id)
+      const facilityArrivals = document.createElement('small')
+      facilityArrivals.textContent = `${matchingStops.length} DOC arrival${matchingStops.length === 1 ? '' : 's'} currently expected`
+      const facilityLoad = document.createElement('small')
+      facilityLoad.textContent = `${loadLabel} · ${role === 'pickup' ? 'Pickup' : 'Delivery'}`
+      facilityPeek.append(facilityKicker, facilityTitle, facilityArrivals, facilityLoad)
+      const facilityPopup = new Popup({ offset: 18, closeButton: true, closeOnClick: false, className: 'desktop-facility-popup' }).setDOMContent(facilityPeek)
+
+      let stopMarker = null
       element.addEventListener('click', (event) => {
-        if (!isPrimaryStop) return
         event.stopPropagation()
-        const actionMarker = role === 'pickup' ? pickupMarkerRef.current : deliveryMarkerRef.current
-        if (actionMarker?.getPopup?.() && !actionMarker.getPopup().isOpen()) actionMarker.togglePopup()
+        if (isPrimaryStop) {
+          const actionMarker = role === 'pickup' ? pickupMarkerRef.current : deliveryMarkerRef.current
+          if (actionMarker?.getPopup?.() && !actionMarker.getPopup().isOpen()) {
+            actionMarker.togglePopup()
+            return
+          }
+        }
+        if (stopMarker && !facilityPopup.isOpen()) stopMarker.togglePopup()
       })
-      const marker = new Marker({ element, offset: stopOffset }).setLngLat([location.longitude, location.latitude]).addTo(map)
-      itineraryStopMarkerRefs.current.set(key, marker)
+      stopMarker = new Marker({ element, offset: stopOffset })
+        .setLngLat([location.longitude, location.latitude])
+        .setPopup(facilityPopup)
+        .addTo(map)
+      itineraryStopMarkerRefs.current.set(key, stopMarker)
     })
 
     const deliveryRecord = markerRecords.current.find(({ marker }) => marker === deliveryMarkerRef.current)
@@ -1191,12 +1252,23 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
       const compactWindow = (value) => String(value ?? '')
         .replace(/^[A-Za-z]{3}\s+\d{1,2}\s*[·•]\s*/i, '')
         .trim()
-      const popup = new Popup({ closeButton: true, closeOnClick: false, offset: 14, className: 'route-name-popup route-detail-popup route-peek-popup route-label-popup', maxWidth: '210px' })
+      const routeDriver = drivers.find((driver) => driver.id === props.driverId)
+      const routeLoad = loads.find((load) => load.id === props.loadId)
+      const now = Number(gameTime?.gameDayIndex || 0) * 1440 + Number(gameTime?.totalMinutesOfDay || 0)
+      const routeEnd = routeLoad?.tripStatus === 'en-route-pickup' && Number.isFinite(routeLoad?.departureGameMinute)
+        ? Number(routeLoad.departureGameMinute) + Number(routeLoad.plannedDeadheadDriveTimeMinutes || 0)
+        : routeLoad?.tripStatus === 'en-route-delivery' && Number.isFinite(routeLoad?.deliveryDepartureGameMinute)
+          ? Number(routeLoad.deliveryDepartureGameMinute) + Number(routeLoad.plannedLoadedDriveTimeMinutes || 0)
+          : null
+      const remaining = Number.isFinite(routeEnd) ? Math.max(0, Math.ceil(routeEnd - now)) : null
+      const popup = new Popup({ closeButton: true, closeOnClick: false, offset: 14, className: 'route-name-popup route-detail-popup route-peek-popup route-label-popup', maxWidth: '230px' })
         .setLngLat(coordinates)
         .setHTML(`
           <div class="route-label-peek">
             <div class="route-label-title">${safe(props.loadLabel)}</div>
             <div class="route-label-status">${safe(props.routeStatus)}</div>
+            <div class="route-label-stop"><span>DRIVER</span><strong>${safe(routeDriver?.fullName || routeDriver?.name || 'Driver')}</strong></div>
+            <div class="route-label-stop"><span>EST. LEG</span><strong>${remaining === null ? 'PLANNED' : safe(`${remaining} MIN LEFT`)}</strong></div>
             <div class="route-label-stop"><span>PICKUP</span><strong>${safe(compactWindow(props.pickupWindow))}</strong></div>
             <div class="route-label-stop"><span>DELIVERY</span><strong>${safe(compactWindow(props.deliveryWindow))}</strong></div>
           </div>`)
@@ -1505,10 +1577,9 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
       if (cancelled || !mapRef.current || mapRef.current !== map) return
       if (!map.isStyleLoaded()) return
       const data = { type: 'Feature', properties: { role: 'lunch-diversion' }, geometry: { type: 'LineString', coordinates } }
-      let source = map.getSource('lunch-route-visual')
+      const source = map.getSource('lunch-route-visual')
       if (!source) {
         map.addSource('lunch-route-visual', { type: 'geojson', data })
-        source = map.getSource('lunch-route-visual')
       } else source.setData(data)
 
       if (!map.getLayer('lunch-route-visual-line')) {
