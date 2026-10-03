@@ -6,6 +6,7 @@ import CareerSetupScreen from './components/CareerSetupScreen.jsx'
 import DesktopTitleScreen from './components/DesktopTitleScreen.jsx'
 import DesktopCareerWorkspace from './components/DesktopCareerWorkspace.jsx'
 import './components/DesktopExperience.css'
+import './components/DesktopWorkstation.css'
 import { createMetrolineEmployeeCareer } from './utils/careerState.js'
 import {
   SAVE_SLOT_IDS,
@@ -209,9 +210,17 @@ function StartupApp() {
   return (
     <>
     {stage === 'operations' ? (
-      <Suspense fallback={null}>
-        <OperationsApp onReturnToStartup={returnToStartup} onWorkstationReady={revealWorkstation} />
-      </Suspense>
+      Capacitor.getPlatform() === 'web' ? (
+        <div className="desktop-operations-root">
+          <Suspense fallback={null}>
+            <OperationsApp onReturnToStartup={returnToStartup} onWorkstationReady={revealWorkstation} />
+          </Suspense>
+        </div>
+      ) : (
+        <Suspense fallback={null}>
+          <OperationsApp onReturnToStartup={returnToStartup} onWorkstationReady={revealWorkstation} />
+        </Suspense>
+      )
     ) : (
     <main className="app desktop-startup-app">
       {saveFailureMessage && (

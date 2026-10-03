@@ -1,5 +1,6 @@
 import { isRateConfirmationConfirmed } from '../utils/rateConfirmation.js'
 import './OperationsWorkspace.css'
+import { Capacitor } from '@capacitor/core'
 import { canAcquireDriverMovement, resolveDriverMovementOwner } from '../utils/driverMovementOwner.js'
 import { anchorMovementRoute, getLunchMovementFrame } from '../utils/runtimeMovement.js'
 import { beginPickupLoading, completePickupLoading, getPickupLoadingChallengeRequest } from '../utils/loadLifecycle.js'
@@ -270,7 +271,8 @@ function getAuthoritativeScheduleConstraint(load, driver) {
   return getDriverScheduleConstraint(load, driver)
 }
 
-function MainGameScreen({ desktopRuntime = false, onWorkstationReady, career, selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario, onInitializeEmployeeCareer, initialPhoneOpen = false, initialPhoneScreen = 'home', onInitialPhoneEntryConsumed }) {
+function MainGameScreen({ onWorkstationReady, career, selectedMarket, gameTime, loads, setLoads, drivers, setDrivers, carriers, dispatcherProfile, onSaveDispatcherProfile, onActivateCarrier, carrierApplicationsById, carrierCareerById, onApplyCarrier, onAcceptAgreement, onApprovePod, emailMessages, setEmailMessages, driverMessages: persistedDriverMessages = [], setDriverMessages, businessDocuments = [], operationDay = 1, dayLoopPhase = 'operating', dayReport = null, playerProgression, onEndDay, onContinueDay, onBeginOperations, plannedRoute, setPlannedRoute, isGameClockPaused = false, setGameClockPaused, runtimePositions, setRuntimePositions, runtimeProgressByDriver = {}, setRuntimeProgressByDriver, simulationSpeed, setSimulationSpeed, onResetGame, onReturnToTitle, onResetDayAfterCarrierApproval, seenLedgerReceivableIds, seenLedgerPaymentReadyIds, onOpenLedger, ledgerWorkflowByLoadId, ledgerBanking, setLedgerWorkflowByLoadId, setGameTime, onAwardLoadXp, onSetupOvernightDevScenario, onInitializeEmployeeCareer, initialPhoneOpen = false, initialPhoneScreen = 'home', onInitialPhoneEntryConsumed }) {
+  const desktopRuntime = Capacitor.getPlatform() === 'web'
   useEffect(() => {
     onWorkstationReady?.()
   }, [onWorkstationReady])
