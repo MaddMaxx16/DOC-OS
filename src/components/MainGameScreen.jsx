@@ -3090,7 +3090,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           && !loads.some((load) => (load.assignedDriverId === 'marcus' || load.completedDriverId === 'marcus') && ['completed', 'paid', 'delivered'].includes(load.status)) && (
           <button type="button" className="first-day-resume" onClick={() => {
             const step = ['ready', 'schedule', 'secondLane'].includes(firstDay.step) ? 'freight' : firstDay.step === 'shiftEnd' ? 'staging' : firstDay.step
-            if (onFirstDayProgress?.({ step, messageIndex: 2, flowVersion: 4 }) === false) return
+            if (onFirstDayProgress?.({ step, messageIndex: 2, flowVersion: 5 }) === false) return
             setDriverHubOpen(false)
             setPhoneInitialScreen(['freight', 'restOfDay', 'thirdLoad'].includes(step) ? 'loadBoard' : 'agenda')
             setPhoneInitialDriverId('marcus')
@@ -3256,7 +3256,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       {restIntroActive && <FirstDayWelcome lessonMessage="Load 1 is booked, but that does not mean Marcus has to deliver it before picking up more freight. The trailer still has room. Go back to FreightLink and find Load 2 with a pickup that fits before Load 1’s delivery. We’ll check stop order, appointments, and trailer capacity together." actionLabel="FIND LOAD 2" onContinue={() => {
         const booked = getFirstDayBookedLanes(loads)
         const first = booked[0]
-        if (onFirstDayProgress?.({ step: 'restOfDay', firstLaneId: first?.id, flowVersion: 4, messageIndex: 2 }) === false) return
+        if (onFirstDayProgress?.({ step: 'restOfDay', firstLaneId: first?.id, flowVersion: 5, messageIndex: 2 }) === false) return
         setPhoneInitialScreen('loadBoard')
         setPhoneInitialDriverId('marcus')
         setPhoneLoadId(null)
@@ -3265,7 +3265,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       }} />}
       {lunchIntroActive && <FirstDayWelcome lessonMessage="Good — Marcus now has two confirmed loads in one manifest. Before the first delivery, protect a realistic lunch window around those pickups. Then we’ll use the delivery that frees trailer space, plus lunch, as real constraints when we choose Load 3." actionLabel="PLAN MARCUS’S LUNCH" onContinue={() => {
         const booked = getFirstDayBookedLanes(loads)
-        if (onFirstDayProgress?.({ step: 'lunch', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, flowVersion: 4, messageIndex: 2 }) === false) return
+        if (onFirstDayProgress?.({ step: 'lunch', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, flowVersion: 5, messageIndex: 2 }) === false) return
         setPhoneInitialScreen('agenda')
         setPhoneInitialDriverId('marcus')
         setPhoneLoadId(null)
@@ -3273,7 +3273,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       }} />}
       {stagingIntroActive && <FirstDayWelcome lessonMessage="That’s three confirmed loads in one stop sequence, and lunch is protected. One planning decision remains before Marcus gets the schedule: where should the truck finish after the final delivery? Compare the yard and staging options, save the best finish position, then we’ll send Marcus the complete manifest." actionLabel="PLAN STAGING" onContinue={() => {
         const booked = getFirstDayBookedLanes(loads)
-        if (onFirstDayProgress?.({ step: 'staging', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, thirdLaneId: booked[2]?.id, flowVersion: 4, messageIndex: 2 }) === false) return
+        if (onFirstDayProgress?.({ step: 'staging', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, thirdLaneId: booked[2]?.id, flowVersion: 5, messageIndex: 2 }) === false) return
         setPhoneInitialScreen('agenda')
         setPhoneInitialDriverId('marcus')
         setPhoneLoadId(null)
@@ -3282,7 +3282,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       {welcomeActive && <FirstDayWelcome playerName={dispatcherProfile?.displayName} messageIndex={firstDay.messageIndex} onContinue={() => {
         const next = firstDay.messageIndex < 2
           ? { step: 'welcome', messageIndex: firstDay.messageIndex + 1 }
-          : { step: 'freight', messageIndex: 2, flowVersion: 4 }
+          : { step: 'freight', messageIndex: 2, flowVersion: 5 }
         if (onFirstDayProgress?.(next) === false) return
         if (next.step === 'freight') {
           setPhoneInitialScreen('loadBoard')
