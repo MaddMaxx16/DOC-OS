@@ -663,3 +663,121 @@
   .lane-day-so-far>header{align-items:flex-start}
   .lane-day-so-far>header strong{max-width:52%}
 }
+
+
+/* Decision-first summary: explain the fit before asking the player to read a timeline. */
+.lane-day-check{
+  margin:7px 0;
+  overflow:hidden;
+  border:1px solid #33404c;
+  border-radius:11px;
+  background:#10171f;
+}
+.lane-day-check>header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 10px;
+  border-bottom:1px solid #29343f;
+  background:#121a22;
+}
+.lane-day-check>header>div{display:grid;gap:1px;min-width:0}
+.lane-day-check>header span{
+  color:#7e91a4;
+  font-size:6.2px;
+  font-weight:900;
+  letter-spacing:.11em;
+}
+.lane-day-check>header strong{
+  color:#eef3f8;
+  font-size:10px;
+  line-height:1.15;
+}
+.lane-day-check>header em{
+  flex:0 0 auto;
+  padding:4px 7px;
+  border:1px solid #465767;
+  border-radius:999px;
+  color:#a9bacb;
+  font-size:6.4px;
+  font-style:normal;
+  font-weight:900;
+  letter-spacing:.06em;
+}
+.lane-day-check.good>header em{
+  border-color:#3b6f57;
+  background:rgba(48,111,80,.18);
+  color:#96d6b2;
+}
+.lane-day-check.caution>header em{
+  border-color:#80673e;
+  background:rgba(145,107,48,.16);
+  color:#d8bd84;
+}
+.lane-day-check.risk>header em{
+  border-color:#82484a;
+  background:rgba(132,58,62,.16);
+  color:#e7a2a6;
+}
+.lane-day-check-flow{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);
+  align-items:stretch;
+  gap:4px;
+  padding:8px;
+}
+.lane-day-check-flow>b{
+  align-self:center;
+  color:#536678;
+  font-size:11px;
+  font-weight:700;
+}
+.lane-day-check-flow>div{
+  min-width:0;
+  display:grid;
+  align-content:start;
+  gap:2px;
+  padding:6px;
+  border:1px solid #293642;
+  border-radius:8px;
+  background:#0d141b;
+}
+.lane-day-check-flow>div span{
+  color:#71869a;
+  font-size:5.4px;
+  font-weight:900;
+  letter-spacing:.08em;
+}
+.lane-day-check-flow>div strong{
+  color:#e8eef4;
+  font-size:9.4px;
+  line-height:1.05;
+  font-variant-numeric:tabular-nums;
+}
+.lane-day-check-flow>div small{
+  color:#8395a7;
+  font-size:5.9px;
+  line-height:1.22;
+}
+.lane-day-check-flow>div.good small{color:#8fc7aa}
+.lane-day-check-flow>div.tight small{color:#d0b878}
+.lane-day-check-flow>div.risk small{color:#df969b}
+.lane-day-check>p{
+  margin:0;
+  padding:7px 10px 8px;
+  border-top:1px solid #27323c;
+  color:#aebbc8;
+  font-size:7.3px;
+  line-height:1.35;
+}
+.lane-day-check.caution>p{color:#d1bb8c}
+.lane-day-check.risk>p{color:#d99a9f}
+
+@media (max-width:390px){
+  .lane-day-check-flow{
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+  }
+  .lane-day-check-flow>b{display:none}
+}
