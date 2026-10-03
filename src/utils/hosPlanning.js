@@ -3,6 +3,7 @@ import { getLocationDistanceMiles } from '../services/routingService.js'
 import { getProjectedDriverOrigin } from './driverQueue.js'
 import { getDriverTimeView, interpretDriverTimeFit } from './driverTimeInterpreter.js'
 import { getDriverScheduleWindow } from './driverScheduleConstraint.js'
+import { planDriverManifestInsertion } from './driverManifest.js'
 
 function finite(value, fallback = 0) {
   const number = Number(value)
@@ -35,7 +36,15 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
   const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
   if (!pickup || !delivery) return null
 
-  const manifestPlan = load?.tripPlan?.manifestPlan || load?.assignmentProjection?.manifestPlan || null
+  const manifestPlan = load?.tripPlan?.manifestPlan
+    || load?.assignmentProjection?.manifestPlan
+    || (load.status === 'available' ? planDriverManifestInsertion({
+      loads: loads.filter((item) => item.id !== load.id),
+      driver,
+      candidateLoad: { ...load, candidateDriverId: driver.id },
+      gameTime,
+      runtimePositions,
+    }) : null)
   const existingLoads = loads.filter((item) => item.id !== load.id)
   const projection = getProjectedDriverOrigin({ driver, loads: existingLoads, runtimePositions, gameTime })
   const manifestOrigin = mapLocations.find((location) => location.id === manifestPlan?.candidatePickup?.previousLocationId) || null
@@ -137,18 +146,23 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
     dutyAvailableMinutes: effectiveDutyAvailable,
   })
 
+  const manifestRisk = Boolean(manifestPlan?.violations?.length)
+  const manifestRiskReason = manifestPlan?.violations?.[0]?.type || null
+
   return {
     // Legacy fields remain during P1.1 so existing FreightLink UI keeps working.
     // New UI in P1.2/P1.3 can consume driverTimeFit/driverTimeLabel/summary.
-    label: fit.fit === 'poor' ? 'HOS RISK' : 'HOS OK',
-    tone: fit.fit === 'poor' ? 'risk' : 'good',
+    label: manifestRisk ? 'TRAILER RISK' : fit.fit === 'poor' ? 'HOS RISK' : 'HOS OK',
+    tone: manifestRisk || fit.fit === 'poor' ? 'risk' : 'good',
     driveOk: fit.driveOk,
     dutyOk: fit.dutyOk,
-    driverTimeFit: fit.fit,
-    driverTimeLabel: fit.label,
-    driverTimeTone: fit.tone,
-    driverTimeSummary: fit.summary,
-    driverTimeReasons: fit.reasons,
+    driverTimeFit: manifestRisk ? 'poor' : fit.fit,
+    driverTimeLabel: manifestRisk ? 'TRAILER CONFLICT' : fit.label,
+    driverTimeTone: manifestRisk ? 'risk' : fit.tone,
+    driverTimeSummary: manifestRisk ? 'The manifest cannot accept this freight with the current trailer state.' : fit.summary,
+    driverTimeReasons: manifestRisk ? [manifestRiskReason || 'manifest-conflict'] : fit.reasons,
+    manifestPlan,
+    manifestViolations: manifestPlan?.violations || [],
     driveMarginMinutes: fit.driveMarginMinutes,
     dutyMarginMinutes: fit.dutyMarginMinutes,
     driveRequiredMinutes,
