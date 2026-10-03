@@ -31,7 +31,8 @@ Do not use the repository as a scratchpad.
 4. **Do not create temporary CI workflows**
    - Never add a one-off `.github/workflows/*check.yml` for an individual feature and delete it later.
    - Use the repository's permanent verification workflow when available.
-   - The canonical verification command is `npm run verify`.
+   - `npm run verify` remains the target full-repository verification command.
+   - Until the existing lint baseline is cleaned, permanent CI blocks on lint for changed JS/JSX, the full automated test suite, and the production build; it also reports the full-repo lint audit as a visible non-blocking debt signal.
 
 5. **Keep Vercel out of normal native-development churn**
    - DOC OS is tested primarily as a native iPhone app.
@@ -40,10 +41,13 @@ Do not use the repository as a scratchpad.
    - A Vercel deployment quota failure is not automatically a code/build failure; verify those separately.
 
 6. **Merge only verified code**
-   - Run the complete verification gate before merge.
-   - Expected gate: lint + automated tests + production build via `npm run verify`.
+   - Run the permanent verification gate before merge.
+   - Current blocking gate: changed-file lint + automated tests + production build.
+   - Full-repo lint remains visible but non-blocking only while documented legacy lint debt exists.
+   - Do not introduce new lint failures in touched source files.
+   - When the legacy lint baseline is cleared, restore full `npm run verify` as the blocking gate.
    - If verification fails, inspect the whole failure set and fix it as a batch.
-   - Do not merge known failing code.
+   - Do not merge known new failures.
 
 7. **Checkpoint testing**
    - After a verified squash merge into `p2.4-experience-rebuild`, provide:

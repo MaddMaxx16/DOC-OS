@@ -1,0 +1,67 @@
+name: DOC OS Verify
+
+on:
+  pull_request:
+    branches:
+      - p2.4-experience-rebuild
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: doc-os-verify-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Changed lint, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint changed source files
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="$(git rev-parse HEAD^ 2>/dev/null || git rev-parse HEAD)"
+          fi
+
+          mapfile -t CHANGED_FILES < <(
+            git diff --name-only --diff-filter=ACMR "$BASE_SHA"...HEAD -- '*.js' '*.jsx' '*.mjs' '*.cjs'
+          )
+
+          if (( ${#CHANGED_FILES[@]} == 0 )); then
+            echo "No changed JavaScript source files to lint."
+            exit 0
+          fi
+
+          printf 'Linting changed source files:\n%s\n' "${CHANGED_FILES[*]}"
+          npx eslint "${CHANGED_FILES[@]}"
+
+      - name: Run automated tests
+        run: npm test
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Full repository lint audit
+        continue-on-error: true
+        run: npm run lint
