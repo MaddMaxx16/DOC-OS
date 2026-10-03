@@ -1822,13 +1822,9 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
 
     // 3C.3 — shipment closeout/POD truth now belongs to the delivery lifecycle.
     // MainGameScreen only coordinates the resulting driver/routing handoff.
-    setLoads((current) => {
-      const updated = current.map((item) => item.id === loadId
-        ? completeDeliveryUnload({ load: item, result, completeMinute, releasedDriverId })
-        : item)
-      if (releasedDriverId && onboardNext) return updated
-      return releasedDriverId ? promoteNextQueuedLoad(updated, releasedDriverId, null).loads : updated
-    })
+    setLoads((current) => current.map((item) => item.id === loadId
+      ? completeDeliveryUnload({ load: item, result, completeMinute, releasedDriverId })
+      : item))
 
     if (!releasedDriverId) setUnloadSequenceLoadId(null)
     if (releasedDriverId && Number(result.wrongMoves || 0) > 0) {
