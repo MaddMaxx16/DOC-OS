@@ -333,6 +333,91 @@ useEffect(() => {
     })
     let hydratedLoads = mergeSavedLoads(saved.loads ?? [])
     const savedNow = (saved.gameTime?.gameDayIndex ?? 0) * 1440 + (saved.gameTime?.totalMinutesOfDay ?? 360)
+    const manifestPhysicalStatuses = new Set([
+      'en-route-pickup','at-pickup','checking-in-pickup','waiting-at-pickup','checked-in-pickup','loading-at-pickup',
+      'loaded','onboard-hold','en-route-delivery','at-delivery','checking-in-delivery','waiting-at-delivery',
+      'checked-in-delivery','unloading-delivery','awaiting-pod','delivered','completed',
+    ])
+    const manifestResetLoadIds = new Set()
+    const upgradingManifestTutorialV5 = Boolean(
+      saved.firstDay
+      && Number(saved.firstDay?.flowVersion || 0) < 5
+      && Number(saved.gameTime?.gameDayIndex || 0) === 0
+      && saved.firstDay?.workdayLessonComplete !== true
+      && !(saved.loads || []).some((load) =>
+        (load.assignedDriverId === 'marcus' || load.completedDriverId === 'marcus')
+        && (
+          manifestPhysicalStatuses.has(String(load.tripStatus || load.status || '').toLowerCase())
+          || Number.isFinite(load.departureGameMinute)
+          || Number.isFinite(load.pickupArrivalGameMinute)
+          || Number.isFinite(load.loadedGameMinute)
+          || Number.isFinite(load.deliveryDepartureGameMinute)
+          || Number.isFinite(load.deliveryArrivalGameMinute)
+        )
+      )
+    )
+
+    if (upgradingManifestTutorialV5) {
+      ;(saved.loads || []).forEach((load) => {
+        if ((load.assignedDriverId === 'marcus' || load.candidateDriverId === 'marcus')
+          && Number(load.pickupDayIndex || 0) === 0) manifestResetLoadIds.add(load.id)
+      })
+      seedLoads.filter((load) => Number.isFinite(Number(load.tutorialLoadOrder))).forEach((load) => manifestResetLoadIds.add(load.id))
+
+      hydratedLoads = hydratedLoads.map((load) => {
+        if (!manifestResetLoadIds.has(load.id)) return load
+        const seed = seedLoads.find((item) => item.id === load.id)
+        const source = seed ? {
+          ...load,
+          pickupLocationId: seed.pickupLocationId,
+          deliveryLocationId: seed.deliveryLocationId,
+          pickupDayIndex: seed.pickupDayIndex,
+          pickupWindowStartMinutes: seed.pickupWindowStartMinutes,
+          pickupWindowEndMinutes: seed.pickupWindowEndMinutes,
+          deliveryDayIndex: seed.deliveryDayIndex,
+          deliveryWindowStartMinutes: seed.deliveryWindowStartMinutes,
+          deliveryWindowEndMinutes: seed.deliveryWindowEndMinutes,
+          rate: seed.rate,
+          listedMiles: seed.listedMiles,
+          freight: seed.freight ? structuredClone(seed.freight) : load.freight,
+          tutorialLoadOrder: seed.tutorialLoadOrder ?? load.tutorialLoadOrder,
+        } : load
+        return {
+          ...source,
+          status: 'available',
+          tripStatus: null,
+          assignedDriverId: null,
+          completedDriverId: null,
+          candidateDriverId: null,
+          queuePosition: null,
+          manifestStopOrder: null,
+          itineraryInsertion: null,
+          driverFitVerified: false,
+          scheduleApprovalQueued: false,
+          carrierApprovalStatus: null,
+          carrierApprovalRequestedGameMinute: null,
+          carrierApprovedGameMinute: null,
+          carrierApprovalEmailId: null,
+          bookingStatus: null,
+          bookingRequestedGameMinute: null,
+          bookingAcceptedGameMinute: null,
+          bookingConfirmedGameMinute: null,
+          bookingRequestEmailId: null,
+          rateConfirmation: null,
+          assignmentProjection: null,
+          tripPlan: null,
+          scheduleConflict: null,
+          pickupDriverBriefedGameMinute: null,
+          driverAcknowledgedGameMinute: null,
+          departureGameMinute: null,
+          pickupArrivalGameMinute: null,
+          loadedGameMinute: null,
+          deliveryDepartureGameMinute: null,
+          deliveryArrivalGameMinute: null,
+        }
+      })
+    }
+
     const upgradingFirstDayV3 = Boolean(
       saved.firstDay
       && Number(saved.firstDay?.flowVersion || 0) < 3
@@ -402,6 +487,16 @@ useEffect(() => {
       return load
     })
     let hydratedDrivers = reconcileActiveCarrierDrivers(saved.drivers ?? [], hydratedCarriers)
+    if (upgradingManifestTutorialV5) {
+      hydratedDrivers = hydratedDrivers.map((driver) => driver.id === 'marcus' ? {
+        ...driver,
+        status: 'available',
+        assignedLoadId: null,
+        queuedLoadIds: [],
+        scheduleCommunicatedGameMinute: null,
+        scheduleAcknowledgedGameMinute: null,
+      } : driver)
+    }
 
     // Resume safety: any driver assigned to an active load must exist after hydration.
     hydratedLoads.forEach((load) => {
@@ -465,6 +560,10 @@ useEffect(() => {
     setEmailMessages(Array.isArray(saved.emailMessages)
       ? saved.emailMessages.filter((message) => {
           if (message.templateId) return false
+          if (upgradingManifestTutorialV5 && manifestResetLoadIds.has(message.loadId)) {
+            return !['carrier-approval', 'rate-confirmation', 'booking-request'].includes(message.workflowType)
+              && message.type !== 'rate-confirmation-delivery'
+          }
           if (!upgradingFirstDayV3) return true
           const tutorialLoadId = firstDayTutorialSeed?.id
           if (message.loadId !== tutorialLoadId) return true
@@ -494,7 +593,7 @@ useEffect(() => {
     setDayLoop(saved.dayLoop ? { ...DEFAULT_DAY_LOOP_STATE, ...saved.dayLoop, history: Array.isArray(saved.dayLoop.history) ? saved.dayLoop.history : [] } : { ...DEFAULT_DAY_LOOP_STATE })
     setPlayerProgression(saved.playerProgression ? { ...DEFAULT_PLAYER_PROGRESSION, ...saved.playerProgression } : { ...DEFAULT_PLAYER_PROGRESSION })
     setCareer(normalizeCareerState(saved.career))
-    setFirstDay(migrateFirstDayFlow(saved.firstDay, saved.loads))
+    setFirstDay(migrateFirstDayFlow(saved.firstDay, hydratedLoads))
     setResumeStage(saved.stage && !['start', 'market', 'dayOneIntro'].includes(saved.stage) ? saved.stage : 'game')
   }
 
