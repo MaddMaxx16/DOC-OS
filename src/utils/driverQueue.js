@@ -1,6 +1,7 @@
 import { isRateConfirmationConfirmed } from './rateConfirmation.js'
 import mapLocations from '../data/mapLocations.js'
 import { buildDriverItinerary, getNextActionableDriverStop } from './driverItinerary.js'
+import { isLoadOnboard } from './driverManifest.js'
 
 const TERMINAL_STATUSES = new Set(['completed', 'delivered'])
 const PICKUP_SERVICE_MINUTES = 10
@@ -36,7 +37,7 @@ export function getDriverActiveLoad(loads = [], driverId) {
 }
 
 export function getDriverOnboardLoads(loads = [], driverId) {
-  return getDriverAssignedLoads(loads, driverId).filter((load) => load.tripStatus === 'onboard-hold')
+  return getDriverAssignedLoads(loads, driverId).filter((load) => isLoadOnboard(load))
 }
 
 export function getDriverQueue(loads = [], driverId) {
