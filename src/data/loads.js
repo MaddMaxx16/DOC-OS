@@ -4,12 +4,32 @@ const loads = [
   // valid existing freight stays on the board until accepted or expired.
   // Email state never controls market visibility.
   {
-    id: 'DOC001', loadNumber: 'LD-78421', postedGameMinute: 360, marketPostMinutes: 360,
+    id: 'DOC001', loadNumber: 'LD-78421', tutorialLoadOrder: 1, postedGameMinute: 360, marketPostMinutes: 360,
     pickupLocationId: 'empire-freight-terminal', deliveryLocationId: 'harborline-logistics',
     pickupDayIndex: 0, pickupWindowStartMinutes: 480, pickupWindowEndMinutes: 540,
-    deliveryDayIndex: 0, deliveryWindowStartMinutes: 540, deliveryWindowEndMinutes: 600,
+    deliveryDayIndex: 0, deliveryWindowStartMinutes: 660, deliveryWindowEndMinutes: 720,
     rate: 425, listedMiles: 21.0, plannedMiles: null, plannedDriveTimeMinutes: null,
     freight: { pallets: 8, weightLbs: 12400, equipmentType: 'dry-van', equipmentLabel: "53' Dry Van", trailerCapacityPallets: 26, trailerMaxWeightLbs: 44000 },
+    selectedRouteId: null, candidateDriverId: null, status: 'available', assignedDriverId: null,
+  },
+  // P2.5 Day 1 manifest teaching lanes. These are partial dry-van loads whose
+  // appointment windows deliberately support P1 → P2 → D1 → P3 → D2 → D3.
+  {
+    id: 'DOC117', loadNumber: 'LD-38172', tutorialLoadOrder: 2, postedGameMinute: 360, marketPostMinutes: 360,
+    pickupLocationId: 'queens-freight-center', deliveryLocationId: 'freshway-grocery-dc',
+    pickupDayIndex: 0, pickupWindowStartMinutes: 570, pickupWindowEndMinutes: 630,
+    deliveryDayIndex: 0, deliveryWindowStartMinutes: 780, deliveryWindowEndMinutes: 840,
+    rate: 575, listedMiles: 12.8, plannedMiles: null, plannedDriveTimeMinutes: null,
+    freight: { pallets: 6, weightLbs: 9000, equipmentType: 'dry-van', equipmentLabel: "53' Dry Van", trailerCapacityPallets: 26, trailerMaxWeightLbs: 44000, loadClass: 'partial', exclusiveTrailer: false },
+    selectedRouteId: null, candidateDriverId: null, status: 'available', assignedDriverId: null,
+  },
+  {
+    id: 'DOC118', loadNumber: 'LD-55208', tutorialLoadOrder: 3, postedGameMinute: 360, marketPostMinutes: 360,
+    pickupLocationId: 'brooklyn-industrial-terminal', deliveryLocationId: 'bronx-commerce-terminal',
+    pickupDayIndex: 0, pickupWindowStartMinutes: 720, pickupWindowEndMinutes: 780,
+    deliveryDayIndex: 0, deliveryWindowStartMinutes: 900, deliveryWindowEndMinutes: 960,
+    rate: 650, listedMiles: 18.6, plannedMiles: null, plannedDriveTimeMinutes: null,
+    freight: { pallets: 10, weightLbs: 14000, equipmentType: 'dry-van', equipmentLabel: "53' Dry Van", trailerCapacityPallets: 26, trailerMaxWeightLbs: 44000, loadClass: 'partial', exclusiveTrailer: false },
     selectedRouteId: null, candidateDriverId: null, status: 'available', assignedDriverId: null,
   },
   {

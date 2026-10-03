@@ -29,7 +29,7 @@ function bucketFor(load) {
 }
 
 
-function LoadBoardScreen({ initialPickupDay = null, loads, drivers = [], runtimePositions = {}, gameTime, operationDay = 1, embedded = false, planningDriverId = null, onPlanningDriverChange, onBack, onSelectLoad, onOpenScheduler, hidePlanShortcut = false }) {
+function LoadBoardScreen({ initialPickupDay = null, loads, drivers = [], runtimePositions = {}, gameTime, operationDay = 1, embedded = false, planningDriverId = null, onPlanningDriverChange, onBack, onSelectLoad, onOpenScheduler, hidePlanShortcut = false, recommendedLoadOrder = null }) {
 const [sortMode, setSortMode] = useState('pickup')
   const [mapOpen, setMapOpen] = useState(false)
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
@@ -110,11 +110,22 @@ const planningScheduleLabel = planningWorkday && !planningWorkday.isDayOff && Nu
   }), [loadViews, filterMode, pickupDateFilter, marketDayIndex])
   const sortedLoadViews = useMemo(() => {
     const copy = [...filteredViews]
-    if (filterMode !== 'available') return copy.sort((a, b) => a.pickupAbsoluteMinute - b.pickupAbsoluteMinute)
-    if (sortMode === 'rate') return copy.sort((a, b) => b.load.rate - a.load.rate)
-    if (sortMode === 'miles') return copy.sort((a, b) => (a.load.listedMiles ?? 9999) - (b.load.listedMiles ?? 9999))
-    return copy.sort((a, b) => a.pickupAbsoluteMinute - b.pickupAbsoluteMinute)
-  }, [filteredViews, sortMode, filterMode])
+    const recommended = Number(recommendedLoadOrder)
+    const recommendationRank = (item) => Number(item.load?.tutorialLoadOrder) === recommended ? 0 : 1
+    const baseSort = (a, b) => {
+      if (filterMode !== 'available') return a.pickupAbsoluteMinute - b.pickupAbsoluteMinute
+      if (sortMode === 'rate') return b.load.rate - a.load.rate
+      if (sortMode === 'miles') return (a.load.listedMiles ?? 9999) - (b.load.listedMiles ?? 9999)
+      return a.pickupAbsoluteMinute - b.pickupAbsoluteMinute
+    }
+    return copy.sort((a, b) => {
+      if (Number.isFinite(recommended)) {
+        const rank = recommendationRank(a) - recommendationRank(b)
+        if (rank) return rank
+      }
+      return baseSort(a, b)
+    })
+  }, [filteredViews, sortMode, filterMode, recommendedLoadOrder])
 
   const changeFilter = (next) => {
     setFilterMode(next)
@@ -216,7 +227,8 @@ const planningScheduleLabel = planningWorkday && !planningWorkday.isDayOff && Nu
         {sortedLoadViews.length ? (
           <div className={`load-list ${decisionMode ? 'decision-load-list' : ''}`}>
             {sortedLoadViews.map(({ load, pickup, delivery, rpm, haulClass, planningHint, hosHint, scheduleStatus }) => decisionMode && filterMode === 'available' ? (
-              <button type="button" className="freight-decision-row phase2 av27" key={load.id} onClick={() => onSelectLoad(load.id)}>
+              <button type="button" className={`freight-decision-row phase2 av27 ${Number(load.tutorialLoadOrder) === Number(recommendedLoadOrder) ? 'tutorial-recommended' : ''}`} key={load.id} onClick={() => onSelectLoad(load.id)}>
+                {Number(load.tutorialLoadOrder) === Number(recommendedLoadOrder) && <span className="freight-tutorial-recommended">JORDAN'S PICK · LOAD {recommendedLoadOrder}</span>}
                 <div className="freight-decision-time"><span>PICKUP · {formatCompactDate(load.pickupDayIndex)}</span><strong>{formatTime(load.pickupWindowStartMinutes)}</strong><em className={`freight-haul-tag ${haulClass.tone}`}>{haulClass.label}</em></div>
                 <div className="freight-decision-body">
                   <div className="freight-decision-top"><div className="freight-decision-id"><strong>{pickup.name} → {delivery.name}</strong><small>{getFreightCommodity(load)}</small></div><div className="freight-decision-rate"><strong>${load.rate}</strong><span>{rpm ? `$${rpm.toFixed(2)}/MI` : 'RATE'}</span></div></div>

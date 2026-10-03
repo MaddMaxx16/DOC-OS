@@ -1,5 +1,5 @@
 import { createPodDocument } from './documentLifecycle.js'
-import { getDriverOnboardLoads, getDriverQueue } from './driverQueue.js'
+import { getNextActionableDriverStop } from './driverItinerary.js'
 import { resolveDriverWorkdayOwnership } from './driverWorkdayOwnership.js'
 const DELIVERY_UNLOADING_START_STATUSES = new Set([
   'waiting-at-delivery',
@@ -49,15 +49,38 @@ export function completeDeliveryUnload({ load, result, completeMinute, releasedD
 export function getDeliveryHandoffContext({ loads = [], drivers = [], loadId, gameTime, now }) {
   const deliveredLoad = loads.find((item) => item.id === loadId) || null
   const releasedDriverId = deliveredLoad?.assignedDriverId || null
-  const onboardNext = releasedDriverId ? getDriverOnboardLoads(loads, releasedDriverId).find((item) => item.id !== loadId) || null : null
-  const nextQueued = releasedDriverId && !onboardNext ? getDriverQueue(loads, releasedDriverId)[0] || null : null
   const releasedDriver = drivers.find((driver) => driver.id === releasedDriverId) || null
   const day = Number(gameTime?.gameDayIndex)
   const ownership = resolveDriverWorkdayOwnership({ driver: releasedDriver, loads, gameTime })
   const withinCurrentWorkday = Boolean(ownership.workday && (
     ownership.scheduledTimeActive || ownership.carryoverRetainsOwnership || ownership.shiftEndRetainsOwnership
   ))
+
+  // Ask the manifest what comes next after this delivery is removed from physical
+  // authority. This replaces the old "onboard first, otherwise queue first"
+  // heuristic, which could skip a planned pickup that belongs before another
+  // onboard load's delivery.
+  const postDeliveryLoads = loads.map((item) => item.id === loadId ? {
+    ...item,
+    tripStatus: 'completed',
+    status: 'completed',
+    completedDriverId: releasedDriverId || item.completedDriverId || null,
+    assignedDriverId: null,
+  } : item)
+  const nextStop = releasedDriverId ? getNextActionableDriverStop(postDeliveryLoads, releasedDriverId) : null
+  const nextLoad = nextStop ? postDeliveryLoads.find((item) => item.id === nextStop.loadId) || null : null
+  const onboardNext = nextStop?.type === 'delivery' ? nextLoad : null
+  const nextQueued = nextStop?.type === 'pickup' ? nextLoad : null
   const nextWasBriefed = Number.isFinite(nextQueued?.pickupDriverBriefedGameMinute) && Number.isFinite(nextQueued?.driverAcknowledgedGameMinute)
   const nextPickupIsCurrentOrEarlierDay = !Number.isFinite(Number(nextQueued?.pickupDayIndex)) || Number(nextQueued.pickupDayIndex) <= day
-  return { deliveredLoad, releasedDriverId, onboardNext, nextQueued, nextCanAutoHandoff: Boolean(nextQueued && nextWasBriefed && withinCurrentWorkday && nextPickupIsCurrentOrEarlierDay) }
+
+  return {
+    deliveredLoad,
+    releasedDriverId,
+    nextStop,
+    nextLoad,
+    onboardNext,
+    nextQueued,
+    nextCanAutoHandoff: Boolean(nextQueued && nextWasBriefed && withinCurrentWorkday && nextPickupIsCurrentOrEarlierDay),
+  }
 }

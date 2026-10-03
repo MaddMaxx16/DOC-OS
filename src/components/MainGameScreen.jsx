@@ -33,6 +33,7 @@ import { getDriverPanelModel } from '../utils/driverOperationalState.js'
 import { getDriverHosSummary } from '../utils/driverHOS.js'
 import { getDriverTimeView } from '../utils/driverTimeInterpreter.js'
 import { buildDriverItinerary, getNextActionableDriverStop } from '../utils/driverItinerary.js'
+import { applyManifestPlanToLoads, planDriverManifestInsertion } from '../utils/driverManifest.js'
 import { getFreightBusinessName, getFreightCommodity, getFreightRouteName } from '../utils/freightIdentity.js'
 import { getFreightHaulClass, getPlanningImpact } from '../utils/planningIntelligence.js'
 import { getRouteLifecycleLabel } from '../utils/routeLifecycle.js'
@@ -1447,95 +1448,99 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
     const load = loads.find((item) => item.id === loadId)
     const eligible = drivers.filter((driver) => driver.carrierId)
     if (!load || !eligible.length) return false
-    // AV2.9: with one eligible driver, DOC OS evaluates the schedule automatically.
-    // Driver selection only returns when there is an actual staffing decision.
+
     const driver = eligible.find((item) => item.id === planningDriverId) || eligible[0]
     const pickup = mapLocations.find((location) => location.id === load.pickupLocationId)
     const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
-    const projection = getProjectedDriverOrigin({ driver, loads, runtimePositions, gameTime })
-    const activeLoad = getDriverActiveLoad(loads, driver.id)
-    const nowAbsolute = gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay
-    const activePickup = activeLoad ? mapLocations.find((location) => location.id === activeLoad.pickupLocationId) : null
-    const activeDelivery = activeLoad ? mapLocations.find((location) => location.id === activeLoad.deliveryLocationId) : null
-    const insertionEligibleStatuses = new Set(['en-route-pickup', 'at-pickup', 'checking-in-pickup', 'waiting-at-pickup', 'checked-in-pickup', 'loading-at-pickup', 'loaded', 'onboard-hold', 'en-route-delivery'])
-    const canConsiderInsertion = Boolean(activeLoad && insertionEligibleStatuses.has(activeLoad.tripStatus) && activePickup && activeDelivery)
-    const pickupWindowStartAbsolute = activeLoad ? (activeLoad.pickupDayIndex || 0) * 1440 + (activeLoad.pickupWindowStartMinutes || 0) : nowAbsolute
-    const remainingDeadhead = activeLoad?.tripStatus === 'en-route-pickup' && Number.isFinite(activeLoad.departureGameMinute) && Number.isFinite(activeLoad.plannedDeadheadDriveTimeMinutes)
-      ? Math.max(0, activeLoad.departureGameMinute + activeLoad.plannedDeadheadDriveTimeMinutes - nowAbsolute)
-      : 0
-    const projectedActivePickupArrival = Math.max(nowAbsolute + remainingDeadhead, pickupWindowStartAbsolute)
-    const pickupAlreadyComplete = ['loaded', 'onboard-hold', 'en-route-delivery'].includes(activeLoad?.tripStatus)
-    const projectedPickupServiceMinutes = activeLoad?.tripStatus === 'loading-at-pickup' ? 20 : pickupAlreadyComplete ? 0 : 35
-    // AV2.10.7: once freight is onboard, a new compatible pickup may divert the driver
-    // from a later delivery. Use the truck's live position and current game minute rather
-    // than pretending the driver must continue to the receiver first.
-    const insertionAvailableAbsolute = pickupAlreadyComplete
-      ? nowAbsolute
-      : Math.max(nowAbsolute, projectedActivePickupArrival + projectedPickupServiceMinutes)
-    const insertionOrigin = pickupAlreadyComplete ? (runtimePositions[driver.id] || activePickup) : activePickup
-    if (!pickup || !delivery || (!projection.location && !insertionOrigin)) return false
+    if (!pickup || !delivery) return false
+
+    // P2.5 — plan the candidate as two stops inside the driver's existing
+    // manifest. The pickup and delivery do not have to stay adjacent.
+    const manifestPlan = planDriverManifestInsertion({
+      loads,
+      driver,
+      candidateLoad: { ...load, candidateDriverId: driver.id },
+      gameTime,
+      runtimePositions,
+    })
+    if (!manifestPlan || manifestPlan.violations?.length) return false
+
+    const previousLocation = mapLocations.find((location) => location.id === manifestPlan.candidatePickup?.previousLocationId)
+      || runtimePositions[driver.id]
+      || mapLocations.find((location) => location.id === driver.lastKnownLocationId || location.id === driver.homeBaseLocationId)
+    if (!previousLocation) return false
+
     try {
-      let insertionPlan = null
-      let deadhead
-      let loaded
-      let arrivalAbsolute
-      if (canConsiderInsertion) {
-        const [toPickup, candidateLoaded, pickupToAnchorDelivery] = await Promise.all([
-          calculateRoute(insertionOrigin, pickup),
-          calculateRoute(pickup, delivery),
-          calculateRoute(pickup, activeDelivery),
-        ])
-        const pickupStart = load.pickupDayIndex * 1440 + load.pickupWindowStartMinutes
-        const pickupEnd = load.pickupDayIndex * 1440 + load.pickupWindowEndMinutes
-        const candidatePickupArrival = Math.max(insertionAvailableAbsolute + toPickup.durationMinutes, pickupStart)
-        const candidateServiceReserveMinutes = 35
-        const anchorDeliveryEnd = getWindowEndAbsolute(activeLoad.deliveryDayIndex, activeLoad.deliveryWindowStartMinutes, activeLoad.deliveryWindowEndMinutes)
-        const anchorDeliveryArrival = candidatePickupArrival + candidateServiceReserveMinutes + pickupToAnchorDelivery.durationMinutes
-        if (candidatePickupArrival <= pickupEnd && anchorDeliveryArrival <= anchorDeliveryEnd) {
-          const anchorRef = getFreightRouteName(activeLoad)
-          insertionPlan = {
-            type: 'pickup-before-delivery',
-            anchorLoadId: activeLoad.id,
-            anchorLoadRef: anchorRef,
-            status: anchorDeliveryEnd - anchorDeliveryArrival <= 30 ? 'TIGHT' : 'GOOD',
-            summary: `${Math.round(toPickup.durationMinutes)} min to pickup · ${candidateServiceReserveMinutes} min service reserve · ${Math.round(anchorDeliveryEnd - anchorDeliveryArrival)} min delivery buffer preserved`,
-            sequenceLabel: `PICKUP ${anchorRef} → PICKUP ${getFreightRouteName(load)} → DELIVER ${anchorRef} → DELIVER ${getFreightRouteName(load)}`,
-            sequenceSteps: [
-              { action: 'PICKUP', loadRef: anchorRef, loadId: activeLoad.id },
-              { action: 'PICKUP', loadRef: getFreightRouteName(load), loadId: load.id },
-              { action: 'DELIVERY', loadRef: anchorRef, loadId: activeLoad.id },
-              { action: 'DELIVERY', loadRef: getFreightRouteName(load), loadId: load.id },
-            ],
-            provisional: !['loaded', 'onboard-hold', 'en-route-delivery'].includes(activeLoad.tripStatus),
-            serviceReserveMinutes: candidateServiceReserveMinutes,
-            detourClass: toPickup.durationMinutes <= 20 ? 'ON ROUTE' : toPickup.durationMinutes <= 45 ? 'MINOR DETOUR' : 'MAJOR DETOUR',
-            detourMinutes: Math.round(toPickup.durationMinutes),
-          }
-          deadhead = toPickup
-          loaded = candidateLoaded
-          arrivalAbsolute = candidatePickupArrival
-        }
-      }
-      if (!deadhead) {
-        deadhead = await calculateRoute(projection.location, pickup)
-        loaded = await calculateRoute(pickup, delivery)
-        arrivalAbsolute = projection.availableAbsoluteMinute + deadhead.durationMinutes
-      }
+      const [deadhead, loaded] = await Promise.all([
+        calculateRoute(previousLocation, pickup),
+        calculateRoute(pickup, delivery),
+      ])
+
+      const pickupStart = load.pickupDayIndex * 1440 + load.pickupWindowStartMinutes
       const pickupEnd = load.pickupDayIndex * 1440 + load.pickupWindowEndMinutes
-      const buffer = pickupEnd - arrivalAbsolute
-      const status = buffer < 0 ? 'AT RISK' : buffer <= 30 ? 'TIGHT' : 'GOOD'
+      const availableAbsolute = Number(manifestPlan.candidatePickup?.availableAbsoluteMinute)
+      const rawArrival = (Number.isFinite(availableAbsolute) ? availableAbsolute : gameTime.gameDayIndex * 1440 + gameTime.totalMinutesOfDay)
+        + deadhead.durationMinutes
+      const arrivalAbsolute = Math.max(rawArrival, pickupStart)
+      const pickupBuffer = pickupEnd - rawArrival
+
+      // Keep the manifest schedule as the stop-order authority, but replace the
+      // candidate leg's rough road estimate with the router's real result.
+      const candidatePickupTiming = manifestPlan.candidatePickupTiming
+        ? {
+            ...manifestPlan.candidatePickupTiming,
+            arrivalAbsoluteMinute: rawArrival,
+            serviceStartAbsoluteMinute: arrivalAbsolute,
+            completeAbsoluteMinute: arrivalAbsolute + 10,
+            travelMinutes: deadhead.durationMinutes,
+            waitMinutes: Math.max(0, pickupStart - rawArrival),
+            lateMinutes: Math.max(0, rawArrival - pickupEnd),
+          }
+        : null
+      const routedManifestPlan = {
+        ...manifestPlan,
+        status: manifestPlan.totalLateMinutes > 0 || pickupBuffer < 0 ? 'AT RISK' : manifestPlan.status,
+        candidatePickupTiming,
+      }
+
+      const previousStepIndex = routedManifestPlan.sequenceSteps.findIndex((step) => step.loadId === load.id && step.action === 'PICKUP') - 1
+      const previousStep = previousStepIndex >= 0 ? routedManifestPlan.sequenceSteps[previousStepIndex] : null
+      const afterLoadId = previousStep?.loadId || null
+      const insertedBetweenExistingStops = Boolean(
+        routedManifestPlan.sequenceSteps.some((step, index) =>
+          step.loadId === load.id
+          && step.action === 'PICKUP'
+          && index < routedManifestPlan.sequenceSteps.length - 2
+        )
+      )
+      const insertionPlan = insertedBetweenExistingStops ? {
+        type: 'manifest-stop-insertion',
+        anchorLoadId: afterLoadId,
+        status: routedManifestPlan.status,
+        summary: `Manifest places ${getFreightRouteName(load)} inside the existing stop sequence`,
+        sequenceLabel: routedManifestPlan.sequenceSteps.map((step) => `${step.action} ${step.loadRef}`).join(' → '),
+        sequenceSteps: routedManifestPlan.sequenceSteps,
+      } : null
+
       const fit = {
-        miles: deadhead.distanceMiles, minutes: deadhead.durationMinutes, routeShape: deadhead.routeShape, routeSource: deadhead.source,
-        arrivalDay: Math.floor(arrivalAbsolute / 1440), arrivalMinutes: arrivalAbsolute % 1440, status,
-        projectedOriginName: insertionPlan ? activePickup?.name || 'Current stop' : projection.location?.name || null,
-        afterLoadId: insertionPlan?.anchorLoadId || projection.afterLoadId || null, queueLength: projection.queueLength || 0,
+        miles: deadhead.distanceMiles,
+        minutes: deadhead.durationMinutes,
+        routeShape: deadhead.routeShape,
+        routeSource: deadhead.source,
+        arrivalDay: Math.floor(rawArrival / 1440),
+        arrivalMinutes: rawArrival % 1440,
+        status: pickupBuffer < 0 ? 'AT RISK' : pickupBuffer <= 30 ? 'TIGHT' : routedManifestPlan.status,
+        projectedOriginName: previousLocation.name || null,
+        afterLoadId,
+        queueLength: loads.filter((item) => item.assignedDriverId === driver.id && !['completed','delivered','cancelled','expired'].includes(item.tripStatus || item.status)).length,
         insertionPlan,
+        manifestPlan: routedManifestPlan,
         loadedLeg: loaded,
       }
       startEvaluation(loadId, driver.id, fit)
       return true
     } catch (error) {
-      console.error('AV2.9 schedule evaluation failed', error)
+      console.error('P2.5 manifest schedule evaluation failed', error)
       return false
     }
   }
@@ -1563,6 +1568,7 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
         afterLoadId: fit.afterLoadId || null,
         queueLength: fit.queueLength || 0,
         insertionPlan: fit.insertionPlan || null,
+        manifestPlan: fit.manifestPlan || null,
       },
       tripPlan: {
         status: 'provisional',
@@ -1570,6 +1576,7 @@ function MainGameScreen({ onWorkstationReady, firstDay, onFirstDayProgress, care
         createdGameMinute: now,
         projectedAfterLoadId: fit.afterLoadId || null,
         insertionPlan: fit.insertionPlan || null,
+        manifestPlan: fit.manifestPlan || null,
         legs: {
           deadhead: {
             miles: fit.miles,
@@ -1625,7 +1632,8 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       const activeAtCommit = getDriverActiveLoad(current, driverId)
       const queuePosition = activeAtCommit ? getNextQueuePosition(current, driverId) : 0
       const nextTripStatus = activeAtCommit ? 'queued' : 'assigned'
-      return current.map((load) => load.id === loadId && load.status === 'available' && (bookingProof || isRateConfirmationConfirmed(load)) ? {
+      const manifestPlan = currentLoad.tripPlan?.manifestPlan || currentLoad.assignmentProjection?.manifestPlan || null
+      const booked = current.map((load) => load.id === loadId && load.status === 'available' && (bookingProof || isRateConfirmationConfirmed(load)) ? {
         ...load,
         status: nextTripStatus,
         tripStatus: nextTripStatus,
@@ -1652,16 +1660,18 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         loadingChallengeState: null,
         unloadChallengeState: null,
       } : load)
+      return applyManifestPlanToLoads(booked, driverId, manifestPlan)
     })
 
     setDrivers((current) => current.map((driver) => driver.id === driverId
       ? {
           ...driver,
           status: 'unavailable',
-          assignedLoadId: existingActive?.id || loadId,
-          queuedLoadIds: existingActive
-            ? Array.from(new Set([...(driver.queuedLoadIds || []), loadId]))
-            : (driver.queuedLoadIds || []),
+          assignedLoadId: (currentLoad.tripPlan?.manifestPlan?.sequenceSteps || []).find((step) => step.action === 'PICKUP')?.loadId || existingActive?.id || loadId,
+          queuedLoadIds: Array.from(new Set([
+            ...(driver.queuedLoadIds || []),
+            ...(existingActive ? [loadId] : []),
+          ])),
         }
       : driver))
     const fitStatus = String(currentLoad.assignmentProjection?.status || '').toUpperCase()
@@ -1812,13 +1822,9 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
 
     // 3C.3 — shipment closeout/POD truth now belongs to the delivery lifecycle.
     // MainGameScreen only coordinates the resulting driver/routing handoff.
-    setLoads((current) => {
-      const updated = current.map((item) => item.id === loadId
-        ? completeDeliveryUnload({ load: item, result, completeMinute, releasedDriverId })
-        : item)
-      if (releasedDriverId && onboardNext) return updated
-      return releasedDriverId ? promoteNextQueuedLoad(updated, releasedDriverId, null).loads : updated
-    })
+    setLoads((current) => current.map((item) => item.id === loadId
+      ? completeDeliveryUnload({ load: item, result, completeMinute, releasedDriverId })
+      : item))
 
     if (!releasedDriverId) setUnloadSequenceLoadId(null)
     if (releasedDriverId && Number(result.wrongMoves || 0) > 0) {
@@ -3084,7 +3090,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
           && !loads.some((load) => (load.assignedDriverId === 'marcus' || load.completedDriverId === 'marcus') && ['completed', 'paid', 'delivered'].includes(load.status)) && (
           <button type="button" className="first-day-resume" onClick={() => {
             const step = ['ready', 'schedule', 'secondLane'].includes(firstDay.step) ? 'freight' : firstDay.step === 'shiftEnd' ? 'staging' : firstDay.step
-            if (onFirstDayProgress?.({ step, messageIndex: 2, flowVersion: 4 }) === false) return
+            if (onFirstDayProgress?.({ step, messageIndex: 2, flowVersion: 5 }) === false) return
             setDriverHubOpen(false)
             setPhoneInitialScreen(['freight', 'restOfDay', 'thirdLoad'].includes(step) ? 'loadBoard' : 'agenda')
             setPhoneInitialDriverId('marcus')
@@ -3247,27 +3253,27 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
         />
       )}
       </div>
-      {restIntroActive && <FirstDayWelcome lessonMessage="Load 1 is booked and confirmed. Now build onto it. Go back to FreightLink and find a second load that starts after Marcus finishes the first one. We are not planning lunch yet — secure Load 2 first." actionLabel="FIND LOAD 2" onContinue={() => {
+      {restIntroActive && <FirstDayWelcome lessonMessage="Load 1 is booked, but that does not mean Marcus has to deliver it before picking up more freight. The trailer still has room. Go back to FreightLink and find Load 2 with a pickup that fits before Load 1’s delivery. We’ll check stop order, appointments, and trailer capacity together." actionLabel="FIND LOAD 2" onContinue={() => {
         const booked = getFirstDayBookedLanes(loads)
         const first = booked[0]
-        if (onFirstDayProgress?.({ step: 'restOfDay', firstLaneId: first?.id, flowVersion: 4, messageIndex: 2 }) === false) return
+        if (onFirstDayProgress?.({ step: 'restOfDay', firstLaneId: first?.id, flowVersion: 5, messageIndex: 2 }) === false) return
         setPhoneInitialScreen('loadBoard')
         setPhoneInitialDriverId('marcus')
         setPhoneLoadId(null)
         setPhoneLessonEntry((value) => value + 1)
         setIsPhoneOpen(true)
       }} />}
-      {lunchIntroActive && <FirstDayWelcome lessonMessage="Good — Marcus now has two confirmed loads. Before we shop the final load, protect a realistic lunch window around the work we already booked. Then we’ll use that lunch window as a real constraint when we choose Load 3." actionLabel="PLAN MARCUS’S LUNCH" onContinue={() => {
+      {lunchIntroActive && <FirstDayWelcome lessonMessage="Good — Marcus now has two confirmed loads in one manifest. Before the first delivery, protect a realistic lunch window around those pickups. Then we’ll use the delivery that frees trailer space, plus lunch, as real constraints when we choose Load 3." actionLabel="PLAN MARCUS’S LUNCH" onContinue={() => {
         const booked = getFirstDayBookedLanes(loads)
-        if (onFirstDayProgress?.({ step: 'lunch', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, flowVersion: 4, messageIndex: 2 }) === false) return
+        if (onFirstDayProgress?.({ step: 'lunch', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, flowVersion: 5, messageIndex: 2 }) === false) return
         setPhoneInitialScreen('agenda')
         setPhoneInitialDriverId('marcus')
         setPhoneLoadId(null)
         setIsPhoneOpen(true)
       }} />}
-      {stagingIntroActive && <FirstDayWelcome lessonMessage="That’s three confirmed loads, and lunch is protected. One planning decision remains before Marcus gets the schedule: where should the truck finish after the final delivery? Compare the yard and staging options, save the best finish position, then we’ll send Marcus the complete day." actionLabel="PLAN STAGING" onContinue={() => {
+      {stagingIntroActive && <FirstDayWelcome lessonMessage="That’s three confirmed loads in one stop sequence, and lunch is protected. One planning decision remains before Marcus gets the schedule: where should the truck finish after the final delivery? Compare the yard and staging options, save the best finish position, then we’ll send Marcus the complete manifest." actionLabel="PLAN STAGING" onContinue={() => {
         const booked = getFirstDayBookedLanes(loads)
-        if (onFirstDayProgress?.({ step: 'staging', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, thirdLaneId: booked[2]?.id, flowVersion: 4, messageIndex: 2 }) === false) return
+        if (onFirstDayProgress?.({ step: 'staging', firstLaneId: booked[0]?.id, secondLaneId: booked[1]?.id, thirdLaneId: booked[2]?.id, flowVersion: 5, messageIndex: 2 }) === false) return
         setPhoneInitialScreen('agenda')
         setPhoneInitialDriverId('marcus')
         setPhoneLoadId(null)
@@ -3276,7 +3282,7 @@ if (!currentLoad || currentLoad.status !== 'available' || !currentLoad.driverFit
       {welcomeActive && <FirstDayWelcome playerName={dispatcherProfile?.displayName} messageIndex={firstDay.messageIndex} onContinue={() => {
         const next = firstDay.messageIndex < 2
           ? { step: 'welcome', messageIndex: firstDay.messageIndex + 1 }
-          : { step: 'freight', messageIndex: 2, flowVersion: 4 }
+          : { step: 'freight', messageIndex: 2, flowVersion: 5 }
         if (onFirstDayProgress?.(next) === false) return
         if (next.step === 'freight') {
           setPhoneInitialScreen('loadBoard')

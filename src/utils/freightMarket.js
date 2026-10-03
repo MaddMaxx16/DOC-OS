@@ -61,6 +61,21 @@ function makeGeneratedLoad({ gameDayIndex, pickupAbsolute, key, postedGameMinute
   const deliveryWindowEndAbsolute = deliveryWindowStartAbsolute + 90
   const ratePerMile = 2.15 + (hashNumber(`rpm-${key}`) % 171) / 100
   const rate = Math.max(475, Math.round((listedMiles * ratePerMile + 390) / 25) * 25)
+  const freightSeed = hashNumber(`freight-${key}`)
+  const exclusiveTrailer = freightSeed % 6 === 0
+  const pallets = exclusiveTrailer ? 22 + (freightSeed % 5) : 4 + (freightSeed % 9)
+  const poundsPerPallet = 900 + (hashNumber(`weight-${key}`) % 701)
+  const freight = {
+    pallets,
+    weightLbs: pallets * poundsPerPallet,
+    equipmentType: 'dry-van',
+    equipmentLabel: "53' Dry Van",
+    trailerCapacityPallets: 26,
+    trailerMaxWeightLbs: 44000,
+    compatibilityClass: 'general',
+    loadClass: exclusiveTrailer ? 'full-truckload' : 'partial',
+    exclusiveTrailer,
+  }
   const serial = (hashNumber(`number-${key}`) % 90000) + 10000
   const pickupDayIndex = Math.floor(pickupWindowStartAbsolute / 1440)
   const deliveryDayIndex = Math.floor(deliveryWindowStartAbsolute / 1440)
@@ -82,6 +97,7 @@ function makeGeneratedLoad({ gameDayIndex, pickupAbsolute, key, postedGameMinute
     deliveryWindowEndMinutes: deliveryWindowEndAbsolute % 1440,
     rate,
     listedMiles,
+    freight,
     haulType: longHaul ? 'overnight-regional' : 'regional',
     plannedMiles: null,
     plannedDriveTimeMinutes: null,

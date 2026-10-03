@@ -3,6 +3,7 @@ import { getLocationDistanceMiles } from '../services/routingService.js'
 import { getProjectedDriverOrigin } from './driverQueue.js'
 import { getDriverTimeView, interpretDriverTimeFit } from './driverTimeInterpreter.js'
 import { getDriverScheduleWindow } from './driverScheduleConstraint.js'
+import { planDriverManifestInsertion } from './driverManifest.js'
 
 function finite(value, fallback = 0) {
   const number = Number(value)
@@ -35,18 +36,25 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
   const delivery = mapLocations.find((location) => location.id === load.deliveryLocationId)
   if (!pickup || !delivery) return null
 
-  // When evaluating a load, "existing work" must exclude the load being
-  // reviewed. Once a load is booked it becomes part of the driver's itinerary;
-  // including it here would project the driver through the load and then try to
-  // evaluate the same load again from its own completion time.
+  const manifestPlan = load?.tripPlan?.manifestPlan
+    || load?.assignmentProjection?.manifestPlan
+    || (load.status === 'available' ? planDriverManifestInsertion({
+      loads: loads.filter((item) => item.id !== load.id),
+      driver,
+      candidateLoad: { ...load, candidateDriverId: driver.id },
+      gameTime,
+      runtimePositions,
+    }) : null)
   const existingLoads = loads.filter((item) => item.id !== load.id)
   const projection = getProjectedDriverOrigin({ driver, loads: existingLoads, runtimePositions, gameTime })
-  if (!projection.location) return null
+  const manifestOrigin = mapLocations.find((location) => location.id === manifestPlan?.candidatePickup?.previousLocationId) || null
+  const planningOrigin = manifestOrigin || projection.location
+  if (!planningOrigin) return null
 
   const deadheadPlanned = Number(load?.tripPlan?.legs?.deadhead?.minutes ?? load?.plannedDeadheadDriveTimeMinutes ?? load?.assignmentProjection?.deadheadMinutes)
   const deadheadMinutes = Number.isFinite(deadheadPlanned) && deadheadPlanned >= 0
     ? deadheadPlanned
-    : fallbackTravelMinutes(projection.location, pickup, 45)
+    : fallbackTravelMinutes(planningOrigin, pickup, 45)
   const loadedMinutes = loadedDriveMinutes(load, pickup, delivery)
   if (!Number.isFinite(deadheadMinutes) || !Number.isFinite(loadedMinutes)) return null
 
@@ -80,16 +88,28 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
     ? pickupDay * 1440 + lunchEndMinute + (lunchEndMinute <= lunchStartMinute ? 1440 : 0)
     : null
 
-  let projectedStart = baseProjectedStart
+  const manifestPickupTiming = manifestPlan?.candidatePickupTiming || null
+  const manifestDeliveryTiming = manifestPlan?.candidateDeliveryTiming || null
+  let projectedStart = Number.isFinite(Number(manifestPlan?.candidatePickup?.availableAbsoluteMinute))
+    ? Number(manifestPlan.candidatePickup.availableAbsoluteMinute)
+    : baseProjectedStart
   let timing = timingFrom(projectedStart)
-  const overlapsLunch = lunchValid
+  let overlapsLunch = lunchValid
     && projectedStart < lunchEndAbsolute
     && timing.deliveryComplete > lunchStartAbsolute
 
-  // A dispatcher-protected lunch window behaves like blocked planning time.
-  // If a new commitment would overlap it, defer the commitment until lunch ends
-  // and re-evaluate the appointments/HOS from there.
-  if (overlapsLunch) {
+  if (manifestPickupTiming && manifestDeliveryTiming) {
+    const pickupComplete = Number(manifestPickupTiming.completeAbsoluteMinute)
+    timing = {
+      pickupArrival: Number(manifestPickupTiming.arrivalAbsoluteMinute),
+      pickupServiceStart: Number(manifestPickupTiming.serviceStartAbsoluteMinute),
+      pickupDepart: Number.isFinite(pickupComplete) ? pickupComplete : Number(manifestPickupTiming.serviceStartAbsoluteMinute) + pickupService,
+      deliveryArrival: Number(manifestDeliveryTiming.arrivalAbsoluteMinute),
+      deliveryServiceStart: Number(manifestDeliveryTiming.serviceStartAbsoluteMinute),
+      deliveryComplete: Number(manifestDeliveryTiming.completeAbsoluteMinute),
+    }
+    overlapsLunch = false
+  } else if (overlapsLunch) {
     projectedStart = Math.max(projectedStart, lunchEndAbsolute)
     timing = timingFrom(projectedStart)
   }
@@ -103,7 +123,16 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
     deliveryComplete,
   } = timing
 
-  const driveRequiredMinutes = deadheadMinutes + loadedMinutes
+  let driveRequiredMinutes = deadheadMinutes + loadedMinutes
+  if (Array.isArray(manifestPlan?.schedule) && manifestPickupTiming && manifestDeliveryTiming) {
+    const pickupIndex = manifestPlan.schedule.findIndex((item) => item.stopId === `${load.id}:pickup`)
+    const deliveryIndex = manifestPlan.schedule.findIndex((item) => item.stopId === `${load.id}:delivery`)
+    if (pickupIndex >= 0 && deliveryIndex >= pickupIndex) {
+      driveRequiredMinutes = manifestPlan.schedule
+        .slice(pickupIndex, deliveryIndex + 1)
+        .reduce((total, item) => total + Math.max(0, Number(item.travelMinutes || 0)), 0)
+    }
+  }
   const dutyRequiredMinutes = Math.max(0, deliveryComplete - projectedStart)
   const driverTime = getDriverTimeView(driver)
   const scheduledDutyAvailable = scheduleWindow
@@ -117,18 +146,23 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
     dutyAvailableMinutes: effectiveDutyAvailable,
   })
 
+  const manifestRisk = Boolean(manifestPlan?.violations?.length)
+  const manifestRiskReason = manifestPlan?.violations?.[0]?.type || null
+
   return {
     // Legacy fields remain during P1.1 so existing FreightLink UI keeps working.
     // New UI in P1.2/P1.3 can consume driverTimeFit/driverTimeLabel/summary.
-    label: fit.fit === 'poor' ? 'HOS RISK' : 'HOS OK',
-    tone: fit.fit === 'poor' ? 'risk' : 'good',
+    label: manifestRisk ? 'TRAILER RISK' : fit.fit === 'poor' ? 'HOS RISK' : 'HOS OK',
+    tone: manifestRisk || fit.fit === 'poor' ? 'risk' : 'good',
     driveOk: fit.driveOk,
     dutyOk: fit.dutyOk,
-    driverTimeFit: fit.fit,
-    driverTimeLabel: fit.label,
-    driverTimeTone: fit.tone,
-    driverTimeSummary: fit.summary,
-    driverTimeReasons: fit.reasons,
+    driverTimeFit: manifestRisk ? 'poor' : fit.fit,
+    driverTimeLabel: manifestRisk ? 'TRAILER CONFLICT' : fit.label,
+    driverTimeTone: manifestRisk ? 'risk' : fit.tone,
+    driverTimeSummary: manifestRisk ? 'The manifest cannot accept this freight with the current trailer state.' : fit.summary,
+    driverTimeReasons: manifestRisk ? [manifestRiskReason || 'manifest-conflict'] : fit.reasons,
+    manifestPlan,
+    manifestViolations: manifestPlan?.violations || [],
     driveMarginMinutes: fit.driveMarginMinutes,
     dutyMarginMinutes: fit.dutyMarginMinutes,
     driveRequiredMinutes,
@@ -149,7 +183,7 @@ export function getLoadHosEvaluation({ load, driver, loads = [], runtimePosition
     deliveryServiceMinutes: deliveryService,
     deadheadMiles: Number.isFinite(Number(load?.tripPlan?.legs?.deadhead?.miles ?? load?.plannedDeadheadMiles ?? load?.assignmentProjection?.deadheadMiles))
     ? Number(load?.tripPlan?.legs?.deadhead?.miles ?? load?.plannedDeadheadMiles ?? load?.assignmentProjection?.deadheadMiles)
-    : getLocationDistanceMiles(projection.location, pickup) * 1.18,
+    : getLocationDistanceMiles(planningOrigin, pickup) * 1.18,
     loadedMiles: Number.isFinite(Number(load?.listedMiles)) ? Number(load.listedMiles) : null,
     deadheadMinutes,
     loadedMinutes,
