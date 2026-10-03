@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Map as MapLibreMap, Marker, Popup, setWorkerUrl } from 'maplibre-gl'
+import { Capacitor } from '@capacitor/core'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import mapLocations from '../data/mapLocations.js'
@@ -314,7 +315,9 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
 
     const map = new MapLibreMap({
       container: mapContainer.current,
-      style: DOC_OS_PRIMARY_MAP_STYLE,
+      // Browser previews use a self-contained raster style directly. Native iOS
+      // keeps the richer OpenFreeMap style and can fall back if that provider fails.
+      style: Capacitor.getPlatform() === 'web' ? DOC_OS_FALLBACK_MAP_STYLE : DOC_OS_PRIMARY_MAP_STYLE,
       ...initialCamera,
       attributionControl: false,
       // PERF 1 — a 3x iPhone otherwise renders nine physical map pixels for
@@ -327,7 +330,7 @@ function GameMap({ initialDriverId = null, boardViewRequest = 0, driverFocusRequ
     })
     mapRef.current = map
 
-    let fallbackApplied = false
+    let fallbackApplied = Capacitor.getPlatform() === 'web'
     const activateFallbackMap = (reason = 'primary-style-error') => {
       if (fallbackApplied || !mapRef.current) return
       fallbackApplied = true

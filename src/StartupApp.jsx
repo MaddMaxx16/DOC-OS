@@ -38,6 +38,14 @@ function StartupApp() {
   const [saveFailureMessage, setSaveFailureMessage] = useState('')
 
   useEffect(() => {
+    if (Capacitor.getPlatform() !== 'web') return
+    // Desktop Experience V2 is a deliberate runtime mode on web/Steam-style
+    // builds. Load its workstation chrome explicitly instead of depending on
+    // hover/pointer media queries that vary across browsers and display setups.
+    void import('./components/DesktopWorkstation.css')
+  }, [])
+
+  useEffect(() => {
     if (Capacitor.getPlatform() !== 'ios') return
 
     Promise.allSettled([
