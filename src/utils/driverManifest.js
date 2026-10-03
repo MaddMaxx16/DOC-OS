@@ -49,20 +49,38 @@ export function isLoadOnboard(load) {
     && !TERMINAL.has(statusOf(load))
 }
 
+function stableFreightFallback(load) {
+  const value = String(load?.loadNumber || load?.id || 'freight')
+  let hash = 2166136261
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  const unsigned = hash >>> 0
+  const pallets = 4 + (unsigned % 9)
+  const poundsPerPallet = 900 + (unsigned % 701)
+  return { pallets, weightLbs: pallets * poundsPerPallet }
+}
+
 export function getLoadFreightFootprint(load) {
   const shipment = load?.shipment || {}
   const freight = load?.freight || {}
+  const fallback = stableFreightFallback(load)
   const loadedPallets = finite(shipment.loadedPallets)
   const expectedPallets = finite(shipment.expectedPallets)
   const freightPallets = finite(freight.pallets)
-  const pallets = loadedPallets ?? freightPallets ?? expectedPallets ?? 0
-  const weightLbs = finite(freight.weightLbs) ?? finite(shipment.weightLbs) ?? null
+  const explicitPallets = loadedPallets ?? freightPallets ?? expectedPallets
+  const pallets = explicitPallets ?? fallback.pallets
+  const weightLbs = finite(freight.weightLbs) ?? finite(shipment.weightLbs) ?? (explicitPallets === null ? fallback.weightLbs : null)
   return {
     pallets: Math.max(0, pallets),
     weightLbs: weightLbs === null ? null : Math.max(0, weightLbs),
     equipmentType: freight.equipmentType || load?.equipmentType || 'dry-van',
     equipmentLabel: freight.equipmentLabel || load?.equipmentLabel || "53' Dry Van",
     compatibilityClass: freight.compatibilityClass || 'general',
+    incompatibleWith: Array.isArray(freight.incompatibleWith) ? freight.incompatibleWith : [],
+    exclusiveTrailer: Boolean(freight.exclusiveTrailer || freight.loadClass === 'full-truckload'),
+    inferred: explicitPallets === null,
   }
 }
 
@@ -227,8 +245,25 @@ function simulateCapacity(stops, driver) {
   const violations = []
 
   for (const stop of stops) {
-    if (stop.type === 'pickup') onboard.set(stop.loadId, getLoadFreightFootprint(stop.load))
-    else onboard.delete(stop.loadId)
+    if (stop.type === 'pickup') {
+      const footprint = getLoadFreightFootprint(stop.load)
+      const existing = [...onboard.values()]
+      const equipmentMismatch = capacity.equipmentType && footprint.equipmentType && capacity.equipmentType !== footprint.equipmentType
+      const exclusiveConflict = footprint.exclusiveTrailer && existing.length > 0
+        || existing.some((item) => item.exclusiveTrailer)
+      const compatibilityConflict = existing.some((item) =>
+        item.incompatibleWith?.includes(footprint.compatibilityClass)
+        || footprint.incompatibleWith?.includes(item.compatibilityClass)
+      )
+      if (equipmentMismatch || exclusiveConflict || compatibilityConflict) {
+        violations.push({
+          type: equipmentMismatch ? 'equipment' : exclusiveConflict ? 'exclusive-trailer' : 'cargo-compatibility',
+          stopId: stop.id,
+          loadId: stop.loadId,
+        })
+      }
+      onboard.set(stop.loadId, footprint)
+    } else onboard.delete(stop.loadId)
 
     let palletsUsed = 0
     let weightUsedLbs = 0
